@@ -23,6 +23,7 @@ import { RedirectPage } from "./pages/RedirectPage";
 const authRoutes = [
   { path: ROUTES.LOGIN, element: <LoginPage /> },
   { path: ROUTES.SIGNUP, element: <SignupPage /> },
+  { path: ROUTES.RESUBMIT, element: <ResubmitPage /> },
 ];
 
 // Public routes (no auth required, no redirect)
@@ -66,6 +67,7 @@ const miscRoutes = [
 
 // AuthWrapper: redirect to protected base if already authenticated
 import { useAppSelector } from "../store/hooks";
+import { ResubmitPage } from "./pages/ResubmitPage";
 function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   if (isAuthenticated && user) {

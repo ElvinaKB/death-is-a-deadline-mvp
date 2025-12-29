@@ -4,6 +4,7 @@ export const ENDPOINTS = {
   SIGNUP: "/api/auth/signup",
   LOGOUT: "/api/auth/logout",
   VERIFY_EMAIL: "/api/auth/verify-email",
+  RESUBMIT_ID: "/api/auth/resubmit",
 
   // Students
   STUDENTS_LIST: "/api/students",

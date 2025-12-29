@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import ejs from "ejs";
 import path from "path";
 import { EmailType } from "./emailTypes";
+import { CustomError } from "../libs/utils/CustomError";
 
 const EMAIL_NAME = process.env.EMAIL_NAME;
 const EMAIL_MAIL = process.env.EMAIL_MAIL;
@@ -24,6 +25,7 @@ const transporter = nodemailer.createTransport({
 const templateMap: Record<EmailType, string> = {
   [EmailType.ACCOUNT_REVIEW]: "account_review.ejs",
   [EmailType.ACCOUNT_APPROVED]: "account_approved.ejs",
+  [EmailType.ACCOUNT_REJECTED]: "account_rejected.ejs",
   // Add more mappings as needed
 };
 
@@ -41,7 +43,13 @@ export async function sendEmail({
   const templateFile = templateMap[type];
   if (!templateFile) throw new Error("Unknown email type");
   const templatePath = path.join(__dirname, "templates", templateFile);
-  const html = await ejs.renderFile(templatePath, variables);
+  let html;
+  try {
+    console.log(templatePath, type, templateFile);
+    html = await ejs.renderFile(templatePath, variables);
+  } catch (err: any) {
+    throw new CustomError("Failed to read email template: " + err.message, 500);
+  }
 
   const mailOptions = {
     from: EMAIL_MAIL,

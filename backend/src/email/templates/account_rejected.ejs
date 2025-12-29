@@ -1,0 +1,75 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Account Rejected</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f9f9f9;
+        color: #222;
+      }
+      .container {
+        background: #fff;
+        padding: 32px;
+        border-radius: 8px;
+        max-width: 480px;
+        margin: 40px auto;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+      }
+      h2 {
+        color: #d32f2f;
+      }
+      .reason {
+        background: #fbe9e7;
+        color: #b71c1c;
+        padding: 12px;
+        border-radius: 4px;
+        margin: 16px 0;
+      }
+      .footer {
+        margin-top: 32px;
+        font-size: 13px;
+        color: #888;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Your Account Application Was Not Approved</h2>
+      <p>Hi <%= name %>,</p>
+      <p>
+        We regret to inform you that your student accommodation account
+        application was not approved.
+      </p>
+      <% if (rejectionReason) { %>
+      <div class="reason"><strong>Reason:</strong> <%= rejectionReason %></div>
+      <% } %>
+      <p>
+        If you believe this was a mistake or have questions, please contact our
+        support team.
+      </p>
+      <% if (loginUrl) { %>
+      <p style="margin-top: 18px">
+        <a
+          href="<%= loginUrl %>"
+          style="
+            background: #1976d2;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+          "
+          >Resubmit Your ID</a
+        >
+      </p>
+      <p style="color: #b71c1c; font-size: 14px; margin-top: 8px">
+        <em>This link will expire in 1 day.</em>
+      </p>
+      <% } %>
+      <div class="footer">
+        &copy; <%= appName %> <%= new Date().getFullYear() %>
+      </div>
+    </div>
+  </body>
+</html>

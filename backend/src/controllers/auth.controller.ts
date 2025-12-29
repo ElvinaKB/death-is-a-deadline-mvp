@@ -10,6 +10,7 @@ import {
 } from "../types/auth.types";
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
+import jwt from "jsonwebtoken";
 
 export async function signup(req: Request, res: Response, next: NextFunction) {
   const {
@@ -117,5 +118,40 @@ export async function login(req: Request, res: Response, next: NextFunction) {
         token_type: data.token_type,
       },
     },
+  });
+}
+
+export async function resubmit(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { token, studentIdUrl } = req.body;
+
+  // Decode JWT to get student_id
+  let id = "";
+  try {
+    const decodedToken = jwt.decode(token) as { id: string };
+    if (!decodedToken?.id) {
+      throw new CustomError("Invalid token", 400);
+    }
+    id = decodedToken.id;
+  } catch (err) {
+    throw new CustomError("Invalid token", 400);
+  }
+
+  // Call the Supabase function to resubmit the ID
+  const { data, error } = await supabase.rpc("resubmit_id", {
+    student_id: id,
+    student_id_url: studentIdUrl,
+  });
+
+  if (error) {
+    throw new CustomError(error.message, 400);
+  }
+
+  return res.status(200).json({
+    message: "ID resubmitted successfully",
+    data,
   });
 }
