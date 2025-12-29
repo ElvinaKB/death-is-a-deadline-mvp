@@ -1,16 +1,16 @@
 // List of common academic email domains
 const ACADEMIC_DOMAINS = [
   ".edu",
-  ".ac.uk",
-  ".edu.au",
-  ".ac.in",
-  ".edu.pk",
-  ".edu.bd",
-  ".ac.nz",
-  ".edu.sg",
-  ".ac.za",
-  ".edu.my",
-  ".fi",
+  // ".ac.uk",
+  // ".edu.au",
+  // ".ac.in",
+  // ".edu.pk",
+  // ".edu.bd",
+  // ".ac.nz",
+  // ".edu.sg",
+  // ".ac.za",
+  // ".edu.my",
+  // ".fi",
   // Add more as needed
 ];
 
