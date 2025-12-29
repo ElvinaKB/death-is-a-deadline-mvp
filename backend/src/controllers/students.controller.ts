@@ -3,6 +3,8 @@ import { supabase } from "../libs/config/supabase";
 import { CustomError } from "../libs/utils/CustomError";
 import { User } from "@supabase/supabase-js";
 import { RawUser } from "../types/auth.types";
+import { sendEmail } from "../email/sendEmail";
+import { EmailType } from "../email/emailTypes";
 
 export const getRawStudent = (item: RawUser) => ({
   id: item.id,
@@ -43,10 +45,36 @@ export async function getStudentDetail(req: Request, res: Response) {
 
 export async function approveStudent(req: Request, res: Response) {
   const { id } = req.params;
+
+  const { data, error: studentERror } = await supabase.rpc(
+    "get_student_detail",
+    {
+      student_id: id,
+    }
+  );
+  const student = getRawStudent(data);
+
+  if (studentERror) throw new CustomError(studentERror.message, 400);
+  if (!student) throw new CustomError("Student not found", 404);
+
   const { error } = await supabase.rpc("approve_student", {
     student_id: id,
   });
   if (error) throw new CustomError(error.message, 400);
+
+  console.log("Student approved:", student);
+
+  await sendEmail({
+    type: EmailType.ACCOUNT_APPROVED,
+    to: student.email ?? "",
+    subject: "Your student account has been approved!",
+    variables: {
+      name: student.name || student.email,
+      appName: process.env.EMAIL_NAME,
+      loginUrl: `${process.env.CLIENT_URL}/login`,
+    },
+  });
+
   res.status(200).json({ message: "Student approved" });
 }
 

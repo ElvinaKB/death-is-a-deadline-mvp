@@ -1,0 +1,25 @@
+<html>
+  <body>
+    <h2>Account Approved</h2>
+    <p>Hello <%= name %>,</p>
+    <p>
+      Your student account has been approved! You can now log in and start using
+      the platform.
+    </p>
+    <p>
+      <a
+        href="<%= loginUrl %>"
+        style="
+          background: #2563eb;
+          color: #fff;
+          padding: 10px 20px;
+          border-radius: 6px;
+          text-decoration: none;
+          font-weight: bold;
+        "
+        >Login Now</a
+      >
+    </p>
+    <p>Thank you,<br /><%= appName %> Team</p>
+  </body>
+</html>

@@ -8,6 +8,8 @@ import {
   SignupRequest,
   UserRole,
 } from "../types/auth.types";
+import { sendEmail } from "../email/sendEmail";
+import { EmailType } from "../email/emailTypes";
 
 export async function signup(req: Request, res: Response, next: NextFunction) {
   const {
@@ -61,6 +63,16 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
   );
   if (metaError) {
     throw new CustomError(metaError.message, 400);
+  }
+
+  // send email to user that their account is under review if status is pending
+  if (approvalStatus === ApprovalStatus.PENDING) {
+    await sendEmail({
+      type: EmailType.ACCOUNT_REVIEW,
+      to: email,
+      subject: "Your account is under review",
+      variables: { name, appName: "Student Bidding" },
+    });
   }
 
   // Return user info and session (token)
