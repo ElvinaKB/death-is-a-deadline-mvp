@@ -4,13 +4,15 @@
 create or replace function public.list_students(status text default null)
 returns setof jsonb
 language plpgsql
+SECURITY DEFINER
 as $$
 begin
   return query
-    select row_to_json(u)
+    select row_to_json(u)::jsonb
     from auth.users u
     where (status is null or u.raw_user_meta_data->>'approvalStatus' = status)
-      and u.role = 'STUDENT';
+      and u.role = 'STUDENT'
+    order by u.updated_at desc;
 end;
 $$;
 
