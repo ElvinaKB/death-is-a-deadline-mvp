@@ -76,7 +76,9 @@ export function RedirectPage() {
 
       if (user.approvalStatus !== ApprovalStatus.APPROVED) {
         resetCookies();
-        return setError("Your account is not approved.");
+        return setError(
+          "Your account is under approval by our team. You will be notified once it's approved."
+        );
       }
 
       dispatch(

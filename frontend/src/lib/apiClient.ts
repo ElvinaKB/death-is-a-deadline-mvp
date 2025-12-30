@@ -52,7 +52,7 @@ export class ApiClient {
       if ("statusCode" in error) {
         if (error.statusCode === 401) {
           // logout user
-          // removeAuthToken();
+          removeAuthToken();
         }
         throw error;
       }
