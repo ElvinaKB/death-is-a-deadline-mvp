@@ -67,7 +67,7 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
   }
 
   // send email to user that their account is under review if status is pending
-  if (approvalStatus === ApprovalStatus.PENDING) {
+  if (approvalStatus === ApprovalStatus.PENDING && !!studentIdUrl) {
     await sendEmail({
       type: EmailType.ACCOUNT_REVIEW,
       to: email,
