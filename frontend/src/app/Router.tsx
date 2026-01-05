@@ -23,6 +23,8 @@ import { RedirectPage } from "./pages/RedirectPage";
 // AuthWrapper: redirect to protected base if already authenticated
 import { useAppSelector } from "../store/hooks";
 import { ResubmitPage } from "./pages/ResubmitPage";
+import { PlaceFormPage } from "./pages/admin/PlaceFormPage";
+import { PlacesListPage } from "./pages/admin/PlacesListPage";
 
 // Auth routes (redirect to protected base if already authenticated)
 const authRoutes = [
@@ -64,6 +66,9 @@ const protectedRoutes = [
       { path: ROUTES.ADMIN_DASHBOARD, element: <AdminDashboardPage /> },
       { path: ROUTES.ADMIN_STUDENTS, element: <StudentsListPage /> },
       { path: ROUTES.ADMIN_STUDENT_DETAIL, element: <StudentDetailPage /> },
+      { path: ROUTES.ADMIN_PLACES, element: <PlacesListPage /> },
+      { path: ROUTES.ADMIN_PLACES_EDIT, element: <PlaceFormPage /> },
+      { path: ROUTES.ADMIN_PLACES_NEW, element: <PlaceFormPage /> },
     ],
   },
 ];
