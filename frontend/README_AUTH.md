@@ -1,10 +1,11 @@
-# Student Bidding Platform - Authentication Module
+# Death is a Deadline - Authentication Module
 
-This is the frontend for the Student Bidding Platform's authentication system. Built with React, TypeScript, Redux Toolkit, React Query, and Shadcn UI.
+This is the frontend for the Death is a Deadline's authentication system. Built with React, TypeScript, Redux Toolkit, React Query, and Shadcn UI.
 
 ## Features
 
 ### Current Implementation (Phase 1)
+
 - ✅ Complete authentication flow with login and signup
 - ✅ Academic email validation (.edu domains)
 - ✅ Student ID card upload for non-academic emails
@@ -92,6 +93,7 @@ src/
 ### API Endpoints Needed
 
 #### Authentication
+
 ```
 POST /api/auth/signup
 - Body: { name, email, password, confirmPassword, studentIdCard? (file) }
@@ -103,6 +105,7 @@ POST /api/auth/login
 ```
 
 #### Students (Admin Only)
+
 ```
 GET /api/students?page=1&limit=10&status=PENDING
 - Returns: { students[], total, page, limit }
@@ -122,6 +125,7 @@ POST /api/students/:id/reject
 ```
 
 ### User Model
+
 ```typescript
 {
   id: string;
@@ -139,12 +143,14 @@ POST /api/students/:id/reject
 ### Business Logic
 
 1. **Email Validation**
+
    - Check if email has academic domain (.edu, .ac.uk, etc.)
    - Verify against database of accredited institutions
    - If academic email → auto-approve
    - If not → require student ID upload → set status to PENDING
 
 2. **Authentication**
+
    - JWT tokens stored in HTTP-only cookies
    - Return user object with token on successful login
    - Check approval status before allowing login for students
@@ -172,12 +178,15 @@ npm run dev
 ## Configuration
 
 ### Routes (`src/config/routes.config.ts`)
+
 All application routes are centralized here.
 
 ### Endpoints (`src/config/endpoints.config.ts`)
+
 All API endpoints are defined here. Use `getEndpoint(endpoint, params)` for dynamic routes.
 
 ### Query Keys (`src/config/queryKeys.config.ts`)
+
 React Query keys for cache management.
 
 ## Usage Examples
@@ -194,7 +203,7 @@ const { data, isLoading } = useApiQuery<ResponseType>({
 // POST request
 const mutation = useApiMutation<ResponseType, RequestType>({
   endpoint: ENDPOINTS.LOGIN,
-  method: 'POST',
+  method: "POST",
   onSuccess: (data) => {
     // Handle success
   },
@@ -207,7 +216,7 @@ mutation.mutate(requestData);
 
 ```typescript
 const formik = useFormik({
-  initialValues: { email: '', password: '' },
+  initialValues: { email: "", password: "" },
   validationSchema: loginSchema,
   onSubmit: (values) => {
     // Handle submit
@@ -215,7 +224,7 @@ const formik = useFormik({
 });
 
 // Get field errors
-const error = getFieldError('email', formik);
+const error = getFieldError("email", formik);
 ```
 
 ### Protected Routes
@@ -229,29 +238,34 @@ const error = getFieldError('email', formik);
 ## Key Features Explained
 
 ### 1. Redux with Persistence
+
 - Auth state persists in localStorage
 - Token stored separately in cookies for security
 - Automatic rehydration on app load
 
 ### 2. Reusable React Query Hooks
+
 - `useApiQuery` - for GET requests
 - `useApiMutation` - for POST/PUT/PATCH/DELETE
 - Default error handling with toast messages
 - Centralized API client with auth token injection
 
 ### 3. Form Management
+
 - Formik for form state
 - Yup for validation schemas
 - Helper functions for error display
 - File upload support
 
 ### 4. Table Component
+
 - Built-in pagination
 - Skeleton loading states
 - Custom render functions
 - Type-safe columns
 
 ### 5. Admin Panel
+
 - Sidebar navigation
 - Profile dropdown with logout
 - Module-based routing
@@ -260,6 +274,7 @@ const error = getFieldError('email', formik);
 ## API Client
 
 The API client (`src/lib/apiClient.ts`) automatically:
+
 - Injects auth token from cookies
 - Handles errors
 - Supports FormData uploads
@@ -270,6 +285,7 @@ The API client (`src/lib/apiClient.ts`) automatically:
 Using Tailwind CSS with Shadcn UI components. Custom theme in `/src/styles/theme.css`.
 
 Color scheme:
+
 - Primary: Blue (#3b82f6)
 - Success: Green (#22c55e)
 - Warning: Yellow (#eab308)
@@ -278,21 +294,25 @@ Color scheme:
 ## Notes for Backend Team
 
 1. **Academic Email Verification**
+
    - Frontend does basic .edu check
    - Backend should verify against comprehensive institution database
    - Consider using services like Clearbit or custom database
 
 2. **File Upload**
+
    - Student ID cards sent as multipart/form-data
    - Store in cloud storage (AWS S3, Cloudinary, etc.)
    - Return public URL in response
 
 3. **Token Management**
+
    - Frontend stores in HTTP-only cookies
    - Include in Authorization header: `Bearer <token>`
    - Set expiry (recommended: 7 days)
 
 4. **CORS**
+
    - Allow credentials
    - Whitelist frontend domain
 
@@ -323,4 +343,4 @@ Color scheme:
 
 ## License
 
-Proprietary - Student Bidding Platform
+Proprietary - Death is a Deadline

@@ -55,6 +55,9 @@
 ### Hotel / Property Dashboard
 
 - Admin manually onboards hotels
+- Bids limited to 0–30 days from today's date
+- Admin-controlled pricing rules and blackout dates
+- Stripe pre-authorization only
 - Hotel dashboard allows:
   - Set minimum nightly price
   - Manage blackout dates

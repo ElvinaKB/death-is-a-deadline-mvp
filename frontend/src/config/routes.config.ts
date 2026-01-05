@@ -7,6 +7,7 @@ export const ROUTES = {
   // Student routes
   STUDENT_DASHBOARD: "/student/dashboard",
   STUDENT_MARKETPLACE: "/student/marketplace",
+  STUDENT_PLACE_DETAIL: "/student/marketplace/:id",
 
   // Hotel Owner routes
   HOTEL_DASHBOARD: "/hotel/dashboard",
@@ -15,6 +16,9 @@ export const ROUTES = {
   ADMIN_DASHBOARD: "/admin/dashboard",
   ADMIN_STUDENTS: "/admin/students",
   ADMIN_STUDENT_DETAIL: "/admin/students/:id",
+  ADMIN_PLACES: "/admin/places",
+  ADMIN_PLACES_NEW: "/admin/places/new",
+  ADMIN_PLACES_EDIT: "/admin/places/:id/edit",
 
   // Utility
   NOT_FOUND: "/404",
