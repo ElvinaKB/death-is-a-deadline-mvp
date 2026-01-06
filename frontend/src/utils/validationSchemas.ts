@@ -64,3 +64,37 @@ export const bidValidationSchema = yup.object({
     .required("Bid amount is required")
     .min(1, "Bid must be greater than 0"),
 });
+
+export const placeValidationSchema = yup.object({
+  name: yup
+    .string()
+    .required("Place name is required")
+    .min(3, "Name must be at least 3 characters"),
+  shortDescription: yup
+    .string()
+    .required("Short description is required")
+    .max(100, "Must be 100 characters or less"),
+  fullDescription: yup
+    .string()
+    .required("Full description is required")
+    .min(50, "Description must be at least 50 characters"),
+  city: yup.string().required("City is required"),
+  country: yup.string().required("Country is required"),
+  address: yup.string().required("Address is required"),
+  accommodationType: yup.string().required("Accommodation type is required"),
+  retailPrice: yup
+    .number()
+    .required("Retail price is required")
+    .min(1, "Price must be greater than 0"),
+  minimumBid: yup
+    .number()
+    .required("Minimum bid is required")
+    .min(1, "Minimum bid must be greater than 0")
+    .test(
+      "less-than-retail",
+      "Minimum bid must be less than retail price",
+      function (value) {
+        return value < this.parent.retailPrice;
+      }
+    ),
+});

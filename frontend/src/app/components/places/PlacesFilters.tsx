@@ -20,18 +20,28 @@ export interface PlacesFiltersState {
   sortBy: SortOption;
 }
 
+export interface PriceRangeData {
+  minPrice: number;
+  maxPrice: number;
+}
+
 interface PlacesFiltersProps {
   filters: PlacesFiltersState;
   setFilters: React.Dispatch<React.SetStateAction<PlacesFiltersState>>;
   resultsCount: number;
+  priceRangeData?: PriceRangeData;
 }
 
 export function PlacesFilters({
   filters,
   setFilters,
   resultsCount,
+  priceRangeData,
 }: PlacesFiltersProps) {
   const { searchQuery, selectedType, priceRange, sortBy } = filters;
+
+  const minPrice = 0;
+  const maxPrice = priceRangeData?.maxPrice ?? 1000;
 
   const updateFilter = <K extends keyof PlacesFiltersState>(
     key: K,
@@ -44,7 +54,7 @@ export function PlacesFilters({
     setFilters({
       searchQuery: "",
       selectedType: "all",
-      priceRange: [0, 200],
+      priceRange: [0, 0],
       sortBy: "price-asc",
     });
   };
@@ -58,7 +68,7 @@ export function PlacesFilters({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search by place name or city..."
+              placeholder="Search by place name, city, or country..."
               value={searchQuery}
               onChange={(e) => updateFilter("searchQuery", e.target.value)}
               className="pl-9"
@@ -112,13 +122,14 @@ export function PlacesFilters({
       {/* Price Range */}
       <div>
         <label className="text-sm font-medium mb-2 block">
-          Price Range: ${priceRange[0]} - ${priceRange[1]} per night
+          Price Range: ${priceRange[0] || minPrice} - $
+          {priceRange[1] || maxPrice} per night
         </label>
         <Slider
-          min={0}
-          max={200}
+          min={minPrice}
+          max={maxPrice}
           step={5}
-          value={priceRange}
+          value={[priceRange[0] || minPrice, priceRange[1] || maxPrice]}
           onValueChange={(v) => updateFilter("priceRange", v)}
           className="mt-2"
         />

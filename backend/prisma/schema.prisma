@@ -7,3 +7,50 @@ datasource db {
   url      = env("SUPABASE_CONNECTION_STRING")
 }
 
+// Enums
+enum AccommodationType {
+  POD_SHARE
+  HOSTEL
+  SHARED_APARTMENT
+  PRIVATE_ROOM
+}
+
+enum PlaceStatus {
+  DRAFT
+  LIVE
+  PAUSED
+}
+
+// Place model
+model Place {
+  id                    String            @id @default(uuid())
+  name                  String
+  shortDescription      String            @db.VarChar(150)
+  fullDescription       String            @db.Text
+  city                  String
+  country               String
+  address               String
+  accommodationType     AccommodationType
+  retailPrice           Float
+  minimumBid            Float
+  autoAcceptAboveMinimum Boolean          @default(true)
+  blackoutDates         String[]          @default([])
+  status                PlaceStatus       @default(DRAFT)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  images                PlaceImage[]
+
+  @@map("places")
+}
+
+// Place Image model
+model PlaceImage {
+  id       String @id @default(uuid())
+  url      String
+  order    Int    @default(0)
+  placeId  String
+  place    Place  @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@map("place_images")
+}

@@ -1,94 +1,61 @@
 import { MapPin } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ROUTES, getRoute } from "../../../config/routes.config";
-import { usePlaces } from "../../../hooks/usePlaces";
+import { ENDPOINTS } from "../../../config/endpoints.config";
+import { QUERY_KEYS } from "../../../config/queryKeys.config";
+import { getRoute, ROUTES } from "../../../config/routes.config";
+import { useApiQuery } from "../../../hooks/useApi";
 import {
   ACCOMMODATION_TYPE_LABELS,
-  PlaceStatus,
+  PlacesResponse,
 } from "../../../types/place.types";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
-import { Badge } from "../../components/ui/badge";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
 import {
   PlacesFilters,
   PlacesFiltersState,
-  SortOption,
+  PriceRangeData,
 } from "../../components/places/PlacesFilters";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent } from "../../components/ui/card";
+import { useDebounce } from "../../../hooks/useDebounce";
 
 export function PlacesListPage() {
   const navigate = useNavigate();
-  const { data: allPlaces, isLoading } = usePlaces();
 
   const [filters, setFilters] = useState<PlacesFiltersState>({
     searchQuery: "",
     selectedType: "all",
-    priceRange: [0, 200],
+    priceRange: [0, 0],
     sortBy: "price-asc",
   });
 
-  const { searchQuery, selectedType, priceRange, sortBy } = filters;
+  const searchDebounced = useDebounce(filters.searchQuery, 300);
+  const rangeDebounced = useDebounce(JSON.stringify(filters.priceRange), 300);
+  const isRange =
+    JSON.parse(rangeDebounced)[0] !== 0 || JSON.parse(rangeDebounced)[1] !== 0;
 
-  // Filter only LIVE places
-  const livePlaces = useMemo(() => {
-    return (
-      allPlaces?.filter((place) => place.status === PlaceStatus.LIVE) || []
-    );
-  }, [allPlaces]);
+  // Fetch price range for filters
+  const { data: priceRangeData } = useApiQuery<PriceRangeData>({
+    queryKey: [QUERY_KEYS.PLACES, "price-range"],
+    endpoint: ENDPOINTS.PLACES_PRICE_RANGE,
+  });
 
-  // Apply filters and sorting
-  const filteredPlaces = useMemo(() => {
-    let filtered = livePlaces;
+  const params = {
+    searchQuery: searchDebounced,
+    selectedType: filters.selectedType,
+    priceRange: isRange ? rangeDebounced : undefined,
+    sortBy: filters.sortBy,
+  };
+  const { data, isLoading } = useApiQuery<PlacesResponse>({
+    queryKey: [QUERY_KEYS.PLACES, "public", params],
+    endpoint: ENDPOINTS.PLACES_PUBLIC,
+    params,
+  });
+  const places = data?.places ?? [];
 
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (place) =>
-          place.name.toLowerCase().includes(query) ||
-          place.city.toLowerCase().includes(query)
-      );
-    }
-
-    // Type filter
-    if (selectedType && selectedType !== "all") {
-      filtered = filtered.filter(
-        (place) => place.accommodationType === selectedType
-      );
-    }
-
-    // Price filter
-    filtered = filtered.filter(
-      (place) =>
-        place.retailPrice >= priceRange[0] && place.retailPrice <= priceRange[1]
-    );
-
-    // Sort
-    filtered.sort((a, b) => {
-      if (sortBy === "price-asc") {
-        return a.retailPrice - b.retailPrice;
-      } else {
-        return b.retailPrice - a.retailPrice;
-      }
-    });
-
-    return filtered;
-  }, [livePlaces, searchQuery, selectedType, priceRange, sortBy]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <SkeletonLoader key={i} className="h-80" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // No need to filter on frontend anymore - backend handles it
+  const filteredPlaces = places;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -98,10 +65,17 @@ export function PlacesListPage() {
           filters={filters}
           setFilters={setFilters}
           resultsCount={filteredPlaces.length}
+          priceRangeData={priceRangeData}
         />
 
         {/* Places Grid */}
-        {filteredPlaces.length === 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <SkeletonLoader key={i} className="h-80" />
+            ))}
+          </div>
+        ) : filteredPlaces.length === 0 ? (
           <div className="text-center py-16">
             <MapPin className="mx-auto h-16 w-16 text-gray-300 mb-4" />
             <h3 className="text-lg font-medium mb-2">No places found</h3>

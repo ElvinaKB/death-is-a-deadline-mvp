@@ -46,8 +46,9 @@ import { bidValidationSchema } from "../../../utils/validationSchemas";
 export function PlaceDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { data: place, isLoading } = usePlace(id || "");
+  const { data, isLoading } = usePlace(id || "");
   const createBid = useCreateBid();
+  const place = data?.place;
 
   const [bidResult, setBidResult] = useState<{
     status: BidStatus;

@@ -5,18 +5,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../ui/table';
-import { Button } from '../ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { SkeletonLoader } from './SkeletonLoader';
-import { TableProps } from '../../../types/api.types';
+} from "../ui/table";
+import { Button } from "../ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { SkeletonLoader } from "./SkeletonLoader";
+import { TableProps } from "../../../types/api.types";
 
-export function DataTable<T extends Record<string, unknown>>({
+export function DataTable<T extends object>({
   columns,
   data,
   loading = false,
   pagination,
-  emptyMessage = 'No data available',
+  emptyMessage = "No data available",
 }: TableProps<T>) {
   if (loading) {
     return <SkeletonLoader type="table" count={5} />;
@@ -48,7 +48,7 @@ export function DataTable<T extends Record<string, unknown>>({
                   <TableCell key={colIdx}>
                     {column.render
                       ? column.render(row)
-                      : String(row[column.field as keyof T] || '-')}
+                      : String(row[column.field as keyof T] || "-")}
                   </TableCell>
                 ))}
               </TableRow>
@@ -60,13 +60,16 @@ export function DataTable<T extends Record<string, unknown>>({
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Page {pagination.currentPage} of {pagination.totalPages} • Total: {pagination.totalItems} items
+            Page {pagination.currentPage} of {pagination.totalPages} • Total:{" "}
+            {pagination.totalItems} items
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
+              onClick={() =>
+                pagination.onPageChange(pagination.currentPage - 1)
+              }
               disabled={pagination.currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -75,7 +78,9 @@ export function DataTable<T extends Record<string, unknown>>({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
+              onClick={() =>
+                pagination.onPageChange(pagination.currentPage + 1)
+              }
               disabled={pagination.currentPage === pagination.totalPages}
             >
               Next

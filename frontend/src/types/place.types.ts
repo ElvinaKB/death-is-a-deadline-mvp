@@ -62,3 +62,30 @@ export const ACCOMMODATION_TYPE_LABELS: Record<AccommodationType, string> = {
   [AccommodationType.SHARED_APARTMENT]: "Shared Apartment",
   [AccommodationType.PRIVATE_ROOM]: "Private Room",
 };
+
+export interface PlaceResponse {
+  place: Place;
+}
+
+export interface PlacesResponse {
+  places: Place[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface CreatePlacePayload {
+  name: string;
+  shortDescription: string;
+  fullDescription: string;
+  city: string;
+  country: string;
+  address: string;
+  images: { url: string; order: number }[];
+  accommodationType: string;
+  retailPrice: number;
+  minimumBid: number;
+  autoAcceptAboveMinimum: boolean;
+  blackoutDates: string[];
+  status: PlaceStatus;
+}

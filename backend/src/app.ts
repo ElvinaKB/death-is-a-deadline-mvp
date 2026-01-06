@@ -8,6 +8,7 @@ import morgan from "morgan";
 import { errorHandler } from "./libs/middlewares/errorHandler";
 import { router as authRouter } from "./routers/auth.router";
 import { router as studentsRouter } from "./routers/students.router";
+import { router as placesRouter } from "./routers/places.router";
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.get("/", (req, res) => {
 // Routers
 app.use("/api/auth", authRouter);
 app.use("/api/students", studentsRouter);
+app.use("/api/places", placesRouter);
 
 // Fallback error handler
 app.use(errorHandler);

@@ -1,35 +1,26 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Place,
-  CreatePlaceRequest,
-  UpdatePlaceRequest,
-  PlaceStatus,
-} from "../types/place.types";
-import { MockDataService } from "../services/mockData";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ENDPOINTS, getEndpoint } from "../config/endpoints.config";
+import { QUERY_KEYS } from "../config/queryKeys.config";
+import { useApiMutation, useApiQuery } from "./useApi";
+import {
+  CreatePlacePayload,
+  CreatePlaceRequest,
+  PlaceResponse,
+  PlaceStatus,
+  UpdatePlaceRequest,
+} from "../types/place.types";
+import { apiClient } from "../lib/apiClient";
 
-// Mock API delay
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export const usePlaces = () => {
-  return useQuery({
-    queryKey: ["places"],
-    queryFn: async () => {
-      await delay(300);
-      return MockDataService.getPlaces();
-    },
-  });
-};
+// Transform frontend request to backend format (File[] -> {url, order}[])
+type CreatePlaceInput = CreatePlaceRequest & { imageUrls?: string[] };
+type UpdatePlaceStatusInput = { id: string; status: PlaceStatus };
+type UpdatePlaceInput = UpdatePlaceRequest & { imageUrls?: string[] };
 
 export const usePlace = (id: string) => {
-  return useQuery({
-    queryKey: ["place", id],
-    queryFn: async () => {
-      await delay(300);
-      const place = MockDataService.getPlaceById(id);
-      if (!place) throw new Error("Place not found");
-      return place;
-    },
+  return useApiQuery<PlaceResponse>({
+    queryKey: QUERY_KEYS.PLACE(id),
+    endpoint: ENDPOINTS.PLACE_DETAIL.replace(":id", id),
     enabled: !!id,
   });
 };
@@ -37,30 +28,33 @@ export const usePlace = (id: string) => {
 export const useCreatePlace = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async (data: CreatePlaceRequest) => {
-      await delay(500);
-
-      // Convert Files to mock image URLs
-      const images = data.images.map((_, index) => ({
-        id: `img-${Date.now()}-${index}`,
-        url: `https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&sig=${Date.now()}-${index}`,
-        order: index,
-      }));
-
-      const placeData = {
-        ...data,
-        images,
+  return useApiMutation<PlaceResponse, CreatePlaceInput>({
+    endpoint: ENDPOINTS.PLACE_CREATE,
+    method: "POST",
+    transformVariables: (data) => {
+      const payload: CreatePlacePayload = {
+        name: data.name,
+        shortDescription: data.shortDescription,
+        fullDescription: data.fullDescription,
+        city: data.city,
+        country: data.country,
+        address: data.address,
+        accommodationType: data.accommodationType,
+        retailPrice: data.retailPrice,
+        minimumBid: data.minimumBid,
+        autoAcceptAboveMinimum: data.autoAcceptAboveMinimum,
+        blackoutDates: data.blackoutDates,
+        status: data.status,
+        images: (data.imageUrls || []).map((url, index) => ({
+          url,
+          order: index,
+        })),
       };
-
-      return MockDataService.createPlace(placeData);
+      return payload;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["places"] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLACES });
       toast.success("Place created successfully");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to create place");
     },
   });
 };
@@ -68,32 +62,28 @@ export const useCreatePlace = () => {
 export const useUpdatePlace = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async (data: UpdatePlaceRequest) => {
-      await delay(500);
+  return useApiMutation<PlaceResponse, UpdatePlaceInput>({
+    endpoint: (data) => getEndpoint(ENDPOINTS.PLACE_UPDATE, { id: data.id }),
+    method: "PUT",
+    transformVariables: (data) => {
+      const { id, images, ...rest } = data;
+      const payload: Partial<CreatePlacePayload> = { ...rest };
 
-      const updates: Partial<Place> = { ...data };
-
-      // Handle image uploads if present
-      if (data.images && data.images.length > 0) {
-        updates.images = data.images.map((_, index) => ({
-          id: `img-${Date.now()}-${index}`,
-          url: `https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&sig=${Date.now()}-${index}`,
+      // If new images are provided (already uploaded to Supabase)
+      if (data.imageUrls && data.imageUrls.length > 0) {
+        payload.images = data.imageUrls.map((url, index) => ({
+          url,
           order: index,
         }));
       }
-
-      const result = MockDataService.updatePlace(data.id, updates);
-      if (!result) throw new Error("Failed to update place");
-      return result;
+      return payload;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["places"] });
-      queryClient.invalidateQueries({ queryKey: ["place", variables.id] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLACES });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.PLACE(variables.id),
+      });
       toast.success("Place updated successfully");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to update place");
     },
   });
 };
@@ -101,19 +91,26 @@ export const useUpdatePlace = () => {
 export const useUpdatePlaceStatus = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: PlaceStatus }) => {
-      await delay(300);
-      const result = MockDataService.updatePlace(id, { status });
-      if (!result) throw new Error("Failed to update status");
-      return result;
-    },
+  return useApiMutation<PlaceResponse, UpdatePlaceStatusInput>({
+    endpoint: (data) => getEndpoint(ENDPOINTS.PLACE_STATUS, { id: data.id }),
+    method: "PATCH",
+    transformVariables: (data) => ({ status: data.status }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["places"] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLACES });
       toast.success("Status updated successfully");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to update status");
+  });
+};
+
+export const useDeletePlace = () => {
+  const queryClient = useQueryClient();
+
+  return useApiMutation<void, string>({
+    endpoint: (id) => getEndpoint(ENDPOINTS.PLACE_DELETE, { id }),
+    method: "DELETE",
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLACES });
+      toast.success("Place deleted successfully");
     },
   });
 };

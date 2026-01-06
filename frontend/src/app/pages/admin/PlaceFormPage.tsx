@@ -49,47 +49,57 @@ import { format } from "date-fns";
 import { ROUTES } from "../../../config/routes.config";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
 import { cn } from "../../components/ui/utils";
+import { placeValidationSchema } from "../../../utils/validationSchemas";
+import { supabase } from "../../../utils/supabaseClient";
+import { toast } from "sonner";
+import { SUPABASE_BUCKET } from "../../../lib/constants";
 
-const validationSchema = Yup.object({
-  name: Yup.string()
-    .required("Place name is required")
-    .min(3, "Name must be at least 3 characters"),
-  shortDescription: Yup.string()
-    .required("Short description is required")
-    .max(100, "Must be 100 characters or less"),
-  fullDescription: Yup.string()
-    .required("Full description is required")
-    .min(50, "Description must be at least 50 characters"),
-  city: Yup.string().required("City is required"),
-  country: Yup.string().required("Country is required"),
-  address: Yup.string().required("Address is required"),
-  accommodationType: Yup.string().required("Accommodation type is required"),
-  retailPrice: Yup.number()
-    .required("Retail price is required")
-    .min(1, "Price must be greater than 0"),
-  minimumBid: Yup.number()
-    .required("Minimum bid is required")
-    .min(1, "Minimum bid must be greater than 0")
-    .test(
-      "less-than-retail",
-      "Minimum bid must be less than retail price",
-      function (value) {
-        return value < this.parent.retailPrice;
-      }
-    ),
-});
+// Upload images to Supabase and return URLs
+const uploadImagesToSupabase = async (files: File[]): Promise<string[]> => {
+  const urls: string[] = [];
+
+  for (const file of files) {
+    const ext = file.name.split(".").pop();
+    const fileName = `place_${Date.now()}_${Math.random()
+      .toString(36)
+      .substring(7)}.${ext}`;
+
+    const { data, error } = await supabase.storage
+      .from(SUPABASE_BUCKET)
+      .upload(`places/${fileName}`, file);
+
+    if (error) {
+      console.error("Error uploading image:", error);
+      toast.error(`Failed to upload ${file.name}`);
+      continue;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from(SUPABASE_BUCKET)
+      .getPublicUrl(`places/${fileName}`);
+
+    if (publicUrlData?.publicUrl) {
+      urls.push(publicUrlData.publicUrl);
+    }
+  }
+
+  return urls;
+};
 
 export function PlaceFormPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
 
-  const { data: existingPlace, isLoading: isLoadingPlace } = usePlace(id || "");
+  const { data, isLoading: isLoadingPlace } = usePlace(id || "");
   const createPlace = useCreatePlace();
   const updatePlace = useUpdatePlace();
+  const existingPlace = data?.place;
 
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   const [blackoutDates, setBlackoutDates] = useState<Date[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const formik = useFormik({
     initialValues: {
@@ -106,20 +116,48 @@ export function PlaceFormPage() {
       autoAcceptAboveMinimum: true,
       status: PlaceStatus.DRAFT,
     },
-    validationSchema,
+    validationSchema: placeValidationSchema,
     onSubmit: async (values) => {
-      const data = {
-        ...values,
-        blackoutDates: blackoutDates.map((d) => d.toISOString().split("T")[0]),
-      };
+      try {
+        setIsUploading(true);
 
-      if (isEditMode && id) {
-        await updatePlace.mutateAsync({ ...data, id });
-      } else {
-        await createPlace.mutateAsync(data);
+        // Upload new images to Supabase first
+        let imageUrls: string[] = [];
+
+        if (values.images.length > 0) {
+          imageUrls = await uploadImagesToSupabase(values.images);
+        }
+
+        // Combine existing URLs (for edit mode) with new uploads
+        const allImageUrls = [...existingImageUrls, ...imageUrls];
+
+        if (allImageUrls.length === 0) {
+          toast.error("At least one image is required");
+          setIsUploading(false);
+          return;
+        }
+
+        const data = {
+          ...values,
+          blackoutDates: blackoutDates.map(
+            (d) => d.toISOString().split("T")[0]
+          ),
+          imageUrls: allImageUrls,
+        };
+
+        if (isEditMode && id) {
+          await updatePlace.mutateAsync({ ...data, id });
+        } else {
+          await createPlace.mutateAsync(data);
+        }
+
+        navigate(ROUTES.ADMIN_PLACES);
+      } catch (error) {
+        console.error("Error submitting form:", error);
+        toast.error("Failed to save place");
+      } finally {
+        setIsUploading(false);
       }
-
-      navigate(ROUTES.ADMIN_PLACES);
     },
   });
 
@@ -141,7 +179,9 @@ export function PlaceFormPage() {
         status: existingPlace.status,
       });
 
-      setImagePreviews(existingPlace.images.map((img) => img.url));
+      const existingUrls = existingPlace.images.map((img) => img.url);
+      setExistingImageUrls(existingUrls);
+      setImagePreviews(existingUrls);
       setBlackoutDates(existingPlace.blackoutDates.map((d) => new Date(d)));
     }
   }, [existingPlace, isEditMode]);
@@ -161,9 +201,19 @@ export function PlaceFormPage() {
   };
 
   const removeImage = (index: number) => {
-    const newImages = [...formik.values.images];
-    newImages.splice(index, 1);
-    formik.setFieldValue("images", newImages);
+    // Check if this is an existing image URL or a new file
+    if (index < existingImageUrls.length) {
+      // Remove from existing URLs
+      const newExistingUrls = [...existingImageUrls];
+      newExistingUrls.splice(index, 1);
+      setExistingImageUrls(newExistingUrls);
+    } else {
+      // Remove from new files
+      const fileIndex = index - existingImageUrls.length;
+      const newImages = [...formik.values.images];
+      newImages.splice(fileIndex, 1);
+      formik.setFieldValue("images", newImages);
+    }
 
     const newPreviews = [...imagePreviews];
     newPreviews.splice(index, 1);
@@ -565,10 +615,14 @@ export function PlaceFormPage() {
           </Button>
           <Button
             type="submit"
-            disabled={createPlace.isPending || updatePlace.isPending}
+            disabled={
+              createPlace.isPending || updatePlace.isPending || isUploading
+            }
           >
             <Save className="mr-2 h-4 w-4" />
-            {createPlace.isPending || updatePlace.isPending
+            {isUploading
+              ? "Uploading images..."
+              : createPlace.isPending || updatePlace.isPending
               ? "Saving..."
               : isEditMode
               ? "Update Place"

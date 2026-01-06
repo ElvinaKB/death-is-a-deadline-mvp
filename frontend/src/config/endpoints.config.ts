@@ -14,6 +14,16 @@ export const ENDPOINTS = {
   STUDENT_UPLOAD_ID: "/api/students/upload-id",
   STUDENTS_STATS: "/api/students/stats",
 
+  // Places
+  PLACES_LIST: "/api/places",
+  PLACES_PUBLIC: "/api/places/public",
+  PLACES_PRICE_RANGE: "/api/places/public/price-range",
+  PLACE_DETAIL: "/api/places/:id",
+  PLACE_CREATE: "/api/places",
+  PLACE_UPDATE: "/api/places/:id",
+  PLACE_STATUS: "/api/places/:id/status",
+  PLACE_DELETE: "/api/places/:id",
+
   // Profile
   PROFILE: "/api/profile",
   UPDATE_PROFILE: "/api/profile/update",
