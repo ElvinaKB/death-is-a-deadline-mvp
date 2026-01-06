@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "../components/ui/avatar";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, ShoppingBag, Store } from "lucide-react";
 import { cn } from "../components/ui/utils";
 import { ROUTES } from "../../config/routes.config";
 import { useNavigate } from "react-router-dom";
@@ -42,15 +42,33 @@ export function StudentLayout() {
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <Link to={ROUTES.STUDENT_MARKETPLACE}>
-              <h1 className="text-2xl font-bold text-blue-600">
-                Death is a Deadline
-              </h1>
-            </Link>
-            <p className="text-sm text-muted-foreground">
-              Welcome, {user?.name}
-            </p>
+          <div className="flex items-center gap-8">
+            <div>
+              <Link to={ROUTES.STUDENT_MARKETPLACE}>
+                <h1 className="text-2xl font-bold text-blue-600">
+                  Death is a Deadline
+                </h1>
+              </Link>
+              <p className="text-sm text-muted-foreground">
+                Welcome, {user?.name}
+              </p>
+            </div>
+            <nav className="flex items-center gap-4">
+              <Link
+                to={ROUTES.STUDENT_MARKETPLACE}
+                className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+              >
+                <Store className="w-4 h-4" />
+                Marketplace
+              </Link>
+              <Link
+                to={ROUTES.STUDENT_MY_BIDS}
+                className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                My Bids
+              </Link>
+            </nav>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -33,6 +33,19 @@ const formatBid = (bid: any) => ({
         images: bid.place.images || [],
       }
     : undefined,
+  payment: bid.payment
+    ? {
+        id: bid.payment.id,
+        status: bid.payment.status,
+        amount: Number(bid.payment.amount),
+        currency: bid.payment.currency,
+        authorizedAt: bid.payment.authorizedAt,
+        capturedAt: bid.payment.capturedAt,
+        cancelledAt: bid.payment.cancelledAt,
+        failedAt: bid.payment.failedAt,
+        expiresAt: bid.payment.expiresAt,
+      }
+    : undefined,
 });
 
 // Create a new bid (student only)
@@ -156,6 +169,7 @@ export async function getBidForPlace(req: Request, res: Response) {
       place: {
         include: { images: { orderBy: { order: "asc" }, take: 1 } },
       },
+      payment: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -190,6 +204,7 @@ export async function getMyBids(req: Request, res: Response) {
         place: {
           include: { images: { orderBy: { order: "asc" }, take: 1 } },
         },
+        payment: true,
       },
       orderBy: { createdAt: "desc" },
       skip,

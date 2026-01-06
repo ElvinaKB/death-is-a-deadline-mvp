@@ -58,12 +58,46 @@ model Bid {
   updatedAt       DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   place           Place      @relation(fields: [placeId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users           users      @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  payment         Payment?
 
   @@index([createdAt(sort: Desc)], map: "idx_bids_created_at")
   @@index([placeId], map: "idx_bids_place_id")
   @@index([status], map: "idx_bids_status")
   @@index([studentId], map: "idx_bids_student_id")
   @@map("bids")
+  @@schema("public")
+}
+
+model Payment {
+  id                    String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bidId                 String         @unique @map("bid_id") @db.Uuid
+  studentId             String         @map("student_id") @db.Uuid
+  amount                Decimal        @db.Decimal(10, 2)
+  currency              String         @default("usd") @db.VarChar(3)
+  stripePaymentIntentId String?        @unique @map("stripe_payment_intent_id") @db.VarChar(255)
+  stripeCustomerId      String?        @map("stripe_customer_id") @db.VarChar(255)
+  stripePaymentMethodId String?        @map("stripe_payment_method_id") @db.VarChar(255)
+  stripeClientSecret    String?        @map("stripe_client_secret") @db.VarChar(255)
+  status                payment_status @default(PENDING)
+  authorizedAt          DateTime?      @map("authorized_at") @db.Timestamptz(6)
+  capturedAt            DateTime?      @map("captured_at") @db.Timestamptz(6)
+  cancelledAt           DateTime?      @map("cancelled_at") @db.Timestamptz(6)
+  failedAt              DateTime?      @map("failed_at") @db.Timestamptz(6)
+  expiresAt             DateTime?      @map("expires_at") @db.Timestamptz(6)
+  failureReason         String?        @map("failure_reason")
+  adminNotes            String?        @map("admin_notes")
+  metadata              Json?          @default("{}")
+  createdAt             DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  bid                   Bid            @relation(fields: [bidId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  student               users          @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([bidId], map: "idx_payments_bid_id")
+  @@index([studentId], map: "idx_payments_student_id")
+  @@index([status], map: "idx_payments_status")
+  @@index([stripePaymentIntentId], map: "idx_payments_stripe_payment_intent_id")
+  @@index([createdAt(sort: Desc)], map: "idx_payments_created_at")
+  @@map("payments")
   @@schema("public")
 }
 
@@ -464,6 +498,7 @@ model users {
   one_time_tokens             one_time_tokens[]
   sessions                    sessions[]
   bids                        Bid[]
+  payments                    Payment[]
 
   @@index([instance_id])
   @@index([is_anonymous])
@@ -561,6 +596,18 @@ enum bid_status {
   PENDING
   ACCEPTED
   REJECTED
+
+  @@schema("public")
+}
+
+enum payment_status {
+  PENDING
+  REQUIRES_ACTION
+  AUTHORIZED
+  CAPTURED
+  CANCELLED
+  FAILED
+  EXPIRED
 
   @@schema("public")
 }

@@ -8,6 +8,8 @@ export const ROUTES = {
   STUDENT_DASHBOARD: "/student/dashboard",
   STUDENT_MARKETPLACE: "/student/marketplace",
   STUDENT_PLACE_DETAIL: "/student/marketplace/:id",
+  STUDENT_MY_BIDS: "/student/my-bids",
+  STUDENT_CHECKOUT: "/student/checkout/:bidId",
 
   // Hotel Owner routes
   HOTEL_DASHBOARD: "/hotel/dashboard",

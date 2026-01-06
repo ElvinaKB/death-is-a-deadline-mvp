@@ -12,6 +12,18 @@ export interface BidPlace {
   images: { id: string; url: string }[];
 }
 
+export interface BidPayment {
+  id: string;
+  status: string;
+  amount: number;
+  currency: string;
+  authorizedAt?: string;
+  capturedAt?: string;
+  cancelledAt?: string;
+  failedAt?: string;
+  expiresAt?: string;
+}
+
 export interface Bid {
   id: string;
   placeId: string;
@@ -26,6 +38,7 @@ export interface Bid {
   createdAt: string;
   updatedAt: string;
   place?: BidPlace;
+  payment?: BidPayment;
 }
 
 export interface CreateBidRequest {

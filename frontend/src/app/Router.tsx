@@ -10,6 +10,8 @@ import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
 import { PlacesListPage as StudentPlacesListPage } from "./pages/student/PlacesListPage";
 import { PlaceDetailPage as StudentPlacesDetailPage } from "./pages/student/PlacesDetailPage";
+import { MyBidsPage } from "./pages/student/MyBidsPage";
+import { CheckoutPage } from "./pages/student/CheckoutPage";
 import { HotelDashboardPage } from "./pages/HotelDashboardPage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { StudentsListPage } from "./pages/admin/StudentsListPage";
@@ -42,7 +44,7 @@ const publicRoutes = [
 // Protected routes (require auth, role-based)
 const protectedRoutes = [
   {
-    path: ROUTES.STUDENT_MARKETPLACE,
+    path: "/student",
     allowedRoles: [UserRole.STUDENT],
     element: <StudentLayout />,
     children: [
@@ -51,6 +53,8 @@ const protectedRoutes = [
         path: ROUTES.STUDENT_PLACE_DETAIL,
         element: <StudentPlacesDetailPage />,
       },
+      { path: ROUTES.STUDENT_MY_BIDS, element: <MyBidsPage /> },
+      { path: ROUTES.STUDENT_CHECKOUT, element: <CheckoutPage /> },
     ],
   },
   {

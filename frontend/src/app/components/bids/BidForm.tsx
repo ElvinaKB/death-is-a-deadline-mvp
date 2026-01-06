@@ -2,12 +2,15 @@ import { addDays, differenceInDays, format, isAfter, isBefore } from "date-fns";
 import { useFormik } from "formik";
 import {
   Calendar as CalendarIcon,
+  CheckCircle,
   CircleCheck,
   CircleX,
   Clock,
+  CreditCard,
+  XCircle,
 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useBidForPlace, useCreateBid } from "../../../hooks/useBids";
 import { Bid, BidStatus, CreateBidRequest } from "../../../types/bid.types";
@@ -27,6 +30,8 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
+import { Badge } from "../ui/badge";
+import { PaymentStatus } from "../../../types/payment.types";
 
 interface BidFormProps {
   place: Place;
@@ -38,6 +43,7 @@ interface BidResultState {
   message?: string;
   totalAmount?: number;
   totalNights?: number;
+  bidId?: string;
 }
 
 export function BidForm({ place, placeId }: BidFormProps) {
@@ -74,6 +80,7 @@ export function BidForm({ place, placeId }: BidFormProps) {
           message: result.message,
           totalAmount: result.bid.totalAmount,
           totalNights: result.bid.totalNights,
+          bidId: result.bid.id,
         });
       } catch (error) {
         console.error("Bid submission error:", error);
@@ -296,6 +303,61 @@ export function BidForm({ place, placeId }: BidFormProps) {
 // Component for displaying existing bid
 function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
   const navigate = useNavigate();
+  const payment = bid.payment;
+  const paymentStatus = payment?.status;
+
+  // Payment status configuration
+  const paymentStatusConfig: Record<
+    string,
+    { color: string; label: string; icon: React.ElementType }
+  > = {
+    PENDING: {
+      color: "bg-yellow-100 text-yellow-800",
+      label: "Payment Pending",
+      icon: Clock,
+    },
+    REQUIRES_ACTION: {
+      color: "bg-orange-100 text-orange-800",
+      label: "Action Required",
+      icon: Clock,
+    },
+    AUTHORIZED: {
+      color: "bg-blue-100 text-blue-800",
+      label: "Payment Authorized",
+      icon: CheckCircle,
+    },
+    CAPTURED: {
+      color: "bg-green-100 text-green-800",
+      label: "Payment Complete",
+      icon: CheckCircle,
+    },
+    CANCELLED: {
+      color: "bg-gray-100 text-gray-800",
+      label: "Payment Cancelled",
+      icon: XCircle,
+    },
+    FAILED: {
+      color: "bg-red-100 text-red-800",
+      label: "Payment Failed",
+      icon: XCircle,
+    },
+    EXPIRED: {
+      color: "bg-gray-100 text-gray-800",
+      label: "Authorization Expired",
+      icon: Clock,
+    },
+  };
+
+  // Determine checkout eligibility
+  const canCheckout =
+    bid.status === BidStatus.ACCEPTED &&
+    (!payment ||
+      paymentStatus === PaymentStatus.PENDING ||
+      paymentStatus === PaymentStatus.FAILED ||
+      paymentStatus === PaymentStatus.EXPIRED);
+  const isPaymentAuthorized = paymentStatus === PaymentStatus.AUTHORIZED;
+  const isPaymentCaptured = paymentStatus === PaymentStatus.CAPTURED;
+  const isPaymentCancelled = paymentStatus === PaymentStatus.CANCELLED;
 
   const statusConfig = {
     [BidStatus.PENDING]: {
@@ -329,6 +391,9 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
 
   const config = statusConfig[bid.status];
   const Icon = config.icon;
+  const paymentConfig = paymentStatus
+    ? paymentStatusConfig[paymentStatus]
+    : null;
 
   return (
     <Card className={cn("sticky top-24", config.borderColor)}>
@@ -344,7 +409,17 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
         <h3 className={cn("text-xl font-bold mb-2", config.titleColor)}>
           {config.title}
         </h3>
-        <p className="text-sm text-gray-600 mb-6">{config.description}</p>
+        <p className="text-sm text-gray-600 mb-4">{config.description}</p>
+
+        {/* Payment Status Badge */}
+        {paymentConfig && (
+          <div className="mb-4">
+            <Badge className={cn("text-sm py-1 px-3", paymentConfig.color)}>
+              <paymentConfig.icon className="w-3 h-3 mr-1" />
+              {paymentConfig.label}
+            </Badge>
+          </div>
+        )}
 
         <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left space-y-2">
           <div className="flex justify-between text-sm">
@@ -373,9 +448,39 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
           </div>
         </div>
 
-        {bid.status === BidStatus.ACCEPTED && (
-          <Button className="w-full mb-3">Proceed to Checkout</Button>
+        {/* Payment Actions */}
+        {canCheckout && (
+          <Button asChild className="w-full mb-3">
+            <Link to={ROUTES.STUDENT_CHECKOUT.replace(":bidId", bid.id)}>
+              <CreditCard className="w-4 h-4 mr-2" />
+              {paymentStatus === "FAILED" || paymentStatus === "EXPIRED"
+                ? "Retry Payment"
+                : "Proceed to Checkout"}
+            </Link>
+          </Button>
         )}
+
+        {isPaymentAuthorized && (
+          <div className="flex items-center justify-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-md mb-3">
+            <CheckCircle className="w-4 h-4" />
+            <span>Payment authorized - awaiting confirmation</span>
+          </div>
+        )}
+
+        {isPaymentCaptured && (
+          <div className="flex items-center justify-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-md mb-3">
+            <CheckCircle className="w-4 h-4" />
+            <span>Payment complete - booking confirmed!</span>
+          </div>
+        )}
+
+        {isPaymentCancelled && (
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded-md mb-3">
+            <XCircle className="w-4 h-4" />
+            <span>Payment was cancelled</span>
+          </div>
+        )}
+
         <Button
           variant="outline"
           className="w-full"
@@ -445,7 +550,16 @@ function BidResultCard({
             </div>
           </div>
 
-          <Button className="w-full mb-3">Proceed to Checkout</Button>
+          {bidResult.bidId && (
+            <Button asChild className="w-full mb-3">
+              <Link
+                to={ROUTES.STUDENT_CHECKOUT.replace(":bidId", bidResult.bidId)}
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Proceed to Checkout
+              </Link>
+            </Button>
+          )}
           <Button
             variant="outline"
             className="w-full"

@@ -32,6 +32,15 @@ export const ENDPOINTS = {
   BIDS_LIST: "/api/bids",
   BID_STATUS: "/api/bids/:id/status",
 
+  // Payments
+  PAYMENT_CREATE_INTENT: "/api/payments/create-intent",
+  PAYMENT_FOR_BID: "/api/payments/bid/:bidId",
+  PAYMENT_CONFIRM: "/api/payments/:id/confirm",
+  PAYMENTS_LIST: "/api/payments",
+  PAYMENT_DETAIL: "/api/payments/:id",
+  PAYMENT_CAPTURE: "/api/payments/:id/capture",
+  PAYMENT_CANCEL: "/api/payments/:id/cancel",
+
   // Profile
   PROFILE: "/api/profile",
   UPDATE_PROFILE: "/api/profile/update",

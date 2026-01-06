@@ -23,6 +23,7 @@
     "morgan": "^1.10.0",
     "nodemailer": "^7.0.12",
     "pino-pretty": "^10.3.0",
+    "stripe": "^20.1.0",
     "zod": "^3.22.2"
   },
   "devDependencies": {
