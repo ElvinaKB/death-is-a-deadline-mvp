@@ -24,6 +24,14 @@ export const ENDPOINTS = {
   PLACE_STATUS: "/api/places/:id/status",
   PLACE_DELETE: "/api/places/:id",
 
+  // Bids
+  BIDS_CREATE: "/api/bids",
+  BIDS_MY: "/api/bids/my",
+  BID_FOR_PLACE: "/api/bids/place/:placeId",
+  BID_DETAIL: "/api/bids/:id",
+  BIDS_LIST: "/api/bids",
+  BID_STATUS: "/api/bids/:id/status",
+
   // Profile
   PROFILE: "/api/profile",
   UPDATE_PROFILE: "/api/profile/update",

@@ -9,6 +9,7 @@ import { errorHandler } from "./libs/middlewares/errorHandler";
 import { router as authRouter } from "./routers/auth.router";
 import { router as studentsRouter } from "./routers/students.router";
 import { router as placesRouter } from "./routers/places.router";
+import { router as bidsRouter } from "./routers/bids.router";
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/students", studentsRouter);
 app.use("/api/places", placesRouter);
+app.use("/api/bids", bidsRouter);
 
 // Fallback error handler
 app.use(errorHandler);

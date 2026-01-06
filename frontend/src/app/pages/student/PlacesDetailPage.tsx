@@ -1,27 +1,9 @@
-import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useFormik } from "formik";
 import { usePlace } from "../../../hooks/usePlaces";
-import { useCreateBid } from "../../../hooks/useBids";
 import { ACCOMMODATION_TYPE_LABELS } from "../../../types/place.types";
-import { BidStatus } from "../../../types/bid.types";
 import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
+import { Card, CardContent } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
-import { Calendar } from "../../components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../../components/ui/popover";
 import {
   Carousel,
   CarouselContent,
@@ -29,104 +11,17 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "../../components/ui/carousel";
-import {
-  ArrowLeft,
-  MapPin,
-  Calendar as CalendarIcon,
-  CircleCheck,
-  CircleX,
-  Info,
-} from "lucide-react";
-import { format, differenceInDays, addDays, isAfter, isBefore } from "date-fns";
+import { MapPin, Info } from "lucide-react";
+import { format } from "date-fns";
 import { ROUTES } from "../../../config/routes.config";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
-import { cn } from "../../components/ui/utils";
-import { bidValidationSchema } from "../../../utils/validationSchemas";
+import { BidForm } from "../../components/bids/BidForm";
 
 export function PlaceDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { data, isLoading } = usePlace(id || "");
-  const createBid = useCreateBid();
   const place = data?.place;
-
-  const [bidResult, setBidResult] = useState<{
-    status: BidStatus;
-    message?: string;
-    totalAmount?: number;
-    totalNights?: number;
-  } | null>(null);
-
-  // Date restrictions: today to 30 days from today
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const maxDate = addDays(today, 30);
-
-  const formik = useFormik({
-    initialValues: {
-      checkInDate: undefined as Date | undefined,
-      checkOutDate: undefined as Date | undefined,
-      bidPerNight: "",
-    },
-    validationSchema: bidValidationSchema,
-    onSubmit: async (values) => {
-      if (!place || !id) return;
-
-      try {
-        const result = await createBid.mutateAsync({
-          placeId: id,
-          checkInDate: values.checkInDate!.toISOString(),
-          checkOutDate: values.checkOutDate!.toISOString(),
-          bidPerNight: Number(values.bidPerNight),
-        });
-
-        setBidResult({
-          status: result.status,
-          message: result.message,
-          totalAmount: result.bid.totalAmount,
-          totalNights: result.bid.totalNights,
-        });
-      } catch (error) {
-        console.error("Bid submission error:", error);
-      }
-    },
-  });
-
-  const isDateBlocked = (date: Date) => {
-    // Check if date is outside allowed range
-    if (isBefore(date, today) || isAfter(date, maxDate)) {
-      return true;
-    }
-
-    // Check if date is in blackout dates
-    if (place?.blackoutDates) {
-      const dateStr = date.toISOString().split("T")[0];
-      return place.blackoutDates.includes(dateStr);
-    }
-
-    return false;
-  };
-
-  const calculateTotalNights = () => {
-    if (formik.values.checkInDate && formik.values.checkOutDate) {
-      return differenceInDays(
-        formik.values.checkOutDate,
-        formik.values.checkInDate
-      );
-    }
-    return 0;
-  };
-
-  const calculateTotalAmount = () => {
-    const nights = calculateTotalNights();
-    const bidAmount = Number(formik.values.bidPerNight) || 0;
-    return nights * bidAmount;
-  };
-
-  const handleTryAgain = () => {
-    setBidResult(null);
-    formik.resetForm();
-  };
 
   if (isLoading) {
     return (
@@ -139,7 +34,7 @@ export function PlaceDetailPage() {
     );
   }
 
-  if (!place) {
+  if (!place || !id) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -256,273 +151,7 @@ export function PlaceDetailPage() {
 
           {/* Bid Section */}
           <div className="lg:col-span-1">
-            {!bidResult ? (
-              <Card className="sticky top-24">
-                <CardHeader>
-                  <CardTitle>Submit Your Bid</CardTitle>
-                  <CardDescription>
-                    Bids allowed for dates within the next 30 days
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={formik.handleSubmit} className="space-y-4">
-                    {/* Check-in Date */}
-                    <div>
-                      <Label>Check-in Date *</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !formik.values.checkInDate &&
-                                "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {formik.values.checkInDate
-                              ? format(formik.values.checkInDate, "PPP")
-                              : "Select date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={formik.values.checkInDate}
-                            onSelect={(date) =>
-                              formik.setFieldValue("checkInDate", date)
-                            }
-                            disabled={isDateBlocked}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      {formik.touched.checkInDate &&
-                        formik.errors.checkInDate && (
-                          <p className="text-sm text-red-500 mt-1">
-                            {formik.errors.checkInDate}
-                          </p>
-                        )}
-                    </div>
-
-                    {/* Check-out Date */}
-                    <div>
-                      <Label>Check-out Date *</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !formik.values.checkOutDate &&
-                                "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {formik.values.checkOutDate
-                              ? format(formik.values.checkOutDate, "PPP")
-                              : "Select date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={formik.values.checkOutDate}
-                            onSelect={(date) =>
-                              formik.setFieldValue("checkOutDate", date)
-                            }
-                            disabled={isDateBlocked}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      {formik.touched.checkOutDate &&
-                        formik.errors.checkOutDate && (
-                          <p className="text-sm text-red-500 mt-1">
-                            {formik.errors.checkOutDate}
-                          </p>
-                        )}
-                    </div>
-
-                    {/* Bid Per Night */}
-                    <div>
-                      <Label htmlFor="bidPerNight">Bid Per Night ($) *</Label>
-                      <Input
-                        id="bidPerNight"
-                        type="number"
-                        placeholder="Enter your bid"
-                        min="1"
-                        step="0.01"
-                        {...formik.getFieldProps("bidPerNight")}
-                      />
-                      {formik.touched.bidPerNight &&
-                        formik.errors.bidPerNight && (
-                          <p className="text-sm text-red-500 mt-1">
-                            {formik.errors.bidPerNight}
-                          </p>
-                        )}
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Minimum bid: ${place.minimumBid}/night
-                      </p>
-                    </div>
-
-                    {/* Summary */}
-                    {calculateTotalNights() > 0 &&
-                      formik.values.bidPerNight && (
-                        <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>Total Nights:</span>
-                            <span className="font-medium">
-                              {calculateTotalNights()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>Bid Per Night:</span>
-                            <span className="font-medium">
-                              ${formik.values.bidPerNight}
-                            </span>
-                          </div>
-                          <div className="flex justify-between pt-2 border-t">
-                            <span className="font-semibold">Total Amount:</span>
-                            <span className="font-bold text-lg">
-                              ${calculateTotalAmount().toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                    {place.autoAcceptAboveMinimum && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                        <p className="text-sm text-green-800">
-                          ✓ Bids at or above ${place.minimumBid}/night are
-                          auto-accepted
-                        </p>
-                      </div>
-                    )}
-
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={createBid.isPending}
-                    >
-                      {createBid.isPending ? "Submitting..." : "Submit Bid"}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card
-                className={cn(
-                  "sticky top-24",
-                  bidResult.status === BidStatus.ACCEPTED
-                    ? "border-green-500"
-                    : "border-gray-300"
-                )}
-              >
-                <CardContent className="p-6 text-center">
-                  {bidResult.status === BidStatus.ACCEPTED ? (
-                    <>
-                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <CircleCheck className="h-10 w-10 text-green-600" />
-                      </div>
-                      <h3 className="text-xl font-bold text-green-900 mb-2">
-                        Bid Accepted!
-                      </h3>
-                      <p className="text-sm text-green-700 mb-6">
-                        {bidResult.message}
-                      </p>
-
-                      <div className="bg-green-50 rounded-lg p-4 mb-6 text-left space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Check-in:</span>
-                          <span className="font-medium">
-                            {formik.values.checkInDate &&
-                              format(formik.values.checkInDate, "MMM dd, yyyy")}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Check-out:</span>
-                          <span className="font-medium">
-                            {formik.values.checkOutDate &&
-                              format(
-                                formik.values.checkOutDate,
-                                "MMM dd, yyyy"
-                              )}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Total Nights:</span>
-                          <span className="font-medium">
-                            {bidResult.totalNights}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Bid Per Night:</span>
-                          <span className="font-medium">
-                            ${formik.values.bidPerNight}
-                          </span>
-                        </div>
-                        <div className="flex justify-between pt-2 border-t border-green-200">
-                          <span className="font-semibold">Total Amount:</span>
-                          <span className="font-bold">
-                            ${bidResult.totalAmount?.toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <Button className="w-full mb-3">
-                        Proceed to Checkout
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => navigate(ROUTES.STUDENT_MARKETPLACE)}
-                      >
-                        Back to Places
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <CircleX className="h-10 w-10 text-gray-600" />
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">
-                        Bid Not Accepted
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-6">
-                        {bidResult.message}
-                      </p>
-
-                      <div className="bg-blue-50 rounded-lg p-4 mb-6 text-left">
-                        <p className="font-medium text-sm text-blue-900 mb-2">
-                          Suggestions:
-                        </p>
-                        <ul className="text-sm text-blue-800 space-y-1">
-                          <li>
-                            • Increase your bid amount (min: ${place.minimumBid}
-                            /night)
-                          </li>
-                          <li>• Try different dates</li>
-                          <li>
-                            • Consider the retail price: ${place.retailPrice}
-                            /night
-                          </li>
-                        </ul>
-                      </div>
-
-                      <Button className="w-full mb-3" onClick={handleTryAgain}>
-                        Try Again
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => navigate(ROUTES.STUDENT_MARKETPLACE)}
-                      >
-                        Browse Other Places
-                      </Button>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+            <BidForm place={place} placeId={id} />
           </div>
         </div>
       </div>
