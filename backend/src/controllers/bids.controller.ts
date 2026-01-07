@@ -277,6 +277,14 @@ export async function listBids(req: Request, res: Response) {
         place: {
           include: { images: { orderBy: { order: "asc" }, take: 1 } },
         },
+        payment: true,
+        users: {
+          select: {
+            id: true,
+            email: true,
+            raw_user_meta_data: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
       skip,
@@ -287,7 +295,16 @@ export async function listBids(req: Request, res: Response) {
 
   res.status(200).json({
     data: {
-      bids: bids.map(formatBid),
+      bids: bids.map((bid: any) => ({
+        ...formatBid(bid),
+        student: bid.users
+          ? {
+              id: bid.users.id,
+              name: (bid.users.raw_user_meta_data as any)?.name || "N/A",
+              email: bid.users.email,
+            }
+          : undefined,
+      })),
       total,
       page,
       limit,
