@@ -14,6 +14,33 @@ export const ENDPOINTS = {
   STUDENT_UPLOAD_ID: "/api/students/upload-id",
   STUDENTS_STATS: "/api/students/stats",
 
+  // Places
+  PLACES_LIST: "/api/places",
+  PLACES_PUBLIC: "/api/places/public",
+  PLACES_PRICE_RANGE: "/api/places/public/price-range",
+  PLACE_DETAIL: "/api/places/:id",
+  PLACE_CREATE: "/api/places",
+  PLACE_UPDATE: "/api/places/:id",
+  PLACE_STATUS: "/api/places/:id/status",
+  PLACE_DELETE: "/api/places/:id",
+
+  // Bids
+  BIDS_CREATE: "/api/bids",
+  BIDS_MY: "/api/bids/my",
+  BID_FOR_PLACE: "/api/bids/place/:placeId",
+  BID_DETAIL: "/api/bids/:id",
+  BIDS_LIST: "/api/bids",
+  BID_STATUS: "/api/bids/:id/status",
+
+  // Payments
+  PAYMENT_CREATE_INTENT: "/api/payments/create-intent",
+  PAYMENT_FOR_BID: "/api/payments/bid/:bidId",
+  PAYMENT_CONFIRM: "/api/payments/:id/confirm",
+  PAYMENTS_LIST: "/api/payments",
+  PAYMENT_DETAIL: "/api/payments/:id",
+  PAYMENT_CAPTURE: "/api/payments/:id/capture",
+  PAYMENT_CANCEL: "/api/payments/:id/cancel",
+
   // Profile
   PROFILE: "/api/profile",
   UPDATE_PROFILE: "/api/profile/update",

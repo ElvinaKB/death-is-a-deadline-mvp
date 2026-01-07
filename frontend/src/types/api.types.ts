@@ -15,7 +15,7 @@ export interface PaginationParams {
   page?: number;
   limit?: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface TableColumn<T = unknown> {
@@ -25,7 +25,7 @@ export interface TableColumn<T = unknown> {
   sortable?: boolean;
 }
 
-export interface TableProps<T = unknown> {
+export interface TableProps<T = object> {
   columns: TableColumn<T>[];
   data: T[];
   loading?: boolean;

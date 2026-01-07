@@ -8,7 +8,10 @@ import { StudentLayout } from "./layouts/StudentLayout";
 // Pages
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
-import { StudentMarketplacePage } from "./pages/StudentMarketplacePage";
+import { PlacesListPage as StudentPlacesListPage } from "./pages/student/PlacesListPage";
+import { PlaceDetailPage as StudentPlacesDetailPage } from "./pages/student/PlacesDetailPage";
+import { MyBidsPage } from "./pages/student/MyBidsPage";
+import { CheckoutPage } from "./pages/student/CheckoutPage";
 import { HotelDashboardPage } from "./pages/HotelDashboardPage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { StudentsListPage } from "./pages/admin/StudentsListPage";
@@ -18,6 +21,12 @@ import { UnauthorizedPage } from "./pages/UnauthorizedPage";
 // Components
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { RedirectPage } from "./pages/RedirectPage";
+
+// AuthWrapper: redirect to protected base if already authenticated
+import { useAppSelector } from "../store/hooks";
+import { ResubmitPage } from "./pages/ResubmitPage";
+import { PlaceFormPage } from "./pages/admin/PlaceFormPage";
+import { PlacesListPage } from "./pages/admin/PlacesListPage";
 
 // Auth routes (redirect to protected base if already authenticated)
 const authRoutes = [
@@ -39,7 +48,13 @@ const protectedRoutes = [
     allowedRoles: [UserRole.STUDENT],
     element: <StudentLayout />,
     children: [
-      { path: ROUTES.STUDENT_MARKETPLACE, element: <StudentMarketplacePage /> },
+      { path: ROUTES.STUDENT_MARKETPLACE, element: <StudentPlacesListPage /> },
+      {
+        path: ROUTES.STUDENT_PLACE_DETAIL,
+        element: <StudentPlacesDetailPage />,
+      },
+      { path: ROUTES.STUDENT_MY_BIDS, element: <MyBidsPage /> },
+      { path: ROUTES.STUDENT_CHECKOUT, element: <CheckoutPage /> },
     ],
   },
   {
@@ -52,9 +67,12 @@ const protectedRoutes = [
     allowedRoles: [UserRole.ADMIN],
     element: <AdminLayout />,
     children: [
-      { path: "dashboard", element: <AdminDashboardPage /> },
-      { path: "students", element: <StudentsListPage /> },
-      { path: "students/:id", element: <StudentDetailPage /> },
+      { path: ROUTES.ADMIN_DASHBOARD, element: <AdminDashboardPage /> },
+      { path: ROUTES.ADMIN_STUDENTS, element: <StudentsListPage /> },
+      { path: ROUTES.ADMIN_STUDENT_DETAIL, element: <StudentDetailPage /> },
+      { path: ROUTES.ADMIN_PLACES, element: <PlacesListPage /> },
+      { path: ROUTES.ADMIN_PLACES_EDIT, element: <PlaceFormPage /> },
+      { path: ROUTES.ADMIN_PLACES_NEW, element: <PlaceFormPage /> },
     ],
   },
 ];
@@ -65,9 +83,6 @@ const miscRoutes = [
   { path: "*", element: <NotFoundPage /> },
 ];
 
-// AuthWrapper: redirect to protected base if already authenticated
-import { useAppSelector } from "../store/hooks";
-import { ResubmitPage } from "./pages/ResubmitPage";
 function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   if (isAuthenticated && user) {

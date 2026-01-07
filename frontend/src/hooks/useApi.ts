@@ -17,9 +17,10 @@ interface UseApiQueryOptions<TData>
 
 interface UseApiMutationOptions<TData, TVariables>
   extends Omit<UseMutationOptions<TData, ApiError, TVariables>, "mutationFn"> {
-  endpoint: string;
+  endpoint: string | ((variables: TVariables) => string);
   method?: "POST" | "PUT" | "PATCH" | "DELETE";
   showErrorToast?: boolean;
+  transformVariables?: (variables: TVariables) => unknown;
 }
 
 export function useApiQuery<TData = unknown>(
@@ -27,12 +28,15 @@ export function useApiQuery<TData = unknown>(
 ) {
   const { queryKey, endpoint, params, ...restOptions } = options;
 
+  // remove undefined values from params
+  const filteredParams = Object.fromEntries(
+    Object.entries(params ?? {}).filter(([_, v]) => v !== undefined)
+  );
+  const queryString = new URLSearchParams(filteredParams).toString();
+
   return useQuery<TData, ApiError>({
     queryKey,
-    queryFn: () =>
-      apiClient.get<TData>(
-        `${endpoint}?${new URLSearchParams(params).toString()}`
-      ),
+    queryFn: () => apiClient.get<TData>(`${endpoint}?${queryString}`),
     ...restOptions,
   });
 }
@@ -44,30 +48,45 @@ export function useApiMutation<TData = unknown, TVariables = unknown>(
     endpoint,
     method = "POST",
     showErrorToast = true,
+    transformVariables,
     onError,
     ...restOptions
   } = options;
 
   return useMutation<TData, ApiError, TVariables>({
     mutationFn: async (variables) => {
+      const resolvedEndpoint =
+        typeof endpoint === "function" ? endpoint(variables) : endpoint;
+      const payload = transformVariables
+        ? transformVariables(variables)
+        : variables;
+
       switch (method) {
         case "POST":
-          return apiClient.post<TData>(endpoint, variables);
+          return apiClient.post<TData>(resolvedEndpoint, payload);
         case "PUT":
-          return apiClient.put<TData>(endpoint, variables);
+          return apiClient.put<TData>(resolvedEndpoint, payload);
         case "PATCH":
-          return apiClient.patch<TData>(endpoint, variables);
+          return apiClient.patch<TData>(resolvedEndpoint, payload);
         case "DELETE":
-          return apiClient.delete<TData>(endpoint);
+          return apiClient.delete<TData>(resolvedEndpoint);
         default:
           throw new Error(`Unsupported method: ${method}`);
       }
     },
-    onError: (error, variables, onMutateResult, context) => {
+    onError: (error, variables, context) => {
       if (showErrorToast) {
         toast.error(error?.message || "An error occurred");
       }
-      onError?.(error, variables, onMutateResult, context);
+      if (onError) {
+        (
+          onError as (
+            error: ApiError,
+            variables: TVariables,
+            context: unknown
+          ) => void
+        )(error, variables, context);
+      }
     },
     ...restOptions,
   });
