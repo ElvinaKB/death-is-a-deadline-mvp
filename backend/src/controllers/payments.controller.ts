@@ -242,6 +242,7 @@ export async function handlePaymentWebhook(req: Request, res: Response) {
           stripePaymentMethodId: paymentIntent.payment_method,
         },
       });
+      console.log("Payment status updated to: CAPTURED");
       break;
 
     case "payment_intent.payment_failed":
@@ -255,6 +256,7 @@ export async function handlePaymentWebhook(req: Request, res: Response) {
             paymentIntent.last_payment_error?.message || "Payment failed",
         },
       });
+      console.log("Payment status updated to: FAILED");
       break;
 
     case "payment_intent.canceled":
@@ -266,6 +268,7 @@ export async function handlePaymentWebhook(req: Request, res: Response) {
           cancelledAt: new Date(),
         },
       });
+      console.log("Payment status updated to: CANCELLED");
       break;
 
     case "payment_intent.succeeded":
@@ -277,6 +280,7 @@ export async function handlePaymentWebhook(req: Request, res: Response) {
           capturedAt: new Date(),
         },
       });
+      console.log("Payment status updated to: CAPTURED");
       break;
   }
 

@@ -15,6 +15,14 @@ import { router as paymentsRouter } from "./routers/payments.router";
 const app = express();
 
 app.use(cors());
+
+// Stripe webhook needs raw body - must be BEFORE express.json()
+app.use(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json" })
+);
+
+// JSON parser for all other routes
 app.use(express.json());
 app.use(morgan("dev"));
 

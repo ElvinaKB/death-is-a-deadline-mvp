@@ -20,17 +20,12 @@ import {
   capturePayment,
   cancelPayment,
 } from "../controllers/payments.controller";
-import express from "express";
 
 const router = Router();
 
-// ============ WEBHOOK ROUTE (must be before other middleware) ============
-// Stripe webhook needs raw body, so we use express.raw() middleware
-router.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
-  handlePaymentWebhook
-);
+// ============ WEBHOOK ROUTE ============
+// Raw body parsing is handled in app.ts before express.json()
+router.post("/webhook", handlePaymentWebhook);
 
 // ============ STUDENT ROUTES ============
 
