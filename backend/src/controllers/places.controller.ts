@@ -289,7 +289,7 @@ export async function deletePlace(req: Request, res: Response) {
 // Get price range of LIVE places (for filters)
 export async function getPriceRange(req: Request, res: Response) {
   const result = await prisma.place.aggregate({
-    where: { status: "LIVE" },
+    where: { status: PlaceStatus.LIVE },
     _min: { retailPrice: true },
     _max: { retailPrice: true },
   });

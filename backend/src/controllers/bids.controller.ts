@@ -9,6 +9,7 @@ import {
   ListBidsQuery,
   MyBidsQuery,
 } from "../validations/bids/bids.validation";
+import { UserRole } from "../types/auth.types";
 
 // Helper to format bid response
 const formatBid = (bid: any) => ({
@@ -100,7 +101,7 @@ export async function createBid(req: Request, res: Response) {
     where: {
       placeId: data.placeId,
       studentId,
-      status: "PENDING",
+      status: bid_status.PENDING,
       OR: [
         {
           // New dates overlap with existing dates
@@ -243,7 +244,7 @@ export async function getBid(req: Request, res: Response) {
   }
 
   // Students can only view their own bids
-  if (userRole === "STUDENT" && bid.studentId !== userId) {
+  if (userRole === UserRole.STUDENT && bid.studentId !== userId) {
     throw new CustomError("You can only view your own bids", 403);
   }
 
