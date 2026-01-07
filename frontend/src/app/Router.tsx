@@ -27,6 +27,7 @@ import { useAppSelector } from "../store/hooks";
 import { ResubmitPage } from "./pages/ResubmitPage";
 import { PlaceFormPage } from "./pages/admin/PlaceFormPage";
 import { PlacesListPage } from "./pages/admin/PlacesListPage";
+import { BidsListPage } from "./pages/admin/BidsListPage";
 
 // Auth routes (redirect to protected base if already authenticated)
 const authRoutes = [
@@ -73,6 +74,7 @@ const protectedRoutes = [
       { path: ROUTES.ADMIN_PLACES, element: <PlacesListPage /> },
       { path: ROUTES.ADMIN_PLACES_EDIT, element: <PlaceFormPage /> },
       { path: ROUTES.ADMIN_PLACES_NEW, element: <PlaceFormPage /> },
+      { path: ROUTES.ADMIN_BIDS, element: <BidsListPage /> },
     ],
   },
 ];

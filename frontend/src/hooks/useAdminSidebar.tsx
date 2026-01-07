@@ -1,4 +1,4 @@
-import { Users, LayoutDashboard, LucideIcon, MapPin } from "lucide-react";
+import { Users, LayoutDashboard, LucideIcon, MapPin, Gavel } from "lucide-react";
 import { ROUTES } from "../config/routes.config";
 
 export interface SidebarItem {
@@ -23,6 +23,11 @@ export function useAdminSidebar(): SidebarItem[] {
       title: "Places",
       path: ROUTES.ADMIN_PLACES,
       icon: MapPin,
+    },
+    {
+      title: "Bids",
+      path: ROUTES.ADMIN_BIDS,
+      icon: Gavel,
     },
     // Add more modules here as needed
   ];

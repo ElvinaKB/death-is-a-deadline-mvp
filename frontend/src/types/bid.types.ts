@@ -24,6 +24,12 @@ export interface BidPayment {
   expiresAt?: string;
 }
 
+export interface BidStudent {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export interface Bid {
   id: string;
   placeId: string;
@@ -39,6 +45,7 @@ export interface Bid {
   updatedAt: string;
   place?: BidPlace;
   payment?: BidPayment;
+  student?: BidStudent;
 }
 
 export interface CreateBidRequest {

@@ -21,6 +21,7 @@ export const ROUTES = {
   ADMIN_PLACES: "/admin/places",
   ADMIN_PLACES_NEW: "/admin/places/new",
   ADMIN_PLACES_EDIT: "/admin/places/:id/edit",
+  ADMIN_BIDS: "/admin/bids",
 
   // Utility
   NOT_FOUND: "/404",
