@@ -2,9 +2,17 @@ import { Link } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useAppSelector } from "../../../store/hooks";
 import { UserRole } from "../../../types/auth.types";
-import { Button } from "../ui/button";
+import { SearchBar } from "./SearchBar";
 
-export function HomeHeader() {
+interface HomeHeaderProps {
+  showSearchBar?: boolean;
+  onSearch?: () => void;
+}
+
+export function HomeHeader({
+  showSearchBar = false,
+  onSearch,
+}: HomeHeaderProps) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
   const getDashboardRoute = () => {
@@ -23,7 +31,7 @@ export function HomeHeader() {
     <header className="bg-white border-b sticky top-0 z-50">
       <div className="flex items-center justify-between px-4 py-3">
         {/* Logo */}
-        <Link to={ROUTES.HOME} className="flex items-center gap-2">
+        <Link to={ROUTES.HOME} className="flex items-center gap-2 shrink-0">
           <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
             <span className="text-2xl">🦍</span>
           </div>
@@ -37,8 +45,17 @@ export function HomeHeader() {
           </div>
         </Link>
 
+        {/* Search Bar - Centered */}
+        {showSearchBar && (
+          <div className="flex-1 flex justify-center px-4">
+            <div className="w-full max-w-2xl">
+              <SearchBar onSearch={onSearch} />
+            </div>
+          </div>
+        )}
+
         {/* Auth Links */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 shrink-0">
           {isAuthenticated && user ? (
             <>
               <Link

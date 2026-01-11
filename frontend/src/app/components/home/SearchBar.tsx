@@ -4,48 +4,47 @@ import { format } from "date-fns";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar as CalendarComponent } from "../ui/calendar";
-
-type DateOption = "tonight" | "tomorrow" | "custom";
+import { useAppDispatch, useAppSelector } from "../../../store/hooks";
+import {
+  setSearchQuery,
+  setMaxBid,
+  setSelectedDate,
+  setDateOption,
+} from "../../../store/slices/searchSlice";
 
 interface SearchBarProps {
-  searchQuery: string;
-  onSearchChange: (value: string) => void;
-  maxBid: string;
-  onMaxBidChange: (value: string) => void;
-  selectedDate: Date | undefined;
-  onDateChange: (date: Date | undefined) => void;
-  onSearch: () => void;
+  onSearch?: () => void;
 }
 
-export function SearchBar({
-  searchQuery,
-  onSearchChange,
-  maxBid,
-  onMaxBidChange,
-  selectedDate,
-  onDateChange,
-  onSearch,
-}: SearchBarProps) {
-  const [dateOption, setDateOption] = useState<DateOption>("tonight");
+export function SearchBar({ onSearch }: SearchBarProps) {
+  const dispatch = useAppDispatch();
+  const { searchQuery, maxBid, selectedDate, dateOption } = useAppSelector(
+    (state) => state.search
+  );
+
   const [isDateOpen, setIsDateOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
 
+  const parsedDate = selectedDate ? new Date(selectedDate) : undefined;
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && onSearch) {
       onSearch();
     }
   };
 
-  const handleDateOptionSelect = (option: DateOption) => {
-    setDateOption(option);
+  const handleDateOptionSelect = (
+    option: "tonight" | "tomorrow" | "custom"
+  ) => {
+    dispatch(setDateOption(option));
     if (option === "tonight") {
-      onDateChange(new Date());
+      dispatch(setSelectedDate(new Date().toISOString()));
       setIsDateOpen(false);
       setShowCalendar(false);
     } else if (option === "tomorrow") {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      onDateChange(tomorrow);
+      dispatch(setSelectedDate(tomorrow.toISOString()));
       setIsDateOpen(false);
       setShowCalendar(false);
     } else {
@@ -54,7 +53,7 @@ export function SearchBar({
   };
 
   const handleCustomDateSelect = (date: Date | undefined) => {
-    onDateChange(date);
+    dispatch(setSelectedDate(date ? date.toISOString() : null));
     if (date) {
       setIsDateOpen(false);
       setShowCalendar(false);
@@ -64,7 +63,7 @@ export function SearchBar({
   const getDateLabel = () => {
     if (dateOption === "tonight") return "Tonight";
     if (dateOption === "tomorrow") return "Tomorrow";
-    if (selectedDate) return format(selectedDate, "MMM d");
+    if (parsedDate) return format(parsedDate, "MMM d");
     return "Select date";
   };
 
@@ -77,7 +76,7 @@ export function SearchBar({
           type="text"
           placeholder="Los Angeles"
           value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={(e) => dispatch(setSearchQuery(e.target.value))}
           onKeyDown={handleKeyDown}
           className="w-full bg-transparent border-0 outline-none text-sm text-gray-900 placeholder:text-gray-400"
         />
@@ -135,7 +134,7 @@ export function SearchBar({
               </button>
               <CalendarComponent
                 mode="single"
-                selected={selectedDate}
+                selected={parsedDate}
                 onSelect={handleCustomDateSelect}
                 disabled={(date) => date < new Date()}
                 initialFocus
@@ -155,7 +154,7 @@ export function SearchBar({
           type="number"
           placeholder="Max Bid"
           value={maxBid}
-          onChange={(e) => onMaxBidChange(e.target.value)}
+          onChange={(e) => dispatch(setMaxBid(e.target.value))}
           onKeyDown={handleKeyDown}
           className="w-20 bg-transparent border-0 outline-none text-sm text-gray-900 placeholder:text-gray-400"
         />

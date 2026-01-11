@@ -1,23 +1,16 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { ENDPOINTS } from "../../config/endpoints.config";
 import { QUERY_KEYS } from "../../config/queryKeys.config";
 import { useApiQuery } from "../../hooks/useApi";
 import { useDebounce } from "../../hooks/useDebounce";
 import { PlacesResponse } from "../../types/place.types";
-import {
-  HomeHeader,
-  SearchBar,
-  PlacesMap,
-  PlacesSidebar,
-} from "../components/home";
+import { useAppSelector } from "../../store/hooks";
+import { HomeHeader, PlacesMap, PlacesSidebar } from "../components/home";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function HomePage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [maxBid, setMaxBid] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    new Date()
-  );
+  const { searchQuery, maxBid } = useAppSelector((state) => state.search);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | undefined>();
   const [hoveredPlaceId, setHoveredPlaceId] = useState<string | null>(null);
 
@@ -30,7 +23,7 @@ export function HomePage() {
   };
 
   const queryClient = useQueryClient();
-  const { data, isLoading } = useApiQuery<PlacesResponse>({
+  const { data, isLoading, isFetching } = useApiQuery<PlacesResponse>({
     queryKey: [QUERY_KEYS.PLACES, "public", params],
     endpoint: ENDPOINTS.PLACES_PUBLIC,
     params,
@@ -39,8 +32,6 @@ export function HomePage() {
   const places = data?.places ?? [];
 
   const handleSearch = useCallback(() => {
-    // Search is already debounced and reactive
-    // This is for explicit search button click if needed
     queryClient.invalidateQueries({
       queryKey: [QUERY_KEYS.PLACES, "public", params],
     });
@@ -52,31 +43,18 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <HomeHeader />
+      {/* Header with Search Bar */}
+      <HomeHeader showSearchBar onSearch={handleSearch} />
 
       {/* Main Content */}
       <div className="flex-1 flex">
-        {/* Left Sidebar - Search + Places List */}
+        {/* Left Sidebar - Places List */}
         <div className="w-[420px] bg-white border-r overflow-hidden flex flex-col">
-          {/* Search Bar */}
-          <div className="p-4 border-b">
-            <SearchBar
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              maxBid={maxBid}
-              onMaxBidChange={setMaxBid}
-              selectedDate={selectedDate}
-              onDateChange={setSelectedDate}
-              onSearch={handleSearch}
-            />
-          </div>
-
           {/* Places List */}
           <div className="flex-1 overflow-hidden p-4">
             <PlacesSidebar
               places={places}
-              isLoading={isLoading}
+              isLoading={isLoading || isFetching}
               selectedPlaceId={hoveredPlaceId || selectedPlaceId}
               onPlaceHover={handlePlaceHover}
             />
