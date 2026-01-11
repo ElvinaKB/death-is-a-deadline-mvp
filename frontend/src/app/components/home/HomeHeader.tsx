@@ -1,5 +1,6 @@
 import { LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import logoImg from "../../../assets/logo.png";
 import { ROUTES } from "../../../config/routes.config";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { UserRole } from "../../../types/auth.types";
@@ -73,9 +74,13 @@ export function HomeHeader({
           <div
             className={`w-10 h-10 ${
               isDark ? "bg-gray-800" : "bg-blue-100"
-            } rounded-full flex items-center justify-center`}
+            }  flex items-center justify-center overflow-hidden`}
           >
-            <span className="text-2xl">🦍</span>
+            <img
+              src={logoImg}
+              alt="Logo"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div className="hidden sm:block">
             <h1
