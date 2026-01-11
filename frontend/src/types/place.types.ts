@@ -19,6 +19,8 @@ export interface Place {
   city: string;
   country: string;
   address: string;
+  latitude?: number;
+  longitude?: number;
   images: PlaceImage[] | File[];
   accommodationType: AccommodationType;
   retailPrice: number;

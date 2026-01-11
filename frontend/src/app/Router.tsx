@@ -8,7 +8,7 @@ import { StudentLayout } from "./layouts/StudentLayout";
 // Pages
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
-import { PlacesListPage as StudentPlacesListPage } from "./pages/student/PlacesListPage";
+import { HomePage } from "./pages/HomePage";
 import { PlaceDetailPage as StudentPlacesDetailPage } from "./pages/student/PlacesDetailPage";
 import { MyBidsPage } from "./pages/student/MyBidsPage";
 import { CheckoutPage } from "./pages/student/CheckoutPage";
@@ -40,7 +40,7 @@ const authRoutes = [
 const publicRoutes = [
   { path: ROUTES.UNAUTHORIZED, element: <UnauthorizedPage /> },
   { path: ROUTES.REDIRECT, element: <RedirectPage /> },
-  { path: ROUTES.HOME, element: <StudentPlacesListPage /> },
+  { path: ROUTES.HOME, element: <HomePage /> },
   {
     path: ROUTES.PUBLIC_PLACE_DETAIL,
     element: <StudentPlacesDetailPage />,
