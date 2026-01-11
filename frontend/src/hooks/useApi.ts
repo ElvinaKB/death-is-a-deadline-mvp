@@ -3,6 +3,7 @@ import {
   useQuery,
   UseQueryOptions,
   UseMutationOptions,
+  keepPreviousData,
 } from "@tanstack/react-query";
 import { apiClient } from "../lib/apiClient";
 import { ApiError } from "../types/api.types";
@@ -37,6 +38,7 @@ export function useApiQuery<TData = unknown>(
   return useQuery<TData, ApiError>({
     queryKey,
     queryFn: () => apiClient.get<TData>(`${endpoint}?${queryString}`),
+    placeholderData: keepPreviousData,
     ...restOptions,
   });
 }

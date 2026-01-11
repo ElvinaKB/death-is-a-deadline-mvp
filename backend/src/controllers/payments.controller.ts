@@ -1,6 +1,8 @@
 import { bid_status, payment_status, Prisma } from "@prisma/client";
-import { addDays } from "date-fns";
+import { addDays, format } from "date-fns";
 import { Request, Response } from "express";
+import { sendEmail } from "../email/sendEmail";
+import { EmailType } from "../email/emailTypes";
 import { prisma } from "../libs/config/prisma";
 import { stripe, STRIPE_CONFIG } from "../libs/config/stripe";
 import { CustomError } from "../libs/utils/CustomError";
@@ -298,6 +300,7 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
   const payment = await prisma.payment.findUnique({
     where: { id },
     include: {
+      student: true,
       bid: {
         include: {
           place: {
@@ -353,6 +356,7 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
     where: { id },
     data: updateData,
     include: {
+      student: true,
       bid: {
         include: {
           place: {
@@ -362,6 +366,57 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
       },
     },
   });
+
+  // Send confirmation emails if payment was authorized
+  if (newStatus === payment_status.AUTHORIZED && updatedPayment.bid) {
+    const bid = updatedPayment.bid;
+    const place = bid.place as typeof bid.place & { email?: string | null };
+    const student = updatedPayment.student;
+
+    const emailVariables = {
+      studentName:
+        (student.raw_user_meta_data as any)?.name || student.email || "Student",
+      studentEmail: student.email || "",
+      placeName: place.name,
+      placeCity: place.city,
+      placeCountry: place.country,
+      checkInDate: format(new Date(bid.checkInDate), "MMMM d, yyyy"),
+      checkOutDate: format(new Date(bid.checkOutDate), "MMMM d, yyyy"),
+      totalNights: bid.totalNights,
+      bidPerNight: Number(bid.bidPerNight).toFixed(2),
+      totalAmount: Number(bid.totalAmount).toFixed(2),
+      appName: process.env.EMAIL_NAME || "Education Bidding",
+      dashboardUrl: `${process.env.CLIENT_URL}/student/my-bids`,
+    };
+
+    // Send email to student
+    if (student.email) {
+      try {
+        await sendEmail({
+          type: EmailType.BOOKING_CONFIRMED_STUDENT,
+          to: student.email,
+          subject: `Booking Confirmed - ${place.name}`,
+          variables: emailVariables,
+        });
+      } catch (error) {
+        console.error("Failed to send student confirmation email:", error);
+      }
+    }
+
+    // Send email to place if email is configured
+    if (place.email) {
+      try {
+        await sendEmail({
+          type: EmailType.BOOKING_CONFIRMED_PLACE,
+          to: place.email,
+          subject: `New Booking - ${place.name}`,
+          variables: emailVariables,
+        });
+      } catch (error) {
+        console.error("Failed to send place confirmation email:", error);
+      }
+    }
+  }
 
   res.status(200).json({
     message:

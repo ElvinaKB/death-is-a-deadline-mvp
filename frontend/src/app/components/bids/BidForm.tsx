@@ -1,5 +1,19 @@
-import { addDays, differenceInDays, format, isAfter, isBefore } from "date-fns";
+import {
+  addDays,
+  differenceInDays,
+  format,
+  isAfter,
+  isBefore,
+  eachDayOfInterval,
+} from "date-fns";
 import { useFormik } from "formik";
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
+import { stripePromise } from "../../../lib/stripe";
 import {
   Calendar as CalendarIcon,
   CheckCircle,
@@ -7,31 +21,34 @@ import {
   CircleX,
   Clock,
   CreditCard,
+  LogIn,
   XCircle,
+  AlertCircle,
+  DollarSign,
 } from "lucide-react";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useRef } from "react";
+import type { StripeCardElement } from "@stripe/stripe-js";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useBidForPlace, useCreateBid } from "../../../hooks/useBids";
+import {
+  useCreatePaymentIntent,
+  useConfirmPayment,
+} from "../../../hooks/usePayments";
+import { useAppSelector } from "../../../store/hooks";
 import { Bid, BidStatus, CreateBidRequest } from "../../../types/bid.types";
 import { Place } from "../../../types/place.types";
+import { PaymentStatus } from "../../../types/payment.types";
 import { bidValidationSchema } from "../../../utils/validationSchemas";
 import { SkeletonLoader } from "../common/SkeletonLoader";
 import { Button } from "../ui/button";
 import { Calendar } from "../ui/calendar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
 import { Badge } from "../ui/badge";
-import { PaymentStatus } from "../../../types/payment.types";
+import { toast } from "sonner";
 
 interface BidFormProps {
   place: Place;
@@ -46,17 +63,119 @@ interface BidResultState {
   bidId?: string;
 }
 
-export function BidForm({ place, placeId }: BidFormProps) {
+// Inner form component that has access to Stripe context
+function BidFormInner({ place, placeId }: BidFormProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const stripe = useStripe();
+  const elements = useElements();
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
   const createBid = useCreateBid();
-  const { data: existingBidData, isLoading: isLoadingExistingBid } =
-    useBidForPlace(placeId);
+  const createPaymentIntent = useCreatePaymentIntent();
+  const confirmPayment = useConfirmPayment();
 
   const [bidResult, setBidResult] = useState<BidResultState | null>(null);
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [isCardComplete, setIsCardComplete] = useState(false);
+  const cardElementRef = useRef<StripeCardElement | null>(null);
+
+  // Disable the query while processing to prevent unmounting the CardElement
+  const { data: existingBidData, isLoading: isLoadingExistingBid } =
+    useBidForPlace(placeId, { enabled: !isProcessing && !paymentSuccess });
+
+  // If user is not authenticated, show login prompt
+  if (!isAuthenticated) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-4">
+          <LogIn className="h-10 w-10 mx-auto mb-3 text-gray-400" />
+          <h3 className="font-semibold text-lg mb-1">Sign In Required</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Please sign in to place a bid on this accommodation
+          </p>
+          <p className="text-muted-foreground mb-4">
+            Starting from{" "}
+            <span className="font-semibold text-foreground">
+              ${place.minimumBid}
+            </span>{" "}
+            per night
+          </p>
+        </div>
+        <Button
+          className="w-full"
+          onClick={() =>
+            navigate(ROUTES.LOGIN, {
+              state: { returnUrl: location.pathname },
+            })
+          }
+        >
+          Sign In to Place Bid
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() =>
+            navigate(ROUTES.SIGNUP, {
+              state: { returnUrl: location.pathname },
+            })
+          }
+        >
+          Create Account
+        </Button>
+      </div>
+    );
+  }
 
   // Date restrictions: today to 30 days from today
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const maxDate = addDays(today, 30);
+
+  // Helper function to confirm payment with card
+  const confirmPaymentWithCard = async (
+    clientSecret: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!stripe) {
+      return { success: false, error: "Payment system not ready" };
+    }
+
+    // Try to get card element from ref first, then from elements
+    const cardElement =
+      cardElementRef.current || elements?.getElement(CardElement);
+    if (!cardElement) {
+      return {
+        success: false,
+        error: "Card input not found. Please re-enter your card details.",
+      };
+    }
+
+    const { error, paymentIntent } = await stripe.confirmCardPayment(
+      clientSecret,
+      {
+        payment_method: {
+          card: cardElement,
+        },
+      }
+    );
+
+    if (error) {
+      return { success: false, error: error.message || "Payment failed" };
+    }
+
+    // For pre-auth, the status should be "requires_capture"
+    if (
+      paymentIntent &&
+      (paymentIntent.status === "requires_capture" ||
+        paymentIntent.status === "succeeded")
+    ) {
+      return { success: true };
+    }
+
+    return { success: false, error: "Unexpected payment status" };
+  };
 
   const formik = useFormik({
     initialValues: {
@@ -66,6 +185,16 @@ export function BidForm({ place, placeId }: BidFormProps) {
     },
     validationSchema: bidValidationSchema,
     onSubmit: async (values) => {
+      setPaymentError(null);
+      setIsProcessing(true);
+
+      // Validate card is ready
+      if (!isCardComplete || !stripe || !elements) {
+        setPaymentError("Please enter valid card details");
+        setIsProcessing(false);
+        return;
+      }
+
       const request: CreateBidRequest = {
         placeId,
         checkInDate: values.checkInDate!.toISOString(),
@@ -74,7 +203,52 @@ export function BidForm({ place, placeId }: BidFormProps) {
       };
 
       try {
+        // Step 1: Create the bid
         const result = await createBid.mutateAsync(request);
+
+        // Step 2: If bid is accepted, create payment intent and complete payment
+        if (result.status === BidStatus.ACCEPTED) {
+          // Create payment intent
+          const paymentResult = await createPaymentIntent.mutateAsync({
+            bidId: result.bid.id,
+          });
+
+          if (paymentResult.clientSecret) {
+            setPaymentId(paymentResult.payment.id);
+
+            // Step 3: Confirm payment with card for pre-authorization
+            const confirmResult = await confirmPaymentWithCard(
+              paymentResult.clientSecret
+            );
+            // queryClient.invalidateQueries({ queryKey: ["bids"] });
+            if (confirmResult.success) {
+              // Step 4: Update our backend about the confirmation
+              try {
+                await confirmPayment.mutateAsync({
+                  id: paymentResult.payment.id,
+                });
+                toast.success("Payment authorized! Your booking is confirmed.");
+                setPaymentSuccess(true);
+              } catch (err) {
+                // Payment succeeded with Stripe but backend update failed
+                toast.success("Payment authorized! Booking confirmed.");
+                setPaymentSuccess(true);
+              }
+            } else {
+              setPaymentError(confirmResult.error || "Payment failed");
+            }
+          } else {
+            toast.success("Bid accepted!");
+          }
+          setIsProcessing(false);
+        } else if (result.status === BidStatus.REJECTED) {
+          setIsProcessing(false);
+        } else {
+          // PENDING status
+          toast.info("Bid submitted! Awaiting review.");
+          setIsProcessing(false);
+        }
+
         setBidResult({
           status: result.status,
           message: result.message,
@@ -82,8 +256,10 @@ export function BidForm({ place, placeId }: BidFormProps) {
           totalNights: result.bid.totalNights,
           bidId: result.bid.id,
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error("Bid submission error:", error);
+        setPaymentError(error.message || "Failed to submit bid");
+        setIsProcessing(false);
       }
     },
   });
@@ -93,11 +269,34 @@ export function BidForm({ place, placeId }: BidFormProps) {
       return true;
     }
     if (place?.blackoutDates) {
-      const dateStr = date.toISOString().split("T")[0];
+      const dateStr = format(date, "yyyy-MM-dd");
       return place.blackoutDates.includes(dateStr);
     }
     return false;
   };
+
+  // Check if any date in the selected range is a blackout date
+  const getBlackoutDatesInRange = () => {
+    if (
+      !formik.values.checkInDate ||
+      !formik.values.checkOutDate ||
+      !place?.blackoutDates
+    ) {
+      return [];
+    }
+
+    const datesInRange = eachDayOfInterval({
+      start: formik.values.checkInDate,
+      end: formik.values.checkOutDate,
+    });
+
+    return datesInRange.filter((date) => {
+      const dateStr = format(date, "yyyy-MM-dd");
+      return place.blackoutDates.includes(dateStr);
+    });
+  };
+
+  const blackoutDatesInRange = getBlackoutDatesInRange();
 
   const calculateTotalNights = () => {
     if (formik.values.checkInDate && formik.values.checkOutDate) {
@@ -117,69 +316,120 @@ export function BidForm({ place, placeId }: BidFormProps) {
 
   const handleTryAgain = () => {
     setBidResult(null);
+    setPaymentError(null);
+    setPaymentId(null);
+    setPaymentSuccess(false);
     formik.resetForm();
   };
 
   // Loading state
   if (isLoadingExistingBid) {
     return (
-      <Card className="sticky top-24">
-        <CardHeader>
-          <SkeletonLoader className="h-6 w-32" />
-          <SkeletonLoader className="h-4 w-48 mt-2" />
-        </CardHeader>
-        <CardContent>
-          <SkeletonLoader className="h-40" />
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <SkeletonLoader className="h-12" />
+        <SkeletonLoader className="h-12" />
+        <SkeletonLoader className="h-40" />
+      </div>
     );
   }
 
-  // If user has existing bid for this place
+  // Show payment success first (before checking existing bid)
+  if (paymentSuccess && bidResult) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-6">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="h-10 w-10 text-green-600" />
+          </div>
+          <h3 className="text-xl font-bold text-green-900 mb-2">
+            Booking Confirmed!
+          </h3>
+          <p className="text-sm text-green-700 mb-4">
+            Your payment has been authorized and your booking is confirmed.
+          </p>
+        </div>
+
+        <div className="bg-green-50 rounded-lg p-4 space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span>Total Amount:</span>
+            <span className="font-bold">
+              ${bidResult.totalAmount?.toFixed(2)}
+            </span>
+          </div>
+        </div>
+
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => navigate(ROUTES.STUDENT_MY_BIDS)}
+        >
+          View My Bids
+        </Button>
+      </div>
+    );
+  }
+
+  // If user has existing bid for this place (only check when not processing)
   const existingBid = existingBidData?.bid;
-  if (existingBid) {
+  if (existingBid && !isProcessing) {
     return <ExistingBidCard bid={existingBid} place={place} />;
   }
 
-  // Show result after bid submission
-  if (bidResult) {
+  // Show rejection result
+  if (bidResult && bidResult.status === BidStatus.REJECTED) {
     return (
-      <BidResultCard
-        bidResult={bidResult}
-        place={place}
-        formValues={formik.values}
-        onTryAgain={handleTryAgain}
-      />
+      <div className="space-y-4">
+        <div className="text-center py-4">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <XCircle className="h-10 w-10 text-red-600" />
+          </div>
+          <h3 className="text-xl font-bold text-red-900 mb-2">
+            Bid Not Accepted
+          </h3>
+          <p className="text-sm text-red-700 mb-4">{bidResult.message}</p>
+        </div>
+
+        <div className="bg-blue-50 rounded-lg p-4 text-left">
+          <p className="font-medium text-sm text-blue-900 mb-2">Suggestions:</p>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• Increase your bid amount </li>
+            <li>• Try different dates</li>
+          </ul>
+        </div>
+
+        <Button className="w-full" onClick={handleTryAgain}>
+          Try Again
+        </Button>
+      </div>
     );
   }
 
   // Bid form
   return (
-    <Card className="sticky top-24">
-      <CardHeader>
-        <CardTitle>Submit Your Bid</CardTitle>
-        <CardDescription>
-          Bids allowed for dates within the next 30 days
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={formik.handleSubmit} className="space-y-4">
+    <div className="space-y-4">
+      <form onSubmit={formik.handleSubmit} className="space-y-4">
+        {/* Check-in and Check-out in one row */}
+        <div className="grid grid-cols-2 gap-3">
           {/* Check-in Date */}
           <div>
-            <Label className="pb-2">Check-in Date *</Label>
+            <Label className="text-sm text-gray-600 mb-1.5 block">
+              Check-in
+            </Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-normal",
+                    "w-full justify-between text-left font-normal h-11",
                     !formik.values.checkInDate && "text-muted-foreground"
                   )}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formik.values.checkInDate
-                    ? format(formik.values.checkInDate, "PPP")
-                    : "Select date"}
+                  <span className="truncate">
+                    {formik.values.checkInDate
+                      ? format(formik.values.checkInDate, "MMM d")
+                      : "Check-in"}
+                  </span>
+                  <CalendarIcon className="h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -192,7 +442,7 @@ export function BidForm({ place, placeId }: BidFormProps) {
               </PopoverContent>
             </Popover>
             {formik.touched.checkInDate && formik.errors.checkInDate && (
-              <p className="text-sm text-red-500 mt-1">
+              <p className="text-xs text-red-500 mt-1">
                 {formik.errors.checkInDate}
               </p>
             )}
@@ -200,20 +450,24 @@ export function BidForm({ place, placeId }: BidFormProps) {
 
           {/* Check-out Date */}
           <div>
-            <Label className="pb-2">Check-out Date *</Label>
+            <Label className="text-sm text-gray-600 mb-1.5 block">
+              Check-out
+            </Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-normal",
+                    "w-full justify-between text-left font-normal h-11",
                     !formik.values.checkOutDate && "text-muted-foreground"
                   )}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formik.values.checkOutDate
-                    ? format(formik.values.checkOutDate, "PPP")
-                    : "Select date"}
+                  <span className="truncate">
+                    {formik.values.checkOutDate
+                      ? format(formik.values.checkOutDate, "MMM d")
+                      : "Check-out"}
+                  </span>
+                  <CalendarIcon className="h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -228,75 +482,170 @@ export function BidForm({ place, placeId }: BidFormProps) {
               </PopoverContent>
             </Popover>
             {formik.touched.checkOutDate && formik.errors.checkOutDate && (
-              <p className="text-sm text-red-500 mt-1">
+              <p className="text-xs text-red-500 mt-1">
                 {formik.errors.checkOutDate}
               </p>
             )}
           </div>
+        </div>
 
-          {/* Bid Per Night */}
-          <div>
-            <Label className="pb-2" htmlFor="bidPerNight">
-              Bid Per Night ($) *
-            </Label>
+        {/* Bid Per Night */}
+        <div>
+          <Label className="text-sm text-gray-600 mb-1.5 block">
+            Your Bid Per Night
+          </Label>
+          <div className="relative">
+            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               id="bidPerNight"
               type="number"
-              placeholder="Enter your bid"
               min="1"
               step="0.01"
+              className="pl-9 h-11"
               {...formik.getFieldProps("bidPerNight")}
             />
-            {formik.touched.bidPerNight && formik.errors.bidPerNight && (
-              <p className="text-sm text-red-500 mt-1">
-                {formik.errors.bidPerNight}
-              </p>
-            )}
-            <p className="text-sm text-muted-foreground mt-1">
-              Minimum bid: ${place.minimumBid}/night
-            </p>
           </div>
+          {formik.touched.bidPerNight && formik.errors.bidPerNight && (
+            <p className="text-xs text-red-500 mt-1">
+              {formik.errors.bidPerNight}
+            </p>
+          )}
+        </div>
 
-          {/* Summary */}
-          {calculateTotalNights() > 0 && formik.values.bidPerNight && (
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Total Nights:</span>
-                <span className="font-medium">{calculateTotalNights()}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Bid Per Night:</span>
-                <span className="font-medium">
-                  ${formik.values.bidPerNight}
-                </span>
-              </div>
-              <div className="flex justify-between pt-2 border-t">
-                <span className="font-semibold">Total Amount:</span>
-                <span className="font-bold text-lg">
-                  ${calculateTotalAmount().toFixed(2)}
-                </span>
+        {/* Summary */}
+        {calculateTotalNights() > 0 && formik.values.bidPerNight && (
+          <div className="bg-gray-50 rounded-lg p-3 space-y-1.5 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600">
+                {calculateTotalNights()} nights × ${formik.values.bidPerNight}
+              </span>
+              <span className="font-semibold">
+                ${calculateTotalAmount().toFixed(2)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Blackout Date Warning */}
+        {blackoutDatesInRange.length > 0 && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+            <div className="flex gap-2">
+              <AlertCircle className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="text-orange-800 font-medium">
+                  Selected dates include unavailable dates
+                </p>
+                <p className="text-orange-700 text-xs mt-1">
+                  The following dates are blocked:{" "}
+                  {blackoutDatesInRange
+                    .map((d) => format(d, "MMM d"))
+                    .join(", ")}
+                </p>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {place.autoAcceptAboveMinimum && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-              <p className="text-sm text-green-800">
-                ✓ Bids at or above ${place.minimumBid}/night are auto-accepted
-              </p>
+        {/* Inline Card Input */}
+        <div className="space-y-2">
+          <Label className="text-sm text-gray-600 mb-1.5 block">
+            Card Details
+          </Label>
+          <div className="border border-gray-200 rounded-lg p-3 bg-white">
+            <CardElement
+              options={{
+                style: {
+                  base: {
+                    fontSize: "16px",
+                    color: "#1f2937",
+                    fontFamily: "system-ui, -apple-system, sans-serif",
+                    "::placeholder": {
+                      color: "#9ca3af",
+                    },
+                  },
+                  invalid: {
+                    color: "#ef4444",
+                    iconColor: "#ef4444",
+                  },
+                },
+              }}
+              onReady={(element) => {
+                cardElementRef.current = element;
+              }}
+              onChange={(e) => {
+                setIsCardComplete(e.complete);
+                if (e.error) {
+                  setPaymentError(e.error.message);
+                } else {
+                  setPaymentError(null);
+                }
+              }}
+            />
+          </div>
+          <p className="text-xs text-gray-500 flex items-center gap-1">
+            <CreditCard className="h-3 w-3" />
+            Your card will only be charged if your bid is accepted
+          </p>
+        </div>
+
+        {/* Error Message */}
+        {paymentError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <div className="flex gap-2">
+              <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-800">{paymentError}</p>
             </div>
-          )}
+          </div>
+        )}
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={createBid.isPending}
-          >
-            {createBid.isPending ? "Submitting..." : "Submit Bid"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        {/* Submit Button */}
+        <Button
+          type="submit"
+          className="w-full bg-purple-600 hover:bg-purple-700 h-12 text-base font-medium"
+          disabled={
+            isProcessing ||
+            createBid.isPending ||
+            blackoutDatesInRange.length > 0 ||
+            !stripe ||
+            !elements ||
+            !isCardComplete
+          }
+        >
+          {isProcessing ? (
+            <>Processing...</>
+          ) : (
+            <>
+              <CreditCard className="w-4 h-4 mr-2" />
+              Place Bid
+            </>
+          )}
+        </Button>
+
+        {/* Info Text */}
+        <p className="text-xs text-center text-gray-500">
+          Secure Stripe Checkout. Card is only charged if bid is accepted.
+          <br />
+          Cancel anytime before acceptance.
+        </p>
+      </form>
+    </div>
+  );
+}
+
+// Exported component that wraps the form with Elements provider
+export function BidForm({ place, placeId }: BidFormProps) {
+  if (!stripePromise) {
+    return (
+      <div className="text-center py-4 text-gray-500">
+        Payment system not available
+      </div>
+    );
+  }
+
+  return (
+    <Elements stripe={stripePromise}>
+      <BidFormInner place={place} placeId={placeId} />
+    </Elements>
   );
 }
 
@@ -396,8 +745,8 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
     : null;
 
   return (
-    <Card className={cn("sticky top-24", config.borderColor)}>
-      <CardContent className="p-6 text-center">
+    <div className="space-y-4">
+      <div className="text-center py-4">
         <div
           className={cn(
             "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4",
@@ -420,246 +769,71 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
             </Badge>
           </div>
         )}
+      </div>
 
-        <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Check-in:</span>
-            <span className="font-medium">
-              {format(new Date(bid.checkInDate), "MMM dd, yyyy")}
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Check-out:</span>
-            <span className="font-medium">
-              {format(new Date(bid.checkOutDate), "MMM dd, yyyy")}
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Total Nights:</span>
-            <span className="font-medium">{bid.totalNights}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Bid Per Night:</span>
-            <span className="font-medium">${bid.bidPerNight}</span>
-          </div>
-          <div className="flex justify-between pt-2 border-t">
-            <span className="font-semibold">Total Amount:</span>
-            <span className="font-bold">${bid.totalAmount.toFixed(2)}</span>
-          </div>
+      <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+        <div className="flex justify-between">
+          <span>Check-in:</span>
+          <span className="font-medium">
+            {format(new Date(bid.checkInDate), "MMM dd, yyyy")}
+          </span>
         </div>
-
-        {/* Payment Actions */}
-        {canCheckout && (
-          <Button asChild className="w-full mb-3">
-            <Link to={ROUTES.STUDENT_CHECKOUT.replace(":bidId", bid.id)}>
-              <CreditCard className="w-4 h-4 mr-2" />
-              {paymentStatus === "FAILED" || paymentStatus === "EXPIRED"
-                ? "Retry Payment"
-                : "Proceed to Checkout"}
-            </Link>
-          </Button>
-        )}
-
-        {isPaymentAuthorized && (
-          <div className="flex items-center justify-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-md mb-3">
-            <CheckCircle className="w-4 h-4" />
-            <span>Payment authorized - awaiting confirmation</span>
-          </div>
-        )}
-
-        {isPaymentCaptured && (
-          <div className="flex items-center justify-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-md mb-3">
-            <CheckCircle className="w-4 h-4" />
-            <span>Payment complete - booking confirmed!</span>
-          </div>
-        )}
-
-        {isPaymentCancelled && (
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded-md mb-3">
-            <XCircle className="w-4 h-4" />
-            <span>Payment was cancelled</span>
-          </div>
-        )}
-
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => navigate(ROUTES.STUDENT_MARKETPLACE)}
-        >
-          Browse Other Places
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Component for bid result after submission
-function BidResultCard({
-  bidResult,
-  place,
-  formValues,
-  onTryAgain,
-}: {
-  bidResult: BidResultState;
-  place: Place;
-  formValues: { checkInDate?: Date; checkOutDate?: Date; bidPerNight: string };
-  onTryAgain: () => void;
-}) {
-  const navigate = useNavigate();
-
-  if (bidResult.status === BidStatus.ACCEPTED) {
-    return (
-      <Card className="sticky top-24 border-green-500">
-        <CardContent className="p-6 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CircleCheck className="h-10 w-10 text-green-600" />
-          </div>
-          <h3 className="text-xl font-bold text-green-900 mb-2">
-            Bid Accepted!
-          </h3>
-          <p className="text-sm text-green-700 mb-6">{bidResult.message}</p>
-
-          <div className="bg-green-50 rounded-lg p-4 mb-6 text-left space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Check-in:</span>
-              <span className="font-medium">
-                {formValues.checkInDate &&
-                  format(formValues.checkInDate, "MMM dd, yyyy")}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Check-out:</span>
-              <span className="font-medium">
-                {formValues.checkOutDate &&
-                  format(formValues.checkOutDate, "MMM dd, yyyy")}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Total Nights:</span>
-              <span className="font-medium">{bidResult.totalNights}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Bid Per Night:</span>
-              <span className="font-medium">${formValues.bidPerNight}</span>
-            </div>
-            <div className="flex justify-between pt-2 border-t border-green-200">
-              <span className="font-semibold">Total Amount:</span>
-              <span className="font-bold">
-                ${bidResult.totalAmount?.toFixed(2)}
-              </span>
-            </div>
-          </div>
-
-          {bidResult.bidId && (
-            <Button asChild className="w-full mb-3">
-              <Link
-                to={ROUTES.STUDENT_CHECKOUT.replace(":bidId", bidResult.bidId)}
-              >
-                <CreditCard className="w-4 h-4 mr-2" />
-                Proceed to Checkout
-              </Link>
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => navigate(ROUTES.STUDENT_MARKETPLACE)}
-          >
-            Back to Places
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // PENDING status result
-  if (bidResult.status === BidStatus.PENDING) {
-    return (
-      <Card className="sticky top-24 border-yellow-500">
-        <CardContent className="p-6 text-center">
-          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Clock className="h-10 w-10 text-yellow-600" />
-          </div>
-          <h3 className="text-xl font-bold text-yellow-900 mb-2">
-            Bid Submitted!
-          </h3>
-          <p className="text-sm text-yellow-700 mb-6">{bidResult.message}</p>
-
-          <div className="bg-yellow-50 rounded-lg p-4 mb-6 text-left space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Check-in:</span>
-              <span className="font-medium">
-                {formValues.checkInDate &&
-                  format(formValues.checkInDate, "MMM dd, yyyy")}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Check-out:</span>
-              <span className="font-medium">
-                {formValues.checkOutDate &&
-                  format(formValues.checkOutDate, "MMM dd, yyyy")}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Total Nights:</span>
-              <span className="font-medium">{bidResult.totalNights}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Bid Per Night:</span>
-              <span className="font-medium">${formValues.bidPerNight}</span>
-            </div>
-            <div className="flex justify-between pt-2 border-t border-yellow-200">
-              <span className="font-semibold">Total Amount:</span>
-              <span className="font-bold">
-                ${bidResult.totalAmount?.toFixed(2)}
-              </span>
-            </div>
-          </div>
-
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => navigate(ROUTES.STUDENT_MARKETPLACE)}
-          >
-            Browse Other Places
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // REJECTED status - should not happen on initial submit but handle it
-  return (
-    <Card className="sticky top-24 border-gray-300">
-      <CardContent className="p-6 text-center">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <CircleX className="h-10 w-10 text-gray-600" />
+        <div className="flex justify-between">
+          <span>Check-out:</span>
+          <span className="font-medium">
+            {format(new Date(bid.checkOutDate), "MMM dd, yyyy")}
+          </span>
         </div>
-        <h3 className="text-xl font-bold text-gray-900 mb-2">
-          Bid Not Accepted
-        </h3>
-        <p className="text-sm text-gray-600 mb-6">{bidResult.message}</p>
-
-        <div className="bg-blue-50 rounded-lg p-4 mb-6 text-left">
-          <p className="font-medium text-sm text-blue-900 mb-2">Suggestions:</p>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Increase your bid amount (min: ${place.minimumBid}/night)</li>
-            <li>• Try different dates</li>
-            <li>• Consider the retail price: ${place.retailPrice}/night</li>
-          </ul>
+        <div className="flex justify-between">
+          <span>Bid Per Night:</span>
+          <span className="font-medium">${bid.bidPerNight}</span>
         </div>
+        <div className="flex justify-between pt-2 border-t">
+          <span className="font-semibold">Total:</span>
+          <span className="font-bold">${bid.totalAmount.toFixed(2)}</span>
+        </div>
+      </div>
 
-        <Button className="w-full mb-3" onClick={onTryAgain}>
-          Try Again
+      {/* Payment Actions */}
+      {canCheckout && (
+        <Button asChild className="w-full">
+          <Link to={ROUTES.STUDENT_CHECKOUT.replace(":bidId", bid.id)}>
+            <CreditCard className="w-4 h-4 mr-2" />
+            {paymentStatus === "FAILED" || paymentStatus === "EXPIRED"
+              ? "Retry Payment"
+              : "Complete Payment"}
+          </Link>
         </Button>
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => navigate(ROUTES.STUDENT_MARKETPLACE)}
-        >
-          Browse Other Places
-        </Button>
-      </CardContent>
-    </Card>
+      )}
+
+      {isPaymentAuthorized && (
+        <div className="flex items-center justify-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-md">
+          <CheckCircle className="w-4 h-4" />
+          <span>Payment authorized - awaiting confirmation</span>
+        </div>
+      )}
+
+      {isPaymentCaptured && (
+        <div className="flex items-center justify-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-md">
+          <CheckCircle className="w-4 h-4" />
+          <span>Payment complete - booking confirmed!</span>
+        </div>
+      )}
+
+      {isPaymentCancelled && (
+        <div className="flex items-center justify-center gap-2 text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded-md">
+          <XCircle className="w-4 h-4" />
+          <span>Payment was cancelled</span>
+        </div>
+      )}
+
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => navigate(ROUTES.HOME)}
+      >
+        Browse Other Places
+      </Button>
+    </div>
   );
 }

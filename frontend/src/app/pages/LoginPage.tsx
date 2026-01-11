@@ -1,5 +1,5 @@
 import { useFormik } from "formik";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAppDispatch } from "../../store/hooks";
 import { setCredentials } from "../../store/slices/authSlice";
 import { setAuthToken } from "../../utils/tokenHelpers";
@@ -29,13 +29,22 @@ import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { useState } from "react";
 
+interface LocationState {
+  returnUrl?: string;
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const [credentials, setCredentialsState] = useState<LoginRequest>({
     email: "",
     password: "",
   });
+
+  // Get return URL from location state
+  const locationState = location.state as LocationState | null;
+  const returnUrl = locationState?.returnUrl;
 
   const loginMutation = useApiMutation<AuthResponse, LoginRequest>({
     endpoint: ENDPOINTS.LOGIN,
@@ -60,13 +69,19 @@ export function LoginPage() {
       setAuthToken(data.token.access_token);
       toast.success("Login successful!");
 
+      // Redirect to return URL if coming from a place, otherwise role-based redirect
+      if (returnUrl) {
+        navigate(returnUrl);
+        return;
+      }
+
       // Redirect based on role
       switch (data.user.role) {
         case UserRole.ADMIN:
           navigate(ROUTES.ADMIN_DASHBOARD);
           break;
         case UserRole.STUDENT:
-          navigate(ROUTES.STUDENT_MARKETPLACE);
+          navigate(ROUTES.HOME);
           break;
         case UserRole.HOTEL_OWNER:
           navigate(ROUTES.HOTEL_DASHBOARD);
@@ -162,6 +177,7 @@ export function LoginPage() {
             </span>
             <Link
               to={ROUTES.SIGNUP}
+              state={returnUrl ? { returnUrl } : undefined}
               className="text-blue-600 hover:underline font-medium"
             >
               Sign up

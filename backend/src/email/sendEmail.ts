@@ -26,6 +26,8 @@ const templateMap: Record<EmailType, string> = {
   [EmailType.ACCOUNT_REVIEW]: "account_review.ejs",
   [EmailType.ACCOUNT_APPROVED]: "account_approved.ejs",
   [EmailType.ACCOUNT_REJECTED]: "account_rejected.ejs",
+  [EmailType.BOOKING_CONFIRMED_STUDENT]: "booking_confirmed_student.ejs",
+  [EmailType.BOOKING_CONFIRMED_PLACE]: "booking_confirmed_place.ejs",
   // Add more mappings as needed
 };
 

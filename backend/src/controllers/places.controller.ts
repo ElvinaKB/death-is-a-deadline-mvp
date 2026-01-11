@@ -28,6 +28,8 @@ const formatPlace = (place: any) => ({
   status: place.status,
   createdAt: place.createdAt,
   updatedAt: place.updatedAt,
+  latitude: place.latitude,
+  longitude: place.longitude,
 });
 
 // List all places (admin - optionally filter by status, with pagination)
@@ -163,6 +165,9 @@ export async function createPlace(req: Request, res: Response) {
       city: data.city,
       country: data.country,
       address: data.address,
+      email: data.email ?? null,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
       accommodationType: data.accommodationType,
       retailPrice: data.retailPrice,
       minimumBid: data.minimumBid,
@@ -217,6 +222,9 @@ export async function updatePlace(req: Request, res: Response) {
       ...(data.city && { city: data.city }),
       ...(data.country && { country: data.country }),
       ...(data.address && { address: data.address }),
+      ...(data.email !== undefined && { email: data.email }),
+      ...(data.latitude !== undefined && { latitude: data.latitude }),
+      ...(data.longitude !== undefined && { longitude: data.longitude }),
       ...(data.accommodationType && {
         accommodationType: data.accommodationType,
       }),

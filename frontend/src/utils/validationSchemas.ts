@@ -81,6 +81,9 @@ export const placeValidationSchema = yup.object({
   city: yup.string().required("City is required"),
   country: yup.string().required("Country is required"),
   address: yup.string().required("Address is required"),
+  email: yup.string().email("Invalid email address").nullable(),
+  latitude: yup.number().nullable(),
+  longitude: yup.number().nullable(),
   accommodationType: yup.string().required("Accommodation type is required"),
   retailPrice: yup
     .number()

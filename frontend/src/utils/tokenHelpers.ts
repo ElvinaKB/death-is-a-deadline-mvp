@@ -37,7 +37,7 @@ export const removeAuthToken = (): void => {
       localStorage.removeItem("persist:root");
       SUPABASE_KEYS.map((key) => localStorage.removeItem(key));
       resetCookies();
-      window.location.reload();
+      // window.location.reload();
     })
     .catch(() => {});
 };

@@ -17,6 +17,9 @@ model Place {
   city                   String
   country                String
   address                String
+  email                  String?
+  latitude               Float?
+  longitude              Float?
   accommodationType      AccommodationType
   retailPrice            Float
   minimumBid             Float
