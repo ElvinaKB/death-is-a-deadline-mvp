@@ -1,21 +1,19 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { usePlace } from "../../../hooks/usePlaces";
-import { ACCOMMODATION_TYPE_LABELS } from "../../../types/place.types";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "../../components/ui/carousel";
-import { MapPin, Info } from "lucide-react";
-import { format } from "date-fns";
+import { CheckCircle, XCircle } from "lucide-react";
 import { ROUTES } from "../../../config/routes.config";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
+import { ImageGalleryModal } from "../../components/common/ImageGalleryModal";
 import { BidForm } from "../../components/bids/BidForm";
+import { HomeHeader } from "../../components/home";
+import { PlaceImage } from "../../../types/place.types";
+
+// Type guard to check if image is PlaceImage
+const isPlaceImage = (image: PlaceImage | File): image is PlaceImage => {
+  return "url" in image;
+};
 
 export function PlaceDetailPage() {
   const navigate = useNavigate();
@@ -23,11 +21,20 @@ export function PlaceDetailPage() {
   const { data, isLoading } = usePlace(id || "");
   const place = data?.place;
 
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
+
+  const openGallery = (index: number) => {
+    setGalleryInitialIndex(index);
+    setGalleryOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-6 py-8">
-          <SkeletonLoader className="h-96 mb-6" />
+        <HomeHeader />
+        <div className="max-w-6xl mx-auto px-6 py-8">
+          <SkeletonLoader className="h-80 mb-6" />
           <SkeletonLoader className="h-64" />
         </div>
       </div>
@@ -36,122 +43,140 @@ export function PlaceDetailPage() {
 
   if (!place || !id) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Place not found</h2>
-          <Button onClick={() => navigate(ROUTES.HOME)}>
-            Back to Marketplace
-          </Button>
+      <div className="min-h-screen bg-gray-50">
+        <HomeHeader />
+        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-2">Place not found</h2>
+            <Button onClick={() => navigate(ROUTES.HOME)}>
+              Back to Marketplace
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
+  // Filter to only PlaceImage types
+  const allImages = place.images.filter(isPlaceImage);
+  // Get cover image (first image or placeholder)
+  const coverImage = allImages[0]?.url || "/placeholder-hotel.jpg";
+  // Get gallery images (remaining images for side thumbnails)
+  const sideGalleryImages = allImages.slice(1, 3);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
-        {/* Image Carousel */}
-        <Card className="overflow-hidden">
-          <Carousel className="w-full">
-            <CarouselContent>
-              {place.images.map((image) => (
-                <CarouselItem key={image.id}>
-                  <div className="aspect-video relative">
+      <HomeHeader />
+
+      {/* Image Gallery Modal */}
+      <ImageGalleryModal
+        images={allImages}
+        initialIndex={galleryInitialIndex}
+        isOpen={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+      />
+
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Hero Image Section */}
+        <div className="relative rounded-2xl overflow-hidden mb-8">
+          <div className="flex gap-2 h-80">
+            {/* Main Image */}
+            <div 
+              className="flex-1 relative cursor-pointer"
+              onClick={() => openGallery(0)}
+            >
+              <img
+                src={coverImage}
+                alt={place.name}
+                className="w-full h-full object-cover rounded-lg hover:opacity-90 transition-opacity"
+              />
+              {/* Overlay with Title */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-lg pointer-events-none">
+                <div className="absolute bottom-6 left-6">
+                  <p className="text-gray-300 text-sm mb-1">Student-Only:</p>
+                  <h1 className="text-4xl font-bold text-white">{place.name}</h1>
+                </div>
+              </div>
+            </div>
+            {/* Side Gallery */}
+            {sideGalleryImages.length > 0 && (
+              <div className="w-48 flex flex-col gap-2">
+                {sideGalleryImages.map((image, index) => (
+                  <div 
+                    key={image.id || index} 
+                    className="flex-1 relative cursor-pointer"
+                    onClick={() => openGallery(index + 1)}
+                  >
                     <img
                       src={image.url}
-                      alt={place.name}
-                      className="w-full h-full object-cover"
+                      alt={`${place.name} ${index + 2}`}
+                      className="w-full h-full object-cover rounded-lg hover:opacity-90 transition-opacity"
                     />
                   </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            {place.images.length > 1 && (
-              <>
-                <CarouselPrevious className="left-4" />
-                <CarouselNext className="right-4" />
-              </>
-            )}
-          </Carousel>
-        </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Place Details */}
-          <div className="lg:col-span-2 space-y-6">
-            <div>
-              <div className="flex items-start justify-between mb-2">
-                <h1 className="text-3xl font-bold">{place.name}</h1>
-                <Badge>
-                  {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
-                </Badge>
+                ))}
               </div>
-
-              <div className="flex items-center text-muted-foreground mb-4">
-                <MapPin className="h-5 w-5 mr-2" />
-                <span>
-                  {place.address}, {place.city}, {place.country}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-4 py-4 border-y">
-                <div>
-                  <p className="text-sm text-muted-foreground">Retail Price</p>
-                  <p className="text-2xl font-bold">
-                    ${place.retailPrice}
-                    <span className="text-base font-normal">/night</span>
-                  </p>
-                </div>
-                <div className="h-10 w-px bg-gray-200" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Minimum Bid</p>
-                  <p className="text-xl font-semibold text-green-600">
-                    ${place.minimumBid}
-                    <span className="text-base font-normal">/night</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-xl font-semibold mb-3">Description</h2>
-              <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                {place.fullDescription}
-              </p>
-            </div>
-
-            {place.blackoutDates.length > 0 && (
-              <Card className="border-yellow-200 bg-yellow-50">
-                <CardContent className="p-4">
-                  <div className="flex gap-2">
-                    <Info className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-yellow-900">
-                        Blackout Dates
-                      </p>
-                      <p className="text-sm text-yellow-700 mt-1">
-                        The following dates are not available for booking:
-                      </p>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {place.blackoutDates.map((dateStr, index) => (
-                          <Badge
-                            key={index}
-                            variant="outline"
-                            className="bg-white"
-                          >
-                            {format(new Date(dateStr), "MMM dd, yyyy")}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             )}
           </div>
+        </div>
 
-          {/* Bid Section */}
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Section - Description & Bid Form */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border">
+              <div className="flex gap-8">
+                {/* Description */}
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    {place.shortDescription || `Shared Social Pods in ${place.city}.`}
+                  </h2>
+                </div>
+
+                {/* Bid Form */}
+                <div className="flex-1">
+                  <BidForm place={place} placeId={id} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Section - Potential Outcomes */}
           <div className="lg:col-span-1">
-            <BidForm place={place} placeId={id} />
+            <div className="bg-white rounded-2xl p-6 shadow-sm border">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Your Potential Outcomes
+              </h3>
+
+              {/* Accepted Outcome */}
+              <div className="bg-gray-50 rounded-xl p-4 mb-3 border">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shrink-0">
+                    <CheckCircle className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">Bid Accepted!</h4>
+                    <p className="text-sm text-gray-500">
+                      Automatically accepted based on hotel's minimum price rules.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rejected Outcome */}
+              <div className="bg-gray-50 rounded-xl p-4 border">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center shrink-0">
+                    <XCircle className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">Rejected Bid</h4>
+                    <p className="text-sm text-gray-500">
+                      No charge. Try adjusting your dates or price.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

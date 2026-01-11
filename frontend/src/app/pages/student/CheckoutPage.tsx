@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { BidStatus } from "../../../types/bid.types";
+import { HomeHeader } from "../../components/home";
 
 // Checkout form component (inside Elements provider)
 function CheckoutForm({
@@ -301,6 +302,7 @@ export function CheckoutPage() {
   if (bidLoading || paymentLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
+        <HomeHeader />
         <div className="max-w-2xl mx-auto px-6 py-12">
           <SkeletonLoader className="h-96" />
         </div>
@@ -311,17 +313,20 @@ export function CheckoutPage() {
   // Bid not found
   if (!bid) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center">
-            <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Bid Not Found</h2>
-            <p className="text-muted-foreground mb-6">
-              The bid you're looking for doesn't exist.
-            </p>
-            <Button onClick={() => navigate(ROUTES.HOME)}>Browse Places</Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gray-50">
+        <HomeHeader />
+        <div className="flex items-center justify-center py-12">
+          <Card className="max-w-md w-full">
+            <CardContent className="p-8 text-center">
+              <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+              <h2 className="text-xl font-bold mb-2">Bid Not Found</h2>
+              <p className="text-muted-foreground mb-6">
+                The bid you're looking for doesn't exist.
+              </p>
+              <Button onClick={() => navigate(ROUTES.HOME)}>Browse Places</Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -329,25 +334,28 @@ export function CheckoutPage() {
   // Bid not accepted yet
   if (bid.status !== BidStatus.ACCEPTED) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Bid Not Accepted</h2>
-            <p className="text-muted-foreground mb-6">
-              Your bid needs to be accepted before you can make a payment.
-            </p>
-            <Badge variant="outline" className="mb-4">
-              Status: {bid.status}
-            </Badge>
-            <Button
-              onClick={() => navigate(ROUTES.STUDENT_MY_BIDS)}
-              className="w-full"
-            >
-              View My Bids
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gray-50">
+        <HomeHeader />
+        <div className="flex items-center justify-center py-12">
+          <Card className="max-w-md w-full">
+            <CardContent className="p-8 text-center">
+              <AlertCircle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+              <h2 className="text-xl font-bold mb-2">Bid Not Accepted</h2>
+              <p className="text-muted-foreground mb-6">
+                Your bid needs to be accepted before you can make a payment.
+              </p>
+              <Badge variant="outline" className="mb-4">
+                Status: {bid.status}
+              </Badge>
+              <Button
+                onClick={() => navigate(ROUTES.STUDENT_MY_BIDS)}
+                className="w-full"
+              >
+                View My Bids
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -363,6 +371,7 @@ export function CheckoutPage() {
   ) {
     return (
       <div className="min-h-screen bg-gray-50">
+        <HomeHeader />
         <div className="max-w-2xl mx-auto px-6 py-12">
           <PaymentStatusCard
             status={existingPayment.status}
@@ -375,6 +384,7 @@ export function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <HomeHeader />
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Order Summary */}

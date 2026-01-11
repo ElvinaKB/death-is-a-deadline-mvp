@@ -19,6 +19,7 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { useDebounce } from "../../../hooks/useDebounce";
+import { HomeHeader } from "../../components/home";
 
 export function PlacesListPage() {
   const navigate = useNavigate();
@@ -59,6 +60,7 @@ export function PlacesListPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <HomeHeader />
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Filters Section */}
         <PlacesFilters

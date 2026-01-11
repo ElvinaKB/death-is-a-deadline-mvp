@@ -21,6 +21,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { format } from "date-fns";
+import { HomeHeader } from "../../components/home";
 
 const bidStatusColors: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -83,40 +84,48 @@ export function MyBidsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-gray-50">
+        <HomeHeader />
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
       </div>
     );
   }
 
   if (bids.length === 0) {
     return (
-      <div className="container mx-auto py-8">
-        <h1 className="text-2xl font-bold mb-6">My Bids</h1>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground mb-4">
-              You haven't placed any bids yet.
-            </p>
-            <Button asChild>
-              <Link to={ROUTES.HOME}>Browse Marketplace</Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gray-50">
+        <HomeHeader />
+        <div className="container mx-auto py-8">
+          <h1 className="text-2xl font-bold mb-6">My Bids</h1>
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground mb-4">
+                You haven't placed any bids yet.
+              </p>
+              <Button asChild>
+                <Link to={ROUTES.HOME}>Browse Marketplace</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
-      <h1 className="text-2xl font-bold mb-6">My Bids</h1>
+    <div className="min-h-screen bg-gray-50">
+      <HomeHeader />
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <h1 className="text-2xl font-bold mb-6">My Bids</h1>
 
-      <div className="grid gap-4">
-        {bids.map((bid) => {
-          const payment = bid.payment;
-          const paymentStatus = payment?.status;
-          const paymentConfig = paymentStatus
-            ? paymentStatusConfig[paymentStatus]
+        <div className="grid gap-4">
+          {bids.map((bid) => {
+            const payment = bid.payment;
+            const paymentStatus = payment?.status;
+            const paymentConfig = paymentStatus
+              ? paymentStatusConfig[paymentStatus]
             : null;
 
           // Determine what action button to show
@@ -245,6 +254,7 @@ export function MyBidsPage() {
             </Card>
           );
         })}
+        </div>
       </div>
     </div>
   );
