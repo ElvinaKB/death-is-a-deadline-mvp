@@ -151,7 +151,7 @@ export function PlacesMap({
     <div className="relative w-full h-full">
       <MapContainer
         center={center}
-        zoom={19}
+        zoom={14}
         style={{ height: "100%", width: "100%" }}
         scrollWheelZoom={true}
       >
