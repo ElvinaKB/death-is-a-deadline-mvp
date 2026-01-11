@@ -2,13 +2,23 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { usePlace } from "../../../hooks/usePlaces";
 import { Button } from "../../components/ui/button";
-import { CheckCircle, XCircle } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  MapPin,
+  Home,
+  DollarSign,
+  Building2,
+} from "lucide-react";
 import { ROUTES } from "../../../config/routes.config";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
 import { ImageGalleryModal } from "../../components/common/ImageGalleryModal";
 import { BidForm } from "../../components/bids/BidForm";
 import { HomeHeader } from "../../components/home";
-import { PlaceImage } from "../../../types/place.types";
+import {
+  PlaceImage,
+  ACCOMMODATION_TYPE_LABELS,
+} from "../../../types/place.types";
 
 // Type guard to check if image is PlaceImage
 const isPlaceImage = (image: PlaceImage | File): image is PlaceImage => {
@@ -128,11 +138,37 @@ export function PlaceDetailPage() {
             <div className="bg-white rounded-2xl p-6 shadow-sm border">
               <div className="flex gap-8">
                 {/* Description */}
-                <div className="flex-1">
+                <div className="flex flex-1 flex-col gap-5">
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">
                     {place.shortDescription ||
                       `Shared Social Pods in ${place.city}.`}
                   </h2>
+
+                  {/* Quick Info */}
+                  <div className="flex flex-col gap-4 mb-6">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Building2 className="h-5 w-5 text-gray-400" />
+                      <span className="text-sm">
+                        {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <MapPin className="h-5 w-5 text-gray-400" />
+                      <span className="text-sm">
+                        {place.city}, {place.country}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <DollarSign className="h-5 w-5 text-gray-400" />
+                      <span className="text-sm">
+                        ${place.retailPrice}/night retail
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Home className="h-5 w-5 text-gray-400" />
+                      <span className="text-sm">{place.address}</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Bid Form */}
@@ -187,6 +223,45 @@ export function PlaceDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Map Section - Only show if lat/lng exist */}
+        {place.latitude && place.longitude && (
+          <div className="mt-8">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border">
+              <div className="flex items-center gap-2 mb-4">
+                <MapPin className="h-5 w-5 text-gray-600" />
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Location
+                </h3>
+              </div>
+              <p className="text-gray-600 mb-4">{place.address}</p>
+              <div className="relative w-full h-80 rounded-lg overflow-hidden border">
+                <iframe
+                  title="Place Location"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${
+                    place.longitude - 0.01
+                  },${place.latitude - 0.01},${place.longitude + 0.01},${
+                    place.latitude + 0.01
+                  }&layer=mapnik&marker=${place.latitude},${place.longitude}`}
+                />
+              </div>
+              <div className="mt-2 text-right">
+                <a
+                  href={`https://www.openstreetmap.org/?mlat=${place.latitude}&mlon=${place.longitude}#map=16/${place.latitude}/${place.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  View larger map →
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

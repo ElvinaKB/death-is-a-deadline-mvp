@@ -406,7 +406,8 @@ export function PlaceFormPage() {
           <CardHeader>
             <CardTitle>Location</CardTitle>
             <CardDescription>
-              Search or click on the map to set the place location. City, country, and address will be auto-populated.
+              Search or click on the map to set the place location. City,
+              country, and address will be auto-populated.
             </CardDescription>
           </CardHeader>
           <CardContent>

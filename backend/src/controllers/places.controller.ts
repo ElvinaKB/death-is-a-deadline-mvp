@@ -28,6 +28,8 @@ const formatPlace = (place: any) => ({
   status: place.status,
   createdAt: place.createdAt,
   updatedAt: place.updatedAt,
+  latitude: place.latitude,
+  longitude: place.longitude,
 });
 
 // List all places (admin - optionally filter by status, with pagination)

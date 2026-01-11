@@ -61,9 +61,7 @@ export function LocationPicker({
   const [selectedLocation, setSelectedLocation] = useState<{
     lat: number;
     lng: number;
-  } | null>(
-    latitude && longitude ? { lat: latitude, lng: longitude } : null
-  );
+  } | null>(latitude && longitude ? { lat: latitude, lng: longitude } : null);
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
