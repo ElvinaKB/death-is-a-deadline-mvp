@@ -80,6 +80,8 @@ function BidFormInner({ place, placeId }: BidFormProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [isCardComplete, setIsCardComplete] = useState(false);
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkOutOpen, setCheckOutOpen] = useState(false);
   const cardElementRef = useRef<StripeCardElement | null>(null);
 
   // Disable the query while processing to prevent unmounting the CardElement
@@ -415,7 +417,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
             <Label className="text-sm text-gray-600 mb-1.5 block">
               Check-in
             </Label>
-            <Popover>
+            <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -436,7 +438,10 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                 <Calendar
                   mode="single"
                   selected={formik.values.checkInDate}
-                  onSelect={(date) => formik.setFieldValue("checkInDate", date)}
+                  onSelect={(date) => {
+                    formik.setFieldValue("checkInDate", date);
+                    setCheckInOpen(false);
+                  }}
                   disabled={isDateBlocked}
                 />
               </PopoverContent>
@@ -453,7 +458,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
             <Label className="text-sm text-gray-600 mb-1.5 block">
               Check-out
             </Label>
-            <Popover>
+            <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -474,9 +479,10 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                 <Calendar
                   mode="single"
                   selected={formik.values.checkOutDate}
-                  onSelect={(date) =>
-                    formik.setFieldValue("checkOutDate", date)
-                  }
+                  onSelect={(date) => {
+                    formik.setFieldValue("checkOutDate", date);
+                    setCheckOutOpen(false);
+                  }}
                   disabled={isDateBlocked}
                 />
               </PopoverContent>
