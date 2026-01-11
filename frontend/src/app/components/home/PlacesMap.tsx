@@ -56,7 +56,7 @@ function FitBounds({
   const map = useMap();
   useEffect(() => {
     if (bounds) {
-      map.fitBounds(bounds, { padding: [50, 50] });
+      map.fitBounds(bounds, { padding: [20, 20], maxZoom: 15 });
     }
   }, [map, bounds]);
   return null;
@@ -151,7 +151,7 @@ export function PlacesMap({
     <div className="relative w-full h-full">
       <MapContainer
         center={center}
-        zoom={12}
+        zoom={19}
         style={{ height: "100%", width: "100%" }}
         scrollWheelZoom={true}
       >
