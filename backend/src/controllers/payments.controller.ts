@@ -370,7 +370,7 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
   // Send confirmation emails if payment was authorized
   if (newStatus === payment_status.AUTHORIZED && updatedPayment.bid) {
     const bid = updatedPayment.bid;
-    const place = bid.place;
+    const place = bid.place as typeof bid.place & { email?: string | null };
     const student = updatedPayment.student;
 
     const emailVariables = {
@@ -386,7 +386,7 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
       bidPerNight: Number(bid.bidPerNight).toFixed(2),
       totalAmount: Number(bid.totalAmount).toFixed(2),
       appName: process.env.EMAIL_NAME || "Education Bidding",
-      dashboardUrl: `${process.env.CLIENT_URL}`,
+      dashboardUrl: `${process.env.CLIENT_URL}/student/my-bids`,
     };
 
     // Send email to student
@@ -403,20 +403,19 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
       }
     }
 
-    // TODO: Send email to place owner when place email is available
-    // For now, we don't have place owner email stored
-    // if (place.ownerEmail) {
-    //   try {
-    //     await sendEmail({
-    //       type: EmailType.BOOKING_CONFIRMED_PLACE,
-    //       to: place.ownerEmail,
-    //       subject: `New Booking - ${place.name}`,
-    //       variables: emailVariables,
-    //     });
-    //   } catch (error) {
-    //     console.error("Failed to send place confirmation email:", error);
-    //   }
-    // }
+    // Send email to place if email is configured
+    if (place.email) {
+      try {
+        await sendEmail({
+          type: EmailType.BOOKING_CONFIRMED_PLACE,
+          to: place.email,
+          subject: `New Booking - ${place.name}`,
+          variables: emailVariables,
+        });
+      } catch (error) {
+        console.error("Failed to send place confirmation email:", error);
+      }
+    }
   }
 
   res.status(200).json({

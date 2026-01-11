@@ -53,6 +53,7 @@ import { placeValidationSchema } from "../../../utils/validationSchemas";
 import { supabase } from "../../../utils/supabaseClient";
 import { toast } from "sonner";
 import { SUPABASE_BUCKET } from "../../../lib/constants";
+import { LocationPicker } from "../../components/common/LocationPicker";
 
 // Upload images to Supabase and return URLs
 const uploadImagesToSupabase = async (files: File[]): Promise<string[]> => {
@@ -109,6 +110,9 @@ export function PlaceFormPage() {
       city: "",
       country: "",
       address: "",
+      email: "",
+      latitude: null as number | null,
+      longitude: null as number | null,
       images: [] as File[],
       accommodationType: "" as AccommodationType,
       retailPrice: 0,
@@ -171,6 +175,9 @@ export function PlaceFormPage() {
         city: existingPlace.city,
         country: existingPlace.country,
         address: existingPlace.address,
+        email: existingPlace.email || "",
+        latitude: existingPlace.latitude ?? null,
+        longitude: existingPlace.longitude ?? null,
         images: [],
         accommodationType: existingPlace.accommodationType,
         retailPrice: existingPlace.retailPrice,
@@ -331,6 +338,8 @@ export function PlaceFormPage() {
                   id="city"
                   {...formik.getFieldProps("city")}
                   placeholder="e.g., New York"
+                  disabled
+                  className="bg-gray-50"
                 />
                 {formik.touched.city && formik.errors.city && (
                   <p className="text-sm text-red-500 mt-1">
@@ -345,6 +354,8 @@ export function PlaceFormPage() {
                   id="country"
                   {...formik.getFieldProps("country")}
                   placeholder="e.g., USA"
+                  disabled
+                  className="bg-gray-50"
                 />
                 {formik.touched.country && formik.errors.country && (
                   <p className="text-sm text-red-500 mt-1">
@@ -360,6 +371,8 @@ export function PlaceFormPage() {
                 id="address"
                 {...formik.getFieldProps("address")}
                 placeholder="Full street address"
+                disabled
+                className="bg-gray-50"
               />
               {formik.touched.address && formik.errors.address && (
                 <p className="text-sm text-red-500 mt-1">
@@ -367,6 +380,53 @@ export function PlaceFormPage() {
                 </p>
               )}
             </div>
+
+            <div>
+              <Label htmlFor="email">Place Email (for notifications)</Label>
+              <Input
+                id="email"
+                type="email"
+                {...formik.getFieldProps("email")}
+                placeholder="e.g., contact@place.com"
+              />
+              {formik.touched.email && formik.errors.email && (
+                <p className="text-sm text-red-500 mt-1">
+                  {formik.errors.email}
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground mt-1">
+                Booking confirmations will be sent to this email
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Location */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Location</CardTitle>
+            <CardDescription>
+              Search or click on the map to set the place location. City, country, and address will be auto-populated.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LocationPicker
+              latitude={formik.values.latitude}
+              longitude={formik.values.longitude}
+              onLocationChange={(location) => {
+                formik.setFieldValue("latitude", location.latitude);
+                formik.setFieldValue("longitude", location.longitude);
+                if (location.city) {
+                  formik.setFieldValue("city", location.city);
+                }
+                if (location.country) {
+                  formik.setFieldValue("country", location.country);
+                }
+                if (location.address) {
+                  formik.setFieldValue("address", location.address);
+                }
+              }}
+            />
           </CardContent>
         </Card>
 

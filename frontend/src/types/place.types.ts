@@ -19,6 +19,7 @@ export interface Place {
   city: string;
   country: string;
   address: string;
+  email?: string | null;
   latitude?: number;
   longitude?: number;
   images: PlaceImage[] | File[];
@@ -45,6 +46,9 @@ export interface CreatePlaceRequest {
   city: string;
   country: string;
   address: string;
+  email?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   images: File[];
   accommodationType: AccommodationType;
   retailPrice: number;
@@ -83,6 +87,9 @@ export interface CreatePlacePayload {
   city: string;
   country: string;
   address: string;
+  email?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   images: { url: string; order: number }[];
   accommodationType: string;
   retailPrice: number;
