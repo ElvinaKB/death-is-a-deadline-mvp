@@ -1,12 +1,65 @@
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { getRoute, ROUTES } from "../../../config/routes.config";
 import { Place } from "../../../types/place.types";
+
+// Fix Leaflet default icon issue
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
+
+// Custom BID marker icon
+const createBidIcon = (isSelected: boolean) => {
+  return L.divIcon({
+    className: "custom-bid-marker",
+    html: `
+      <div style="
+        background: ${isSelected ? "#1f2937" : "#ffffff"};
+        color: ${isSelected ? "#ffffff" : "#1f2937"};
+        border: 2px solid ${isSelected ? "#1f2937" : "#e5e7eb"};
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        cursor: pointer;
+        white-space: nowrap;
+        transform: ${isSelected ? "scale(1.1)" : "scale(1)"};
+        transition: all 0.2s ease;
+      ">BID</div>
+    `,
+    iconSize: [50, 30],
+    iconAnchor: [25, 30],
+  });
+};
 
 interface PlacesMapProps {
   places: Place[];
   selectedPlaceId?: string;
   onPlaceSelect?: (placeId: string) => void;
+}
+
+// Component to fit bounds when places change
+function FitBounds({
+  bounds,
+}: {
+  bounds: [[number, number], [number, number]];
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (bounds) {
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }, [map, bounds]);
+  return null;
 }
 
 export function PlacesMap({
@@ -15,7 +68,6 @@ export function PlacesMap({
   onPlaceSelect,
 }: PlacesMapProps) {
   const navigate = useNavigate();
-  const [hoveredPlaceId, setHoveredPlaceId] = useState<string | null>(null);
 
   const handleMarkerClick = useCallback(
     (placeId: string) => {
@@ -34,72 +86,52 @@ export function PlacesMap({
         (place) =>
           place.latitude !== undefined &&
           place.longitude !== undefined &&
+          place.latitude !== null &&
+          place.longitude !== null &&
           !isNaN(place.latitude) &&
           !isNaN(place.longitude)
       ),
     [places]
   );
 
-  // Calculate bounds for the map iframe
-  const bounds = useMemo(() => {
+  // Calculate bounds for the map
+  const bounds = useMemo<[[number, number], [number, number]]>(() => {
     if (placesWithCoords.length === 0) {
-      // Default to world view if no places with coordinates
-      return {
-        minLat: -60,
-        maxLat: 70,
-        minLng: -180,
-        maxLng: 180,
-      };
+      return [
+        [-60, -180],
+        [70, 180],
+      ];
     }
 
     if (placesWithCoords.length === 1) {
-      // Single place - center on it with some padding
       const place = placesWithCoords[0];
-      return {
-        minLat: place.latitude! - 0.05,
-        maxLat: place.latitude! + 0.05,
-        minLng: place.longitude! - 0.05,
-        maxLng: place.longitude! + 0.05,
-      };
+      return [
+        [place.latitude! - 0.05, place.longitude! - 0.05],
+        [place.latitude! + 0.05, place.longitude! + 0.05],
+      ];
     }
 
-    return placesWithCoords.reduce(
-      (acc, place) => ({
-        minLat: Math.min(acc.minLat, place.latitude!),
-        maxLat: Math.max(acc.maxLat, place.latitude!),
-        minLng: Math.min(acc.minLng, place.longitude!),
-        maxLng: Math.max(acc.maxLng, place.longitude!),
-      }),
-      { minLat: 90, maxLat: -90, minLng: 180, maxLng: -180 }
-    );
+    const lats = placesWithCoords.map((p) => p.latitude!);
+    const lngs = placesWithCoords.map((p) => p.longitude!);
+    return [
+      [Math.min(...lats) - 0.02, Math.min(...lngs) - 0.02],
+      [Math.max(...lats) + 0.02, Math.max(...lngs) + 0.02],
+    ];
   }, [placesWithCoords]);
 
-  // Calculate marker positions based on actual coordinates
-  const getMarkerPosition = useCallback(
-    (lat: number, lng: number) => {
-      const padding = 0.1; // 10% padding
-      const latRange = bounds.maxLat - bounds.minLat || 1;
-      const lngRange = bounds.maxLng - bounds.minLng || 1;
-
-      // Convert lat/lng to percentage position within bounds
-      // Note: latitude is inverted (higher lat = lower on screen)
-      const top =
-        padding * 100 +
-        ((bounds.maxLat - lat) / latRange) * (100 - 2 * padding * 100);
-      const left =
-        padding * 100 +
-        ((lng - bounds.minLng) / lngRange) * (100 - 2 * padding * 100);
-
-      return { top, left };
-    },
-    [bounds]
-  );
-
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${
-    bounds.minLng - 0.05
-  },${bounds.minLat - 0.05},${bounds.maxLng + 0.05},${
-    bounds.maxLat + 0.05
-  }&layer=mapnik`;
+  // Default center
+  const center = useMemo<[number, number]>(() => {
+    if (placesWithCoords.length === 0) {
+      return [40, -74];
+    }
+    const avgLat =
+      placesWithCoords.reduce((sum, p) => sum + p.latitude!, 0) /
+      placesWithCoords.length;
+    const avgLng =
+      placesWithCoords.reduce((sum, p) => sum + p.longitude!, 0) /
+      placesWithCoords.length;
+    return [avgLat, avgLng];
+  }, [placesWithCoords]);
 
   // Show message if no places have coordinates
   if (placesWithCoords.length === 0) {
@@ -116,55 +148,48 @@ export function PlacesMap({
   }
 
   return (
-    <div className="relative w-full h-full bg-blue-100 overflow-hidden">
-      {/* Map Background - OpenStreetMap */}
-      <iframe
-        title="Places Map"
-        width="100%"
-        height="100%"
-        style={{ border: 0 }}
-        loading="lazy"
-        src={mapUrl}
-        className="absolute inset-0"
-      />
+    <div className="relative w-full h-full">
+      <MapContainer
+        center={center}
+        zoom={12}
+        style={{ height: "100%", width: "100%" }}
+        scrollWheelZoom={true}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <FitBounds bounds={bounds} />
 
-      {/* BID Markers Overlay */}
-      <div className="absolute inset-0 pointer-events-none">
         {placesWithCoords.map((place) => {
           const isSelected = place.id === selectedPlaceId;
-          const isHovered = place.id === hoveredPlaceId;
-          const position = getMarkerPosition(place.latitude!, place.longitude!);
 
           return (
-            <button
+            <Marker
               key={place.id}
-              className={`absolute transform -translate-x-1/2 -translate-y-1/2 
-                px-3 py-1.5 rounded-md font-semibold text-sm shadow-lg
-                transition-all duration-200 pointer-events-auto cursor-pointer
-                border-2
-                ${
-                  isSelected || isHovered
-                    ? "bg-gray-900 text-white border-gray-900 scale-110 z-20"
-                    : "bg-white text-gray-900 border-white hover:bg-gray-900 hover:text-white hover:border-gray-900 z-10"
-                }`}
-              style={{
-                top: `${position.top}%`,
-                left: `${position.left}%`,
+              position={[place.latitude!, place.longitude!]}
+              icon={createBidIcon(isSelected)}
+              eventHandlers={{
+                click: () => handleMarkerClick(place.id),
               }}
-              onClick={() => handleMarkerClick(place.id)}
-              onMouseEnter={() => setHoveredPlaceId(place.id)}
-              onMouseLeave={() => setHoveredPlaceId(null)}
             >
-              BID
-            </button>
+              <Popup>
+                <div className="text-center min-w-[150px]">
+                  <h4 className="font-semibold text-gray-900 mb-1">
+                    {place.name}
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    {place.city}, {place.country}
+                  </p>
+                  <p className="text-sm font-medium text-green-600 mt-1">
+                    From ${place.minimumBid}/night
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
           );
         })}
-      </div>
-
-      {/* Map Attribution */}
-      <div className="absolute bottom-2 right-2 text-xs text-gray-600 bg-white/90 px-2 py-1 rounded shadow">
-        © OpenStreetMap contributors
-      </div>
+      </MapContainer>
     </div>
   );
 }
