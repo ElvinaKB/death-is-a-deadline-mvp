@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "../../utils/supabaseClient";
 import { useFormik } from "formik";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { signupSchema } from "../../utils/validationSchemas";
 import { getFieldError } from "../../utils/formikHelpers";
 import { isAcademicEmail } from "../../utils/emailValidator";
@@ -33,13 +33,22 @@ import { toast } from "sonner";
 import { SUPABASE_BUCKET } from "../../lib/constants";
 import { useDebounce } from "../../hooks/useDebounce";
 
+interface LocationState {
+  returnUrl?: string;
+}
+
 export function SignupPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [needsIdUpload, setNeedsIdUpload] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileUpload, setFileUpload] = useState<boolean>(false);
+
+  // Get return URL from location state
+  const locationState = location.state as LocationState | null;
+  const returnUrl = locationState?.returnUrl;
 
   const signupMutation = useApiMutation<AuthResponse, SignupRequest>({
     endpoint: ENDPOINTS.SIGNUP,
@@ -314,6 +323,7 @@ export function SignupPage() {
             </span>
             <Link
               to={ROUTES.LOGIN}
+              state={returnUrl ? { returnUrl } : undefined}
               className="text-blue-600 hover:underline font-medium"
             >
               Login

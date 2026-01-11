@@ -4,10 +4,11 @@ export const ROUTES = {
   SIGNUP: "/signup",
   RESUBMIT: "/resubmit",
 
+  HOME: "/",
+  PUBLIC_PLACE_DETAIL: "/student/marketplace/:id",
+
   // Student routes
   STUDENT_DASHBOARD: "/student/dashboard",
-  STUDENT_MARKETPLACE: "/student/marketplace",
-  STUDENT_PLACE_DETAIL: "/student/marketplace/:id",
   STUDENT_MY_BIDS: "/student/my-bids",
   STUDENT_CHECKOUT: "/student/checkout/:bidId",
 

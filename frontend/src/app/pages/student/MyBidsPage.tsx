@@ -99,7 +99,7 @@ export function MyBidsPage() {
               You haven't placed any bids yet.
             </p>
             <Button asChild>
-              <Link to={ROUTES.STUDENT_MARKETPLACE}>Browse Marketplace</Link>
+              <Link to={ROUTES.HOME}>Browse Marketplace</Link>
             </Button>
           </CardContent>
         </Card>
@@ -232,7 +232,7 @@ export function MyBidsPage() {
 
                   <Button variant="outline" size="sm" asChild>
                     <Link
-                      to={ROUTES.STUDENT_PLACE_DETAIL.replace(
+                      to={ROUTES.PUBLIC_PLACE_DETAIL.replace(
                         ":id",
                         bid.placeId
                       )}

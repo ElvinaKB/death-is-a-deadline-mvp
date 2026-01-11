@@ -87,7 +87,7 @@ export function RedirectPage() {
           token: access_token,
         })
       );
-      navigate(ROUTES.STUDENT_MARKETPLACE);
+      navigate(ROUTES.HOME);
     });
   }, [dispatch, navigate]);
 

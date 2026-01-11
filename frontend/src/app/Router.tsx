@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../config/routes.config";
 import { UserRole } from "../types/auth.types";
 
@@ -40,6 +40,11 @@ const authRoutes = [
 const publicRoutes = [
   { path: ROUTES.UNAUTHORIZED, element: <UnauthorizedPage /> },
   { path: ROUTES.REDIRECT, element: <RedirectPage /> },
+  { path: ROUTES.HOME, element: <StudentPlacesListPage /> },
+  {
+    path: ROUTES.PUBLIC_PLACE_DETAIL,
+    element: <StudentPlacesDetailPage />,
+  },
 ];
 
 // Protected routes (require auth, role-based)
@@ -49,11 +54,6 @@ const protectedRoutes = [
     allowedRoles: [UserRole.STUDENT],
     element: <StudentLayout />,
     children: [
-      { path: ROUTES.STUDENT_MARKETPLACE, element: <StudentPlacesListPage /> },
-      {
-        path: ROUTES.STUDENT_PLACE_DETAIL,
-        element: <StudentPlacesDetailPage />,
-      },
       { path: ROUTES.STUDENT_MY_BIDS, element: <MyBidsPage /> },
       { path: ROUTES.STUDENT_CHECKOUT, element: <CheckoutPage /> },
     ],
@@ -85,15 +85,27 @@ const miscRoutes = [
   { path: "*", element: <NotFoundPage /> },
 ];
 
+interface LocationState {
+  returnUrl?: string;
+}
+
 function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const location = useLocation();
+  const locationState = location.state as LocationState | null;
+  const returnUrl = locationState?.returnUrl;
+
   if (isAuthenticated && user) {
-    // Redirect based on role
+    // If there's a return URL, redirect there
+    if (returnUrl) {
+      return <Navigate to={returnUrl} replace />;
+    }
+    // Otherwise redirect based on role
     if (user.role === UserRole.ADMIN)
       return <Navigate to={ROUTES.ADMIN_DASHBOARD} replace />;
     if (user.role === UserRole.HOTEL_OWNER)
       return <Navigate to={ROUTES.HOTEL_DASHBOARD} replace />;
-    return <Navigate to={ROUTES.STUDENT_MARKETPLACE} replace />;
+    return <Navigate to={ROUTES.HOME} replace />;
   }
   return <>{children}</>;
 }

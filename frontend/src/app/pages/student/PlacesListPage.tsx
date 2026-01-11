@@ -91,7 +91,7 @@ export function PlacesListPage() {
                 className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() =>
                   navigate(
-                    getRoute(ROUTES.STUDENT_PLACE_DETAIL, { id: place.id })
+                    getRoute(ROUTES.PUBLIC_PLACE_DETAIL, { id: place.id })
                   )
                 }
               >

@@ -319,9 +319,7 @@ export function CheckoutPage() {
             <p className="text-muted-foreground mb-6">
               The bid you're looking for doesn't exist.
             </p>
-            <Button onClick={() => navigate(ROUTES.STUDENT_MARKETPLACE)}>
-              Browse Places
-            </Button>
+            <Button onClick={() => navigate(ROUTES.HOME)}>Browse Places</Button>
           </CardContent>
         </Card>
       </div>

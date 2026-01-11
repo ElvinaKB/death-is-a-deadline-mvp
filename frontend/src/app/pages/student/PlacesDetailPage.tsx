@@ -39,7 +39,7 @@ export function PlaceDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">Place not found</h2>
-          <Button onClick={() => navigate(ROUTES.STUDENT_MARKETPLACE)}>
+          <Button onClick={() => navigate(ROUTES.HOME)}>
             Back to Marketplace
           </Button>
         </div>

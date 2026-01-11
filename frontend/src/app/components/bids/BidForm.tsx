@@ -7,12 +7,14 @@ import {
   CircleX,
   Clock,
   CreditCard,
+  LogIn,
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useBidForPlace, useCreateBid } from "../../../hooks/useBids";
+import { useAppSelector } from "../../../store/hooks";
 import { Bid, BidStatus, CreateBidRequest } from "../../../types/bid.types";
 import { Place } from "../../../types/place.types";
 import { bidValidationSchema } from "../../../utils/validationSchemas";
@@ -47,11 +49,63 @@ interface BidResultState {
 }
 
 export function BidForm({ place, placeId }: BidFormProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
   const createBid = useCreateBid();
   const { data: existingBidData, isLoading: isLoadingExistingBid } =
     useBidForPlace(placeId);
 
   const [bidResult, setBidResult] = useState<BidResultState | null>(null);
+
+  // If user is not authenticated, show login prompt
+  if (!isAuthenticated) {
+    return (
+      <Card className="sticky top-24">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LogIn className="h-5 w-5" />
+            Sign In Required
+          </CardTitle>
+          <CardDescription>
+            Please sign in to place a bid on this accommodation
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-center py-4">
+            <p className="text-muted-foreground mb-4">
+              Starting from{" "}
+              <span className="font-semibold text-foreground">
+                ${place.minimumBid}
+              </span>{" "}
+              per night
+            </p>
+          </div>
+          <Button
+            className="w-full"
+            onClick={() =>
+              navigate(ROUTES.LOGIN, {
+                state: { returnUrl: location.pathname },
+              })
+            }
+          >
+            Sign In to Place Bid
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() =>
+              navigate(ROUTES.SIGNUP, {
+                state: { returnUrl: location.pathname },
+              })
+            }
+          >
+            Create Account
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Date restrictions: today to 30 days from today
   const today = new Date();
@@ -279,14 +333,6 @@ export function BidForm({ place, placeId }: BidFormProps) {
             </div>
           )}
 
-          {place.autoAcceptAboveMinimum && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-              <p className="text-sm text-green-800">
-                ✓ Bids at or above ${place.minimumBid}/night are auto-accepted
-              </p>
-            </div>
-          )}
-
           <Button
             type="submit"
             className="w-full"
@@ -484,7 +530,7 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
         <Button
           variant="outline"
           className="w-full"
-          onClick={() => navigate(ROUTES.STUDENT_MARKETPLACE)}
+          onClick={() => navigate(ROUTES.HOME)}
         >
           Browse Other Places
         </Button>
@@ -563,7 +609,7 @@ function BidResultCard({
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => navigate(ROUTES.STUDENT_MARKETPLACE)}
+            onClick={() => navigate(ROUTES.HOME)}
           >
             Back to Places
           </Button>
@@ -619,7 +665,7 @@ function BidResultCard({
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => navigate(ROUTES.STUDENT_MARKETPLACE)}
+            onClick={() => navigate(ROUTES.HOME)}
           >
             Browse Other Places
           </Button>
@@ -655,7 +701,7 @@ function BidResultCard({
         <Button
           variant="outline"
           className="w-full"
-          onClick={() => navigate(ROUTES.STUDENT_MARKETPLACE)}
+          onClick={() => navigate(ROUTES.HOME)}
         >
           Browse Other Places
         </Button>

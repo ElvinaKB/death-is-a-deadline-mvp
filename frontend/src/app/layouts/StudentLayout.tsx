@@ -44,7 +44,7 @@ export function StudentLayout() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div>
-              <Link to={ROUTES.STUDENT_MARKETPLACE}>
+              <Link to={ROUTES.HOME}>
                 <h1 className="text-2xl font-bold text-blue-600">
                   Death is a Deadline
                 </h1>
@@ -55,7 +55,7 @@ export function StudentLayout() {
             </div>
             <nav className="flex items-center gap-4">
               <Link
-                to={ROUTES.STUDENT_MARKETPLACE}
+                to={ROUTES.HOME}
                 className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
               >
                 <Store className="w-4 h-4" />
