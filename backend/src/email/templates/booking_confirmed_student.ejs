@@ -1,0 +1,58 @@
+<html></html>
+  <body>
+    <h2>Booking Confirmed!</h2>
+    <p>Hello <%= studentName %>,</p>
+    <p>
+      Great news! Your booking has been confirmed and payment has been authorized.
+    </p>
+    <h3>Booking Details</h3>
+    <table style="border-collapse: collapse; width: 100%; max-width: 400px;">
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Property:</strong></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><%= placeName %></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Location:</strong></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><%= placeCity %>, <%= placeCountry %></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Check-in:</strong></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><%= checkInDate %></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Check-out:</strong></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><%= checkOutDate %></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Total Nights:</strong></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><%= totalNights %></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Price per Night:</strong></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;">$<%= bidPerNight %></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>Total Amount:</strong></td>
+        <td style="padding: 8px 0;"><strong>$<%= totalAmount %></strong></td>
+      </tr>
+    </table>
+    <p style="margin-top: 20px; padding: 15px; background-color: #f0f9ff; border-radius: 6px; color: #0369a1;">
+      <strong>Note:</strong> Your payment has been pre-authorized and will be captured upon check-in.
+    </p>
+    <p style="margin-top: 20px;">
+      <a
+        href="<%= dashboardUrl %>"
+        style="
+          background: #2563eb;
+          color: #fff;
+          padding: 10px 20px;
+          border-radius: 6px;
+          text-decoration: none;
+          font-weight: bold;
+        "
+        >View Your Bookings</a
+      >
+    </p>
+    <p>Thank you for choosing us!<br /><%= appName %> Team</p>
+  </body>
+</html>
