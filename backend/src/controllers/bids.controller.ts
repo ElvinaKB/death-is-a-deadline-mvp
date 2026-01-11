@@ -91,7 +91,7 @@ export async function createBid(req: Request, res: Response) {
   // Check if bid meets minimum
   if (data.bidPerNight < place.minimumBid) {
     throw new CustomError(
-      `Your bid must be at least $${place.minimumBid} per night`,
+      `Your bid is very low, try again by increasing it.`,
       400
     );
   }

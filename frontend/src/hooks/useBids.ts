@@ -12,11 +12,14 @@ import {
 } from "../types/bid.types";
 
 // Check if student has existing bid for a place
-export const useBidForPlace = (placeId: string) => {
+export const useBidForPlace = (
+  placeId: string,
+  options?: { enabled?: boolean }
+) => {
   return useApiQuery<BidDetailResponse | null>({
     queryKey: ["bids", "place", placeId],
     endpoint: getEndpoint(ENDPOINTS.BID_FOR_PLACE, { placeId }),
-    enabled: !!placeId,
+    enabled: !!placeId && options?.enabled !== false,
   });
 };
 
@@ -58,14 +61,15 @@ export const useBids = (params?: {
 
 // Create a new bid
 export const useCreateBid = () => {
-  const queryClient = useQueryClient();
+  //   const queryClient = useQueryClient();
 
   return useApiMutation<BidResponse, CreateBidRequest>({
     endpoint: ENDPOINTS.BIDS_CREATE,
     method: "POST",
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bids"] });
-    },
+    showErrorToast: false,
+    // onSuccess: () => {
+    //   queryClient.invalidateQueries({ queryKey: ["bids"] });
+    // },
   });
 };
 

@@ -126,134 +126,134 @@ export function MyBidsPage() {
             const paymentStatus = payment?.status;
             const paymentConfig = paymentStatus
               ? paymentStatusConfig[paymentStatus]
-            : null;
+              : null;
 
-          // Determine what action button to show
-          const canCheckout =
-            bid.status === "ACCEPTED" &&
-            (!payment ||
-              paymentStatus === "PENDING" ||
-              paymentStatus === "FAILED" ||
-              paymentStatus === "EXPIRED");
-          const isPaymentAuthorized = paymentStatus === "AUTHORIZED";
-          const isPaymentCaptured = paymentStatus === "CAPTURED";
-          const isPaymentCancelled = paymentStatus === "CANCELLED";
+            // Determine what action button to show
+            const canCheckout =
+              bid.status === "ACCEPTED" &&
+              (!payment ||
+                paymentStatus === "PENDING" ||
+                paymentStatus === "FAILED" ||
+                paymentStatus === "EXPIRED");
+            const isPaymentAuthorized = paymentStatus === "AUTHORIZED";
+            const isPaymentCaptured = paymentStatus === "CAPTURED";
+            const isPaymentCancelled = paymentStatus === "CANCELLED";
 
-          return (
-            <Card key={bid.id}>
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-lg">
-                      {bid.place?.name || "Unknown Place"}
-                    </CardTitle>
-                    <CardDescription className="flex items-center gap-1 mt-1">
-                      <MapPin className="w-3 h-3" />
-                      {bid.place?.city}, {bid.place?.country}
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={bidStatusColors[bid.status] || ""}>
-                      {bid.status}
-                    </Badge>
-                    {paymentConfig && (
-                      <Badge className={paymentConfig.color}>
-                        <paymentConfig.icon className="w-3 h-3 mr-1" />
-                        {paymentConfig.label}
+            return (
+              <Card key={bid.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg">
+                        {bid.place?.name || "Unknown Place"}
+                      </CardTitle>
+                      <CardDescription className="flex items-center gap-1 mt-1">
+                        <MapPin className="w-3 h-3" />
+                        {bid.place?.city}, {bid.place?.country}
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={bidStatusColors[bid.status] || ""}>
+                        {bid.status}
                       </Badge>
-                    )}
+                      {paymentConfig && (
+                        <Badge className={paymentConfig.color}>
+                          <paymentConfig.icon className="w-3 h-3 mr-1" />
+                          {paymentConfig.label}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-muted-foreground" />
-                    <span>
-                      <strong>Bid:</strong> {formatCurrency(bid.bidPerNight)}
-                      /night
-                    </span>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-muted-foreground" />
+                      <span>
+                        <strong>Bid:</strong> {formatCurrency(bid.bidPerNight)}
+                        /night
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <span>
+                        <strong>Check-in:</strong>{" "}
+                        {format(new Date(bid.checkInDate), "MMM d, yyyy")}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <span>
+                        <strong>Check-out:</strong>{" "}
+                        {format(new Date(bid.checkOutDate), "MMM d, yyyy")}
+                      </span>
+                    </div>
+                    <div className="text-muted-foreground">
+                      <strong>Total:</strong> {formatCurrency(bid.totalAmount)}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span>
-                      <strong>Check-in:</strong>{" "}
-                      {format(new Date(bid.checkInDate), "MMM d, yyyy")}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span>
-                      <strong>Check-out:</strong>{" "}
-                      {format(new Date(bid.checkOutDate), "MMM d, yyyy")}
-                    </span>
-                  </div>
-                  <div className="text-muted-foreground">
-                    <strong>Total:</strong> {formatCurrency(bid.totalAmount)}
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2 mt-4 flex-wrap">
-                  {/* Show checkout button if payment not made or failed */}
-                  {canCheckout && (
-                    <Button asChild size="sm">
+                  <div className="flex items-center gap-2 mt-4 flex-wrap">
+                    {/* Show checkout button if payment not made or failed */}
+                    {canCheckout && (
+                      <Button asChild size="sm">
+                        <Link
+                          to={ROUTES.STUDENT_CHECKOUT.replace(":bidId", bid.id)}
+                        >
+                          <CreditCard className="w-4 h-4 mr-1" />
+                          {paymentStatus === "FAILED" ||
+                          paymentStatus === "EXPIRED"
+                            ? "Retry Payment"
+                            : "Proceed to Checkout"}
+                        </Link>
+                      </Button>
+                    )}
+
+                    {/* Payment authorized - awaiting capture */}
+                    {isPaymentAuthorized && (
+                      <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1.5 rounded-md">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Payment authorized - awaiting confirmation</span>
+                      </div>
+                    )}
+
+                    {/* Payment captured - completed */}
+                    {isPaymentCaptured && (
+                      <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-md">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Payment complete - booking confirmed!</span>
+                      </div>
+                    )}
+
+                    {/* Payment cancelled */}
+                    {isPaymentCancelled && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-md">
+                        <XCircle className="w-4 h-4" />
+                        <span>Payment was cancelled</span>
+                      </div>
+                    )}
+
+                    {bid.status === "REJECTED" && bid.rejectionReason && (
+                      <span className="text-sm text-red-600">
+                        Rejection reason: {bid.rejectionReason}
+                      </span>
+                    )}
+
+                    <Button variant="outline" size="sm" asChild>
                       <Link
-                        to={ROUTES.STUDENT_CHECKOUT.replace(":bidId", bid.id)}
+                        to={ROUTES.PUBLIC_PLACE_DETAIL.replace(
+                          ":id",
+                          bid.placeId
+                        )}
                       >
-                        <CreditCard className="w-4 h-4 mr-1" />
-                        {paymentStatus === "FAILED" ||
-                        paymentStatus === "EXPIRED"
-                          ? "Retry Payment"
-                          : "Proceed to Checkout"}
+                        View Place
                       </Link>
                     </Button>
-                  )}
-
-                  {/* Payment authorized - awaiting capture */}
-                  {isPaymentAuthorized && (
-                    <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1.5 rounded-md">
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Payment authorized - awaiting confirmation</span>
-                    </div>
-                  )}
-
-                  {/* Payment captured - completed */}
-                  {isPaymentCaptured && (
-                    <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-md">
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Payment complete - booking confirmed!</span>
-                    </div>
-                  )}
-
-                  {/* Payment cancelled */}
-                  {isPaymentCancelled && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-md">
-                      <XCircle className="w-4 h-4" />
-                      <span>Payment was cancelled</span>
-                    </div>
-                  )}
-
-                  {bid.status === "REJECTED" && bid.rejectionReason && (
-                    <span className="text-sm text-red-600">
-                      Rejection reason: {bid.rejectionReason}
-                    </span>
-                  )}
-
-                  <Button variant="outline" size="sm" asChild>
-                    <Link
-                      to={ROUTES.PUBLIC_PLACE_DETAIL.replace(
-                        ":id",
-                        bid.placeId
-                      )}
-                    >
-                      View Place
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </div>

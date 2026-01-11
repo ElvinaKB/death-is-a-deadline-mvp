@@ -81,7 +81,7 @@ export function PlaceDetailPage() {
         <div className="relative rounded-2xl overflow-hidden mb-8">
           <div className="flex gap-2 h-80">
             {/* Main Image */}
-            <div 
+            <div
               className="flex-1 relative cursor-pointer"
               onClick={() => openGallery(0)}
             >
@@ -94,7 +94,9 @@ export function PlaceDetailPage() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-lg pointer-events-none">
                 <div className="absolute bottom-6 left-6">
                   <p className="text-gray-300 text-sm mb-1">Student-Only:</p>
-                  <h1 className="text-4xl font-bold text-white">{place.name}</h1>
+                  <h1 className="text-4xl font-bold text-white">
+                    {place.name}
+                  </h1>
                 </div>
               </div>
             </div>
@@ -102,8 +104,8 @@ export function PlaceDetailPage() {
             {sideGalleryImages.length > 0 && (
               <div className="w-48 flex flex-col gap-2">
                 {sideGalleryImages.map((image, index) => (
-                  <div 
-                    key={image.id || index} 
+                  <div
+                    key={image.id || index}
                     className="flex-1 relative cursor-pointer"
                     onClick={() => openGallery(index + 1)}
                   >
@@ -128,7 +130,8 @@ export function PlaceDetailPage() {
                 {/* Description */}
                 <div className="flex-1">
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    {place.shortDescription || `Shared Social Pods in ${place.city}.`}
+                    {place.shortDescription ||
+                      `Shared Social Pods in ${place.city}.`}
                   </h2>
                 </div>
 
@@ -154,9 +157,12 @@ export function PlaceDetailPage() {
                     <CheckCircle className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900">Bid Accepted!</h4>
+                    <h4 className="font-semibold text-gray-900">
+                      Bid Accepted!
+                    </h4>
                     <p className="text-sm text-gray-500">
-                      Automatically accepted based on hotel's minimum price rules.
+                      Automatically accepted based on hotel's minimum price
+                      rules.
                     </p>
                   </div>
                 </div>
@@ -169,7 +175,9 @@ export function PlaceDetailPage() {
                     <XCircle className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900">Rejected Bid</h4>
+                    <h4 className="font-semibold text-gray-900">
+                      Rejected Bid
+                    </h4>
                     <p className="text-sm text-gray-500">
                       No charge. Try adjusting your dates or price.
                     </p>
