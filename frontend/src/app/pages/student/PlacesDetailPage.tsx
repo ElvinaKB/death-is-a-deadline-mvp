@@ -3,6 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import { usePlace } from "../../../hooks/usePlaces";
 import { Button } from "../../components/ui/button";
 import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "../../components/ui/carousel";
+import {
   CheckCircle,
   XCircle,
   MapPin,
@@ -69,10 +76,6 @@ export function PlaceDetailPage() {
 
   // Filter to only PlaceImage types
   const allImages = place.images.filter(isPlaceImage);
-  // Get cover image (first image or placeholder)
-  const coverImage = allImages[0]?.url || "/placeholder-hotel.jpg";
-  // Get gallery images (remaining images for side thumbnails)
-  const sideGalleryImages = allImages.slice(1, 3);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -87,48 +90,76 @@ export function PlaceDetailPage() {
       />
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Hero Image Section */}
+        {/* Hero Image Carousel */}
         <div className="relative rounded-2xl overflow-hidden mb-8">
-          <div className="flex gap-2 h-80">
-            {/* Main Image */}
-            <div
-              className="flex-1 relative cursor-pointer"
-              onClick={() => openGallery(0)}
-            >
-              <img
-                src={coverImage}
-                alt={place.name}
-                className="w-full h-full object-cover rounded-lg hover:opacity-90 transition-opacity"
-              />
-              {/* Overlay with Title */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-lg pointer-events-none">
-                <div className="absolute bottom-6 left-6">
-                  <p className="text-gray-300 text-sm mb-1">Student-Only:</p>
-                  <h1 className="text-4xl font-bold text-white">
-                    {place.name}
-                  </h1>
-                </div>
-              </div>
-            </div>
-            {/* Side Gallery */}
-            {sideGalleryImages.length > 0 && (
-              <div className="w-48 flex flex-col gap-2">
-                {sideGalleryImages.map((image, index) => (
+          <Carousel className="w-full">
+            <CarouselContent>
+              {allImages.length > 0 ? (
+                allImages.map((image, index) => (
+                  <CarouselItem key={image.id || index}>
+                    <div
+                      className="relative h-80 cursor-pointer"
+                      onClick={() => openGallery(index)}
+                    >
+                      <img
+                        src={image.url}
+                        alt={`${place.name} ${index + 1}`}
+                        className="w-full h-full object-cover rounded-lg hover:opacity-95 transition-opacity"
+                      />
+                      {/* Overlay with Title - only on first slide */}
+                      {index === 0 && (
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-lg pointer-events-none">
+                          <div className="absolute bottom-6 left-6">
+                            <p className="text-gray-300 text-sm mb-1">
+                              Student-Only:
+                            </p>
+                            <h1 className="text-4xl font-bold text-white">
+                              {place.name}
+                            </h1>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CarouselItem>
+                ))
+              ) : (
+                <CarouselItem>
                   <div
-                    key={image.id || index}
-                    className="flex-1 relative cursor-pointer"
-                    onClick={() => openGallery(index + 1)}
+                    className="relative h-80 cursor-pointer"
+                    onClick={() => openGallery(0)}
                   >
                     <img
-                      src={image.url}
-                      alt={`${place.name} ${index + 2}`}
-                      className="w-full h-full object-cover rounded-lg hover:opacity-90 transition-opacity"
+                      src="/placeholder-hotel.jpg"
+                      alt={place.name}
+                      className="w-full h-full object-cover rounded-lg"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-lg pointer-events-none">
+                      <div className="absolute bottom-6 left-6">
+                        <p className="text-gray-300 text-sm mb-1">
+                          Student-Only:
+                        </p>
+                        <h1 className="text-4xl font-bold text-white">
+                          {place.name}
+                        </h1>
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
+                </CarouselItem>
+              )}
+            </CarouselContent>
+            {allImages.length > 1 && (
+              <>
+                <CarouselPrevious className="left-4 bg-white/80 hover:bg-white" />
+                <CarouselNext className="right-4 bg-white/80 hover:bg-white" />
+              </>
             )}
-          </div>
+          </Carousel>
+          {/* Image counter */}
+          {allImages.length > 1 && (
+            <div className="absolute bottom-4 right-4 bg-black/60 text-white text-sm px-3 py-1 rounded-full pointer-events-none">
+              {allImages.length} photos
+            </div>
+          )}
         </div>
 
         {/* Main Content */}
