@@ -98,13 +98,6 @@ function BidFormInner({ place, placeId }: BidFormProps) {
           <p className="text-sm text-muted-foreground mb-4">
             Please sign in to place a bid on this accommodation
           </p>
-          <p className="text-muted-foreground mb-4">
-            Starting from{" "}
-            <span className="font-semibold text-foreground">
-              ${place.minimumBid}
-            </span>{" "}
-            per night
-          </p>
         </div>
         <Button
           className="w-full"
