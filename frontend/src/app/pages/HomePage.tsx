@@ -49,7 +49,7 @@ export function HomePage() {
       {/* Main Content */}
       <div className="flex-1 flex">
         {/* Left Sidebar - Places List */}
-        <div className="w-[420px] bg-white border-r overflow-hidden flex flex-col">
+        <div className="w-1/2 bg-white border-r overflow-hidden flex flex-col">
           {/* Places List */}
           <div className="flex-1 overflow-hidden p-4">
             <PlacesSidebar
@@ -62,7 +62,7 @@ export function HomePage() {
         </div>
 
         {/* Right Side - Map */}
-        <div className="flex-1 relative">
+        <div className="w-1/2 flex-1 relative">
           <PlacesMap
             places={places}
             selectedPlaceId={hoveredPlaceId || selectedPlaceId}
