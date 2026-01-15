@@ -88,7 +88,7 @@ export function HomeHeader({
                 isDark ? "text-white" : "text-blue-900"
               } leading-tight`}
             >
-              DEATH IS A DAALINE
+              DEATH IS A DEADLINE
             </h1>
             <p
               className={`text-xs ${
