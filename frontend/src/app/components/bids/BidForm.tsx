@@ -86,43 +86,9 @@ function BidFormInner({ place, placeId }: BidFormProps) {
 
   // Disable the query while processing to prevent unmounting the CardElement
   const { data: existingBidData, isLoading: isLoadingExistingBid } =
-    useBidForPlace(placeId, { enabled: !isProcessing && !paymentSuccess });
-
-  // If user is not authenticated, show login prompt
-  if (!isAuthenticated) {
-    return (
-      <div className="space-y-4">
-        <div className="text-center py-4">
-          <LogIn className="h-10 w-10 mx-auto mb-3 text-gray-400" />
-          <h3 className="font-semibold text-lg mb-1">Sign In Required</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Please sign in to place a bid on this accommodation
-          </p>
-        </div>
-        <Button
-          className="w-full"
-          onClick={() =>
-            navigate(ROUTES.LOGIN, {
-              state: { returnUrl: location.pathname },
-            })
-          }
-        >
-          Sign In to Place Bid
-        </Button>
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() =>
-            navigate(ROUTES.SIGNUP, {
-              state: { returnUrl: location.pathname },
-            })
-          }
-        >
-          Create Account
-        </Button>
-      </div>
-    );
-  }
+    useBidForPlace(placeId, {
+      enabled: isAuthenticated && !isProcessing && !paymentSuccess,
+    });
 
   // Date restrictions: today to 30 days from today
   const today = new Date();
@@ -545,47 +511,49 @@ function BidFormInner({ place, placeId }: BidFormProps) {
           </div>
         )}
 
-        {/* Inline Card Input */}
-        <div className="space-y-2">
-          <Label className="text-sm text-gray-600 mb-1.5 block">
-            Card Details
-          </Label>
-          <div className="border border-gray-200 rounded-lg p-3 bg-white">
-            <CardElement
-              options={{
-                style: {
-                  base: {
-                    fontSize: "16px",
-                    color: "#1f2937",
-                    fontFamily: "system-ui, -apple-system, sans-serif",
-                    "::placeholder": {
-                      color: "#9ca3af",
+        {/* Inline Card Input - Only for authenticated users */}
+        {isAuthenticated && (
+          <div className="space-y-2">
+            <Label className="text-sm text-gray-600 mb-1.5 block">
+              Card Details
+            </Label>
+            <div className="border border-gray-200 rounded-lg p-3 bg-white">
+              <CardElement
+                options={{
+                  style: {
+                    base: {
+                      fontSize: "16px",
+                      color: "#1f2937",
+                      fontFamily: "system-ui, -apple-system, sans-serif",
+                      "::placeholder": {
+                        color: "#9ca3af",
+                      },
+                    },
+                    invalid: {
+                      color: "#ef4444",
+                      iconColor: "#ef4444",
                     },
                   },
-                  invalid: {
-                    color: "#ef4444",
-                    iconColor: "#ef4444",
-                  },
-                },
-              }}
-              onReady={(element) => {
-                cardElementRef.current = element;
-              }}
-              onChange={(e) => {
-                setIsCardComplete(e.complete);
-                if (e.error) {
-                  setPaymentError(e.error.message);
-                } else {
-                  setPaymentError(null);
-                }
-              }}
-            />
+                }}
+                onReady={(element) => {
+                  cardElementRef.current = element;
+                }}
+                onChange={(e) => {
+                  setIsCardComplete(e.complete);
+                  if (e.error) {
+                    setPaymentError(e.error.message);
+                  } else {
+                    setPaymentError(null);
+                  }
+                }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 flex items-center gap-1">
+              <CreditCard className="h-3 w-3" />
+              Your card will only be charged if your bid is accepted
+            </p>
           </div>
-          <p className="text-xs text-gray-500 flex items-center gap-1">
-            <CreditCard className="h-3 w-3" />
-            Your card will only be charged if your bid is accepted
-          </p>
-        </div>
+        )}
 
         {/* Error Message */}
         {paymentError && (
@@ -597,34 +565,60 @@ function BidFormInner({ place, placeId }: BidFormProps) {
           </div>
         )}
 
-        {/* Submit Button */}
-        <Button
-          type="submit"
-          className="w-full bg-purple-600 hover:bg-purple-700 h-12 text-base font-medium"
-          disabled={
-            isProcessing ||
-            createBid.isPending ||
-            blackoutDatesInRange.length > 0 ||
-            !stripe ||
-            !elements ||
-            !isCardComplete
-          }
-        >
-          {isProcessing ? (
-            <>Processing...</>
-          ) : (
-            <>
-              <CreditCard className="w-4 h-4 mr-2" />
-              Place Bid
-            </>
-          )}
-        </Button>
+        {/* Submit Button - Different for authenticated vs unauthenticated */}
+        {isAuthenticated ? (
+          <Button
+            type="submit"
+            className="w-full bg-purple-600 hover:bg-purple-700 h-12 text-base font-medium"
+            disabled={
+              isProcessing ||
+              createBid.isPending ||
+              blackoutDatesInRange.length > 0 ||
+              !stripe ||
+              !elements ||
+              !isCardComplete
+            }
+          >
+            {isProcessing ? (
+              <>Processing...</>
+            ) : (
+              <>
+                <CreditCard className="w-4 h-4 mr-2" />
+                Place Bid
+              </>
+            )}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            className="w-full bg-purple-600 hover:bg-purple-700 h-12 text-base font-medium"
+            disabled={blackoutDatesInRange.length > 0}
+            onClick={() =>
+              navigate(ROUTES.LOGIN, {
+                state: { returnUrl: location.pathname },
+              })
+            }
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            Verify .edu & Submit Bid
+          </Button>
+        )}
 
         {/* Info Text */}
         <p className="text-xs text-center text-gray-500">
-          Secure Stripe Checkout. Card is only charged if bid is accepted.
-          <br />
-          Cancel anytime before acceptance.
+          {isAuthenticated ? (
+            <>
+              Secure Stripe Checkout. Card is only charged if bid is accepted.
+              <br />
+              Cancel anytime before acceptance.
+            </>
+          ) : (
+            <>
+              Student verification required. Verify your .edu email or upload
+              <br />
+              your student ID to unlock student-only pricing.
+            </>
+          )}
         </p>
       </form>
     </div>
