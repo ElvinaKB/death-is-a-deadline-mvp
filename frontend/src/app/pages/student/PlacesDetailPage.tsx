@@ -16,6 +16,10 @@ import {
   Home,
   DollarSign,
   Building2,
+  GraduationCap,
+  Shield,
+  Zap,
+  ArrowRight,
 } from "lucide-react";
 import { ROUTES } from "../../../config/routes.config";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
@@ -160,6 +164,86 @@ export function PlaceDetailPage() {
               {allImages.length} photos
             </div>
           )}
+        </div>
+
+        {/* Student Verification Stepper */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border mb-8">
+          <div className="flex items-center gap-2 mb-2">
+            <GraduationCap className="h-5 w-5 text-purple-600" />
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              Ready? Submit your bid <ArrowRight className="h-4 w-4" /> Verify{" "}
+              <ArrowRight className="h-4 w-4" /> Sleep cheap.
+            </h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-6">
+            To unlock student-only pricing, verify a valid university email
+            (.edu or international equivalent). Don't have one? Upload your
+            student ID instead.
+          </p>
+
+          {/* Stepper */}
+          <div className="flex items-start justify-between relative">
+            {/* Step 1 */}
+            <div className="flex flex-col items-center text-center z-10 flex-1">
+              <div className="w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center text-lg font-bold mb-3">
+                1
+              </div>
+              <h4 className="font-semibold text-gray-900 text-sm mb-1">
+                Name Your Price
+              </h4>
+              <p className="text-xs text-gray-500 max-w-[140px]">
+                Enter check-in/out dates and your bid per night
+              </p>
+            </div>
+
+            {/* Arrow 1 */}
+            <div className="flex items-center justify-center pt-2 z-10">
+              <ArrowRight className="h-6 w-6 text-purple-400" />
+            </div>
+
+            {/* Step 2 */}
+            <div className="flex flex-col items-center text-center z-10 flex-1">
+              <div className="w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center text-lg font-bold mb-3">
+                2
+              </div>
+              <h4 className="font-semibold text-gray-900 text-sm mb-1">
+                Verify Your .edu
+              </h4>
+              <p className="text-xs text-gray-500 max-w-[140px]">
+                Confirm you're a student to unlock exclusive rates
+              </p>
+            </div>
+
+            {/* Arrow 2 */}
+            <div className="flex items-center justify-center pt-2 z-10">
+              <ArrowRight className="h-6 w-6 text-purple-400" />
+            </div>
+
+            {/* Step 3 */}
+            <div className="flex flex-col items-center text-center z-10 flex-1">
+              <div className="w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center text-lg font-bold mb-3">
+                3
+              </div>
+              <h4 className="font-semibold text-gray-900 text-sm mb-1">
+                Sleep Cheap
+              </h4>
+              <p className="text-xs text-gray-500 max-w-[140px]">
+                Get accepted or rejected immediately—no waiting
+              </p>
+            </div>
+          </div>
+
+          {/* Key benefits */}
+          <div className="mt-6 pt-4 border-t border-gray-100 flex justify-center gap-8">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Shield className="h-4 w-4 text-green-500" />
+              <span>No charge if rejected</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Zap className="h-4 w-4 text-yellow-500" />
+              <span>Instant confirmation</span>
+            </div>
+          </div>
         </div>
 
         {/* Main Content */}
