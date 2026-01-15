@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
+import { MapPin } from "lucide-react";
 import { getRoute, ROUTES } from "../../../config/routes.config";
 import { Place, ACCOMMODATION_TYPE_LABELS } from "../../../types/place.types";
-import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 
 interface PlaceListItemProps {
   place: Place;
@@ -26,17 +27,17 @@ export function PlaceListItem({
 
   return (
     <div
-      className={`flex gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+      className={`flex gap-4 p-3 rounded-xl cursor-pointer transition-all duration-200 ${
         isSelected
-          ? "bg-blue-50 border border-blue-200"
-          : "bg-white hover:bg-gray-50 border border-transparent"
+          ? "bg-blue-50 ring-2 ring-blue-400"
+          : "bg-white hover:bg-gray-50 border border-gray-100"
       }`}
       onClick={handleClick}
       onMouseEnter={() => onHover?.(place.id)}
       onMouseLeave={() => onHover?.(null)}
     >
       {/* Thumbnail */}
-      <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0">
+      <div className="relative w-44 h-28 rounded-lg overflow-hidden shrink-0">
         <img
           src={imageUrl}
           alt={place.name}
@@ -45,32 +46,42 @@ export function PlaceListItem({
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className="text-xs font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
-                {ACCOMMODATION_TYPE_LABELS[place.accommodationType]?.charAt(0)}
-              </span>
-              <h3 className="font-semibold text-sm truncate">{place.name}</h3>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Bid student rates on unsold rooms
-            </p>
+      <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+        <div>
+          {/* Tags row */}
+          <div className="flex items-center gap-2 mb-2">
+            <Badge
+              variant="outline"
+              className="bg-gray-100 border-gray-200 text-gray-600 text-xs px-2 py-0.5"
+            >
+              {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
+            </Badge>
           </div>
 
-          {/* BID Button */}
-          <Button
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700 text-white shrink-0 h-8 px-4"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleClick();
-            }}
-          >
-            BID
-          </Button>
+          {/* Title */}
+          <h3 className="font-semibold text-gray-900 text-base mb-1 truncate">
+            {place.name}
+          </h3>
+
+          {/* Location */}
+          <div className="flex items-center gap-1 text-gray-500 text-sm mb-2">
+            <MapPin className="h-3.5 w-3.5" />
+            <span>{place.city}</span>
+          </div>
+
+          {/* Description */}
+          {place.shortDescription && (
+            <p className="text-gray-600 text-sm line-clamp-2">
+              {place.shortDescription}
+            </p>
+          )}
         </div>
+      </div>
+
+      {/* Price */}
+      <div className="text-right shrink-0 py-1">
+        <p className="text-purple-600 text-xl font-bold">${place.minimumBid}</p>
+        <p className="text-gray-500 text-xs">per night</p>
       </div>
     </div>
   );
