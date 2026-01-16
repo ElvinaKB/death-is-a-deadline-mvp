@@ -144,22 +144,6 @@ export function SearchBar({ onSearch }: SearchBarProps) {
         </PopoverContent>
       </Popover>
 
-      {/* Divider */}
-      <div className="h-8 w-px bg-gray-200 shrink-0" />
-
-      {/* Max Bid */}
-      <div className="flex items-center gap-2 px-4 py-3 min-w-[100px]">
-        <DollarSign className="h-4 w-4 text-gray-400 shrink-0" />
-        <input
-          type="number"
-          placeholder="Max Bid"
-          value={maxBid}
-          onChange={(e) => dispatch(setMaxBid(e.target.value))}
-          onKeyDown={handleKeyDown}
-          className="w-20 bg-transparent border-0 outline-none text-sm text-gray-900 placeholder:text-gray-400"
-        />
-      </div>
-
       {/* Search Button */}
       <Button
         size="icon"

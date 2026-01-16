@@ -3,6 +3,7 @@ import { MapPin } from "lucide-react";
 import { getRoute, ROUTES } from "../../../config/routes.config";
 import { Place, ACCOMMODATION_TYPE_LABELS } from "../../../types/place.types";
 import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 
 interface PlaceListItemProps {
   place: Place;
@@ -78,10 +79,18 @@ export function PlaceListItem({
         </div>
       </div>
 
-      {/* Price */}
-      <div className="text-right shrink-0 py-1">
-        <p className="text-purple-600 text-xl font-bold">${place.minimumBid}</p>
-        <p className="text-gray-500 text-xs">per night</p>
+      {/* Price & Bid Button */}
+      <div className="text-right shrink-0 py-1 flex flex-col justify-end">
+        <Button
+          size="sm"
+          className="bg-purple-600 hover:bg-purple-700 text-white h-8 px-4"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClick();
+          }}
+        >
+          BID
+        </Button>
       </div>
     </div>
   );
