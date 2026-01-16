@@ -16,12 +16,13 @@ export function PlacesSidebar({
   isLoading,
   selectedPlaceId,
   onPlaceHover,
-  title = "Local getaways",
+  title = "Bid wisely. You only check in once.",
 }: PlacesSidebarProps) {
   if (isLoading) {
     return (
       <div className="space-y-3">
         <h2 className="font-semibold text-lg px-1">{title}</h2>
+        <h4 className="font-semibold text-sm px-1">— The Grim Keeper</h4>
         {[1, 2, 3, 4, 5].map((i) => (
           <SkeletonLoader key={i} className="h-28 rounded-xl" />
         ))}
@@ -41,7 +42,11 @@ export function PlacesSidebar({
 
   return (
     <div className="space-y-3">
-      <h2 className="font-semibold text-lg px-1">{title}</h2>
+      <div>
+        <h2 className="font-semibold text-lg px-1">{title}</h2>
+        <h4 className=" text-sm text-gray-600 px-1">— The Grim Keeper</h4>
+      </div>
+
       <div className="space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto px-1 py-2">
         {places.map((place) => (
           <PlaceListItem
