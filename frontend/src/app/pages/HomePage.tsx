@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { ENDPOINTS } from "../../config/endpoints.config";
 import { QUERY_KEYS } from "../../config/queryKeys.config";
 import { useApiQuery } from "../../hooks/useApi";
@@ -6,7 +6,7 @@ import { useDebounce } from "../../hooks/useDebounce";
 import { PlacesResponse } from "../../types/place.types";
 import { useAppSelector } from "../../store/hooks";
 import { HomeHeader, PlacesMap, PlacesSidebar } from "../components/home";
-import { useState } from "react";
+import { HowItWorksModal } from "../components/home/HowItWorksModal";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function HomePage() {
@@ -45,6 +45,9 @@ export function HomePage() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header with Search Bar */}
       <HomeHeader showSearchBar onSearch={handleSearch} />
+
+      {/* How It Works Modal */}
+      <HowItWorksModal />
 
       {/* Main Content */}
       <div className="flex-1 flex">

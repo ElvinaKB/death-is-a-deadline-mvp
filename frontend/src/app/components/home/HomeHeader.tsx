@@ -17,17 +17,20 @@ import {
 import { SearchBar } from "./SearchBar";
 import { logout } from "../../../store/slices/authSlice";
 import { removeAuthToken } from "../../../utils/tokenHelpers";
+import { HowItWorksModal } from "./HowItWorksModal";
 
 interface HomeHeaderProps {
   showSearchBar?: boolean;
   onSearch?: () => void;
   variant?: "light" | "dark";
+  onHowItWorksClick?: () => void;
 }
 
 export function HomeHeader({
   showSearchBar = false,
   onSearch,
   variant = "light",
+  onHowItWorksClick,
 }: HomeHeaderProps) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
