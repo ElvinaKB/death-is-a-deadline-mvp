@@ -90,9 +90,10 @@ function BidFormInner({ place, placeId }: BidFormProps) {
       enabled: isAuthenticated && !isProcessing && !paymentSuccess,
     });
 
-  // Date restrictions: today to 30 days from today
+  // Date restrictions: tomorrow to 30 days from today (no same-day bookings)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const tomorrow = addDays(today, 1);
   const maxDate = addDays(today, 30);
 
   // Helper function to confirm payment with card
@@ -226,7 +227,8 @@ function BidFormInner({ place, placeId }: BidFormProps) {
   });
 
   const isDateBlocked = (date: Date) => {
-    if (isBefore(date, today) || isAfter(date, maxDate)) {
+    // Block dates before tomorrow (no same-day bookings)
+    if (isBefore(date, tomorrow) || isAfter(date, maxDate)) {
       return true;
     }
     if (place?.blackoutDates) {
@@ -576,7 +578,11 @@ function BidFormInner({ place, placeId }: BidFormProps) {
               blackoutDatesInRange.length > 0 ||
               !stripe ||
               !elements ||
-              !isCardComplete
+              !isCardComplete ||
+              !formik.values.checkInDate ||
+              !formik.values.checkOutDate ||
+              !formik.values.bidPerNight ||
+              Number(formik.values.bidPerNight) <= 0
             }
           >
             {isProcessing ? (
@@ -592,9 +598,15 @@ function BidFormInner({ place, placeId }: BidFormProps) {
           <Button
             type="button"
             className="w-full bg-purple-600 hover:bg-purple-700 h-12 text-base font-medium"
-            disabled={blackoutDatesInRange.length > 0}
+            disabled={
+              blackoutDatesInRange.length > 0 ||
+              !formik.values.checkInDate ||
+              !formik.values.checkOutDate ||
+              !formik.values.bidPerNight ||
+              Number(formik.values.bidPerNight) <= 0
+            }
             onClick={() =>
-              navigate(ROUTES.LOGIN, {
+              navigate(ROUTES.SIGNUP, {
                 state: { returnUrl: location.pathname },
               })
             }
