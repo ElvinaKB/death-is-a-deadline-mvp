@@ -40,16 +40,14 @@ export function PlacesSidebar({
 
   return (
     <div className="space-y-3">
-      <div className="space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto px-1 py-2">
-        {places.map((place) => (
-          <PlaceListItem
-            key={place.id}
-            place={place}
-            isSelected={place.id === selectedPlaceId}
-            onHover={onPlaceHover}
-          />
-        ))}
-      </div>
+      {places.map((place) => (
+        <PlaceListItem
+          key={place.id}
+          place={place}
+          isSelected={place.id === selectedPlaceId}
+          onHover={onPlaceHover}
+        />
+      ))}
     </div>
   );
 }

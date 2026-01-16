@@ -42,7 +42,7 @@ export function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header with Search Bar */}
       <HomeHeader showSearchBar onSearch={handleSearch} />
 
@@ -50,11 +50,11 @@ export function HomePage() {
       <HowItWorksModal />
 
       {/* Main Content */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex min-h-0">
         {/* Left Sidebar - Places List */}
-        <div className="w-1/2 bg-white border-r overflow-hidden flex flex-col">
+        <div className="w-1/2 bg-white border-r flex flex-col min-h-0">
           {/* Places List */}
-          <div className="flex-1 overflow-hidden p-4">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4">
             <PlacesSidebar
               places={places}
               isLoading={isLoading || isFetching}
