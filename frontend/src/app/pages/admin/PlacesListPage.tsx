@@ -36,9 +36,9 @@ import {
 } from "../../components/ui/dropdown-menu";
 
 const STATUS_COLORS: Record<PlaceStatus, string> = {
-  [PlaceStatus.DRAFT]: "bg-gray-100 text-gray-800 hover:bg-gray-100",
-  [PlaceStatus.LIVE]: "bg-green-100 text-green-800 hover:bg-green-100",
-  [PlaceStatus.PAUSED]: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
+  [PlaceStatus.DRAFT]: "bg-muted/20 text-muted hover:bg-muted/30",
+  [PlaceStatus.LIVE]: "bg-success/20 text-success hover:bg-success/30",
+  [PlaceStatus.PAUSED]: "bg-warning/20 text-warning hover:bg-warning/30",
 };
 
 type PlaceRow = PlacesResponse["places"][0];
@@ -157,12 +157,13 @@ export function PlacesListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Places</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your accommodation listings
-          </p>
+          <h1 className="text-3xl font-bold text-fg">Places</h1>
+          <p className="text-muted mt-1">Manage your accommodation listings</p>
         </div>
-        <Button onClick={() => navigate(ROUTES.ADMIN_PLACES_NEW)}>
+        <Button
+          onClick={() => navigate(ROUTES.ADMIN_PLACES_NEW)}
+          className="btn-bid"
+        >
           <Plus className="mr-2 h-4 w-4" />
           Add New Place
         </Button>
@@ -173,17 +174,37 @@ export function PlacesListPage() {
         value={filter}
         onValueChange={(v) => setFilter(v as PlaceStatus | "ALL")}
       >
-        <TabsList>
-          <TabsTrigger value="ALL">All</TabsTrigger>
-          <TabsTrigger value={PlaceStatus.DRAFT}>Draft</TabsTrigger>
-          <TabsTrigger value={PlaceStatus.LIVE}>Live</TabsTrigger>
-          <TabsTrigger value={PlaceStatus.PAUSED}>Paused</TabsTrigger>
+        <TabsList className="bg-glass border border-line">
+          <TabsTrigger
+            value="ALL"
+            className="data-[state=active]:bg-brand data-[state=active]:text-white"
+          >
+            All
+          </TabsTrigger>
+          <TabsTrigger
+            value={PlaceStatus.DRAFT}
+            className="data-[state=active]:bg-brand data-[state=active]:text-white"
+          >
+            Draft
+          </TabsTrigger>
+          <TabsTrigger
+            value={PlaceStatus.LIVE}
+            className="data-[state=active]:bg-brand data-[state=active]:text-white"
+          >
+            Live
+          </TabsTrigger>
+          <TabsTrigger
+            value={PlaceStatus.PAUSED}
+            className="data-[state=active]:bg-brand data-[state=active]:text-white"
+          >
+            Paused
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value={filter} className="mt-6">
-          <Card>
+          <Card className="glass-2 border-line">
             <CardHeader>
-              <CardTitle>Places List</CardTitle>
+              <CardTitle className="text-fg">Places List</CardTitle>
             </CardHeader>
             <CardContent>
               <DataTable

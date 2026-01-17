@@ -95,17 +95,17 @@ function CheckoutForm({
       <PaymentElement />
 
       {errorMessage && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="glass rounded-lg p-4 border border-danger/50">
           <div className="flex gap-2">
-            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
-            <p className="text-sm text-red-800">{errorMessage}</p>
+            <AlertCircle className="h-5 w-5 text-danger flex-shrink-0" />
+            <p className="text-sm text-danger">{errorMessage}</p>
           </div>
         </div>
       )}
 
       <Button
         type="submit"
-        className="w-full"
+        className="w-full btn-bid"
         disabled={!stripe || isProcessing}
         size="lg"
       >
@@ -119,7 +119,7 @@ function CheckoutForm({
         )}
       </Button>
 
-      <p className="text-sm text-muted-foreground text-center">
+      <p className="text-sm text-muted text-center">
         Your card will be authorized but not charged until your stay is
         confirmed.
       </p>
@@ -140,59 +140,59 @@ function PaymentStatusCard({
   const statusConfig = {
     [PaymentStatus.AUTHORIZED]: {
       icon: CheckCircle,
-      bgColor: "bg-green-100",
-      iconColor: "text-green-600",
-      borderColor: "border-green-500",
+      bgColor: "bg-success/20",
+      iconColor: "text-success",
+      borderColor: "border-success/50",
       title: "Payment Authorized",
       description:
         "Your payment has been authorized. Funds are held on your card.",
     },
     [PaymentStatus.CAPTURED]: {
       icon: CheckCircle,
-      bgColor: "bg-green-100",
-      iconColor: "text-green-600",
-      borderColor: "border-green-500",
+      bgColor: "bg-success/20",
+      iconColor: "text-success",
+      borderColor: "border-success/50",
       title: "Payment Complete",
       description: "Your payment has been processed successfully.",
     },
     [PaymentStatus.PENDING]: {
       icon: Clock,
-      bgColor: "bg-yellow-100",
-      iconColor: "text-yellow-600",
-      borderColor: "border-yellow-500",
+      bgColor: "bg-warning/20",
+      iconColor: "text-warning",
+      borderColor: "border-warning/50",
       title: "Payment Pending",
       description: "Please complete your payment below.",
     },
     [PaymentStatus.REQUIRES_ACTION]: {
       icon: AlertCircle,
-      bgColor: "bg-yellow-100",
-      iconColor: "text-yellow-600",
-      borderColor: "border-yellow-500",
+      bgColor: "bg-warning/20",
+      iconColor: "text-warning",
+      borderColor: "border-warning/50",
       title: "Action Required",
       description: "Additional authentication is required.",
     },
     [PaymentStatus.FAILED]: {
       icon: XCircle,
-      bgColor: "bg-red-100",
-      iconColor: "text-red-600",
-      borderColor: "border-red-500",
+      bgColor: "bg-danger/20",
+      iconColor: "text-danger",
+      borderColor: "border-danger/50",
       title: "Payment Failed",
       description:
         payment?.failureReason || "Your payment could not be processed.",
     },
     [PaymentStatus.CANCELLED]: {
       icon: XCircle,
-      bgColor: "bg-gray-100",
-      iconColor: "text-gray-600",
-      borderColor: "border-gray-500",
+      bgColor: "bg-muted/20",
+      iconColor: "text-muted",
+      borderColor: "border-line",
       title: "Payment Cancelled",
       description: "This payment has been cancelled.",
     },
     [PaymentStatus.EXPIRED]: {
       icon: Clock,
-      bgColor: "bg-gray-100",
-      iconColor: "text-gray-600",
-      borderColor: "border-gray-500",
+      bgColor: "bg-muted/20",
+      iconColor: "text-muted",
+      borderColor: "border-line",
       title: "Authorization Expired",
       description: "The payment authorization has expired. Please try again.",
     },
@@ -202,29 +202,29 @@ function PaymentStatusCard({
   const Icon = config.icon;
 
   return (
-    <Card className={`${config.borderColor} border-2`}>
+    <Card className={`${config.borderColor} border-2 glass-2`}>
       <CardContent className="p-8 text-center">
         <div
           className={`w-20 h-20 ${config.bgColor} rounded-full flex items-center justify-center mx-auto mb-6`}
         >
           <Icon className={`h-12 w-12 ${config.iconColor}`} />
         </div>
-        <h2 className="text-2xl font-bold mb-2">{config.title}</h2>
-        <p className="text-muted-foreground mb-6">{config.description}</p>
+        <h2 className="text-2xl font-bold text-fg mb-2">{config.title}</h2>
+        <p className="text-muted mb-6">{config.description}</p>
 
         {(status === PaymentStatus.AUTHORIZED ||
           status === PaymentStatus.CAPTURED) && (
-          <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+          <div className="glass rounded-lg p-4 mb-6 text-left border border-line">
             <div className="flex justify-between text-sm mb-2">
-              <span>Amount:</span>
-              <span className="font-semibold">
+              <span className="text-muted">Amount:</span>
+              <span className="font-semibold text-fg">
                 ${payment?.amount?.toFixed(2)}
               </span>
             </div>
             {payment?.authorizedAt && (
               <div className="flex justify-between text-sm">
-                <span>Authorized:</span>
-                <span>
+                <span className="text-muted">Authorized:</span>
+                <span className="text-fg">
                   {format(new Date(payment.authorizedAt), "MMM dd, yyyy HH:mm")}
                 </span>
               </div>
@@ -234,7 +234,7 @@ function PaymentStatusCard({
 
         <Button
           onClick={() => navigate(ROUTES.STUDENT_MY_BIDS)}
-          className="w-full"
+          className="w-full btn-bid"
         >
           View My Bids
         </Button>
@@ -301,7 +301,7 @@ export function CheckoutPage() {
   // Loading state
   if (bidLoading || paymentLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-bg">
         <HomeHeader />
         <div className="max-w-2xl mx-auto px-6 py-12">
           <SkeletonLoader className="h-96" />
@@ -313,17 +313,17 @@ export function CheckoutPage() {
   // Bid not found
   if (!bid) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-bg">
         <HomeHeader />
         <div className="flex items-center justify-center py-12">
-          <Card className="max-w-md w-full">
+          <Card className="max-w-md w-full glass-2 border-line">
             <CardContent className="p-8 text-center">
-              <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold mb-2">Bid Not Found</h2>
-              <p className="text-muted-foreground mb-6">
+              <XCircle className="h-16 w-16 text-danger mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-fg mb-2">Bid Not Found</h2>
+              <p className="text-muted mb-6">
                 The bid you're looking for doesn't exist.
               </p>
-              <Button onClick={() => navigate(ROUTES.HOME)}>
+              <Button onClick={() => navigate(ROUTES.HOME)} className="btn-bid">
                 Browse Places
               </Button>
             </CardContent>
@@ -336,22 +336,24 @@ export function CheckoutPage() {
   // Bid not accepted yet
   if (bid.status !== BidStatus.ACCEPTED) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-bg">
         <HomeHeader />
         <div className="flex items-center justify-center py-12">
-          <Card className="max-w-md w-full">
+          <Card className="max-w-md w-full glass-2 border-line">
             <CardContent className="p-8 text-center">
-              <AlertCircle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold mb-2">Bid Not Accepted</h2>
-              <p className="text-muted-foreground mb-6">
+              <AlertCircle className="h-16 w-16 text-warning mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-fg mb-2">
+                Bid Not Accepted
+              </h2>
+              <p className="text-muted mb-6">
                 Your bid needs to be accepted before you can make a payment.
               </p>
-              <Badge variant="outline" className="mb-4">
+              <Badge variant="outline" className="mb-4 border-line text-muted">
                 Status: {bid.status}
               </Badge>
               <Button
                 onClick={() => navigate(ROUTES.STUDENT_MY_BIDS)}
-                className="w-full"
+                className="w-full btn-bid"
               >
                 View My Bids
               </Button>
@@ -372,7 +374,7 @@ export function CheckoutPage() {
     ].includes(existingPayment.status)
   ) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-bg">
         <HomeHeader />
         <div className="max-w-2xl mx-auto px-6 py-12">
           <PaymentStatusCard
@@ -385,15 +387,17 @@ export function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-bg">
       <HomeHeader />
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Order Summary */}
-          <Card>
+          <Card className="glass-2 border-line">
             <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
-              <CardDescription>Your booking details</CardDescription>
+              <CardTitle className="text-fg">Order Summary</CardTitle>
+              <CardDescription className="text-muted">
+                Your booking details
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {bid.place && (
@@ -406,73 +410,76 @@ export function CheckoutPage() {
                     />
                   )}
                   <div>
-                    <h3 className="font-semibold">{bid.place.name}</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="font-semibold text-fg">{bid.place.name}</h3>
+                    <p className="text-sm text-muted">
                       {bid.place.city}, {bid.place.country}
                     </p>
                   </div>
                 </div>
               )}
 
-              <div className="border-t pt-4 space-y-2">
+              <div className="border-t border-line pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Check-in:</span>
-                  <span className="font-medium">
+                  <span className="text-muted">Check-in:</span>
+                  <span className="font-medium text-fg">
                     {format(new Date(bid.checkInDate), "MMM dd, yyyy")}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Check-out:</span>
-                  <span className="font-medium">
+                  <span className="text-muted">Check-out:</span>
+                  <span className="font-medium text-fg">
                     {format(new Date(bid.checkOutDate), "MMM dd, yyyy")}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Total Nights:</span>
-                  <span className="font-medium">{bid.totalNights}</span>
+                  <span className="text-muted">Total Nights:</span>
+                  <span className="font-medium text-fg">{bid.totalNights}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Price Per Night:</span>
-                  <span className="font-medium">${bid.bidPerNight}</span>
+                  <span className="text-muted">Price Per Night:</span>
+                  <span className="font-medium text-fg">
+                    ${bid.bidPerNight}
+                  </span>
                 </div>
               </div>
 
-              <div className="border-t pt-4">
+              <div className="border-t border-line pt-4">
                 <div className="flex justify-between text-lg font-semibold">
-                  <span>Total Amount:</span>
-                  <span>${bid.totalAmount}</span>
+                  <span className="text-fg">Total Amount:</span>
+                  <span className="text-fg">${bid.totalAmount}</span>
                 </div>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
-                  <strong>Note:</strong> Your card will be authorized for $
-                  {bid.totalAmount} but won't be charged until after your stay.
+              <div className="glass rounded-lg p-4 border border-brand/30">
+                <p className="text-sm text-muted">
+                  <strong className="text-fg">Note:</strong> Your card will be
+                  authorized for ${bid.totalAmount} but won't be charged until
+                  after your stay.
                 </p>
               </div>
             </CardContent>
           </Card>
 
           {/* Payment Form */}
-          <Card>
+          <Card className="glass-2 border-line">
             <CardHeader>
-              <CardTitle>Payment Details</CardTitle>
-              <CardDescription>Enter your card information</CardDescription>
+              <CardTitle className="text-fg">Payment Details</CardTitle>
+              <CardDescription className="text-muted">
+                Enter your card information
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {!stripePromise ? (
                 <div className="text-center py-8">
-                  <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                  <p className="text-muted-foreground">
+                  <AlertCircle className="h-12 w-12 text-warning mx-auto mb-4" />
+                  <p className="text-muted">
                     Payment system is not configured. Please contact support.
                   </p>
                 </div>
               ) : !clientSecret ? (
                 <div className="text-center py-8">
                   <SkeletonLoader className="h-40" />
-                  <p className="text-muted-foreground mt-4">
-                    Initializing payment...
-                  </p>
+                  <p className="text-muted mt-4">Initializing payment...</p>
                 </div>
               ) : (
                 <Elements
@@ -480,9 +487,12 @@ export function CheckoutPage() {
                   options={{
                     clientSecret,
                     appearance: {
-                      theme: "stripe",
+                      theme: "night",
                       variables: {
-                        colorPrimary: "#0f172a",
+                        colorPrimary: "#8b5cf6",
+                        colorBackground: "#1e293b",
+                        colorText: "#f8fafc",
+                        colorDanger: "#ef4444",
                       },
                     },
                   }}

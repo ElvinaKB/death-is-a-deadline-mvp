@@ -92,24 +92,22 @@ export function RedirectPage() {
   }, [dispatch, navigate]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="bg-white shadow-lg rounded-lg p-8 flex flex-col items-center gap-4 min-w-[320px]">
+    <div className="flex items-center justify-center min-h-screen bg-bg">
+      <div className="glass-2 shadow-lg rounded-lg p-8 flex flex-col items-center gap-4 min-w-[320px]">
         {error ? (
           <>
-            <div className="text-red-600 text-lg font-semibold text-center">
+            <div className="text-error text-lg font-semibold text-center">
               {error}
             </div>
             <button
-              className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+              className="btn-bid mt-2"
               onClick={() => (window.location.href = "/login")}
             >
               Go to Login Page
             </button>
           </>
         ) : (
-          <div className="text-gray-700 text-lg font-medium">
-            Redirecting...
-          </div>
+          <div className="text-fg text-lg font-medium">Redirecting...</div>
         )}
       </div>
     </div>

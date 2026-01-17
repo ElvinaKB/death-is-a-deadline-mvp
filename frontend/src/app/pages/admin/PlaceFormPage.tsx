@@ -270,37 +270,39 @@ export function PlaceFormPage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-3xl font-bold text-fg">
           {isEditMode ? "Edit Place" : "Add New Place"}
         </h1>
       </div>
 
       <form onSubmit={formik.handleSubmit} className="space-y-6">
         {/* Basic Information */}
-        <Card>
+        <Card className="glass-2 border-white/10">
           <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-fg">Basic Information</CardTitle>
+            <CardDescription className="text-muted">
               Enter the core details about the place
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="name">Place Name *</Label>
+              <Label htmlFor="name" className="text-fg">
+                Place Name *
+              </Label>
               <Input
                 id="name"
                 {...formik.getFieldProps("name")}
                 placeholder="e.g., Downtown Student Hub"
               />
               {formik.touched.name && formik.errors.name && (
-                <p className="text-sm text-red-500 mt-1">
-                  {formik.errors.name}
-                </p>
+                <p className="text-sm text-error mt-1">{formik.errors.name}</p>
               )}
             </div>
 
             <div>
-              <Label htmlFor="shortDescription">Short Description *</Label>
+              <Label htmlFor="shortDescription" className="text-fg">
+                Short Description *
+              </Label>
               <Input
                 id="shortDescription"
                 {...formik.getFieldProps("shortDescription")}
@@ -309,14 +311,16 @@ export function PlaceFormPage() {
               />
               {formik.touched.shortDescription &&
                 formik.errors.shortDescription && (
-                  <p className="text-sm text-red-500 mt-1">
+                  <p className="text-sm text-error mt-1">
                     {formik.errors.shortDescription}
                   </p>
                 )}
             </div>
 
             <div>
-              <Label htmlFor="fullDescription">Full Description *</Label>
+              <Label htmlFor="fullDescription" className="text-fg">
+                Full Description *
+              </Label>
               <Textarea
                 id="fullDescription"
                 {...formik.getFieldProps("fullDescription")}
@@ -325,7 +329,7 @@ export function PlaceFormPage() {
               />
               {formik.touched.fullDescription &&
                 formik.errors.fullDescription && (
-                  <p className="text-sm text-red-500 mt-1">
+                  <p className="text-sm text-error mt-1">
                     {formik.errors.fullDescription}
                   </p>
                 )}
@@ -333,32 +337,36 @@ export function PlaceFormPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="city">City *</Label>
+                <Label htmlFor="city" className="text-fg">
+                  City *
+                </Label>
                 <Input
                   id="city"
                   {...formik.getFieldProps("city")}
                   placeholder="e.g., New York"
                   disabled
-                  className="bg-gray-50"
+                  className="bg-white/5 border-white/10"
                 />
                 {formik.touched.city && formik.errors.city && (
-                  <p className="text-sm text-red-500 mt-1">
+                  <p className="text-sm text-error mt-1">
                     {formik.errors.city}
                   </p>
                 )}
               </div>
 
               <div>
-                <Label htmlFor="country">Country *</Label>
+                <Label htmlFor="country" className="text-fg">
+                  Country *
+                </Label>
                 <Input
                   id="country"
                   {...formik.getFieldProps("country")}
                   placeholder="e.g., USA"
                   disabled
-                  className="bg-gray-50"
+                  className="bg-white/5 border-white/10"
                 />
                 {formik.touched.country && formik.errors.country && (
-                  <p className="text-sm text-red-500 mt-1">
+                  <p className="text-sm text-error mt-1">
                     {formik.errors.country}
                   </p>
                 )}
@@ -366,23 +374,27 @@ export function PlaceFormPage() {
             </div>
 
             <div>
-              <Label htmlFor="address">Address *</Label>
+              <Label htmlFor="address" className="text-fg">
+                Address *
+              </Label>
               <Input
                 id="address"
                 {...formik.getFieldProps("address")}
                 placeholder="Full street address"
                 disabled
-                className="bg-gray-50"
+                className="bg-white/5 border-white/10"
               />
               {formik.touched.address && formik.errors.address && (
-                <p className="text-sm text-red-500 mt-1">
+                <p className="text-sm text-error mt-1">
                   {formik.errors.address}
                 </p>
               )}
             </div>
 
             <div>
-              <Label htmlFor="email">Place Email (for notifications)</Label>
+              <Label htmlFor="email" className="text-fg">
+                Place Email (for notifications)
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -390,11 +402,9 @@ export function PlaceFormPage() {
                 placeholder="e.g., contact@place.com"
               />
               {formik.touched.email && formik.errors.email && (
-                <p className="text-sm text-red-500 mt-1">
-                  {formik.errors.email}
-                </p>
+                <p className="text-sm text-error mt-1">{formik.errors.email}</p>
               )}
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-muted mt-1">
                 Booking confirmations will be sent to this email
               </p>
             </div>
@@ -402,10 +412,10 @@ export function PlaceFormPage() {
         </Card>
 
         {/* Location */}
-        <Card>
+        <Card className="glass-2 border-white/10">
           <CardHeader>
-            <CardTitle>Location</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-fg">Location</CardTitle>
+            <CardDescription className="text-muted">
               Search or click on the map to set the place location. City,
               country, and address will be auto-populated.
             </CardDescription>
@@ -432,19 +442,23 @@ export function PlaceFormPage() {
         </Card>
 
         {/* Media */}
-        <Card>
+        <Card className="glass-2 border-white/10">
           <CardHeader>
-            <CardTitle>Media</CardTitle>
-            <CardDescription>Upload images of the place</CardDescription>
+            <CardTitle className="text-fg">Media</CardTitle>
+            <CardDescription className="text-muted">
+              Upload images of the place
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="images">Images</Label>
+              <Label htmlFor="images" className="text-fg">
+                Images
+              </Label>
               <div className="mt-2">
-                <label className="flex items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-white/20 rounded-lg cursor-pointer hover:border-brand hover:bg-white/5 transition-colors">
                   <div className="text-center">
-                    <Upload className="mx-auto h-8 w-8 text-gray-400" />
-                    <p className="mt-2 text-sm text-gray-600">
+                    <Upload className="mx-auto h-8 w-8 text-muted" />
+                    <p className="mt-2 text-sm text-muted">
                       Click to upload images
                     </p>
                   </div>
@@ -484,13 +498,17 @@ export function PlaceFormPage() {
         </Card>
 
         {/* Accommodation Type */}
-        <Card>
+        <Card className="glass-2 border-white/10">
           <CardHeader>
-            <CardTitle>Accommodation Type</CardTitle>
-            <CardDescription>Select the type of accommodation</CardDescription>
+            <CardTitle className="text-fg">Accommodation Type</CardTitle>
+            <CardDescription className="text-muted">
+              Select the type of accommodation
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Label htmlFor="accommodationType">Type *</Label>
+            <Label htmlFor="accommodationType" className="text-fg">
+              Type *
+            </Label>
             <Select
               value={formik.values.accommodationType}
               onValueChange={(value) =>
@@ -512,7 +530,7 @@ export function PlaceFormPage() {
             </Select>
             {formik.touched.accommodationType &&
               formik.errors.accommodationType && (
-                <p className="text-sm text-red-500 mt-1">
+                <p className="text-sm text-error mt-1">
                   {formik.errors.accommodationType}
                 </p>
               )}
@@ -520,17 +538,19 @@ export function PlaceFormPage() {
         </Card>
 
         {/* Pricing & Bidding Rules */}
-        <Card>
+        <Card className="glass-2 border-white/10">
           <CardHeader>
-            <CardTitle>Pricing & Bidding Rules</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-fg">Pricing & Bidding Rules</CardTitle>
+            <CardDescription className="text-muted">
               Set pricing and bidding parameters
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="retailPrice">Retail Price (per night) *</Label>
+                <Label htmlFor="retailPrice" className="text-fg">
+                  Retail Price (per night) *
+                </Label>
                 <Input
                   id="retailPrice"
                   type="number"
@@ -540,14 +560,14 @@ export function PlaceFormPage() {
                   step="0.01"
                 />
                 {formik.touched.retailPrice && formik.errors.retailPrice && (
-                  <p className="text-sm text-red-500 mt-1">
+                  <p className="text-sm text-error mt-1">
                     {formik.errors.retailPrice}
                   </p>
                 )}
               </div>
 
               <div>
-                <Label htmlFor="minimumBid">
+                <Label htmlFor="minimumBid" className="text-fg">
                   Minimum Acceptable Bid (per night) *
                 </Label>
                 <Input
@@ -559,17 +579,19 @@ export function PlaceFormPage() {
                   step="0.01"
                 />
                 {formik.touched.minimumBid && formik.errors.minimumBid && (
-                  <p className="text-sm text-red-500 mt-1">
+                  <p className="text-sm text-error mt-1">
                     {formik.errors.minimumBid}
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center justify-between p-4 border border-white/10 rounded-lg">
               <div className="space-y-0.5">
-                <Label>Auto-accept bids above minimum</Label>
-                <p className="text-sm text-muted-foreground">
+                <Label className="text-fg">
+                  Auto-accept bids above minimum
+                </Label>
+                <p className="text-sm text-muted">
                   Automatically accept bids that meet or exceed the minimum bid
                 </p>
               </div>
@@ -584,18 +606,18 @@ export function PlaceFormPage() {
         </Card>
 
         {/* Availability Rules */}
-        <Card>
+        <Card className="glass-2 border-white/10">
           <CardHeader>
-            <CardTitle>Availability Rules</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-fg">Availability Rules</CardTitle>
+            <CardDescription className="text-muted">
               Note: Bids are only allowed 0-30 days from today. Set blackout
               dates below.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Blackout Dates</Label>
-              <p className="text-sm text-muted-foreground mb-2">
+              <Label className="text-fg">Blackout Dates</Label>
+              <p className="text-sm text-muted mb-2">
                 Select dates when bookings are not available
               </p>
               <Popover>
@@ -638,15 +660,17 @@ export function PlaceFormPage() {
         </Card>
 
         {/* Status */}
-        <Card>
+        <Card className="glass-2 border-white/10">
           <CardHeader>
-            <CardTitle>Publication Status</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-fg">Publication Status</CardTitle>
+            <CardDescription className="text-muted">
               Control the visibility of this place
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status" className="text-fg">
+              Status
+            </Label>
             <Select
               value={formik.values.status}
               onValueChange={(value) =>
@@ -666,7 +690,7 @@ export function PlaceFormPage() {
         </Card>
 
         {/* Submit Buttons */}
-        <div className="sticky bottom-0 bg-white border-t p-4 flex items-center justify-end gap-3 w-full">
+        <div className="sticky bottom-[-25px] bg-bg border-t border-white/10 p-4 flex items-center justify-end gap-3 w-full">
           <Button
             type="button"
             variant="outline"

@@ -3,7 +3,6 @@ import { MapPin } from "lucide-react";
 import { getRoute, ROUTES } from "../../../config/routes.config";
 import { Place, ACCOMMODATION_TYPE_LABELS } from "../../../types/place.types";
 import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
 
 interface PlaceListItemProps {
   place: Place;
@@ -30,8 +29,8 @@ export function PlaceListItem({
     <div
       className={`flex gap-4 p-3 rounded-xl cursor-pointer transition-all duration-200 ${
         isSelected
-          ? "bg-blue-50 ring-2 ring-blue-400"
-          : "bg-white hover:bg-gray-50 border border-gray-100"
+          ? "bg-brand/10 ring-2 ring-brand"
+          : "bg-glass hover:bg-glass-2 border border-line"
       }`}
       onClick={handleClick}
       onMouseEnter={() => onHover?.(place.id)}
@@ -53,26 +52,26 @@ export function PlaceListItem({
           <div className="flex items-center gap-2 mb-2">
             <Badge
               variant="outline"
-              className="bg-gray-100 border-gray-200 text-gray-600 text-xs px-2 py-0.5"
+              className="bg-tag-bg border-transparent text-tag-text text-xs px-2 py-0.5"
             >
               {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
             </Badge>
           </div>
 
           {/* Title */}
-          <h3 className="font-semibold text-gray-900 text-base mb-1 truncate">
+          <h3 className="font-semibold text-fg text-base mb-1 truncate">
             {place.name}
           </h3>
 
           {/* Location */}
-          <div className="flex items-center gap-1 text-gray-500 text-sm mb-2">
+          <div className="flex items-center gap-1 text-muted text-sm mb-2">
             <MapPin className="h-3.5 w-3.5" />
             <span>{place.city}</span>
           </div>
 
           {/* Description */}
           {place.shortDescription && (
-            <p className="text-gray-600 text-sm line-clamp-2">
+            <p className="text-muted text-sm line-clamp-2">
               {place.shortDescription}
             </p>
           )}
@@ -81,16 +80,15 @@ export function PlaceListItem({
 
       {/* Price & Bid Button */}
       <div className="text-right shrink-0 py-1 flex flex-col justify-end">
-        <Button
-          size="sm"
-          className="bg-purple-600 hover:bg-purple-700 text-white h-8 px-4"
+        <button
+          className="btn-bid h-8 px-4 text-sm"
           onClick={(e) => {
             e.stopPropagation();
             handleClick();
           }}
         >
           BID
-        </Button>
+        </button>
       </div>
     </div>
   );

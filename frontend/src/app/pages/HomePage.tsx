@@ -42,7 +42,7 @@ export function HomePage() {
   }, []);
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div className="h-screen bg-bg flex flex-col overflow-hidden">
       {/* Header with Search Bar */}
       <HomeHeader showSearchBar onSearch={handleSearch} />
 
@@ -52,7 +52,7 @@ export function HomePage() {
       {/* Main Content */}
       <div className="flex-1 flex min-h-0">
         {/* Left Sidebar - Places List */}
-        <div className="w-1/2 bg-white border-r flex flex-col min-h-0">
+        <div className="w-1/2 bg-bg border-r border-line flex flex-col min-h-0">
           {/* Places List */}
           <div className="flex-1 min-h-0 overflow-y-auto p-4">
             <PlacesSidebar

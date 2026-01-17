@@ -107,7 +107,7 @@ export function SignupPage() {
     )}_${Date.now()}${ext ? `.${ext}` : ""}`;
     const { data, error } = await supabase.storage
       .from(SUPABASE_BUCKET)
-      .upload(fileName, file);
+      .upload(fileName, file as any);
     if (error) {
       setFileUpload(false);
       console.log(error);
@@ -145,13 +145,13 @@ export function SignupPage() {
   }, [emailDebounced]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-bg py-12 px-4 diad-vignette">
+      <Card className="w-full max-w-md bg-glass-2 border-line shadow-glass relative z-10">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
+          <CardTitle className="text-2xl font-bold text-center text-fg">
             Create Account
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-center text-muted">
             Sign up to start bidding on student accommodations
           </CardDescription>
         </CardHeader>
@@ -164,25 +164,29 @@ export function SignupPage() {
 
           <form onSubmit={formik.handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name" className="text-fg">
+                Full Name
+              </Label>
               <Input
                 id="name"
                 type="text"
                 placeholder="John Doe"
                 {...formik.getFieldProps("name")}
-                className={
-                  getFieldError("name", formik) ? "border-red-500" : ""
-                }
+                className={`bg-glass border-line text-fg placeholder:text-muted ${
+                  getFieldError("name", formik) ? "border-danger" : ""
+                }`}
               />
               {getFieldError("name", formik) && (
-                <p className="text-sm text-red-500">
+                <p className="text-sm text-danger">
                   {getFieldError("name", formik)}
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-fg">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -191,28 +195,28 @@ export function SignupPage() {
                 onBlur={(e) => {
                   formik.handleBlur(e);
                 }}
-                className={
-                  getFieldError("email", formik) ? "border-red-500" : ""
-                }
+                className={`bg-glass border-line text-fg placeholder:text-muted ${
+                  getFieldError("email", formik) ? "border-danger" : ""
+                }`}
               />
               {getFieldError("email", formik) && (
-                <p className="text-sm text-red-500">
+                <p className="text-sm text-danger">
                   {getFieldError("email", formik)}
                 </p>
               )}
               {formik.values.email && !getFieldError("email", formik) && (
                 <>
                   {isAcademicEmail(formik.values.email) ? (
-                    <Alert className="border-green-200 bg-green-50">
-                      <AlertDescription className="text-green-700 text-sm">
+                    <Alert className="border-success/30 bg-success/10">
+                      <AlertDescription className="text-success text-sm">
                         Academic email detected. Your account will be approved
                         automatically.
                       </AlertDescription>
                     </Alert>
                   ) : (
-                    <Alert className="border-yellow-200 bg-yellow-50">
-                      <AlertCircle className="h-4 w-4 text-yellow-600" />
-                      <AlertDescription className="text-yellow-700 text-sm">
+                    <Alert className="border-brand/30 bg-brand/10">
+                      <AlertCircle className="h-4 w-4 text-brand" />
+                      <AlertDescription className="text-brand-2 text-sm">
                         Non-academic email. Please upload your student ID card
                         for verification.
                       </AlertDescription>
@@ -224,10 +228,12 @@ export function SignupPage() {
 
             {needsIdUpload && (
               <div className="space-y-2">
-                <Label htmlFor="studentIdCard">Student ID Card</Label>
+                <Label htmlFor="studentIdCard" className="text-fg">
+                  Student ID Card
+                </Label>
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors"
+                  className="border-2 border-dashed border-line rounded-lg p-6 text-center cursor-pointer hover:border-brand transition-colors bg-glass"
                 >
                   {selectedFile ? (
                     <img
@@ -237,11 +243,11 @@ export function SignupPage() {
                     />
                   ) : (
                     <>
-                      <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                      <p className="text-sm text-gray-600">
+                      <Upload className="h-8 w-8 mx-auto mb-2 text-muted" />
+                      <p className="text-sm text-muted">
                         {"Click to upload student ID card"}
                       </p>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-muted mt-1">
                         PNG, JPG up to 5MB
                       </p>
                     </>
@@ -256,7 +262,7 @@ export function SignupPage() {
                   className="hidden"
                 />
                 {getFieldError("studentIdCard", formik) && (
-                  <p className="text-sm text-red-500">
+                  <p className="text-sm text-danger">
                     {getFieldError("studentIdCard", formik)}
                   </p>
                 )}
@@ -264,38 +270,42 @@ export function SignupPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-fg">
+                Password
+              </Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="••••••••"
                 {...formik.getFieldProps("password")}
-                className={
-                  getFieldError("password", formik) ? "border-red-500" : ""
-                }
+                className={`bg-glass border-line text-fg placeholder:text-muted ${
+                  getFieldError("password", formik) ? "border-danger" : ""
+                }`}
               />
               {getFieldError("password", formik) && (
-                <p className="text-sm text-red-500">
+                <p className="text-sm text-danger">
                   {getFieldError("password", formik)}
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword" className="text-fg">
+                Confirm Password
+              </Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 placeholder="••••••••"
                 {...formik.getFieldProps("confirmPassword")}
-                className={
+                className={`bg-glass border-line text-fg placeholder:text-muted ${
                   getFieldError("confirmPassword", formik)
-                    ? "border-red-500"
+                    ? "border-danger"
                     : ""
-                }
+                }`}
               />
               {getFieldError("confirmPassword", formik) && (
-                <p className="text-sm text-red-500">
+                <p className="text-sm text-danger">
                   {getFieldError("confirmPassword", formik)}
                 </p>
               )}
@@ -303,7 +313,7 @@ export function SignupPage() {
 
             <Button
               type={!isImageUploaded ? "button" : "submit"}
-              className="w-full"
+              className="w-full btn-bid"
               disabled={
                 signupMutation.isPending ||
                 isPending ||
@@ -318,13 +328,11 @@ export function SignupPage() {
           </form>
 
           <div className="mt-4 text-center text-sm">
-            <span className="text-muted-foreground">
-              Already have an account?{" "}
-            </span>
+            <span className="text-muted">Already have an account? </span>
             <Link
               to={ROUTES.LOGIN}
               state={returnUrl ? { returnUrl } : undefined}
-              className="text-blue-600 hover:underline font-medium"
+              className="text-brand hover:underline font-medium"
             >
               Login
             </Link>

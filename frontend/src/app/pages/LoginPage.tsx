@@ -108,13 +108,13 @@ export function LoginPage() {
     loginMutation.data.user.approvalStatus === ApprovalStatus.PENDING;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-bg py-12 px-4 diad-vignette">
+      <Card className="w-full max-w-md bg-glass-2 border-line shadow-glass relative z-10">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
+          <CardTitle className="text-2xl font-bold text-center text-fg">
             Welcome Back
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-center text-muted">
             Enter your credentials to access your account
           </CardDescription>
         </CardHeader>
@@ -127,36 +127,40 @@ export function LoginPage() {
 
           <form onSubmit={formik.handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-fg">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="you@example.com"
                 {...formik.getFieldProps("email")}
-                className={
-                  getFieldError("email", formik) ? "border-red-500" : ""
-                }
+                className={`bg-glass border-line text-fg placeholder:text-muted ${
+                  getFieldError("email", formik) ? "border-danger" : ""
+                }`}
               />
               {getFieldError("email", formik) && (
-                <p className="text-sm text-red-500">
+                <p className="text-sm text-danger">
                   {getFieldError("email", formik)}
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-fg">
+                Password
+              </Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="••••••••"
                 {...formik.getFieldProps("password")}
-                className={
-                  getFieldError("password", formik) ? "border-red-500" : ""
-                }
+                className={`bg-glass border-line text-fg placeholder:text-muted ${
+                  getFieldError("password", formik) ? "border-danger" : ""
+                }`}
               />
               {getFieldError("password", formik) && (
-                <p className="text-sm text-red-500">
+                <p className="text-sm text-danger">
                   {getFieldError("password", formik)}
                 </p>
               )}
@@ -164,7 +168,7 @@ export function LoginPage() {
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full btn-bid"
               disabled={(loginMutation.isPending || isPending) && !formik.dirty}
             >
               {loginMutation.isPending ? "Logging in..." : "Login"}
@@ -172,13 +176,11 @@ export function LoginPage() {
           </form>
 
           <div className="mt-4 text-center text-sm">
-            <span className="text-muted-foreground">
-              Don't have an account?{" "}
-            </span>
+            <span className="text-muted">Don't have an account? </span>
             <Link
               to={ROUTES.SIGNUP}
               state={returnUrl ? { returnUrl } : undefined}
-              className="text-blue-600 hover:underline font-medium"
+              className="text-brand hover:underline font-medium"
             >
               Sign up
             </Link>

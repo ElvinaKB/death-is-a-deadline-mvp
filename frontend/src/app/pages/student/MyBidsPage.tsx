@@ -24,10 +24,10 @@ import { format } from "date-fns";
 import { HomeHeader } from "../../components/home";
 
 const bidStatusColors: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  ACCEPTED: "bg-green-100 text-green-800",
-  REJECTED: "bg-red-100 text-red-800",
-  EXPIRED: "bg-gray-100 text-gray-800",
+  PENDING: "bg-warning/20 text-warning",
+  ACCEPTED: "bg-success/20 text-success",
+  REJECTED: "bg-danger/20 text-danger",
+  EXPIRED: "bg-muted/20 text-muted",
 };
 
 const paymentStatusConfig: Record<
@@ -35,37 +35,37 @@ const paymentStatusConfig: Record<
   { color: string; label: string; icon: React.ElementType }
 > = {
   PENDING: {
-    color: "bg-yellow-100 text-yellow-800",
+    color: "bg-warning/20 text-warning",
     label: "Payment Pending",
     icon: Clock,
   },
   REQUIRES_ACTION: {
-    color: "bg-orange-100 text-orange-800",
+    color: "bg-warning/20 text-warning",
     label: "Action Required",
     icon: Clock,
   },
   AUTHORIZED: {
-    color: "bg-blue-100 text-blue-800",
+    color: "bg-brand/20 text-brand",
     label: "Payment Authorized",
     icon: CheckCircle,
   },
   CAPTURED: {
-    color: "bg-green-100 text-green-800",
+    color: "bg-success/20 text-success",
     label: "Payment Complete",
     icon: CheckCircle,
   },
   CANCELLED: {
-    color: "bg-gray-100 text-gray-800",
+    color: "bg-muted/20 text-muted",
     label: "Payment Cancelled",
     icon: XCircle,
   },
   FAILED: {
-    color: "bg-red-100 text-red-800",
+    color: "bg-danger/20 text-danger",
     label: "Payment Failed",
     icon: XCircle,
   },
   EXPIRED: {
-    color: "bg-gray-100 text-gray-800",
+    color: "bg-muted/20 text-muted",
     label: "Authorization Expired",
     icon: Clock,
   },
@@ -84,10 +84,10 @@ export function MyBidsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-bg">
         <HomeHeader />
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Loader2 className="w-8 h-8 animate-spin text-brand" />
         </div>
       </div>
     );
@@ -95,16 +95,16 @@ export function MyBidsPage() {
 
   if (bids.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-bg">
         <HomeHeader />
         <div className="container mx-auto py-8">
-          <h1 className="text-2xl font-bold mb-6">My Bids</h1>
-          <Card>
+          <h1 className="text-2xl font-bold text-fg mb-6">My Bids</h1>
+          <Card className="bg-glass-2 border-line">
             <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground mb-4">
+              <p className="text-muted mb-4">
                 You haven't placed any bids yet.
               </p>
-              <Button asChild>
+              <Button asChild className="btn-bid">
                 <Link to={ROUTES.HOME}>Browse Marketplace</Link>
               </Button>
             </CardContent>
@@ -115,10 +115,10 @@ export function MyBidsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-bg">
       <HomeHeader />
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-bold mb-6">My Bids</h1>
+        <h1 className="text-2xl font-bold text-fg mb-6">My Bids</h1>
 
         <div className="grid gap-4">
           {bids.map((bid) => {
@@ -140,14 +140,14 @@ export function MyBidsPage() {
             const isPaymentCancelled = paymentStatus === "CANCELLED";
 
             return (
-              <Card key={bid.id}>
+              <Card key={bid.id} className="bg-glass-2 border-line">
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-lg">
+                      <CardTitle className="text-lg text-fg">
                         {bid.place?.name || "Unknown Place"}
                       </CardTitle>
-                      <CardDescription className="flex items-center gap-1 mt-1">
+                      <CardDescription className="flex items-center gap-1 mt-1 text-muted">
                         <MapPin className="w-3 h-3" />
                         {bid.place?.city}, {bid.place?.country}
                       </CardDescription>
@@ -168,35 +168,36 @@ export function MyBidsPage() {
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-muted-foreground" />
-                      <span>
+                      <DollarSign className="w-4 h-4 text-muted" />
+                      <span className="text-fg">
                         <strong>Bid:</strong> {formatCurrency(bid.bidPerNight)}
                         /night
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <span>
+                      <Calendar className="w-4 h-4 text-muted" />
+                      <span className="text-fg">
                         <strong>Check-in:</strong>{" "}
                         {format(new Date(bid.checkInDate), "MMM d, yyyy")}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <span>
+                      <Calendar className="w-4 h-4 text-muted" />
+                      <span className="text-fg">
                         <strong>Check-out:</strong>{" "}
                         {format(new Date(bid.checkOutDate), "MMM d, yyyy")}
                       </span>
                     </div>
-                    <div className="text-muted-foreground">
-                      <strong>Total:</strong> {formatCurrency(bid.totalAmount)}
+                    <div className="text-muted">
+                      <strong className="text-fg">Total:</strong>{" "}
+                      {formatCurrency(bid.totalAmount)}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 mt-4 flex-wrap">
                     {/* Show checkout button if payment not made or failed */}
                     {canCheckout && (
-                      <Button asChild size="sm">
+                      <Button asChild size="sm" className="btn-bid">
                         <Link
                           to={ROUTES.STUDENT_CHECKOUT.replace(":bidId", bid.id)}
                         >
@@ -211,7 +212,7 @@ export function MyBidsPage() {
 
                     {/* Payment authorized - awaiting capture */}
                     {isPaymentAuthorized && (
-                      <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1.5 rounded-md">
+                      <div className="flex items-center gap-2 text-sm text-brand glass px-3 py-1.5 rounded-md border border-brand/30">
                         <CheckCircle className="w-4 h-4" />
                         <span>Payment authorized - awaiting confirmation</span>
                       </div>
@@ -219,7 +220,7 @@ export function MyBidsPage() {
 
                     {/* Payment captured - completed */}
                     {isPaymentCaptured && (
-                      <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-md">
+                      <div className="flex items-center gap-2 text-sm text-success glass px-3 py-1.5 rounded-md border border-success/30">
                         <CheckCircle className="w-4 h-4" />
                         <span>Payment complete - booking confirmed!</span>
                       </div>
@@ -227,19 +228,24 @@ export function MyBidsPage() {
 
                     {/* Payment cancelled */}
                     {isPaymentCancelled && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-md">
+                      <div className="flex items-center gap-2 text-sm text-muted glass px-3 py-1.5 rounded-md border border-line">
                         <XCircle className="w-4 h-4" />
                         <span>Payment was cancelled</span>
                       </div>
                     )}
 
                     {bid.status === "REJECTED" && bid.rejectionReason && (
-                      <span className="text-sm text-red-600">
+                      <span className="text-sm text-danger">
                         Rejection reason: {bid.rejectionReason}
                       </span>
                     )}
 
-                    <Button variant="outline" size="sm" asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      className="border-line text-fg hover:bg-glass"
+                    >
                       <Link
                         to={ROUTES.PUBLIC_PLACE_DETAIL.replace(
                           ":id",

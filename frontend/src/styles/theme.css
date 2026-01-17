@@ -1,84 +1,139 @@
 @custom-variant dark (&:is(.dark *));
 
+/* =========================
+   DEATH IS A DEADLINE – UI TOKENS
+   ========================= */
 :root {
   --font-size: 16px;
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
-  --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #030213;
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #e9ebef;
-  --accent-foreground: #030213;
-  --destructive: #d4183d;
-  --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: transparent;
-  --input-background: #f3f3f5;
-  --switch-background: #cbced4;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  /* Core Background & Foreground */
+  --bg: 222 24% 8%;                    /* near-black #0B0E11 */
+  --fg: 210 40% 98%;                   /* off-white #F5F3EE */
+  --muted-color: 220 14% 60%;          /* muted text #64748B */
+  --line: 220 12% 20%;                 /* subtle border #E1E3E8 in light, dark for dark */
+
+  /* Surfaces (Glass) */
+  --glass: 220 20% 10% / 0.55;         /* frosted dark overlay */
+  --glass-2: 220 18% 14% / 0.72;       /* deeper glass */
+
+  /* Brand Colors */
+  --brand: 260 95% 55%;                /* purple accent */
+  --brand-2: 266 90% 62%;              /* lighter purple */
+  --danger: 0 84% 60%;                 /* red */
+  --success: 142 71% 45%;              /* green */
+
+  /* Button Tokens (Place a Bid style) */
+  --btn-bg: 213 47% 19%;               /* Midnight Blue #1E2A44 */
+  --btn-hover: 213 42% 28%;            /* Omen Blue #283B66 */
+  --btn-border: 210 18% 62%;           /* Pale Steel #93A4C9 */
+  --btn-text: 40 33% 95%;              /* Bone White #F5F3EE */
+  --btn-glow: 220 100% 77% / 0.45;     /* Ghost Blue glow */
+
+  /* Special Effects */
+  --glow: 260 95% 60% / 0.28;          /* purple glow */
+  --shadow-soft: 0 12px 36px rgba(0,0,0,.40);
+  --shadow-glass: 0 18px 60px rgba(0,0,0,.55);
+
+  /* Radii */
+  --r-xl: 24px;
+  --r-lg: 18px;
+  --r-md: 14px;
+  --r-sm: 10px;
+  --radius: 0.625rem;
+
+  /* Listing Card Colors */
+  --card-bg: #FFFFFF;                  /* Ghost White */
+  --card-border: #E1E3E8;              /* Ash Gray */
+  --card-shadow: rgba(0,0,0,0.06);
+  --property-name: #0F172A;            /* Dark text */
+  --location-text: #64748B;            /* Muted */
+  --tag-bg: #EEF2FF;                   /* Light purple/blue */
+  --tag-text: #3B4CCA;                 /* Tag text color */
+
+  /* Map overlay */
+  --map-overlay: #0B0E11;              /* Black Fog */
+
+  /* Legacy shadcn variables mapped to new tokens */
+  --background: hsl(var(--bg));
+  --foreground: hsl(var(--fg));
+  --card: var(--card-bg);
+  --card-foreground: var(--property-name);
+  --popover: hsl(var(--glass-2));
+  --popover-foreground: hsl(var(--fg));
+  --primary: hsl(var(--brand));
+  --primary-foreground: hsl(var(--fg));
+  --secondary: hsl(220 14% 20%);
+  --secondary-foreground: hsl(var(--fg));
+  --muted: hsl(var(--muted-color));
+  --muted-foreground: hsl(var(--muted-color));
+  --accent: hsl(var(--brand-2));
+  --accent-foreground: hsl(var(--fg));
+  --destructive: hsl(var(--danger));
+  --destructive-foreground: hsl(var(--fg));
+  --border: hsl(var(--line));
+  --input: transparent;
+  --input-background: hsl(220 18% 14%);
+  --switch-background: hsl(220 14% 35%);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --ring: hsl(var(--brand));
+  
+  /* Charts */
+  --chart-1: hsl(var(--brand));
+  --chart-2: hsl(var(--success));
+  --chart-3: hsl(var(--brand-2));
+  --chart-4: hsl(40 90% 60%);
+  --chart-5: hsl(var(--danger));
+
+  /* Sidebar */
+  --sidebar: hsl(var(--bg));
+  --sidebar-foreground: hsl(var(--fg));
+  --sidebar-primary: hsl(var(--brand));
+  --sidebar-primary-foreground: hsl(var(--fg));
+  --sidebar-accent: hsl(var(--glass));
+  --sidebar-accent-foreground: hsl(var(--fg));
+  --sidebar-border: hsl(var(--line));
+  --sidebar-ring: hsl(var(--brand));
 }
 
 @theme inline {
+  /* Core Colors */
+  --color-bg: hsl(var(--bg));
+  --color-fg: hsl(var(--fg));
+  --color-muted: hsl(var(--muted-color));
+  --color-line: hsl(var(--line));
+
+  /* Brand Colors */
+  --color-brand: hsl(var(--brand));
+  --color-brand-2: hsl(var(--brand-2));
+  --color-success: hsl(var(--success));
+  --color-danger: hsl(var(--danger));
+  --color-error: hsl(var(--danger));
+  --color-warning: hsl(40 90% 50%);
+
+  /* Glass Surfaces */
+  --color-glass: hsl(var(--glass));
+  --color-glass-2: hsl(var(--glass-2));
+
+  /* Button Colors */
+  --color-btn: hsl(var(--btn-bg));
+  --color-btn-hover: hsl(var(--btn-hover));
+  --color-btn-border: hsl(var(--btn-border));
+  --color-btn-text: hsl(var(--btn-text));
+  --color-btn-glow: hsl(var(--btn-glow));
+
+  /* Card Colors */
+  --color-card-bg: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-property-name: var(--property-name);
+  --color-location: var(--location-text);
+  --color-tag-bg: var(--tag-bg);
+  --color-tag-text: var(--tag-text);
+
+  /* Map */
+  --color-map-overlay: var(--map-overlay);
+
+  /* Legacy shadcn mappings */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -89,7 +144,6 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
@@ -105,10 +159,21 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Radii */
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+
+  /* Shadows */
+  --shadow-soft: var(--shadow-soft);
+  --shadow-glass: var(--shadow-glass);
+
+  /* Drop Shadow for glow effects */
+  --drop-shadow-glow: 0 0 20px hsl(var(--glow));
+
+  /* Sidebar */
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -117,6 +182,9 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Font Family */
+  --font-sans: ui-sans-serif, system-ui, Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 @layer base {
@@ -177,5 +245,98 @@
     font-size: var(--text-base);
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
+  }
+}
+
+/* =========================
+   DEATH IS A DEADLINE – COMPONENT STYLES
+   ========================= */
+
+@layer components {
+  /* Bid Button - Place a Bid style */
+  .btn-bid {
+    background: linear-gradient(180deg, hsl(var(--btn-hover)), hsl(var(--btn-bg)));
+    color: hsl(var(--btn-text));
+    border: 1px solid hsl(var(--btn-border));
+    box-shadow: 0 0 14px hsl(var(--btn-glow));
+    border-radius: var(--r-md);
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .btn-bid:hover {
+    background: linear-gradient(180deg, hsl(var(--btn-bg)), hsl(var(--btn-hover)));
+    box-shadow: 0 0 20px hsl(var(--btn-glow));
+  }
+
+  /* Glass Surface */
+  .glass {
+    background: hsl(var(--glass));
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--line));
+  }
+
+  .glass-2 {
+    background: hsl(var(--glass-2));
+    backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--line));
+  }
+
+  /* Listing Card */
+  .card-listing {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: 0 2px 8px var(--card-shadow);
+    border-radius: var(--r-lg);
+  }
+
+  /* Tag Pill */
+  .tag-pill {
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  /* Map Overlay (vignette effect) */
+  .map-overlay {
+    background: radial-gradient(
+      circle,
+      rgba(0,0,0,0.0),
+      rgba(0,0,0,0.65)
+    );
+  }
+
+  /* Vignette effect for moody pages */
+  .diad-vignette {
+    position: relative;
+  }
+
+  .diad-vignette::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(1200px 600px at 50% 30%, rgba(0,0,0,.15), rgba(0,0,0,.55)),
+      radial-gradient(900px 500px at 70% 20%, rgba(120,60,255,.10), transparent 55%);
+    mix-blend-mode: multiply;
+    z-index: 1;
+  }
+
+  /* Glow effect */
+  .glow {
+    filter: drop-shadow(0 0 20px hsl(var(--glow)));
+  }
+
+  /* Shadow utilities */
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-glass {
+    box-shadow: var(--shadow-glass);
   }
 }

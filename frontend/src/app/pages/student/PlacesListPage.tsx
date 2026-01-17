@@ -59,7 +59,7 @@ export function PlacesListPage() {
   const filteredPlaces = places;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-bg">
       <HomeHeader />
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Filters Section */}
@@ -79,9 +79,11 @@ export function PlacesListPage() {
           </div>
         ) : filteredPlaces.length === 0 ? (
           <div className="text-center py-16">
-            <MapPin className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium mb-2">No places found</h3>
-            <p className="text-muted-foreground">
+            <MapPin className="mx-auto h-16 w-16 text-muted mb-4" />
+            <h3 className="text-lg font-medium mb-2 text-fg">
+              No places found
+            </h3>
+            <p className="text-muted">
               Try adjusting your filters to see more results
             </p>
           </div>
@@ -90,7 +92,7 @@ export function PlacesListPage() {
             {filteredPlaces.map((place) => (
               <Card
                 key={place.id}
-                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                className="overflow-hidden glass-2 border-white/10 hover:border-brand/50 transition-all cursor-pointer"
                 onClick={() =>
                   navigate(
                     getRoute(ROUTES.PUBLIC_PLACE_DETAIL, { id: place.id })
@@ -108,14 +110,14 @@ export function PlacesListPage() {
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute top-3 right-3">
-                    <Badge className="bg-white text-gray-900">
+                    <Badge className="bg-brand/20 text-brand border-brand/30">
                       {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
                     </Badge>
                   </div>
                 </div>
 
                 <CardContent className="p-5">
-                  <h3 className="font-semibold text-lg mb-2 line-clamp-1">
+                  <h3 className="font-semibold text-lg mb-2 line-clamp-1 text-fg">
                     {place.name}
                   </h3>
 

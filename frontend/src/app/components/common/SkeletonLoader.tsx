@@ -1,8 +1,8 @@
-import { Skeleton } from '../ui/skeleton';
-import { cn } from '../ui/utils';
+import { Skeleton } from "../ui/skeleton";
+import { cn } from "../ui/utils";
 
 interface SkeletonLoaderProps {
-  type?: 'text' | 'card' | 'table' | 'avatar' | 'custom';
+  type?: "text" | "card" | "table" | "avatar" | "custom";
   count?: number;
   className?: string;
   height?: string | number;
@@ -10,7 +10,7 @@ interface SkeletonLoaderProps {
 }
 
 export function SkeletonLoader({
-  type = 'text',
+  type = "text",
   count = 1,
   className,
   height,
@@ -18,40 +18,60 @@ export function SkeletonLoader({
 }: SkeletonLoaderProps) {
   const renderSkeleton = () => {
     switch (type) {
-      case 'text':
-        return <Skeleton className={cn('h-4 w-full', className)} style={{ height, width }} />;
-      
-      case 'card':
+      case "text":
         return (
-          <div className={cn('space-y-3 p-4 border rounded-lg', className)}>
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-            <Skeleton className="h-20 w-full" />
+          <Skeleton
+            className={cn("h-4 w-full bg-glass-2", className)}
+            style={{ height, width }}
+          />
+        );
+
+      case "card":
+        return (
+          <div className={cn("space-y-3 p-4 border rounded-lg ", className)}>
+            <Skeleton className="h-4 w-3/4 bg-glass-2" />
+            <Skeleton className="h-4 w-1/2 bg-glass-2" />
+            <Skeleton className="h-20 w-full bg-glass-2" />
           </div>
         );
-      
-      case 'table':
+
+      case "table":
         return (
-          <div className={cn('space-y-2', className)}>
-            <Skeleton className="h-10 w-full" />
+          <div className={cn("space-y-2 ", className)}>
+            <Skeleton className="h-10 w-full bg-glass-2" />
             {Array.from({ length: count }).map((_, idx) => (
-              <Skeleton key={idx} className="h-16 w-full" />
+              <Skeleton key={idx} className="h-16 w-full bg-glass-2" />
             ))}
           </div>
         );
-      
-      case 'avatar':
-        return <Skeleton className={cn('h-12 w-12 rounded-full', className)} style={{ height, width }} />;
-      
-      case 'custom':
-        return <Skeleton className={className} style={{ height, width }} />;
-      
+
+      case "avatar":
+        return (
+          <Skeleton
+            className={cn("h-12 w-12 rounded-full bg-glass-2", className)}
+            style={{ height, width }}
+          />
+        );
+
+      case "custom":
+        return (
+          <Skeleton
+            className={cn("bg-glass-2", className)}
+            style={{ height, width }}
+          />
+        );
+
       default:
-        return <Skeleton className={cn('h-4 w-full', className)} />;
+        return <Skeleton className={cn("h-4 w-full bg-glass-2", className)} />;
     }
   };
 
-  if (type === 'table' || type === 'card' || type === 'avatar' || type === 'custom') {
+  if (
+    type === "table" ||
+    type === "card" ||
+    type === "avatar" ||
+    type === "custom"
+  ) {
     return renderSkeleton();
   }
 
