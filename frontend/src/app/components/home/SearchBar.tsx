@@ -68,56 +68,63 @@ export function SearchBar({ onSearch }: SearchBarProps) {
   };
 
   return (
-    <div className="flex items-center bg-white rounded-full shadow-lg border">
+    <div className="flex items-center bg-glass-2 rounded-full shadow-glass border border-line">
       {/* Location Search */}
       <div className="flex items-center gap-2 px-4 py-3 flex-1 min-w-0">
-        <Search className="h-4 w-4 text-gray-400 shrink-0" />
+        <Search className="h-4 w-4 text-muted shrink-0" />
         <input
           type="text"
           placeholder="Los Angeles"
           value={searchQuery}
           onChange={(e) => dispatch(setSearchQuery(e.target.value))}
           onKeyDown={handleKeyDown}
-          className="w-full bg-transparent border-0 outline-none text-sm text-gray-900 placeholder:text-gray-400"
+          className="w-full bg-transparent border-0 outline-none text-sm text-fg placeholder:text-muted"
         />
       </div>
 
       {/* Divider */}
-      <div className="h-8 w-px bg-gray-200 shrink-0" />
+      <div className="h-8 w-px bg-line shrink-0" />
 
       {/* Date Picker */}
       <Popover open={isDateOpen} onOpenChange={setIsDateOpen}>
         <PopoverTrigger asChild>
-          <button className="flex items-center gap-2 px-4 py-3 min-w-[120px] hover:bg-gray-50 transition-colors">
-            <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
-            <span className="text-sm text-gray-700 whitespace-nowrap">
+          <button className="flex items-center gap-2 px-4 py-3 min-w-[120px] hover:bg-glass transition-colors rounded-lg">
+            <Calendar className="h-4 w-4 text-muted shrink-0" />
+            <span className="text-sm text-fg whitespace-nowrap">
               {getDateLabel()}
             </span>
-            <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />
+            <ChevronDown className="h-4 w-4 text-muted shrink-0" />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent
+          className="w-auto p-0 bg-glass-2 border-line"
+          align="start"
+        >
           {!showCalendar ? (
             <div className="py-1">
               <button
-                className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 ${
-                  dateOption === "tonight" ? "bg-blue-50 text-blue-600" : ""
+                className={`w-full px-4 py-2 text-left text-sm hover:bg-glass ${
+                  dateOption === "tonight"
+                    ? "bg-brand/10 text-brand"
+                    : "text-fg"
                 }`}
                 onClick={() => handleDateOptionSelect("tonight")}
               >
                 Tonight
               </button>
               <button
-                className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 ${
-                  dateOption === "tomorrow" ? "bg-blue-50 text-blue-600" : ""
+                className={`w-full px-4 py-2 text-left text-sm hover:bg-glass ${
+                  dateOption === "tomorrow"
+                    ? "bg-brand/10 text-brand"
+                    : "text-fg"
                 }`}
                 onClick={() => handleDateOptionSelect("tomorrow")}
               >
                 Tomorrow
               </button>
               <button
-                className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 ${
-                  dateOption === "custom" ? "bg-blue-50 text-blue-600" : ""
+                className={`w-full px-4 py-2 text-left text-sm hover:bg-glass ${
+                  dateOption === "custom" ? "bg-brand/10 text-brand" : "text-fg"
                 }`}
                 onClick={() => handleDateOptionSelect("custom")}
               >
@@ -127,7 +134,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
           ) : (
             <div className="p-2">
               <button
-                className="text-sm text-blue-600 hover:underline mb-2"
+                className="text-sm text-brand hover:underline mb-2"
                 onClick={() => setShowCalendar(false)}
               >
                 ← Back
@@ -147,7 +154,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
       {/* Search Button */}
       <Button
         size="icon"
-        className="rounded-full bg-blue-600 hover:bg-blue-700 h-10 w-10 shrink-0 mr-1"
+        className="rounded-full btn-bid h-10 w-10 shrink-0 mr-1"
         onClick={onSearch}
       >
         <Search className="h-4 w-4" />

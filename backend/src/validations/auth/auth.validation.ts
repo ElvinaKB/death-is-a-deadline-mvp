@@ -16,3 +16,11 @@ export const resubmitSchema = z.object({
   token: z.string().jwt(),
   studentIdUrl: z.string(),
 });
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+export const resetPasswordSchema = z.object({
+  password: z.string().min(6),
+});

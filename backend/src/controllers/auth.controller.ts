@@ -155,3 +155,57 @@ export async function resubmit(
     data,
   });
 }
+
+export async function forgotPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { email } = req.body;
+
+  // Use Supabase to send password reset email
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.CLIENT_URL}/reset-password`,
+  });
+
+  if (error) {
+    throw new CustomError(error.message, 400);
+  }
+
+  return res.status(200).json({
+    message: "Password reset email sent successfully. Please check your inbox.",
+  });
+}
+
+export async function resetPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { password } = req.body;
+  const accessToken = req.headers.authorization?.replace("Bearer ", "");
+
+  if (!accessToken) {
+    throw new CustomError("Access token is required", 400);
+  }
+
+  // Get user from session using the access token
+  const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
+
+  if (userError || !userData.user) {
+    throw new CustomError("Invalid or expired token", 400);
+  }
+
+  // Update the user's password
+  const { error } = await supabase.auth.admin.updateUserById(userData.user.id, {
+    password,
+  });
+
+  if (error) {
+    throw new CustomError(error.message, 400);
+  }
+
+  return res.status(200).json({
+    message: "Password reset successfully. You can now login with your new password.",
+  });
+}

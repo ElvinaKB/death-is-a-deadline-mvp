@@ -1,65 +1,52 @@
-import { useCallback, useMemo, useEffect } from "react";
+import { useCallback, useMemo, useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import Map, { Marker, Popup, NavigationControl } from "react-map-gl/mapbox";
+import type { MapRef } from "react-map-gl/mapbox";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { getRoute, ROUTES } from "../../../config/routes.config";
 import { Place } from "../../../types/place.types";
 
-// Fix Leaflet default icon issue
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-});
+const MAPBOX_TOKEN = import.meta.env.VITE_APP_MAPBOX;
 
-// Custom BID marker icon
-const createBidIcon = (isSelected: boolean) => {
-  return L.divIcon({
-    className: "custom-bid-marker",
-    html: `
-      <div style="
-        background: ${isSelected ? "#1f2937" : "#ffffff"};
-        color: ${isSelected ? "#ffffff" : "#1f2937"};
-        border: 2px solid ${isSelected ? "#1f2937" : "#e5e7eb"};
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        cursor: pointer;
-        white-space: nowrap;
-        transform: ${isSelected ? "scale(1.1)" : "scale(1)"};
-        transition: all 0.2s ease;
-      ">BID</div>
-    `,
-    iconSize: [50, 30],
-    iconAnchor: [25, 30],
-  });
-};
+// Custom BID marker component
+function BidMarker({
+  isSelected,
+  onClick,
+}: {
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        background: isSelected
+          ? "#ffffff"
+          : "linear-gradient(180deg, #283B66, #1E2A44)",
+        color: isSelected ? "#1E2A44" : "#F5F3EE",
+        border: `1px solid ${isSelected ? "#1E2A44" : "#93A4C9"}`,
+        padding: "6px 12px",
+        borderRadius: "12px",
+        fontWeight: 600,
+        fontSize: "12px",
+        boxShadow: isSelected
+          ? "0 0 20px rgba(140, 160, 255, 0.6)"
+          : "0 0 14px rgba(140, 160, 255, 0.45)",
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        transform: isSelected ? "scale(1.1)" : "scale(1)",
+        transition: "all 0.2s ease",
+      }}
+    >
+      BID
+    </div>
+  );
+}
 
 interface PlacesMapProps {
   places: Place[];
   selectedPlaceId?: string;
   onPlaceSelect?: (placeId: string) => void;
-}
-
-// Component to fit bounds when places change
-function FitBounds({
-  bounds,
-}: {
-  bounds: [[number, number], [number, number]];
-}) {
-  const map = useMap();
-  useEffect(() => {
-    if (bounds) {
-      map.fitBounds(bounds, { padding: [20, 20], maxZoom: 15 });
-    }
-  }, [map, bounds]);
-  return null;
 }
 
 export function PlacesMap({
@@ -68,15 +55,28 @@ export function PlacesMap({
   onPlaceSelect,
 }: PlacesMapProps) {
   const navigate = useNavigate();
+  const mapRef = useRef<MapRef>(null);
+  const [popupInfo, setPopupInfo] = useState<Place | null>(null);
 
   const handleMarkerClick = useCallback(
-    (placeId: string) => {
+    (place: Place) => {
+      setPopupInfo(place);
       if (onPlaceSelect) {
-        onPlaceSelect(placeId);
+        onPlaceSelect(place.id);
       }
+    },
+    [onPlaceSelect]
+  );
+
+  const handlePopupClose = useCallback(() => {
+    setPopupInfo(null);
+  }, []);
+
+  const handleViewDetails = useCallback(
+    (placeId: string) => {
       navigate(getRoute(ROUTES.PUBLIC_PLACE_DETAIL, { id: placeId }));
     },
-    [navigate, onPlaceSelect]
+    [navigate]
   );
 
   // Filter only places with valid coordinates
@@ -95,50 +95,65 @@ export function PlacesMap({
   );
 
   // Calculate bounds for the map
-  const bounds = useMemo<[[number, number], [number, number]]>(() => {
+  const bounds = useMemo(() => {
     if (placesWithCoords.length === 0) {
-      return [
-        [-60, -180],
-        [70, 180],
-      ];
-    }
-
-    if (placesWithCoords.length === 1) {
-      const place = placesWithCoords[0];
-      return [
-        [place.latitude! - 0.05, place.longitude! - 0.05],
-        [place.latitude! + 0.05, place.longitude! + 0.05],
-      ];
+      return null;
     }
 
     const lats = placesWithCoords.map((p) => p.latitude!);
     const lngs = placesWithCoords.map((p) => p.longitude!);
-    return [
-      [Math.min(...lats) - 0.02, Math.min(...lngs) - 0.02],
-      [Math.max(...lats) + 0.02, Math.max(...lngs) + 0.02],
-    ];
+
+    return {
+      minLng: Math.min(...lngs),
+      maxLng: Math.max(...lngs),
+      minLat: Math.min(...lats),
+      maxLat: Math.max(...lats),
+    };
   }, [placesWithCoords]);
 
   // Default center
-  const center = useMemo<[number, number]>(() => {
+  const initialViewState = useMemo(() => {
     if (placesWithCoords.length === 0) {
-      return [40, -74];
+      return {
+        longitude: -74,
+        latitude: 40,
+        zoom: 3,
+      };
     }
+
     const avgLat =
       placesWithCoords.reduce((sum, p) => sum + p.latitude!, 0) /
       placesWithCoords.length;
     const avgLng =
       placesWithCoords.reduce((sum, p) => sum + p.longitude!, 0) /
       placesWithCoords.length;
-    return [avgLat, avgLng];
+
+    return {
+      longitude: avgLng,
+      latitude: avgLat,
+      zoom: 12,
+    };
   }, [placesWithCoords]);
+
+  // Fit bounds when places change
+  useEffect(() => {
+    if (mapRef.current && bounds && placesWithCoords.length > 1) {
+      mapRef.current.fitBounds(
+        [
+          [bounds.minLng - 0.02, bounds.minLat - 0.02],
+          [bounds.maxLng + 0.02, bounds.maxLat + 0.02],
+        ],
+        { padding: 50, duration: 1000, maxZoom: 14 }
+      );
+    }
+  }, [bounds, placesWithCoords.length]);
 
   // Show message if no places have coordinates
   if (placesWithCoords.length === 0) {
     return (
-      <div className="relative w-full h-full bg-gray-100 flex items-center justify-center">
-        <div className="text-center text-gray-500">
-          <p className="text-lg font-medium">No locations available</p>
+      <div className="relative w-full h-full bg-bg flex items-center justify-center">
+        <div className="text-center text-muted">
+          <p className="text-lg font-medium text-fg">No locations available</p>
           <p className="text-sm">
             Places will appear here once locations are added
           </p>
@@ -149,18 +164,15 @@ export function PlacesMap({
 
   return (
     <div className="relative w-full h-full">
-      <MapContainer
-        center={center}
-        zoom={14}
-        style={{ height: "100%", width: "100%" }}
-        scrollWheelZoom={true}
-        className="z-40"
+      <Map
+        ref={mapRef}
+        mapboxAccessToken={MAPBOX_TOKEN}
+        initialViewState={initialViewState}
+        style={{ width: "100%", height: "100%" }}
+        mapStyle="mapbox://styles/mapbox/dark-v11"
+        reuseMaps
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <FitBounds bounds={bounds} />
+        <NavigationControl position="top-left" />
 
         {placesWithCoords.map((place) => {
           const isSelected = place.id === selectedPlaceId;
@@ -168,29 +180,46 @@ export function PlacesMap({
           return (
             <Marker
               key={place.id}
-              position={[place.latitude!, place.longitude!]}
-              icon={createBidIcon(isSelected)}
-              eventHandlers={{
-                click: () => handleMarkerClick(place.id),
-              }}
+              longitude={place.longitude!}
+              latitude={place.latitude!}
+              anchor="bottom"
             >
-              <Popup>
-                <div className="text-center min-w-[150px]">
-                  <h4 className="font-semibold text-gray-900 mb-1">
-                    {place.name}
-                  </h4>
-                  <p className="text-sm text-gray-600">
-                    {place.city}, {place.country}
-                  </p>
-                  <p className="text-sm font-medium text-green-600 mt-1">
-                    From ${place.minimumBid}/night
-                  </p>
-                </div>
-              </Popup>
+              <BidMarker
+                isSelected={isSelected}
+                onClick={() => handleMarkerClick(place)}
+              />
             </Marker>
           );
         })}
-      </MapContainer>
+
+        {popupInfo && (
+          <Popup
+            longitude={popupInfo.longitude!}
+            latitude={popupInfo.latitude!}
+            anchor="bottom"
+            offset={40}
+            onClose={handlePopupClose}
+            closeButton={true}
+            closeOnClick={false}
+          >
+            <div
+              className="text-center min-w-[150px] cursor-pointer"
+              onClick={() => handleViewDetails(popupInfo.id)}
+            >
+              <h4 className="font-semibold text-fg mb-1">{popupInfo.name}</h4>
+              <p className="text-sm text-muted">
+                {popupInfo.city}, {popupInfo.country}
+              </p>
+              <p className="text-sm font-medium text-success mt-1">
+                From ${popupInfo.minimumBid}/night
+              </p>
+              <p className="text-xs text-brand mt-2 hover:underline">
+                View Details →
+              </p>
+            </div>
+          </Popup>
+        )}
+      </Map>
     </div>
   );
 }

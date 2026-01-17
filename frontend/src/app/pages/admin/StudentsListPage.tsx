@@ -44,10 +44,10 @@ export function StudentsListPage() {
   const getStatusBadge = (status: ApprovalStatus) => {
     const variants = {
       [ApprovalStatus.APPROVED]:
-        "bg-green-100 text-green-800 hover:bg-green-100",
+        "bg-success/20 text-success hover:bg-success/30",
       [ApprovalStatus.PENDING]:
-        "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
-      [ApprovalStatus.REJECTED]: "bg-red-100 text-red-800 hover:bg-red-100",
+        "bg-warning/20 text-warning hover:bg-warning/30",
+      [ApprovalStatus.REJECTED]: "bg-danger/20 text-danger hover:bg-danger/30",
     };
 
     return (
@@ -98,8 +98,8 @@ export function StudentsListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Students</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold text-fg">Students</h1>
+          <p className="text-muted mt-1">
             Manage student registrations and approvals
           </p>
         </div>
@@ -110,17 +110,37 @@ export function StudentsListPage() {
         value={filter}
         onValueChange={(v) => setFilter(v as ApprovalStatus | "ALL")}
       >
-        <TabsList>
-          <TabsTrigger value="ALL">All</TabsTrigger>
-          <TabsTrigger value={ApprovalStatus.PENDING}>Pending</TabsTrigger>
-          <TabsTrigger value={ApprovalStatus.APPROVED}>Approved</TabsTrigger>
-          <TabsTrigger value={ApprovalStatus.REJECTED}>Rejected</TabsTrigger>
+        <TabsList className="bg-glass border border-line">
+          <TabsTrigger
+            value="ALL"
+            className="data-[state=active]:bg-brand data-[state=active]:text-white"
+          >
+            All
+          </TabsTrigger>
+          <TabsTrigger
+            value={ApprovalStatus.PENDING}
+            className="data-[state=active]:bg-brand data-[state=active]:text-white"
+          >
+            Pending
+          </TabsTrigger>
+          <TabsTrigger
+            value={ApprovalStatus.APPROVED}
+            className="data-[state=active]:bg-brand data-[state=active]:text-white"
+          >
+            Approved
+          </TabsTrigger>
+          <TabsTrigger
+            value={ApprovalStatus.REJECTED}
+            className="data-[state=active]:bg-brand data-[state=active]:text-white"
+          >
+            Rejected
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value={filter} className="mt-6">
-          <Card>
+          <Card className="bg-glass-2 border-line">
             <CardHeader>
-              <CardTitle>Student List</CardTitle>
+              <CardTitle className="text-fg">Student List</CardTitle>
             </CardHeader>
             <CardContent>
               <DataTable

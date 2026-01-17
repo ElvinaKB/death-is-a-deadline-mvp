@@ -264,12 +264,12 @@ export function LocationPicker({
 
         {/* Search Results Dropdown */}
         {showResults && searchResults.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+          <div className="absolute z-50 w-full mt-1 bg-bg border border-white/10 rounded-md shadow-lg max-h-60 overflow-auto">
             {searchResults.map((result, index) => (
               <button
                 key={index}
                 type="button"
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-start gap-2"
+                className="w-full px-4 py-2 text-left hover:bg-white/10 flex items-start gap-2 text-fg"
                 onClick={() => handleSelectResult(result)}
               >
                 <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />

@@ -3,6 +3,8 @@ export const ROUTES = {
   LOGIN: "/login",
   SIGNUP: "/signup",
   RESUBMIT: "/resubmit",
+  FORGOT_PASSWORD: "/forgot-password",
+  RESET_PASSWORD: "/reset-password",
 
   HOME: "/",
   PUBLIC_PLACE_DETAIL: "/student/marketplace/:id",

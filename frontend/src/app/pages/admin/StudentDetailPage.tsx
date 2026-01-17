@@ -123,9 +123,9 @@ export function StudentDetailPage() {
 
   const getStatusBadge = (status: ApprovalStatus) => {
     const variants = {
-      [ApprovalStatus.APPROVED]: "bg-green-100 text-green-800",
-      [ApprovalStatus.PENDING]: "bg-yellow-100 text-yellow-800",
-      [ApprovalStatus.REJECTED]: "bg-red-100 text-red-800",
+      [ApprovalStatus.APPROVED]: "bg-success/20 text-success border-success/30",
+      [ApprovalStatus.PENDING]: "bg-warning/20 text-warning border-warning/30",
+      [ApprovalStatus.REJECTED]: "bg-error/20 text-error border-error/30",
     };
 
     return (
@@ -143,35 +143,35 @@ export function StudentDetailPage() {
           Back
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Student Details</h1>
+          <h1 className="text-3xl font-bold text-fg">Student Details</h1>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <Card>
+          <Card className="glass-2 border-white/10">
             <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
+              <CardTitle className="text-fg">Personal Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Name</p>
-                  <p className="font-medium">{student.name}</p>
+                  <p className="text-sm text-muted">Name</p>
+                  <p className="font-medium text-fg">{student.name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{student.email}</p>
+                  <p className="text-sm text-muted">Email</p>
+                  <p className="font-medium text-fg">{student.email}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
+                  <p className="text-sm text-muted">Status</p>
                   <div className="mt-1">
                     {getStatusBadge(student.approvalStatus)}
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Registered</p>
-                  <p className="font-medium">
+                  <p className="text-sm text-muted">Registered</p>
+                  <p className="font-medium text-fg">
                     {new Date(student.createdAt).toLocaleDateString()}
                   </p>
                 </div>
@@ -180,12 +180,12 @@ export function StudentDetailPage() {
           </Card>
 
           {student.studentIdUrl && (
-            <Card>
+            <Card className="glass-2 border-white/10">
               <CardHeader>
-                <CardTitle>Student ID Card</CardTitle>
+                <CardTitle className="text-fg">Student ID Card</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="border rounded-lg overflow-hidden bg-gray-50">
+                <div className="border border-white/10 rounded-lg overflow-hidden bg-white/5">
                   <img
                     src={student.studentIdUrl}
                     alt="Student ID"
@@ -198,15 +198,15 @@ export function StudentDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <Card>
+          <Card className="glass-2 border-white/10">
             <CardHeader>
-              <CardTitle>Actions</CardTitle>
+              <CardTitle className="text-fg">Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {student.approvalStatus === ApprovalStatus.PENDING && (
                 <>
                   <Button
-                    className="w-full bg-green-600 hover:bg-green-700"
+                    className="w-full bg-success hover:bg-success/90"
                     onClick={handleApprove}
                     disabled={approveMutation.isPending}
                   >
@@ -225,38 +225,38 @@ export function StudentDetailPage() {
                 </>
               )}
               {student.approvalStatus === ApprovalStatus.APPROVED && (
-                <div className="text-center py-4 text-sm text-muted-foreground">
+                <div className="text-center py-4 text-sm text-muted">
                   Student has been approved
                 </div>
               )}
               {student.approvalStatus === ApprovalStatus.REJECTED && (
-                <div className="text-center py-4 text-sm text-muted-foreground">
+                <div className="text-center py-4 text-sm text-muted">
                   Student has been rejected
                   {/* show reason */}
                   {student.rejectionReason && (
-                    <p className="mt-2">{student.rejectionReason}</p>
+                    <p className="mt-2 text-fg">{student.rejectionReason}</p>
                   )}
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="glass-2 border-white/10">
             <CardHeader>
-              <CardTitle>Timeline</CardTitle>
+              <CardTitle className="text-fg">Timeline</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3 text-sm">
                 <div>
-                  <p className="text-muted-foreground">Registered</p>
-                  <p className="font-medium">
+                  <p className="text-muted">Registered</p>
+                  <p className="font-medium text-fg">
                     {new Date(student.createdAt).toLocaleString()}
                   </p>
                 </div>
                 {student.updatedAt !== student.createdAt && (
                   <div>
-                    <p className="text-muted-foreground">Last Updated</p>
-                    <p className="font-medium">
+                    <p className="text-muted">Last Updated</p>
+                    <p className="font-medium text-fg">
                       {new Date(student.updatedAt).toLocaleString()}
                     </p>
                   </div>

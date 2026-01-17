@@ -24,28 +24,30 @@ export function DataTable<T extends object>({
 
   if (!data || data.length === 0) {
     return (
-      <div className="text-center py-12 border rounded-lg">
-        <p className="text-muted-foreground">{emptyMessage}</p>
+      <div className="text-center py-12 border border-line rounded-lg glass">
+        <p className="text-muted">{emptyMessage}</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="border rounded-lg">
+      <div className="border border-line rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="border-line bg-glass hover:bg-glass">
               {columns.map((column, idx) => (
-                <TableHead key={idx}>{column.header}</TableHead>
+                <TableHead key={idx} className="text-muted font-medium">
+                  {column.header}
+                </TableHead>
               ))}
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((row, rowIdx) => (
-              <TableRow key={rowIdx}>
+              <TableRow key={rowIdx} className="border-line hover:bg-glass/50">
                 {columns.map((column, colIdx) => (
-                  <TableCell key={colIdx}>
+                  <TableCell key={colIdx} className="text-fg">
                     {column.render
                       ? column.render(row)
                       : String(row[column.field as keyof T] || "-")}
@@ -59,7 +61,7 @@ export function DataTable<T extends object>({
 
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted">
             Page {pagination.currentPage} of {pagination.totalPages} • Total:{" "}
             {pagination.totalItems} items
           </div>
@@ -67,6 +69,7 @@ export function DataTable<T extends object>({
             <Button
               variant="outline"
               size="sm"
+              className="border-line text-fg hover:bg-glass"
               onClick={() =>
                 pagination.onPageChange(pagination.currentPage - 1)
               }
@@ -78,6 +81,7 @@ export function DataTable<T extends object>({
             <Button
               variant="outline"
               size="sm"
+              className="border-line text-fg hover:bg-glass"
               onClick={() =>
                 pagination.onPageChange(pagination.currentPage + 1)
               }

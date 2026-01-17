@@ -19,19 +19,19 @@ import {
 import { format } from "date-fns";
 
 const BID_STATUS_COLORS: Record<BidStatus, string> = {
-  [BidStatus.PENDING]: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
-  [BidStatus.ACCEPTED]: "bg-green-100 text-green-800 hover:bg-green-100",
-  [BidStatus.REJECTED]: "bg-red-100 text-red-800 hover:bg-red-100",
+  [BidStatus.PENDING]: "bg-warning/20 text-warning hover:bg-warning/30",
+  [BidStatus.ACCEPTED]: "bg-success/20 text-success hover:bg-success/30",
+  [BidStatus.REJECTED]: "bg-danger/20 text-danger hover:bg-danger/30",
 };
 
 const PAYMENT_STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-gray-100 text-gray-800",
-  REQUIRES_ACTION: "bg-blue-100 text-blue-800",
-  AUTHORIZED: "bg-purple-100 text-purple-800",
-  CAPTURED: "bg-green-100 text-green-800",
-  CANCELLED: "bg-red-100 text-red-800",
-  FAILED: "bg-red-100 text-red-800",
-  EXPIRED: "bg-orange-100 text-orange-800",
+  PENDING: "bg-muted/20 text-muted",
+  REQUIRES_ACTION: "bg-brand/20 text-brand",
+  AUTHORIZED: "bg-brand/20 text-brand",
+  CAPTURED: "bg-success/20 text-success",
+  CANCELLED: "bg-danger/20 text-danger",
+  FAILED: "bg-danger/20 text-danger",
+  EXPIRED: "bg-warning/20 text-warning",
 };
 
 export function BidsListPage() {
@@ -55,13 +55,13 @@ export function BidsListPage() {
   const getPaymentStatusBadge = (status?: string) => {
     if (!status) {
       return (
-        <Badge variant="outline" className="text-gray-500">
+        <Badge variant="outline" className="text-muted border-line">
           No Payment
         </Badge>
       );
     }
     return (
-      <Badge className={PAYMENT_STATUS_COLORS[status] || "bg-gray-100"}>
+      <Badge className={PAYMENT_STATUS_COLORS[status] || "bg-muted/20"}>
         {status.replace(/_/g, " ")}
       </Badge>
     );
@@ -80,10 +80,8 @@ export function BidsListPage() {
       field: "studentId",
       render: (row) => (
         <div>
-          <p className="font-medium">{row.student?.name || "N/A"}</p>
-          <p className="text-sm text-muted-foreground">
-            {row.student?.email || "-"}
-          </p>
+          <p className="font-medium text-fg">{row.student?.name || "N/A"}</p>
+          <p className="text-sm text-muted">{row.student?.email || "-"}</p>
         </div>
       ),
     },
@@ -92,8 +90,8 @@ export function BidsListPage() {
       field: "placeId",
       render: (row) => (
         <div>
-          <p className="font-medium">{row.place?.name || "N/A"}</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="font-medium text-fg">{row.place?.name || "N/A"}</p>
+          <p className="text-sm text-muted">
             {row.place?.city}, {row.place?.country}
           </p>
         </div>
@@ -104,13 +102,13 @@ export function BidsListPage() {
       field: "checkInDate",
       render: (row) => (
         <div className="text-sm">
-          <p>{format(new Date(row.checkInDate), "MMM d, yyyy")}</p>
-          <p className="text-muted-foreground">
+          <p className="text-fg">
+            {format(new Date(row.checkInDate), "MMM d, yyyy")}
+          </p>
+          <p className="text-muted">
             to {format(new Date(row.checkOutDate), "MMM d, yyyy")}
           </p>
-          <p className="text-xs text-muted-foreground">
-            ({row.totalNights} nights)
-          </p>
+          <p className="text-xs text-muted">({row.totalNights} nights)</p>
         </div>
       ),
     },
@@ -119,10 +117,10 @@ export function BidsListPage() {
       field: "totalAmount",
       render: (row) => (
         <div className="text-sm">
-          <p className="font-medium">{formatCurrency(row.totalAmount)}</p>
-          <p className="text-muted-foreground">
-            {formatCurrency(row.bidPerNight)}/night
+          <p className="font-medium text-fg">
+            {formatCurrency(row.totalAmount)}
           </p>
+          <p className="text-muted">{formatCurrency(row.bidPerNight)}/night</p>
         </div>
       ),
     },
@@ -140,7 +138,7 @@ export function BidsListPage() {
       header: "Created",
       field: "createdAt",
       render: (row) => (
-        <span className="text-sm">
+        <span className="text-sm text-fg">
           {format(new Date(row.createdAt), "MMM d, yyyy")}
         </span>
       ),
@@ -152,8 +150,8 @@ export function BidsListPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Bids</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-3xl font-bold text-fg">Bids</h1>
+        <p className="text-muted mt-1">
           View all bids and their payment status
         </p>
       </div>
@@ -166,17 +164,37 @@ export function BidsListPage() {
           setCurrentPage(1);
         }}
       >
-        <TabsList>
-          <TabsTrigger value="ALL">All</TabsTrigger>
-          <TabsTrigger value={BidStatus.PENDING}>Pending</TabsTrigger>
-          <TabsTrigger value={BidStatus.ACCEPTED}>Accepted</TabsTrigger>
-          <TabsTrigger value={BidStatus.REJECTED}>Rejected</TabsTrigger>
+        <TabsList className="bg-glass border border-line">
+          <TabsTrigger
+            value="ALL"
+            className="data-[state=active]:bg-brand data-[state=active]:text-white"
+          >
+            All
+          </TabsTrigger>
+          <TabsTrigger
+            value={BidStatus.PENDING}
+            className="data-[state=active]:bg-brand data-[state=active]:text-white"
+          >
+            Pending
+          </TabsTrigger>
+          <TabsTrigger
+            value={BidStatus.ACCEPTED}
+            className="data-[state=active]:bg-brand data-[state=active]:text-white"
+          >
+            Accepted
+          </TabsTrigger>
+          <TabsTrigger
+            value={BidStatus.REJECTED}
+            className="data-[state=active]:bg-brand data-[state=active]:text-white"
+          >
+            Rejected
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value={filter} className="mt-6">
-          <Card>
+          <Card className="glass-2 border-line">
             <CardHeader>
-              <CardTitle>Bids List</CardTitle>
+              <CardTitle className="text-fg">Bids List</CardTitle>
             </CardHeader>
             <CardContent>
               <DataTable

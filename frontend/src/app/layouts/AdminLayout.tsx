@@ -40,11 +40,11 @@ export function AdminLayout() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-bg">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r flex flex-col">
-        <div className="p-6 border-b">
-          <h1 className="text-2xl font-bold text-blue-600">Admin Panel</h1>
+      <aside className="w-64 bg-bg-raised border-r border-line flex flex-col">
+        <div className="p-6 border-b border-line">
+          <h1 className="text-2xl font-bold text-brand">Admin Panel</h1>
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
@@ -61,8 +61,8 @@ export function AdminLayout() {
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
                   isActive
-                    ? "bg-blue-50 text-blue-600 font-medium"
-                    : "text-gray-600 hover:bg-gray-50"
+                    ? "bg-brand/20 text-brand font-medium"
+                    : "text-muted hover:bg-glass"
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -76,9 +76,9 @@ export function AdminLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="h-16 bg-white border-b flex items-center justify-between px-6">
+        <header className="h-16 bg-bg-raised border-b border-line flex items-center justify-between px-6">
           <div>
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-lg font-semibold text-fg">
               Welcome back, {user?.name}
             </h2>
           </div>
@@ -90,17 +90,20 @@ export function AdminLayout() {
                 className="relative h-10 w-10 rounded-full"
               >
                 <Avatar>
-                  <AvatarFallback className="bg-blue-100 text-blue-600">
+                  <AvatarFallback className="bg-brand/20 text-brand">
                     {user?.name ? getInitials(user.name) : "A"}
                   </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end">
+            <DropdownMenuContent
+              className="w-56 bg-bg-raised border-line"
+              align="end"
+            >
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{user?.name}</p>
-                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  <p className="text-sm font-medium text-fg">{user?.name}</p>
+                  <p className="text-xs text-muted">{user?.email}</p>
                 </div>
               </DropdownMenuLabel>
               {/* <DropdownMenuSeparator />
@@ -108,8 +111,11 @@ export function AdminLayout() {
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem> */}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+              <DropdownMenuSeparator className="bg-line" />
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="text-danger hover:bg-danger/10"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Logout</span>
               </DropdownMenuItem>

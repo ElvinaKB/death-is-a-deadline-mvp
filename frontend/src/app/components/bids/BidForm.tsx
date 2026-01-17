@@ -98,7 +98,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
 
   // Helper function to confirm payment with card
   const confirmPaymentWithCard = async (
-    clientSecret: string
+    clientSecret: string,
   ): Promise<{ success: boolean; error?: string }> => {
     if (!stripe) {
       return { success: false, error: "Payment system not ready" };
@@ -120,7 +120,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
         payment_method: {
           card: cardElement,
         },
-      }
+      },
     );
 
     if (error) {
@@ -180,7 +180,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
 
             // Step 3: Confirm payment with card for pre-authorization
             const confirmResult = await confirmPaymentWithCard(
-              paymentResult.clientSecret
+              paymentResult.clientSecret,
             );
             // queryClient.invalidateQueries({ queryKey: ["bids"] });
             if (confirmResult.success) {
@@ -265,7 +265,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
     if (formik.values.checkInDate && formik.values.checkOutDate) {
       return differenceInDays(
         formik.values.checkOutDate,
-        formik.values.checkInDate
+        formik.values.checkInDate,
       );
     }
     return 0;
@@ -301,21 +301,21 @@ function BidFormInner({ place, placeId }: BidFormProps) {
     return (
       <div className="space-y-4">
         <div className="text-center py-6">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="h-10 w-10 text-green-600" />
+          <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="h-10 w-10 text-success" />
           </div>
-          <h3 className="text-xl font-bold text-green-900 mb-2">
+          <h3 className="text-xl font-bold text-success mb-2">
             Booking Confirmed!
           </h3>
-          <p className="text-sm text-green-700 mb-4">
+          <p className="text-sm text-muted mb-4">
             Your payment has been authorized and your booking is confirmed.
           </p>
         </div>
 
-        <div className="bg-green-50 rounded-lg p-4 space-y-2 text-sm">
+        <div className="glass rounded-lg p-4 space-y-2 text-sm border border-line">
           <div className="flex justify-between">
-            <span>Total Amount:</span>
-            <span className="font-bold">
+            <span className="text-muted">Total Amount:</span>
+            <span className="font-bold text-fg">
               ${bidResult.totalAmount?.toFixed(2)}
             </span>
           </div>
@@ -323,7 +323,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
 
         <Button
           variant="outline"
-          className="w-full"
+          className="w-full border-line text-fg hover:bg-glass"
           onClick={() => navigate(ROUTES.STUDENT_MY_BIDS)}
         >
           View My Bids
@@ -343,24 +343,24 @@ function BidFormInner({ place, placeId }: BidFormProps) {
     return (
       <div className="space-y-4">
         <div className="text-center py-4">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <XCircle className="h-10 w-10 text-red-600" />
+          <div className="w-16 h-16 bg-danger/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <XCircle className="h-10 w-10 text-danger" />
           </div>
-          <h3 className="text-xl font-bold text-red-900 mb-2">
+          <h3 className="text-xl font-bold text-danger mb-2">
             Bid Not Accepted
           </h3>
-          <p className="text-sm text-red-700 mb-4">{bidResult.message}</p>
+          <p className="text-sm text-muted mb-4">{bidResult.message}</p>
         </div>
 
-        <div className="bg-blue-50 rounded-lg p-4 text-left">
-          <p className="font-medium text-sm text-blue-900 mb-2">Suggestions:</p>
-          <ul className="text-sm text-blue-800 space-y-1">
+        <div className="glass rounded-lg p-4 text-left border border-line">
+          <p className="font-medium text-sm text-fg mb-2">Suggestions:</p>
+          <ul className="text-sm text-muted space-y-1">
             <li>• Increase your bid amount </li>
             <li>• Try different dates</li>
           </ul>
         </div>
 
-        <Button className="w-full" onClick={handleTryAgain}>
+        <Button className="w-full btn-bid" onClick={handleTryAgain}>
           Try Again
         </Button>
       </div>
@@ -375,16 +375,14 @@ function BidFormInner({ place, placeId }: BidFormProps) {
         <div className="grid grid-cols-2 gap-3">
           {/* Check-in Date */}
           <div>
-            <Label className="text-sm text-gray-600 mb-1.5 block">
-              Check-in
-            </Label>
+            <Label className="text-sm text-muted mb-1.5 block">Check-in</Label>
             <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-between text-left font-normal h-11",
-                    !formik.values.checkInDate && "text-muted-foreground"
+                    "w-full justify-between text-left font-normal h-11 bg-glass border-line text-fg",
+                    !formik.values.checkInDate && "text-muted",
                   )}
                 >
                   <span className="truncate">
@@ -395,7 +393,10 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                   <CalendarIcon className="h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent
+                className="w-auto p-0 bg-bg-raised border-line"
+                align="start"
+              >
                 <Calendar
                   mode="single"
                   selected={formik.values.checkInDate}
@@ -404,11 +405,12 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                     setCheckInOpen(false);
                   }}
                   disabled={isDateBlocked}
+                  className="bg-bg-raised text-fg"
                 />
               </PopoverContent>
             </Popover>
             {formik.touched.checkInDate && formik.errors.checkInDate && (
-              <p className="text-xs text-red-500 mt-1">
+              <p className="text-xs text-danger mt-1">
                 {formik.errors.checkInDate}
               </p>
             )}
@@ -416,16 +418,14 @@ function BidFormInner({ place, placeId }: BidFormProps) {
 
           {/* Check-out Date */}
           <div>
-            <Label className="text-sm text-gray-600 mb-1.5 block">
-              Check-out
-            </Label>
+            <Label className="text-sm text-muted mb-1.5 block">Check-out</Label>
             <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-between text-left font-normal h-11",
-                    !formik.values.checkOutDate && "text-muted-foreground"
+                    "w-full justify-between text-left font-normal h-11 bg-glass border-line text-fg",
+                    !formik.values.checkOutDate && "text-muted",
                   )}
                 >
                   <span className="truncate">
@@ -436,7 +436,10 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                   <CalendarIcon className="h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent
+                className="w-auto p-0 bg-bg-raised border-line"
+                align="start"
+              >
                 <Calendar
                   mode="single"
                   selected={formik.values.checkOutDate}
@@ -445,11 +448,12 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                     setCheckOutOpen(false);
                   }}
                   disabled={isDateBlocked}
+                  className="bg-bg-raised text-fg"
                 />
               </PopoverContent>
             </Popover>
             {formik.touched.checkOutDate && formik.errors.checkOutDate && (
-              <p className="text-xs text-red-500 mt-1">
+              <p className="text-xs text-danger mt-1">
                 {formik.errors.checkOutDate}
               </p>
             )}
@@ -458,22 +462,22 @@ function BidFormInner({ place, placeId }: BidFormProps) {
 
         {/* Bid Per Night */}
         <div>
-          <Label className="text-sm text-gray-600 mb-1.5 block">
+          <Label className="text-sm text-muted mb-1.5 block">
             Your Bid Per Night
           </Label>
           <div className="relative">
-            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
             <Input
               id="bidPerNight"
               type="number"
               min="1"
               step="0.01"
-              className="pl-9 h-11"
+              className="pl-9 h-11 bg-glass border-line text-fg placeholder:text-muted"
               {...formik.getFieldProps("bidPerNight")}
             />
           </div>
           {formik.touched.bidPerNight && formik.errors.bidPerNight && (
-            <p className="text-xs text-red-500 mt-1">
+            <p className="text-xs text-danger mt-1">
               {formik.errors.bidPerNight}
             </p>
           )}
@@ -481,12 +485,12 @@ function BidFormInner({ place, placeId }: BidFormProps) {
 
         {/* Summary */}
         {calculateTotalNights() > 0 && formik.values.bidPerNight && (
-          <div className="bg-gray-50 rounded-lg p-3 space-y-1.5 text-sm">
+          <div className="glass rounded-lg p-3 space-y-1.5 text-sm border border-line">
             <div className="flex justify-between">
-              <span className="text-gray-600">
+              <span className="text-muted">
                 {calculateTotalNights()} nights × ${formik.values.bidPerNight}
               </span>
-              <span className="font-semibold">
+              <span className="font-semibold text-fg">
                 ${calculateTotalAmount().toFixed(2)}
               </span>
             </div>
@@ -495,14 +499,14 @@ function BidFormInner({ place, placeId }: BidFormProps) {
 
         {/* Blackout Date Warning */}
         {blackoutDatesInRange.length > 0 && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <div className="glass rounded-lg p-3 border border-warning/50">
             <div className="flex gap-2">
-              <AlertCircle className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
               <div className="text-sm">
-                <p className="text-orange-800 font-medium">
+                <p className="text-warning font-medium">
                   Selected dates include unavailable dates
                 </p>
-                <p className="text-orange-700 text-xs mt-1">
+                <p className="text-muted text-xs mt-1">
                   The following dates are blocked:{" "}
                   {blackoutDatesInRange
                     .map((d) => format(d, "MMM d"))
@@ -516,19 +520,19 @@ function BidFormInner({ place, placeId }: BidFormProps) {
         {/* Inline Card Input - Only for authenticated users */}
         {isAuthenticated && (
           <div className="space-y-2">
-            <Label className="text-sm text-gray-600 mb-1.5 block">
+            <Label className="text-sm text-muted mb-1.5 block">
               Card Details
             </Label>
-            <div className="border border-gray-200 rounded-lg p-3 bg-white">
+            <div className="border border-line rounded-lg p-3 bg-glass">
               <CardElement
                 options={{
                   style: {
                     base: {
                       fontSize: "16px",
-                      color: "#1f2937",
+                      color: "#f8fafc",
                       fontFamily: "system-ui, -apple-system, sans-serif",
                       "::placeholder": {
-                        color: "#9ca3af",
+                        color: "#64748b",
                       },
                     },
                     invalid: {
@@ -550,7 +554,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                 }}
               />
             </div>
-            <p className="text-xs text-gray-500 flex items-center gap-1">
+            <p className="text-xs text-muted flex items-center gap-1">
               <CreditCard className="h-3 w-3" />
               Your card will only be charged if your bid is accepted
             </p>
@@ -559,10 +563,10 @@ function BidFormInner({ place, placeId }: BidFormProps) {
 
         {/* Error Message */}
         {paymentError && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+          <div className="glass rounded-lg p-3 border border-danger/50">
             <div className="flex gap-2">
-              <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-800">{paymentError}</p>
+              <AlertCircle className="h-4 w-4 text-danger flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-danger">{paymentError}</p>
             </div>
           </div>
         )}
@@ -571,7 +575,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
         {isAuthenticated ? (
           <Button
             type="submit"
-            className="w-full bg-purple-600 hover:bg-purple-700 h-12 text-base font-medium"
+            className="w-full btn-bid h-12 text-base font-medium"
             disabled={
               isProcessing ||
               createBid.isPending ||
@@ -597,14 +601,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
         ) : (
           <Button
             type="button"
-            className="w-full bg-purple-600 hover:bg-purple-700 h-12 text-base font-medium"
-            disabled={
-              blackoutDatesInRange.length > 0 ||
-              !formik.values.checkInDate ||
-              !formik.values.checkOutDate ||
-              !formik.values.bidPerNight ||
-              Number(formik.values.bidPerNight) <= 0
-            }
+            className="w-full btn-bid h-12 text-base font-medium"
             onClick={() =>
               navigate(ROUTES.SIGNUP, {
                 state: { returnUrl: location.pathname },
@@ -617,7 +614,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
         )}
 
         {/* Info Text */}
-        <p className="text-xs text-center text-gray-500">
+        <p className="text-xs text-center text-muted">
           {isAuthenticated ? (
             <>
               Secure Stripe Checkout. Card is only charged if bid is accepted.
@@ -641,7 +638,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
 export function BidForm({ place, placeId }: BidFormProps) {
   if (!stripePromise) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="text-center py-4 text-muted">
         Payment system not available
       </div>
     );
@@ -666,37 +663,37 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
     { color: string; label: string; icon: React.ElementType }
   > = {
     PENDING: {
-      color: "bg-yellow-100 text-yellow-800",
+      color: "bg-warning/20 text-warning",
       label: "Payment Pending",
       icon: Clock,
     },
     REQUIRES_ACTION: {
-      color: "bg-orange-100 text-orange-800",
+      color: "bg-warning/20 text-warning",
       label: "Action Required",
       icon: Clock,
     },
     AUTHORIZED: {
-      color: "bg-blue-100 text-blue-800",
+      color: "bg-brand/20 text-brand",
       label: "Payment Authorized",
       icon: CheckCircle,
     },
     CAPTURED: {
-      color: "bg-green-100 text-green-800",
+      color: "bg-success/20 text-success",
       label: "Payment Complete",
       icon: CheckCircle,
     },
     CANCELLED: {
-      color: "bg-gray-100 text-gray-800",
+      color: "bg-muted/20 text-muted",
       label: "Payment Cancelled",
       icon: XCircle,
     },
     FAILED: {
-      color: "bg-red-100 text-red-800",
+      color: "bg-danger/20 text-danger",
       label: "Payment Failed",
       icon: XCircle,
     },
     EXPIRED: {
-      color: "bg-gray-100 text-gray-800",
+      color: "bg-muted/20 text-muted",
       label: "Authorization Expired",
       icon: Clock,
     },
@@ -716,29 +713,29 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
   const statusConfig = {
     [BidStatus.PENDING]: {
       icon: Clock,
-      bgColor: "bg-yellow-100",
-      iconColor: "text-yellow-600",
-      borderColor: "border-yellow-500",
+      bgColor: "bg-warning/20",
+      iconColor: "text-warning",
+      borderColor: "border-warning/50",
       title: "Bid Pending",
-      titleColor: "text-yellow-900",
+      titleColor: "text-warning",
       description: "Your bid is awaiting review",
     },
     [BidStatus.ACCEPTED]: {
       icon: CircleCheck,
-      bgColor: "bg-green-100",
-      iconColor: "text-green-600",
-      borderColor: "border-green-500",
+      bgColor: "bg-success/20",
+      iconColor: "text-success",
+      borderColor: "border-success/50",
       title: "Bid Accepted!",
-      titleColor: "text-green-900",
+      titleColor: "text-success",
       description: "Congratulations! Your bid was accepted.",
     },
     [BidStatus.REJECTED]: {
       icon: CircleX,
-      bgColor: "bg-red-100",
-      iconColor: "text-red-600",
-      borderColor: "border-red-500",
+      bgColor: "bg-danger/20",
+      iconColor: "text-danger",
+      borderColor: "border-danger/50",
       title: "Bid Rejected",
-      titleColor: "text-red-900",
+      titleColor: "text-danger",
       description: bid.rejectionReason || "Your bid was not accepted.",
     },
   };
@@ -755,7 +752,7 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
         <div
           className={cn(
             "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4",
-            config.bgColor
+            config.bgColor,
           )}
         >
           <Icon className={cn("h-10 w-10", config.iconColor)} />
@@ -763,7 +760,7 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
         <h3 className={cn("text-xl font-bold mb-2", config.titleColor)}>
           {config.title}
         </h3>
-        <p className="text-sm text-gray-600 mb-4">{config.description}</p>
+        <p className="text-sm text-muted mb-4">{config.description}</p>
 
         {/* Payment Status Badge */}
         {paymentConfig && (
@@ -776,32 +773,34 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
         )}
       </div>
 
-      <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+      <div className="glass rounded-lg p-4 space-y-2 text-sm border border-line">
         <div className="flex justify-between">
-          <span>Check-in:</span>
-          <span className="font-medium">
+          <span className="text-muted">Check-in:</span>
+          <span className="font-medium text-fg">
             {format(new Date(bid.checkInDate), "MMM dd, yyyy")}
           </span>
         </div>
         <div className="flex justify-between">
-          <span>Check-out:</span>
-          <span className="font-medium">
+          <span className="text-muted">Check-out:</span>
+          <span className="font-medium text-fg">
             {format(new Date(bid.checkOutDate), "MMM dd, yyyy")}
           </span>
         </div>
         <div className="flex justify-between">
-          <span>Bid Per Night:</span>
-          <span className="font-medium">${bid.bidPerNight}</span>
+          <span className="text-muted">Bid Per Night:</span>
+          <span className="font-medium text-fg">${bid.bidPerNight}</span>
         </div>
-        <div className="flex justify-between pt-2 border-t">
-          <span className="font-semibold">Total:</span>
-          <span className="font-bold">${bid.totalAmount.toFixed(2)}</span>
+        <div className="flex justify-between pt-2 border-t border-line">
+          <span className="font-semibold text-fg">Total:</span>
+          <span className="font-bold text-fg">
+            ${bid.totalAmount.toFixed(2)}
+          </span>
         </div>
       </div>
 
       {/* Payment Actions */}
       {canCheckout && (
-        <Button asChild className="w-full">
+        <Button asChild className="w-full btn-bid">
           <Link to={ROUTES.STUDENT_CHECKOUT.replace(":bidId", bid.id)}>
             <CreditCard className="w-4 h-4 mr-2" />
             {paymentStatus === "FAILED" || paymentStatus === "EXPIRED"
@@ -812,21 +811,21 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
       )}
 
       {isPaymentAuthorized && (
-        <div className="flex items-center justify-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-md">
+        <div className="flex items-center justify-center gap-2 text-sm text-brand glass px-3 py-2 rounded-md border border-brand/30">
           <CheckCircle className="w-4 h-4" />
           <span>Payment authorized - awaiting confirmation</span>
         </div>
       )}
 
       {isPaymentCaptured && (
-        <div className="flex items-center justify-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-md">
+        <div className="flex items-center justify-center gap-2 text-sm text-success glass px-3 py-2 rounded-md border border-success/30">
           <CheckCircle className="w-4 h-4" />
           <span>Payment complete - booking confirmed!</span>
         </div>
       )}
 
       {isPaymentCancelled && (
-        <div className="flex items-center justify-center gap-2 text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded-md">
+        <div className="flex items-center justify-center gap-2 text-sm text-muted glass px-3 py-2 rounded-md border border-line">
           <XCircle className="w-4 h-4" />
           <span>Payment was cancelled</span>
         </div>
@@ -834,7 +833,7 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
 
       <Button
         variant="outline"
-        className="w-full"
+        className="w-full border-line text-fg hover:bg-glass"
         onClick={() => navigate(ROUTES.HOME)}
       >
         Browse Other Places

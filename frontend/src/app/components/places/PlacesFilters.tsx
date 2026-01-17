@@ -60,13 +60,15 @@ export function PlacesFilters({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border p-6 mb-8 space-y-6">
+    <div className="glass-2 rounded-lg border border-white/10 p-6 mb-8 space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Search */}
         <div className="lg:col-span-2">
-          <label className="text-sm font-medium mb-2 block">Search</label>
+          <label className="text-sm font-medium mb-2 block text-fg">
+            Search
+          </label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted" />
             <Input
               placeholder="Search by place name, city, or country..."
               value={searchQuery}
@@ -78,7 +80,7 @@ export function PlacesFilters({
 
         {/* Accommodation Type */}
         <div>
-          <label className="text-sm font-medium mb-2 block">
+          <label className="text-sm font-medium mb-2 block text-fg">
             Accommodation Type
           </label>
           <Select
@@ -103,7 +105,9 @@ export function PlacesFilters({
 
         {/* Sort */}
         <div>
-          <label className="text-sm font-medium mb-2 block">Sort By</label>
+          <label className="text-sm font-medium mb-2 block text-fg">
+            Sort By
+          </label>
           <Select
             value={sortBy}
             onValueChange={(v) => updateFilter("sortBy", v as SortOption)}
@@ -121,7 +125,7 @@ export function PlacesFilters({
 
       {/* Price Range */}
       <div>
-        <label className="text-sm font-medium mb-2 block">
+        <label className="text-sm font-medium mb-2 block text-fg">
           Price Range: ${priceRange[0] || minPrice} - $
           {priceRange[1] || maxPrice} per night
         </label>
@@ -135,8 +139,8 @@ export function PlacesFilters({
         />
       </div>
 
-      <div className="flex items-center justify-between pt-4 border-t">
-        <p className="text-sm text-muted-foreground">
+      <div className="flex items-center justify-between pt-4 border-t border-white/10">
+        <p className="text-sm text-muted">
           {resultsCount} place{resultsCount !== 1 ? "s" : ""} found
         </p>
         <Button variant="outline" size="sm" onClick={clearFilters}>

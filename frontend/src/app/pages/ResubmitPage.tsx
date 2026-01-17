@@ -91,13 +91,13 @@ export function ResubmitPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-bg py-12 px-4">
+      <Card className="w-full max-w-md glass-2 border-white/10">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
+          <CardTitle className="text-2xl font-bold text-center text-fg">
             Resubmit Student ID
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-center text-muted">
             Please upload your student ID card for verification. The link will
             expire in 1 day.
           </CardDescription>
@@ -105,10 +105,12 @@ export function ResubmitPage() {
         <CardContent>
           <form onSubmit={formik.handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="studentIdCard">Student ID Card</Label>
+              <Label htmlFor="studentIdCard" className="text-fg">
+                Student ID Card
+              </Label>
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors"
+                className="border-2 border-dashed border-white/20 rounded-lg p-6 text-center cursor-pointer hover:border-brand transition-colors bg-white/5"
               >
                 {selectedFile ? (
                   <img
@@ -118,11 +120,11 @@ export function ResubmitPage() {
                   />
                 ) : (
                   <>
-                    <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                    <p className="text-sm text-gray-600">
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted" />
+                    <p className="text-sm text-muted">
                       {"Click to upload student ID card"}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-muted/70 mt-1">
                       PNG, JPG up to 5MB
                     </p>
                   </>
