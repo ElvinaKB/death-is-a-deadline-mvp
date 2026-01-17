@@ -33,6 +33,7 @@ import {
   Zap,
   ArrowRight,
   ChevronRight,
+  Hourglass,
 } from "lucide-react";
 import { ROUTES, getRoute } from "../../../config/routes.config";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
@@ -151,8 +152,44 @@ export function PlaceDetailPage() {
       />
 
       <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Hero Section */}
+        <div className="relative rounded-2xl overflow-hidden mb-8 bg-center">
+          {/* Content */}
+          <div className="relative z-10 flex flex-col items-center justify-center text-center py-20 px-6">
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">
+              DEATH IS A DEADLINE
+            </h1>
+            <p className="text-lg text-gray-300 mb-2">
+              Students, faculty — name your price.
+            </p>
+            <p className="text-lg text-gray-300 mb-2">
+              A hotel may let you check in.
+            </p>
+            <p className="text-lg text-gray-300 mb-4">
+              Checkout is never guaranteed.
+            </p>
+            <p className="text-muted italic mb-8">— The Grim Keeper</p>
+
+            <Button
+              onClick={() => {
+                document
+                  .getElementById("main-content")
+                  ?.scrollIntoView({ behavior: "smooth" });
+              }}
+              variant="outline"
+              className="flex items-center gap-2 px-8 py-3 text-fg bg-transparent border-muted hover:bg-glass"
+            >
+              {" "}
+              ⏳ START BIDDING
+            </Button>
+          </div>
+        </div>
+
         {/* Hero Image Carousel */}
-        <div className="relative rounded-2xl overflow-hidden mb-8">
+        <div
+          id="main-content"
+          className="relative rounded-2xl overflow-hidden mb-8"
+        >
           <Carousel className="w-full">
             <CarouselContent>
               {allImages.length > 0 ? (
@@ -310,50 +347,52 @@ export function PlaceDetailPage() {
           </div>
         </div>
 
-        {/* Map Section - Only show if lat/lng exist */}
-        {place.latitude && place.longitude && (
-          <div className="mt-8">
-            <div className="flex items-center gap-2 mb-4">
-              <MapPin className="h-5 w-5 text-muted" />
-              <h3 className="text-lg font-semibold text-fg">Location</h3>
-            </div>
-            <p className="text-muted mb-4">{place.address}</p>
-            <div className="relative w-full h-80 rounded-lg overflow-hidden">
-              <Map
-                initialViewState={{
-                  latitude: place.latitude,
-                  longitude: place.longitude,
-                  zoom: 14,
-                }}
-                style={{ width: "100%", height: "100%" }}
-                mapStyle="mapbox://styles/mapbox/dark-v11"
-                mapboxAccessToken={MAPBOX_TOKEN}
-              >
-                <NavigationControl position="top-right" />
-                <Marker
-                  latitude={place.latitude}
-                  longitude={place.longitude}
-                  anchor="bottom"
-                >
-                  <div
-                    style={{
-                      background: "linear-gradient(180deg, #283B66, #1E2A44)",
-                      color: "#F5F3EE",
-                      border: "1px solid #93A4C9",
-                      padding: "6px 12px",
-                      borderRadius: "12px",
-                      fontWeight: 600,
-                      fontSize: "12px",
-                      boxShadow: "0 0 14px rgba(140, 160, 255, 0.45)",
-                    }}
-                  >
-                    BID
-                  </div>
-                </Marker>
-              </Map>
-            </div>
+        {/* Ready Section */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-fg mb-6 text-center">
+            Ready? Submit your bid → Verify → Sleep cheap.
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Students Use This */}
+            <Card className="flex p-5 items-start gap-4">
+              <div className="w-10 h-10 rounded-full border border-muted flex items-center justify-center shrink-0">
+                <GraduationCap className="w-5 h-5 text-muted" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-fg">Students Use This</h3>
+                <p className="text-sm text-muted">
+                  Save up to 60% of normal hotel rates.
+                </p>
+              </div>
+            </Card>
+
+            {/* Instant accept or */}
+            <Card className="flex p-5 items-start gap-4">
+              <div className="w-10 h-10 rounded-full border border-muted flex items-center justify-center shrink-0">
+                <Zap className="w-5 h-5 text-muted" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-fg">Instant accept or</h3>
+                <p className="text-sm text-muted">
+                  Check-in double, decline or rejection
+                </p>
+              </div>
+            </Card>
+
+            {/* Get instant decision */}
+            <Card className="flex p-5 items-start gap-4">
+              <div className="w-10 h-10 rounded-full border border-muted flex items-center justify-center shrink-0">
+                <Shield className="w-5 h-5 text-muted" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-fg">Get instant decision</h3>
+                <p className="text-sm text-muted">
+                  No charge. Try another price or date.
+                </p>
+              </div>
+            </Card>
           </div>
-        )}
+        </div>
 
         {/* How It Works Stepper */}
         <div className="mt-12">
@@ -412,6 +451,51 @@ export function PlaceDetailPage() {
           </Accordion>
         </div>
 
+        {/* Map Section - Only show if lat/lng exist */}
+        {place.latitude && place.longitude && (
+          <div className="mt-8">
+            <div className="flex items-center gap-2 mb-4">
+              <MapPin className="h-5 w-5 text-muted" />
+              <h3 className="text-lg font-semibold text-fg">Location</h3>
+            </div>
+            <p className="text-muted mb-4">{place.address}</p>
+            <div className="relative w-full h-80 rounded-lg overflow-hidden">
+              <Map
+                initialViewState={{
+                  latitude: place.latitude,
+                  longitude: place.longitude,
+                  zoom: 14,
+                }}
+                style={{ width: "100%", height: "100%" }}
+                mapStyle="mapbox://styles/mapbox/dark-v11"
+                mapboxAccessToken={MAPBOX_TOKEN}
+              >
+                <NavigationControl position="top-right" />
+                <Marker
+                  latitude={place.latitude}
+                  longitude={place.longitude}
+                  anchor="bottom"
+                >
+                  <div
+                    style={{
+                      background: "linear-gradient(180deg, #283B66, #1E2A44)",
+                      color: "#F5F3EE",
+                      border: "1px solid #93A4C9",
+                      padding: "6px 12px",
+                      borderRadius: "12px",
+                      fontWeight: 600,
+                      fontSize: "12px",
+                      boxShadow: "0 0 14px rgba(140, 160, 255, 0.45)",
+                    }}
+                  >
+                    BID
+                  </div>
+                </Marker>
+              </Map>
+            </div>
+          </div>
+        )}
+
         {/* Similar Listings */}
         {similarPlaces.length > 0 && (
           <div className="mt-12">
@@ -468,7 +552,7 @@ export function PlaceDetailPage() {
 
                       {/* Bid Button */}
                       <button
-                        className="btn-bid mt-3 w-full"
+                        className="btn-bid mt-3 w-full text-sm p-1"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(
@@ -478,7 +562,7 @@ export function PlaceDetailPage() {
                           );
                         }}
                       >
-                        ☠ PLACE BID
+                        ⏳ PLACE BID
                       </button>
                     </div>
                   </Card>

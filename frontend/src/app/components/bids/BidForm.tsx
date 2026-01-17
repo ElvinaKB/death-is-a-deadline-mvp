@@ -98,7 +98,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
 
   // Helper function to confirm payment with card
   const confirmPaymentWithCard = async (
-    clientSecret: string
+    clientSecret: string,
   ): Promise<{ success: boolean; error?: string }> => {
     if (!stripe) {
       return { success: false, error: "Payment system not ready" };
@@ -120,7 +120,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
         payment_method: {
           card: cardElement,
         },
-      }
+      },
     );
 
     if (error) {
@@ -180,7 +180,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
 
             // Step 3: Confirm payment with card for pre-authorization
             const confirmResult = await confirmPaymentWithCard(
-              paymentResult.clientSecret
+              paymentResult.clientSecret,
             );
             // queryClient.invalidateQueries({ queryKey: ["bids"] });
             if (confirmResult.success) {
@@ -265,7 +265,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
     if (formik.values.checkInDate && formik.values.checkOutDate) {
       return differenceInDays(
         formik.values.checkOutDate,
-        formik.values.checkInDate
+        formik.values.checkInDate,
       );
     }
     return 0;
@@ -382,7 +382,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                   variant="outline"
                   className={cn(
                     "w-full justify-between text-left font-normal h-11 bg-glass border-line text-fg",
-                    !formik.values.checkInDate && "text-muted"
+                    !formik.values.checkInDate && "text-muted",
                   )}
                 >
                   <span className="truncate">
@@ -425,7 +425,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                   variant="outline"
                   className={cn(
                     "w-full justify-between text-left font-normal h-11 bg-glass border-line text-fg",
-                    !formik.values.checkOutDate && "text-muted"
+                    !formik.values.checkOutDate && "text-muted",
                   )}
                 >
                   <span className="truncate">
@@ -602,13 +602,6 @@ function BidFormInner({ place, placeId }: BidFormProps) {
           <Button
             type="button"
             className="w-full btn-bid h-12 text-base font-medium"
-            disabled={
-              blackoutDatesInRange.length > 0 ||
-              !formik.values.checkInDate ||
-              !formik.values.checkOutDate ||
-              !formik.values.bidPerNight ||
-              Number(formik.values.bidPerNight) <= 0
-            }
             onClick={() =>
               navigate(ROUTES.SIGNUP, {
                 state: { returnUrl: location.pathname },
@@ -759,7 +752,7 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
         <div
           className={cn(
             "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4",
-            config.bgColor
+            config.bgColor,
           )}
         >
           <Icon className={cn("h-10 w-10", config.iconColor)} />
