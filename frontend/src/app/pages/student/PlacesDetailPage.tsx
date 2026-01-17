@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { usePlace } from "../../../hooks/usePlaces";
+import { useApiQuery } from "../../../hooks/useApi";
+import { ENDPOINTS } from "../../../config/endpoints.config";
+import { QUERY_KEYS } from "../../../config/queryKeys.config";
+import { PlacesResponse } from "../../../types/place.types";
+import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { Button } from "../../components/ui/button";
 import {
   Carousel,
@@ -9,6 +15,12 @@ import {
   CarouselPrevious,
   CarouselNext,
 } from "../../components/ui/carousel";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../../components/ui/accordion";
 import {
   CheckCircle,
   XCircle,
@@ -20,8 +32,9 @@ import {
   Shield,
   Zap,
   ArrowRight,
+  ChevronRight,
 } from "lucide-react";
-import { ROUTES } from "../../../config/routes.config";
+import { ROUTES, getRoute } from "../../../config/routes.config";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
 import { ImageGalleryModal } from "../../components/common/ImageGalleryModal";
 import { BidForm } from "../../components/bids/BidForm";
@@ -30,6 +43,37 @@ import {
   PlaceImage,
   ACCOMMODATION_TYPE_LABELS,
 } from "../../../types/place.types";
+import { Card } from "../../components/ui/card";
+
+const MAPBOX_TOKEN = import.meta.env.VITE_APP_MAPBOX;
+
+// FAQ data
+const FAQ_DATA = [
+  {
+    id: "rejected",
+    question: "What happens if my bid is rejected?",
+    answer:
+      "If your bid is rejected, you won't be charged anything. You can try again with a different price or choose different dates. The rejection happens instantly, so you'll know right away.",
+  },
+  {
+    id: "edu-email",
+    question: "Why do I need a .edu email?",
+    answer:
+      "We require a .edu email to verify that you're a current student. This helps us maintain the exclusive student-only pricing that hotels offer through our platform.",
+  },
+  {
+    id: "charged",
+    question: "Will my card be charged?",
+    answer:
+      "Your card is only charged if your bid is accepted. We securely store your payment information, but no charge is made until a hotel accepts your offer.",
+  },
+  {
+    id: "cancel",
+    question: "Can I cancel a bid?",
+    answer:
+      "Once a bid is accepted, it's considered a confirmed booking and follows standard hotel cancellation policies. Pending bids can be cancelled anytime before acceptance.",
+  },
+];
 
 // Type guard to check if image is PlaceImage
 const isPlaceImage = (image: PlaceImage | File): image is PlaceImage => {
@@ -44,6 +88,19 @@ export function PlaceDetailPage() {
 
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
+
+  // Fetch similar places (limit 3, excluding current place)
+  const { data: similarData } = useApiQuery<PlacesResponse>({
+    queryKey: [QUERY_KEYS.PLACES, "similar", id],
+    endpoint: ENDPOINTS.PLACES_PUBLIC,
+    params: { limit: 4 },
+    enabled: !!id,
+  });
+
+  // Filter out current place and limit to 3
+  const similarPlaces = (similarData?.places ?? [])
+    .filter((p) => p.id !== id)
+    .slice(0, 3);
 
   const openGallery = (index: number) => {
     setGalleryInitialIndex(index);
@@ -164,86 +221,6 @@ export function PlaceDetailPage() {
           )}
         </div>
 
-        {/* Student Verification Stepper */}
-        <div className="glass-2 rounded-2xl p-6 border border-line mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <GraduationCap className="h-5 w-5 text-brand" />
-            <h3 className="text-lg font-bold text-fg flex items-center gap-2">
-              Ready? Submit your bid <ArrowRight className="h-4 w-4" /> Verify{" "}
-              <ArrowRight className="h-4 w-4" /> Sleep cheap.
-            </h3>
-          </div>
-          <p className="text-sm text-muted mb-6">
-            To unlock student-only pricing, verify a valid university email
-            (.edu or international equivalent). Don't have one? Upload your
-            student ID instead.
-          </p>
-
-          {/* Stepper */}
-          <div className="flex items-start justify-between relative">
-            {/* Step 1 */}
-            <div className="flex flex-col items-center text-center z-10 flex-1">
-              <div className="w-10 h-10 bg-brand text-white rounded-full flex items-center justify-center text-lg font-bold mb-3">
-                1
-              </div>
-              <h4 className="font-semibold text-fg text-sm mb-1">
-                Name Your Price
-              </h4>
-              <p className="text-xs text-muted max-w-[140px]">
-                Enter check-in/out dates and your bid per night
-              </p>
-            </div>
-
-            {/* Arrow 1 */}
-            <div className="flex items-center justify-center pt-2 z-10">
-              <ArrowRight className="h-6 w-6 text-brand/60" />
-            </div>
-
-            {/* Step 2 */}
-            <div className="flex flex-col items-center text-center z-10 flex-1">
-              <div className="w-10 h-10 bg-brand text-white rounded-full flex items-center justify-center text-lg font-bold mb-3">
-                2
-              </div>
-              <h4 className="font-semibold text-fg text-sm mb-1">
-                Verify Your .edu
-              </h4>
-              <p className="text-xs text-muted max-w-[140px]">
-                Confirm you're a student to unlock exclusive rates
-              </p>
-            </div>
-
-            {/* Arrow 2 */}
-            <div className="flex items-center justify-center pt-2 z-10">
-              <ArrowRight className="h-6 w-6 text-brand/60" />
-            </div>
-
-            {/* Step 3 */}
-            <div className="flex flex-col items-center text-center z-10 flex-1">
-              <div className="w-10 h-10 bg-brand text-white rounded-full flex items-center justify-center text-lg font-bold mb-3">
-                3
-              </div>
-              <h4 className="font-semibold text-fg text-sm mb-1">
-                Sleep Cheap
-              </h4>
-              <p className="text-xs text-muted max-w-[140px]">
-                Get accepted or rejected immediately—no waiting
-              </p>
-            </div>
-          </div>
-
-          {/* Key benefits */}
-          <div className="mt-6 pt-4 border-t border-line flex justify-center gap-8">
-            <div className="flex items-center gap-2 text-sm text-muted">
-              <Shield className="h-4 w-4 text-success" />
-              <span>No charge if rejected</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted">
-              <Zap className="h-4 w-4 text-warning" />
-              <span>Instant confirmation</span>
-            </div>
-          </div>
-        </div>
-
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Section - Description & Bid Form */}
@@ -336,36 +313,177 @@ export function PlaceDetailPage() {
         {/* Map Section - Only show if lat/lng exist */}
         {place.latitude && place.longitude && (
           <div className="mt-8">
-            <div className="glass-2 rounded-2xl p-6 border border-line">
-              <div className="flex items-center gap-2 mb-4">
-                <MapPin className="h-5 w-5 text-muted" />
-                <h3 className="text-lg font-semibold text-fg">Location</h3>
-              </div>
-              <p className="text-muted mb-4">{place.address}</p>
-              <div className="relative w-full h-80 rounded-lg overflow-hidden border border-line">
-                <iframe
-                  title="Place Location"
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${
-                    place.longitude - 0.01
-                  },${place.latitude - 0.01},${place.longitude + 0.01},${
-                    place.latitude + 0.01
-                  }&layer=mapnik&marker=${place.latitude},${place.longitude}`}
-                />
-              </div>
-              <div className="mt-2 text-right">
-                <a
-                  href={`https://www.openstreetmap.org/?mlat=${place.latitude}&mlon=${place.longitude}#map=16/${place.latitude}/${place.longitude}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-brand hover:underline"
+            <div className="flex items-center gap-2 mb-4">
+              <MapPin className="h-5 w-5 text-muted" />
+              <h3 className="text-lg font-semibold text-fg">Location</h3>
+            </div>
+            <p className="text-muted mb-4">{place.address}</p>
+            <div className="relative w-full h-80 rounded-lg overflow-hidden">
+              <Map
+                initialViewState={{
+                  latitude: place.latitude,
+                  longitude: place.longitude,
+                  zoom: 14,
+                }}
+                style={{ width: "100%", height: "100%" }}
+                mapStyle="mapbox://styles/mapbox/dark-v11"
+                mapboxAccessToken={MAPBOX_TOKEN}
+              >
+                <NavigationControl position="top-right" />
+                <Marker
+                  latitude={place.latitude}
+                  longitude={place.longitude}
+                  anchor="bottom"
                 >
-                  View larger map →
-                </a>
+                  <div
+                    style={{
+                      background: "linear-gradient(180deg, #283B66, #1E2A44)",
+                      color: "#F5F3EE",
+                      border: "1px solid #93A4C9",
+                      padding: "6px 12px",
+                      borderRadius: "12px",
+                      fontWeight: 600,
+                      fontSize: "12px",
+                      boxShadow: "0 0 14px rgba(140, 160, 255, 0.45)",
+                    }}
+                  >
+                    BID
+                  </div>
+                </Marker>
+              </Map>
+            </div>
+          </div>
+        )}
+
+        {/* How It Works Stepper */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-fg mb-6">How It Works</h2>
+          <div className="flex items-center border border-line rounded-lg py-4 px-6">
+            <div className="flex items-center gap-3 flex-1 justify-center">
+              <div className="w-8 h-8 rounded-full border border-muted flex items-center justify-center">
+                <span className="text-muted text-xs">1</span>
               </div>
+              <span className="text-fg text-sm">Verify student status</span>
+            </div>
+            {/* divider */}
+            <div className="flex-1 flex flex-row items-center">
+              <div className="flex-1 border-t-2" />
+              <ChevronRight className="h-4 w-4 text-muted" />
+            </div>
+            <div className="flex items-center gap-3 flex-1 justify-center">
+              <div className="w-8 h-8 rounded-full border border-muted flex items-center justify-center">
+                <span className="text-muted text-xs">2</span>
+              </div>
+              <span className="text-fg text-sm">Name your price</span>
+            </div>
+            {/* divider */}
+            <div className="flex-1 flex flex-row items-center">
+              <div className="flex-1 border-t-2" />
+              <ChevronRight className="h-4 w-4 text-muted" />
+            </div>
+            <div className="flex items-center gap-3 flex-1 justify-center">
+              <div className="w-8 h-8 rounded-full border border-muted flex items-center justify-center">
+                <span className="text-muted text-xs">3</span>
+              </div>
+              <span className="text-fg text-sm">Get instant decision</span>
+            </div>
+          </div>
+        </div>
+
+        {/* FAQ Accordion */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-fg mb-6">FAQ Accordion</h2>
+          <Accordion type="single" collapsible className="w-full">
+            {FAQ_DATA.map((faq) => (
+              <AccordionItem
+                key={faq.id}
+                value={faq.id}
+                className="border border-line rounded-lg mb-3 px-4"
+              >
+                <AccordionTrigger className="text-fg hover:no-underline">
+                  "{faq.question}"
+                </AccordionTrigger>
+                <AccordionContent className="text-muted">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+            <AccordionItem value="" />
+          </Accordion>
+        </div>
+
+        {/* Similar Listings */}
+        {similarPlaces.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-fg mb-6">
+              {place.city} Listings
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {similarPlaces.map((listing) => {
+                const imageUrl =
+                  (listing.images[0] as any)?.url ||
+                  "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400";
+                return (
+                  <Card
+                    key={listing.id}
+                    className="cursor-pointer group gap-0"
+                    onClick={() =>
+                      navigate(
+                        getRoute(ROUTES.PUBLIC_PLACE_DETAIL, {
+                          id: listing.id,
+                        }),
+                      )
+                    }
+                  >
+                    {/* Image */}
+                    <div className="relative aspect-[4/3] rounded-lg overflow-hidden mb-3">
+                      <img
+                        src={imageUrl}
+                        alt={listing.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      {/* Price tag */}
+                      <div className="absolute bottom-3 right-3 bg-black/70 text-white text-sm px-2 py-1 rounded">
+                        <span className="line-through text-muted text-xs mr-1">
+                          ${listing.retailPrice}
+                        </span>
+                        <span className="text-fg">Retail</span>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex flex-col p-2 flex-1  justify-between">
+                      <div>
+                        <h3 className="font-semibold text-fg mb-1 group-hover:text-brand transition-colors">
+                          {listing.name}
+                        </h3>
+                        <p className="text-sm text-muted mb-2">
+                          {listing.city} ·{" "}
+                          {ACCOMMODATION_TYPE_LABELS[listing.accommodationType]}
+                        </p>
+                        <p className="text-sm text-muted line-clamp-2">
+                          {listing.shortDescription}
+                        </p>
+                      </div>
+
+                      {/* Bid Button */}
+                      <button
+                        className="btn-bid mt-3 w-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(
+                            getRoute(ROUTES.PUBLIC_PLACE_DETAIL, {
+                              id: listing.id,
+                            }),
+                          );
+                        }}
+                      >
+                        ☠ PLACE BID
+                      </button>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         )}
