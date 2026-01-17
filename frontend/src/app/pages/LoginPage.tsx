@@ -123,7 +123,6 @@ export function LoginPage() {
           <div className="max-w-lg mx-auto lg:mx-0">
             {/* Logo/Brand */}
             <div className="flex items-center gap-2 mb-8">
-              <Hourglass className="w-8 h-8 text-brand" />
               <span className="text-xl font-bold text-fg">
                 Death is a Deadline
               </span>
@@ -265,6 +264,15 @@ export function LoginPage() {
                       {getFieldError("password", formik)}
                     </p>
                   )}
+                </div>
+
+                <div className="flex justify-end  ">
+                  <Link
+                    to={ROUTES.FORGOT_PASSWORD}
+                    className="text-brand hover:underline"
+                  >
+                    Forgot your password?
+                  </Link>
                 </div>
 
                 <Button

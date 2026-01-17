@@ -8,6 +8,8 @@ import { StudentLayout } from "./layouts/StudentLayout";
 // Pages
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { HomePage } from "./pages/HomePage";
 import { PlaceDetailPage as StudentPlacesDetailPage } from "./pages/student/PlacesDetailPage";
 import { MyBidsPage } from "./pages/student/MyBidsPage";
@@ -34,6 +36,8 @@ const authRoutes = [
   { path: ROUTES.LOGIN, element: <LoginPage /> },
   { path: ROUTES.SIGNUP, element: <SignupPage /> },
   { path: ROUTES.RESUBMIT, element: <ResubmitPage /> },
+  { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPasswordPage /> },
+  { path: ROUTES.RESET_PASSWORD, element: <ResetPasswordPage /> },
 ];
 
 // Public routes (no auth required, no redirect)
