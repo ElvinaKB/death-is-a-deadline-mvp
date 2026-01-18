@@ -1,9 +1,14 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { MapPin, Search, Loader2 } from "lucide-react";
+import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
+import type { MapRef } from "react-map-gl/mapbox";
+// import "mapbox-gl/dist/mapbox-gl.css";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { cn } from "../ui/utils";
+
+const MAPBOX_TOKEN = import.meta.env.VITE_APP_MAPBOX;
 
 interface LocationPickerProps {
   latitude?: number | null;
@@ -39,7 +44,7 @@ interface NominatimResult {
 // Debounce function
 function debounce<T extends (...args: any[]) => any>(
   func: T,
-  wait: number
+  wait: number,
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout;
   return (...args: Parameters<T>) => {
@@ -64,7 +69,7 @@ export function LocationPicker({
   } | null>(latitude && longitude ? { lat: latitude, lng: longitude } : null);
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<MapRef>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -91,13 +96,13 @@ export function LocationPicker({
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          query
+          query,
         )}&addressdetails=1&limit=5`,
         {
           headers: {
             "User-Agent": "EducationBidding/1.0",
           },
-        }
+        },
       );
       const data: NominatimResult[] = await response.json();
       setSearchResults(data);
@@ -113,7 +118,7 @@ export function LocationPicker({
   // Debounced search
   const debouncedSearch = useCallback(
     debounce((query: string) => searchLocations(query), 500),
-    [searchLocations]
+    [searchLocations],
   );
 
   // Reverse geocode to get address from coordinates
@@ -127,7 +132,7 @@ export function LocationPicker({
             headers: {
               "User-Agent": "EducationBidding/1.0",
             },
-          }
+          },
         );
         const data: NominatimResult = await response.json();
 
@@ -167,7 +172,7 @@ export function LocationPicker({
         setIsReverseGeocoding(false);
       }
     },
-    [onLocationChange]
+    [onLocationChange],
   );
 
   // Handle search result selection
@@ -200,42 +205,35 @@ export function LocationPicker({
       country,
       address: fullAddress,
     });
+
+    // Fly to the selected location
+    if (mapRef.current) {
+      mapRef.current.flyTo({
+        center: [lng, lat],
+        zoom: 14,
+        duration: 1000,
+      });
+    }
   };
 
   // Handle map click
-  const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+  const handleMapClick = useCallback(
+    (event: any) => {
+      const { lngLat } = event;
+      const newLng = lngLat.lng;
+      const newLat = lngLat.lat;
 
-    // Convert click position to approximate lat/lng
-    // This is a simplified projection - the embedded map doesn't support click events
-    // So we'll use the visible bounds to estimate
-    const centerLat = selectedLocation?.lat || 40.7128;
-    const centerLng = selectedLocation?.lng || -74.006;
+      setSelectedLocation({ lat: newLat, lng: newLng });
+      reverseGeocode(newLat, newLng);
+    },
+    [reverseGeocode],
+  );
 
-    // Approximate: each pixel ~0.001 degrees at this zoom
-    const latOffset = ((rect.height / 2 - y) / rect.height) * 0.1;
-    const lngOffset = ((x - rect.width / 2) / rect.width) * 0.15;
-
-    const newLat = centerLat + latOffset;
-    const newLng = centerLng + lngOffset;
-
-    setSelectedLocation({ lat: newLat, lng: newLng });
-    reverseGeocode(newLat, newLng);
-  };
-
-  // Generate map URL
-  const getMapUrl = () => {
-    if (selectedLocation) {
-      return `https://www.openstreetmap.org/export/embed.html?bbox=${
-        selectedLocation.lng - 0.01
-      },${selectedLocation.lat - 0.01},${selectedLocation.lng + 0.01},${
-        selectedLocation.lat + 0.01
-      }&layer=mapnik&marker=${selectedLocation.lat},${selectedLocation.lng}`;
-    }
-    // Default to a world view
-    return "https://www.openstreetmap.org/export/embed.html?bbox=-180,-60,180,70&layer=mapnik";
+  // Initial view state
+  const initialViewState = {
+    longitude: selectedLocation?.lng || -74.006,
+    latitude: selectedLocation?.lat || 40.7128,
+    zoom: selectedLocation ? 14 : 2,
   };
 
   return (
@@ -281,32 +279,53 @@ export function LocationPicker({
       </div>
 
       {/* Map */}
-      <div
-        ref={mapRef}
-        className="relative w-full h-64 rounded-lg overflow-hidden border cursor-crosshair"
-        onClick={handleMapClick}
-      >
-        <iframe
-          title="Location Map"
-          width="100%"
-          height="100%"
-          style={{ border: 0, pointerEvents: "none" }}
-          loading="lazy"
-          src={getMapUrl()}
-        />
+      <div className="relative w-full h-[500px] rounded-lg overflow-hidden border">
+        <Map
+          ref={mapRef}
+          mapboxAccessToken={MAPBOX_TOKEN}
+          initialViewState={initialViewState}
+          style={{ width: "100%", height: "100%" }}
+          mapStyle="mapbox://styles/mapbox/dark-v11"
+          onClick={handleMapClick}
+          cursor="crosshair"
+          reuseMaps
+        >
+          <NavigationControl position="top-left" />
 
-        {/* Overlay for click detection */}
-        <div className="absolute inset-0 bg-transparent" />
+          {selectedLocation && (
+            <Marker
+              longitude={selectedLocation.lng}
+              latitude={selectedLocation.lat}
+              anchor="bottom"
+            >
+              <div
+                style={{
+                  background: "#1E2A44",
+                  color: "#F5F3EE",
+                  border: "2px solid #93A4C9",
+                  padding: "8px",
+                  borderRadius: "50%",
+                  boxShadow: "0 0 14px rgba(140, 160, 255, 0.45)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <MapPin className="h-5 w-5" />
+              </div>
+            </Marker>
+          )}
+        </Map>
 
         {/* Loading indicator */}
         {isReverseGeocoding && (
-          <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
+            <Loader2 className="h-6 w-6 animate-spin text-white" />
           </div>
         )}
 
         {/* Instructions */}
-        <div className="absolute bottom-2 left-2 right-2 text-center">
+        <div className="absolute bottom-2 left-2 right-2 text-center pointer-events-none">
           <span className="text-xs bg-white/90 px-2 py-1 rounded shadow">
             Search above or click on the map to set location
           </span>
