@@ -40,9 +40,11 @@ import {
 import { toast } from "sonner";
 import { SUPABASE_BUCKET } from "../../lib/constants";
 import { useDebounce } from "../../hooks/useDebounce";
+import { initialBidFormValues } from "../components/bids/BidForm";
 
 interface LocationState {
   returnUrl?: string;
+  formikValues?: typeof initialBidFormValues;
 }
 
 export function SignupPage() {
@@ -431,7 +433,11 @@ export function SignupPage() {
                 <span className="text-muted">Already have an account? </span>
                 <Link
                   to={ROUTES.LOGIN}
-                  state={returnUrl ? { returnUrl } : undefined}
+                  state={
+                    returnUrl
+                      ? { returnUrl, formikValues: locationState?.formikValues }
+                      : undefined
+                  }
                   className="text-brand hover:underline font-medium"
                 >
                   Login

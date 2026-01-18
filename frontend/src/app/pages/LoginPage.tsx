@@ -35,9 +35,11 @@ import {
   Zap,
   DollarSign,
 } from "lucide-react";
+import { initialBidFormValues } from "../components/bids/BidForm";
 
 interface LocationState {
   returnUrl?: string;
+  formikValues?: typeof initialBidFormValues;
 }
 
 export function LoginPage() {
@@ -52,6 +54,8 @@ export function LoginPage() {
   // Get return URL from location state
   const locationState = location.state as LocationState | null;
   const returnUrl = locationState?.returnUrl;
+
+  console.log(locationState);
 
   const loginMutation = useApiMutation<AuthResponse, LoginRequest>({
     endpoint: ENDPOINTS.LOGIN,
@@ -78,7 +82,9 @@ export function LoginPage() {
 
       // Redirect to return URL if coming from a place, otherwise role-based redirect
       if (returnUrl) {
-        navigate(returnUrl);
+        navigate(returnUrl, {
+          state: { formikValues: locationState?.formikValues },
+        });
         return;
       }
 

@@ -63,6 +63,12 @@ interface BidResultState {
   bidId?: string;
 }
 
+export const initialBidFormValues = {
+  checkInDate: undefined as Date | undefined,
+  checkOutDate: undefined as Date | undefined,
+  bidPerNight: "",
+};
+
 // Inner form component that has access to Stripe context
 function BidFormInner({ place, placeId }: BidFormProps) {
   const navigate = useNavigate();
@@ -140,12 +146,11 @@ function BidFormInner({ place, placeId }: BidFormProps) {
   };
 
   const formik = useFormik({
-    initialValues: {
-      checkInDate: undefined as Date | undefined,
-      checkOutDate: undefined as Date | undefined,
-      bidPerNight: "",
-    },
+    initialValues:
+      (location.state?.formikValues as typeof initialBidFormValues) ||
+      initialBidFormValues,
     validationSchema: bidValidationSchema,
+    enableReinitialize: true,
     onSubmit: async (values) => {
       setPaymentError(null);
       setIsProcessing(true);
@@ -604,7 +609,10 @@ function BidFormInner({ place, placeId }: BidFormProps) {
             className="w-full btn-bid h-12 text-base font-medium"
             onClick={() =>
               navigate(ROUTES.SIGNUP, {
-                state: { returnUrl: location.pathname },
+                state: {
+                  returnUrl: location.pathname,
+                  formikValues: formik.values,
+                },
               })
             }
           >
