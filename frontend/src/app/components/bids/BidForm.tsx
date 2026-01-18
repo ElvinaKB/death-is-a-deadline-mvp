@@ -394,7 +394,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                 </Button>
               </PopoverTrigger>
               <PopoverContent
-                className="w-auto p-0 bg-bg-raised border-line"
+                className="w-auto p-0 bg-bg border-line"
                 align="start"
               >
                 <Calendar
@@ -405,7 +405,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                     setCheckInOpen(false);
                   }}
                   disabled={isDateBlocked}
-                  className="bg-bg-raised text-fg"
+                  className=" text-fg"
                 />
               </PopoverContent>
             </Popover>
@@ -437,7 +437,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                 </Button>
               </PopoverTrigger>
               <PopoverContent
-                className="w-auto p-0 bg-bg-raised border-line"
+                className="w-auto p-0 bg-bg border-line"
                 align="start"
               >
                 <Calendar
