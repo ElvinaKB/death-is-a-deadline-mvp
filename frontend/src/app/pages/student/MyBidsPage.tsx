@@ -222,7 +222,7 @@ export function MyBidsPage() {
                     {isPaymentCaptured && (
                       <div className="flex items-center gap-2 text-sm text-success glass px-3 py-1.5 rounded-md border border-success/30">
                         <CheckCircle className="w-4 h-4" />
-                        <span>Payment complete - booking confirmed!</span>
+                        <span>Payment complete - awaiting confirmation!</span>
                       </div>
                     )}
 
@@ -249,7 +249,7 @@ export function MyBidsPage() {
                       <Link
                         to={ROUTES.PUBLIC_PLACE_DETAIL.replace(
                           ":id",
-                          bid.placeId
+                          bid.placeId,
                         )}
                       >
                         View Place

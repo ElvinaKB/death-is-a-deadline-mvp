@@ -190,11 +190,11 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                 await confirmPayment.mutateAsync({
                   id: paymentResult.payment.id,
                 });
-                toast.success("Payment authorized! Your booking is confirmed.");
+                toast.success("Payment authorized! Awaiting confirmation.");
                 setPaymentSuccess(true);
               } catch (err) {
                 // Payment succeeded with Stripe but backend update failed
-                toast.success("Payment authorized! Booking confirmed.");
+                toast.success("Payment authorized! Awaiting confirmation.");
                 setPaymentSuccess(true);
               }
             } else {
