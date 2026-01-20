@@ -5,6 +5,7 @@ import {
   isAfter,
   isBefore,
   eachDayOfInterval,
+  isSameDay,
 } from "date-fns";
 import { useFormik } from "formik";
 import {
@@ -226,17 +227,21 @@ function BidFormInner({ place, placeId }: BidFormProps) {
     },
   });
 
-  const isDateBlocked = (date: Date) => {
-    // Block dates before tomorrow (no same-day bookings)
-    if (isBefore(date, tomorrow) || isAfter(date, maxDate)) {
-      return true;
-    }
-    if (place?.blackoutDates) {
-      const dateStr = format(date, "yyyy-MM-dd");
-      return place.blackoutDates.includes(dateStr);
-    }
-    return false;
-  };
+  const isDateBlocked =
+    (field: "checkInDate" | "checkOutDate") => (date: Date) => {
+      if (
+        isBefore(date, tomorrow) ||
+        isAfter(date, maxDate) ||
+        (formik.values[field] && isSameDay(date, formik.values[field]))
+      ) {
+        return true;
+      }
+      if (place?.blackoutDates) {
+        const dateStr = format(date, "yyyy-MM-dd");
+        return place.blackoutDates.includes(dateStr);
+      }
+      return false;
+    };
 
   // Check if any date in the selected range is a blackout date
   const getBlackoutDatesInRange = () => {
@@ -404,7 +409,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                     formik.setFieldValue("checkInDate", date);
                     setCheckInOpen(false);
                   }}
-                  disabled={isDateBlocked}
+                  disabled={isDateBlocked("checkOutDate")}
                   className=" text-fg"
                 />
               </PopoverContent>
@@ -447,8 +452,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                     formik.setFieldValue("checkOutDate", date);
                     setCheckOutOpen(false);
                   }}
-                  disabled={isDateBlocked}
-                  className="bg-bg-raised text-fg"
+                  disabled={isDateBlocked("checkInDate")}
                 />
               </PopoverContent>
             </Popover>
