@@ -57,7 +57,7 @@ export const bidValidationSchema = yup.object({
       "Check-out must be after check-in",
       function (value) {
         return value ? isAfter(value, this.parent.checkInDate) : false;
-      }
+      },
     ),
   bidPerNight: yup
     .number()
@@ -81,7 +81,11 @@ export const placeValidationSchema = yup.object({
   city: yup.string().required("City is required"),
   country: yup.string().required("Country is required"),
   address: yup.string().required("Address is required"),
-  email: yup.string().email("Invalid email address").nullable(),
+  email: yup
+    .string()
+    .required("Email is required")
+    .email("Invalid email address")
+    .nullable(),
   latitude: yup.number().nullable(),
   longitude: yup.number().nullable(),
   accommodationType: yup.string().required("Accommodation type is required"),
@@ -98,6 +102,6 @@ export const placeValidationSchema = yup.object({
       "Minimum bid must be less than retail price",
       function (value) {
         return value < this.parent.retailPrice;
-      }
+      },
     ),
 });

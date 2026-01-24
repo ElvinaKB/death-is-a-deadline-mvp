@@ -66,7 +66,9 @@ export function LocationPicker({
   const [selectedLocation, setSelectedLocation] = useState<{
     lat: number;
     lng: number;
-  } | null>(latitude && longitude ? { lat: latitude, lng: longitude } : null);
+  } | null>(
+    !!latitude && !!longitude ? { lat: latitude, lng: longitude } : null,
+  );
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapRef>(null);
@@ -240,7 +242,9 @@ export function LocationPicker({
     <div className={cn("space-y-4", className)}>
       {/* Search Input */}
       <div ref={searchRef} className="relative">
-        <Label htmlFor="location-search">Search Location</Label>
+        <Label htmlFor="location-search" className="text-primary-foreground">
+          Search Location
+        </Label>
         <div className="relative mt-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input

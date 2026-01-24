@@ -14,6 +14,7 @@ import {
 const formatPlace = (place: any) => ({
   id: place.id,
   name: place.name,
+  email: place.email,
   shortDescription: place.shortDescription,
   fullDescription: place.fullDescription,
   city: place.city,

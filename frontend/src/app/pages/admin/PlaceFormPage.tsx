@@ -104,22 +104,24 @@ export function PlaceFormPage() {
 
   const formik = useFormik({
     initialValues: {
-      name: "",
-      shortDescription: "",
-      fullDescription: "",
-      city: "",
-      country: "",
-      address: "",
-      email: "",
-      latitude: null as number | null,
-      longitude: null as number | null,
+      name: existingPlace?.name || "",
+      shortDescription: existingPlace?.shortDescription || "",
+      fullDescription: existingPlace?.fullDescription || "",
+      city: existingPlace?.city || "",
+      country: existingPlace?.country || "",
+      address: existingPlace?.address || "",
+      email: existingPlace?.email || "",
+      latitude: existingPlace?.latitude ?? null,
+      longitude: existingPlace?.longitude ?? null,
       images: [] as File[],
-      accommodationType: "" as AccommodationType,
-      retailPrice: 0,
-      minimumBid: 0,
-      autoAcceptAboveMinimum: true,
-      status: PlaceStatus.DRAFT,
+      accommodationType:
+        existingPlace?.accommodationType || ("" as AccommodationType),
+      retailPrice: existingPlace?.retailPrice || 0,
+      minimumBid: existingPlace?.minimumBid || 0,
+      autoAcceptAboveMinimum: existingPlace?.autoAcceptAboveMinimum ?? true,
+      status: existingPlace?.status || PlaceStatus.DRAFT,
     },
+    enableReinitialize: true,
     validationSchema: placeValidationSchema,
     onSubmit: async (values) => {
       try {
@@ -144,7 +146,7 @@ export function PlaceFormPage() {
         const data = {
           ...values,
           blackoutDates: blackoutDates.map(
-            (d) => d.toISOString().split("T")[0]
+            (d) => d.toISOString().split("T")[0],
           ),
           imageUrls: allImageUrls,
         };
@@ -158,7 +160,6 @@ export function PlaceFormPage() {
         navigate(ROUTES.ADMIN_PLACES);
       } catch (error) {
         console.error("Error submitting form:", error);
-        toast.error("Failed to save place");
       } finally {
         setIsUploading(false);
       }
@@ -168,24 +169,6 @@ export function PlaceFormPage() {
   // Populate form with existing data
   useEffect(() => {
     if (existingPlace && isEditMode) {
-      formik.setValues({
-        name: existingPlace.name,
-        shortDescription: existingPlace.shortDescription,
-        fullDescription: existingPlace.fullDescription,
-        city: existingPlace.city,
-        country: existingPlace.country,
-        address: existingPlace.address,
-        email: existingPlace.email || "",
-        latitude: existingPlace.latitude ?? null,
-        longitude: existingPlace.longitude ?? null,
-        images: [],
-        accommodationType: existingPlace.accommodationType,
-        retailPrice: existingPlace.retailPrice,
-        minimumBid: existingPlace.minimumBid,
-        autoAcceptAboveMinimum: existingPlace.autoAcceptAboveMinimum,
-        status: existingPlace.status,
-      });
-
       const existingUrls = existingPlace.images.map((img) => img.url);
       setExistingImageUrls(existingUrls);
       setImagePreviews(existingUrls);
@@ -231,15 +214,15 @@ export function PlaceFormPage() {
     if (!date) return;
 
     const dateExists = blackoutDates.some(
-      (d) => d.toISOString().split("T")[0] === date.toISOString().split("T")[0]
+      (d) => d.toISOString().split("T")[0] === date.toISOString().split("T")[0],
     );
 
     if (dateExists) {
       setBlackoutDates(
         blackoutDates.filter(
           (d) =>
-            d.toISOString().split("T")[0] !== date.toISOString().split("T")[0]
-        )
+            d.toISOString().split("T")[0] !== date.toISOString().split("T")[0],
+        ),
       );
     } else {
       setBlackoutDates([...blackoutDates, date]);
@@ -335,62 +318,6 @@ export function PlaceFormPage() {
                 )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="city" className="text-fg">
-                  City *
-                </Label>
-                <Input
-                  id="city"
-                  {...formik.getFieldProps("city")}
-                  placeholder="e.g., New York"
-                  disabled
-                  className="bg-white/5 border-white/10"
-                />
-                {formik.touched.city && formik.errors.city && (
-                  <p className="text-sm text-error mt-1">
-                    {formik.errors.city}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="country" className="text-fg">
-                  Country *
-                </Label>
-                <Input
-                  id="country"
-                  {...formik.getFieldProps("country")}
-                  placeholder="e.g., USA"
-                  disabled
-                  className="bg-white/5 border-white/10"
-                />
-                {formik.touched.country && formik.errors.country && (
-                  <p className="text-sm text-error mt-1">
-                    {formik.errors.country}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="address" className="text-fg">
-                Address *
-              </Label>
-              <Input
-                id="address"
-                {...formik.getFieldProps("address")}
-                placeholder="Full street address"
-                disabled
-                className="bg-white/5 border-white/10"
-              />
-              {formik.touched.address && formik.errors.address && (
-                <p className="text-sm text-error mt-1">
-                  {formik.errors.address}
-                </p>
-              )}
-            </div>
-
             <div>
               <Label htmlFor="email" className="text-fg">
                 Place Email (for notifications)
@@ -421,6 +348,63 @@ export function PlaceFormPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="flex flex-col gap-5 mb-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="city" className="text-fg">
+                    City *
+                  </Label>
+                  <Input
+                    id="city"
+                    {...formik.getFieldProps("city")}
+                    placeholder="e.g., New York"
+                    disabled
+                    className="bg-white/5 border-white/10"
+                  />
+                  {formik.touched.city && formik.errors.city && (
+                    <p className="text-sm text-error mt-1">
+                      {formik.errors.city}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="country" className="text-fg">
+                    Country *
+                  </Label>
+                  <Input
+                    id="country"
+                    {...formik.getFieldProps("country")}
+                    placeholder="e.g., USA"
+                    disabled
+                    className="bg-white/5 border-white/10"
+                  />
+                  {formik.touched.country && formik.errors.country && (
+                    <p className="text-sm text-error mt-1">
+                      {formik.errors.country}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="address" className="text-fg">
+                  Address *
+                </Label>
+                <Input
+                  id="address"
+                  {...formik.getFieldProps("address")}
+                  placeholder="Full street address"
+                  className="bg-white/5 border-white/10"
+                />
+                {formik.touched.address && formik.errors.address && (
+                  <p className="text-sm text-error mt-1">
+                    {formik.errors.address}
+                  </p>
+                )}
+              </div>
+            </div>
+
             <LocationPicker
               latitude={formik.values.latitude}
               longitude={formik.values.longitude}
@@ -524,7 +508,7 @@ export function PlaceFormPage() {
                     <SelectItem key={value} value={value}>
                       {label}
                     </SelectItem>
-                  )
+                  ),
                 )}
               </SelectContent>
             </Select>
@@ -629,7 +613,7 @@ export function PlaceFormPage() {
                       : "Select blackout dates"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto bg-bg p-0" align="start">
                   <Calendar
                     mode="multiple"
                     selected={blackoutDates}
@@ -677,7 +661,7 @@ export function PlaceFormPage() {
                 formik.setFieldValue("status", value as PlaceStatus)
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="text-primary-foreground">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -708,10 +692,10 @@ export function PlaceFormPage() {
             {isUploading
               ? "Uploading images..."
               : createPlace.isPending || updatePlace.isPending
-              ? "Saving..."
-              : isEditMode
-              ? "Update Place"
-              : "Create Place"}
+                ? "Saving..."
+                : isEditMode
+                  ? "Update Place"
+                  : "Create Place"}
           </Button>
         </div>
       </form>
