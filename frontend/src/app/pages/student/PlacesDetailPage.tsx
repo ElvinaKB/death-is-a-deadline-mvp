@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { usePlace } from "../../../hooks/usePlaces";
 import { useApiQuery } from "../../../hooks/useApi";
@@ -84,6 +84,11 @@ const isPlaceImage = (image: PlaceImage | File): image is PlaceImage => {
 export function PlaceDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+
+  // Scroll to top when id changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [id]);
   const { data, isLoading } = usePlace(id || "");
   const place = data?.place;
 
