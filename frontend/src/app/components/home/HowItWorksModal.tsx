@@ -1,5 +1,5 @@
 import { useState } from "react";
-import infoImg from "../../../assets/info.png";
+import howItWorksImage from "../../../assets/how-it-works.png";
 import { Dialog, DialogContent } from "../ui/dialog";
 
 export function HowItWorksModal() {
@@ -22,7 +22,7 @@ export function HowItWorksModal() {
         >
           <div className="w-full">
             <img
-              src={infoImg}
+              src={howItWorksImage}
               alt="How It Works - The Grim Keeper explains the bidding process"
               className="w-full h-auto max-h-[90vh] object-contain"
             />
