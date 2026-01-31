@@ -1,50 +1,49 @@
-import { useState, useEffect } from "react";
+import {
+  Building2,
+  CheckCircle,
+  ChevronRight,
+  DollarSign,
+  GraduationCap,
+  Home,
+  MapPin,
+  Shield,
+  XCircle,
+  Zap,
+} from "lucide-react";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { useEffect, useState } from "react";
+import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
 import { useNavigate, useParams } from "react-router-dom";
-import { usePlace } from "../../../hooks/usePlaces";
-import { useApiQuery } from "../../../hooks/useApi";
 import { ENDPOINTS } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
-import { PlacesResponse } from "../../../types/place.types";
-import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
-import "mapbox-gl/dist/mapbox-gl.css";
-import { Button } from "../../components/ui/button";
+import { ROUTES, getRoute } from "../../../config/routes.config";
+import { useApiQuery } from "../../../hooks/useApi";
+import { usePlace } from "../../../hooks/usePlaces";
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselPrevious,
-  CarouselNext,
-} from "../../components/ui/carousel";
+  ACCOMMODATION_TYPE_LABELS,
+  PlaceImage,
+  PlacesResponse,
+} from "../../../types/place.types";
+import { BidForm } from "../../components/bids/BidForm";
+import { ImageGalleryModal } from "../../components/common/ImageGalleryModal";
+import { SkeletonLoader } from "../../components/common/SkeletonLoader";
+import { HomeHeader } from "../../components/home";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "../../components/ui/accordion";
-import {
-  CheckCircle,
-  XCircle,
-  MapPin,
-  Home,
-  DollarSign,
-  Building2,
-  GraduationCap,
-  Shield,
-  Zap,
-  ArrowRight,
-  ChevronRight,
-  Hourglass,
-} from "lucide-react";
-import { ROUTES, getRoute } from "../../../config/routes.config";
-import { SkeletonLoader } from "../../components/common/SkeletonLoader";
-import { ImageGalleryModal } from "../../components/common/ImageGalleryModal";
-import { BidForm } from "../../components/bids/BidForm";
-import { HomeHeader } from "../../components/home";
-import {
-  PlaceImage,
-  ACCOMMODATION_TYPE_LABELS,
-} from "../../../types/place.types";
+import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "../../components/ui/carousel";
+import placeDetailBackgroundImage from "../../../assets/place-details.png";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_APP_MAPBOX;
 
@@ -145,437 +144,470 @@ export function PlaceDetailPage() {
   const allImages = place.images.filter(isPlaceImage);
 
   return (
-    <div className="min-h-screen bg-bg">
-      <HomeHeader />
-
-      {/* Image Gallery Modal */}
-      <ImageGalleryModal
-        images={allImages}
-        initialIndex={galleryInitialIndex}
-        isOpen={galleryOpen}
-        onClose={() => setGalleryOpen(false)}
+    <div
+      className="min-h-screen bg-bg relative"
+      style={{
+        backgroundImage: `url(${placeDetailBackgroundImage})`,
+        backgroundSize: "contain",
+        backgroundPosition: "center",
+        backgroundRepeat: "repeat",
+      }}
+    >
+      {/* Dark overlay */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          background: "rgba(20, 24, 36, 0.65)",
+          zIndex: 0,
+          pointerEvents: "none",
+        }}
       />
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <HomeHeader />
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Hero Section */}
-        <div className="relative rounded-2xl overflow-hidden mb-8 bg-center">
-          {/* Content */}
-          <div className="relative z-10 flex flex-col items-center justify-center text-center py-20 px-6">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">
-              DEATH IS A DEADLINE
-            </h1>
-            <p className="text-lg text-gray-300 mb-2">
-              Students, faculty — name your price.
-            </p>
-            <p className="text-lg text-gray-300 mb-2">
-              A hotel may let you check in.
-            </p>
-            <p className="text-lg text-gray-300 mb-4">
-              Checkout is never guaranteed.
-            </p>
-            <p className="text-muted italic mb-8">— The Grim Keeper</p>
+        {/* Image Gallery Modal */}
+        <ImageGalleryModal
+          images={allImages}
+          initialIndex={galleryInitialIndex}
+          isOpen={galleryOpen}
+          onClose={() => setGalleryOpen(false)}
+        />
 
-            <Button
-              onClick={() => {
-                document
-                  .getElementById("main-content")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }}
-              variant="outline"
-              className="flex items-center gap-2 px-8 py-3 text-fg bg-transparent border-muted hover:bg-glass"
-            >
-              {" "}
-              ⏳ START BIDDING
-            </Button>
-          </div>
-        </div>
-
-        {/* Hero Image Carousel */}
         <div
-          id="main-content"
-          className="relative rounded-2xl overflow-hidden mb-8"
+          className="max-w-6xl mx-auto px-6 py-8"
+          style={{ position: "relative", zIndex: 1 }}
         >
-          <Carousel className="w-full">
-            <CarouselContent>
-              {allImages.length > 0 ? (
-                allImages.map((image, index) => (
-                  <CarouselItem key={image.id || index}>
+          {/* Hero Section */}
+          <div className="relative rounded-2xl overflow-hidden mb-8 bg-center">
+            {/* Content */}
+            <div className="relative z-10 flex flex-col items-center justify-center text-center py-20 px-6">
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">
+                DEATH IS A DEADLINE
+              </h1>
+              <p className="text-lg text-gray-300 mb-2">
+                Students, faculty — name your price.
+              </p>
+              <p className="text-lg text-gray-300 mb-2">
+                A hotel may let you check in.
+              </p>
+              <p className="text-lg text-gray-300 mb-4">
+                Checkout is never guaranteed.
+              </p>
+              <p className="text-muted italic mb-8">— The Grim Keeper</p>
+
+              <Button
+                onClick={() => {
+                  document
+                    .getElementById("main-content")
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
+                variant="outline"
+                className="flex items-center gap-2 px-8 py-3 text-fg bg-transparent border-muted hover:bg-glass"
+              >
+                {" "}
+                ⏳ START BIDDING
+              </Button>
+            </div>
+          </div>
+
+          {/* Hero Image Carousel */}
+          <div
+            id="main-content"
+            className="relative rounded-2xl overflow-hidden mb-8"
+          >
+            <Carousel className="w-full">
+              <CarouselContent>
+                {allImages.length > 0 ? (
+                  allImages.map((image, index) => (
+                    <CarouselItem key={image.id || index}>
+                      <div
+                        className="relative h-80 cursor-pointer"
+                        onClick={() => openGallery(index)}
+                      >
+                        <img
+                          src={image.url}
+                          alt={`${place.name} ${index + 1}`}
+                          className="w-full h-full object-cover rounded-lg hover:opacity-95 transition-opacity"
+                        />
+                        {/* Overlay with Title - only on first slide */}
+                        {index === 0 && (
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-lg pointer-events-none">
+                            <div className="absolute bottom-6 left-6">
+                              <p className="text-muted text-sm mb-1">
+                                Student-Only:
+                              </p>
+                              <h1 className="text-4xl font-bold text-white">
+                                {place.name}
+                              </h1>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CarouselItem>
+                  ))
+                ) : (
+                  <CarouselItem>
                     <div
                       className="relative h-80 cursor-pointer"
-                      onClick={() => openGallery(index)}
+                      onClick={() => openGallery(0)}
                     >
                       <img
-                        src={image.url}
-                        alt={`${place.name} ${index + 1}`}
-                        className="w-full h-full object-cover rounded-lg hover:opacity-95 transition-opacity"
+                        src="/placeholder-hotel.jpg"
+                        alt={place.name}
+                        className="w-full h-full object-cover rounded-lg"
                       />
-                      {/* Overlay with Title - only on first slide */}
-                      {index === 0 && (
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-lg pointer-events-none">
-                          <div className="absolute bottom-6 left-6">
-                            <p className="text-muted text-sm mb-1">
-                              Student-Only:
-                            </p>
-                            <h1 className="text-4xl font-bold text-white">
-                              {place.name}
-                            </h1>
-                          </div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-lg pointer-events-none">
+                        <div className="absolute bottom-6 left-6">
+                          <p className="text-muted text-sm mb-1">
+                            Student-Only:
+                          </p>
+                          <h1 className="text-4xl font-bold text-white">
+                            {place.name}
+                          </h1>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </CarouselItem>
-                ))
-              ) : (
-                <CarouselItem>
-                  <div
-                    className="relative h-80 cursor-pointer"
-                    onClick={() => openGallery(0)}
-                  >
-                    <img
-                      src="/placeholder-hotel.jpg"
-                      alt={place.name}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-lg pointer-events-none">
-                      <div className="absolute bottom-6 left-6">
-                        <p className="text-muted text-sm mb-1">Student-Only:</p>
-                        <h1 className="text-4xl font-bold text-white">
-                          {place.name}
-                        </h1>
+                )}
+              </CarouselContent>
+              {allImages.length > 1 && (
+                <>
+                  <CarouselPrevious className="left-4 bg-glass-2 hover:bg-glass text-fg border-line" />
+                  <CarouselNext className="right-4 bg-glass-2 hover:bg-glass text-fg border-line" />
+                </>
+              )}
+            </Carousel>
+            {/* Image counter */}
+            {allImages.length > 1 && (
+              <div className="absolute bottom-4 right-4 bg-black/60 text-white text-sm px-3 py-1 rounded-full pointer-events-none">
+                {allImages.length} photos
+              </div>
+            )}
+          </div>
+
+          {/* Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Section - Description & Bid Form */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="glass-2 rounded-2xl p-6 border border-line">
+                <div className="flex gap-8">
+                  {/* Description */}
+                  <div className="flex flex-1 flex-col gap-5">
+                    <h2 className="text-2xl font-bold text-fg mb-2">
+                      {place.shortDescription ||
+                        `Shared Social Pods in ${place.city}.`}
+                    </h2>
+
+                    {/* Quick Info */}
+                    <div className="flex flex-col gap-4 mb-6">
+                      <div className="flex items-center gap-2 text-muted">
+                        <Building2 className="h-5 w-5 text-muted" />
+                        <span className="text-sm">
+                          {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted">
+                        <MapPin className="h-5 w-5 text-muted" />
+                        <span className="text-sm">
+                          {place.city}, {place.country}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted">
+                        <DollarSign className="h-5 w-5 text-muted" />
+                        <span className="text-sm">
+                          ${place.retailPrice}/night retail
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted">
+                        <Home className="h-5 w-5 text-muted" />
+                        <span className="text-sm">{place.address}</span>
                       </div>
                     </div>
                   </div>
-                </CarouselItem>
-              )}
-            </CarouselContent>
-            {allImages.length > 1 && (
-              <>
-                <CarouselPrevious className="left-4 bg-glass-2 hover:bg-glass text-fg border-line" />
-                <CarouselNext className="right-4 bg-glass-2 hover:bg-glass text-fg border-line" />
-              </>
-            )}
-          </Carousel>
-          {/* Image counter */}
-          {allImages.length > 1 && (
-            <div className="absolute bottom-4 right-4 bg-black/60 text-white text-sm px-3 py-1 rounded-full pointer-events-none">
-              {allImages.length} photos
+
+                  {/* Bid Form */}
+                  <div className="flex-1">
+                    <BidForm place={place} placeId={id} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Section - Potential Outcomes */}
+            <div className="lg:col-span-1">
+              <div className="glass-2 rounded-2xl p-6 border border-line">
+                <h3 className="text-lg font-semibold text-fg mb-4">
+                  Your Potential Outcomes
+                </h3>
+
+                {/* Accepted Outcome */}
+                <div className="glass rounded-xl p-4 mb-3 border border-line">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 bg-success rounded-full flex items-center justify-center shrink-0">
+                      <CheckCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-fg">Bid Accepted!</h4>
+                      <p className="text-sm text-muted">
+                        Automatically accepted based on hotel's minimum price
+                        rules.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rejected Outcome */}
+                <div className="glass rounded-xl p-4 border border-line">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 bg-danger rounded-full flex items-center justify-center shrink-0">
+                      <XCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-fg">Rejected Bid</h4>
+                      <p className="text-sm text-muted">
+                        No charge. Try adjusting your dates or price.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Ready Section */}
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-fg mb-6 text-center">
+              Ready? Submit your bid → Verify → Sleep cheap.
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Students Use This */}
+              <Card className="flex p-5 items-start gap-4">
+                <div className="w-10 h-10 rounded-full border border-muted flex items-center justify-center shrink-0">
+                  <GraduationCap className="w-5 h-5 text-muted" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-fg">Students Use This</h3>
+                  <p className="text-sm text-muted">
+                    Save up to 60% of normal hotel rates.
+                  </p>
+                </div>
+              </Card>
+
+              {/* Instant accept or */}
+              <Card className="flex p-5 items-start gap-4">
+                <div className="w-10 h-10 rounded-full border border-muted flex items-center justify-center shrink-0">
+                  <Zap className="w-5 h-5 text-muted" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-fg">Instant accept or</h3>
+                  <p className="text-sm text-muted">
+                    Check-in double, decline or rejection
+                  </p>
+                </div>
+              </Card>
+
+              {/* Get instant decision */}
+              <Card className="flex p-5 items-start gap-4">
+                <div className="w-10 h-10 rounded-full border border-muted flex items-center justify-center shrink-0">
+                  <Shield className="w-5 h-5 text-muted" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-fg">
+                    Get instant decision
+                  </h3>
+                  <p className="text-sm text-muted">
+                    No charge. Try another price or date.
+                  </p>
+                </div>
+              </Card>
+            </div>
+          </div>
+
+          {/* How It Works Stepper */}
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-fg mb-6">How It Works</h2>
+            <div className="flex items-center border border-line rounded-lg py-4 px-6">
+              <div className="flex items-center gap-3 flex-1 justify-center">
+                <div className="w-8 h-8 rounded-full border border-muted flex items-center justify-center">
+                  <span className="text-muted text-xs">1</span>
+                </div>
+                <span className="text-fg text-sm">Verify student status</span>
+              </div>
+              {/* divider */}
+              <div className="flex-1 flex flex-row items-center">
+                <div className="flex-1 border-t-2" />
+                <ChevronRight className="h-4 w-4 text-muted" />
+              </div>
+              <div className="flex items-center gap-3 flex-1 justify-center">
+                <div className="w-8 h-8 rounded-full border border-muted flex items-center justify-center">
+                  <span className="text-muted text-xs">2</span>
+                </div>
+                <span className="text-fg text-sm">Name your price</span>
+              </div>
+              {/* divider */}
+              <div className="flex-1 flex flex-row items-center">
+                <div className="flex-1 border-t-2" />
+                <ChevronRight className="h-4 w-4 text-muted" />
+              </div>
+              <div className="flex items-center gap-3 flex-1 justify-center">
+                <div className="w-8 h-8 rounded-full border border-muted flex items-center justify-center">
+                  <span className="text-muted text-xs">3</span>
+                </div>
+                <span className="text-fg text-sm">Get instant decision</span>
+              </div>
+            </div>
+          </div>
+
+          {/* FAQ Accordion */}
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-fg mb-6">FAQ Accordion</h2>
+            <Accordion type="single" collapsible className="w-full">
+              {FAQ_DATA.map((faq) => (
+                <AccordionItem
+                  key={faq.id}
+                  value={faq.id}
+                  className="border border-line rounded-lg mb-3 px-4"
+                >
+                  <AccordionTrigger className="text-fg hover:no-underline">
+                    "{faq.question}"
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+              <AccordionItem value="" />
+            </Accordion>
+          </div>
+
+          {/* Map Section - Only show if lat/lng exist */}
+          {place.latitude && place.longitude && (
+            <div className="mt-8">
+              <div className="flex items-center gap-2 mb-4">
+                <MapPin className="h-5 w-5 text-muted" />
+                <h3 className="text-lg font-semibold text-fg">Location</h3>
+              </div>
+              <p className="text-muted mb-4">{place.address}</p>
+              <div className="relative w-full h-80 rounded-lg overflow-hidden">
+                <Map
+                  initialViewState={{
+                    latitude: place.latitude,
+                    longitude: place.longitude,
+                    zoom: 14,
+                  }}
+                  style={{ width: "100%", height: "100%" }}
+                  mapStyle="mapbox://styles/mapbox/dark-v11"
+                  mapboxAccessToken={MAPBOX_TOKEN}
+                >
+                  <NavigationControl position="top-right" />
+                  <Marker
+                    latitude={place.latitude}
+                    longitude={place.longitude}
+                    anchor="bottom"
+                  >
+                    <div
+                      style={{
+                        background: "linear-gradient(180deg, #283B66, #1E2A44)",
+                        color: "#F5F3EE",
+                        border: "1px solid #93A4C9",
+                        padding: "6px 12px",
+                        borderRadius: "12px",
+                        fontWeight: 600,
+                        fontSize: "12px",
+                        boxShadow: "0 0 14px rgba(140, 160, 255, 0.45)",
+                      }}
+                    >
+                      BID
+                    </div>
+                  </Marker>
+                </Map>
+              </div>
+            </div>
+          )}
+
+          {/* Similar Listings */}
+          {similarPlaces.length > 0 && (
+            <div className="mt-12">
+              <h2 className="text-2xl font-bold text-fg mb-6">
+                {place.city} Listings
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {similarPlaces.map((listing) => {
+                  const imageUrl =
+                    (listing.images[0] as any)?.url ||
+                    "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400";
+                  return (
+                    <Card
+                      key={listing.id}
+                      className="cursor-pointer group gap-0"
+                      onClick={() =>
+                        navigate(
+                          getRoute(ROUTES.PUBLIC_PLACE_DETAIL, {
+                            id: listing.id,
+                          }),
+                        )
+                      }
+                    >
+                      {/* Image */}
+                      <div className="relative aspect-[4/3] rounded-lg overflow-hidden mb-3">
+                        <img
+                          src={imageUrl}
+                          alt={listing.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        {/* Price tag */}
+                        <div className="absolute bottom-3 right-3 bg-black/70 text-white text-sm px-2 py-1 rounded">
+                          <span className="line-through text-muted text-xs mr-1">
+                            ${listing.retailPrice}
+                          </span>
+                          <span className="text-fg">Retail</span>
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex flex-col p-2 flex-1  justify-between">
+                        <div>
+                          <h3 className="font-semibold text-fg mb-1 group-hover:text-brand transition-colors">
+                            {listing.name}
+                          </h3>
+                          <p className="text-sm text-muted mb-2">
+                            {listing.city} ·{" "}
+                            {
+                              ACCOMMODATION_TYPE_LABELS[
+                                listing.accommodationType
+                              ]
+                            }
+                          </p>
+                          <p className="text-sm text-muted line-clamp-2">
+                            {listing.shortDescription}
+                          </p>
+                        </div>
+
+                        {/* Bid Button */}
+                        <button
+                          className="btn-bid mt-3 w-full text-sm p-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(
+                              getRoute(ROUTES.PUBLIC_PLACE_DETAIL, {
+                                id: listing.id,
+                              }),
+                            );
+                          }}
+                        >
+                          ⏳ PLACE BID
+                        </button>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Section - Description & Bid Form */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="glass-2 rounded-2xl p-6 border border-line">
-              <div className="flex gap-8">
-                {/* Description */}
-                <div className="flex flex-1 flex-col gap-5">
-                  <h2 className="text-2xl font-bold text-fg mb-2">
-                    {place.shortDescription ||
-                      `Shared Social Pods in ${place.city}.`}
-                  </h2>
-
-                  {/* Quick Info */}
-                  <div className="flex flex-col gap-4 mb-6">
-                    <div className="flex items-center gap-2 text-muted">
-                      <Building2 className="h-5 w-5 text-muted" />
-                      <span className="text-sm">
-                        {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted">
-                      <MapPin className="h-5 w-5 text-muted" />
-                      <span className="text-sm">
-                        {place.city}, {place.country}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted">
-                      <DollarSign className="h-5 w-5 text-muted" />
-                      <span className="text-sm">
-                        ${place.retailPrice}/night retail
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted">
-                      <Home className="h-5 w-5 text-muted" />
-                      <span className="text-sm">{place.address}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bid Form */}
-                <div className="flex-1">
-                  <BidForm place={place} placeId={id} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Section - Potential Outcomes */}
-          <div className="lg:col-span-1">
-            <div className="glass-2 rounded-2xl p-6 border border-line">
-              <h3 className="text-lg font-semibold text-fg mb-4">
-                Your Potential Outcomes
-              </h3>
-
-              {/* Accepted Outcome */}
-              <div className="glass rounded-xl p-4 mb-3 border border-line">
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 bg-success rounded-full flex items-center justify-center shrink-0">
-                    <CheckCircle className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-fg">Bid Accepted!</h4>
-                    <p className="text-sm text-muted">
-                      Automatically accepted based on hotel's minimum price
-                      rules.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Rejected Outcome */}
-              <div className="glass rounded-xl p-4 border border-line">
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 bg-danger rounded-full flex items-center justify-center shrink-0">
-                    <XCircle className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-fg">Rejected Bid</h4>
-                    <p className="text-sm text-muted">
-                      No charge. Try adjusting your dates or price.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Ready Section */}
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold text-fg mb-6 text-center">
-            Ready? Submit your bid → Verify → Sleep cheap.
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Students Use This */}
-            <Card className="flex p-5 items-start gap-4">
-              <div className="w-10 h-10 rounded-full border border-muted flex items-center justify-center shrink-0">
-                <GraduationCap className="w-5 h-5 text-muted" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-fg">Students Use This</h3>
-                <p className="text-sm text-muted">
-                  Save up to 60% of normal hotel rates.
-                </p>
-              </div>
-            </Card>
-
-            {/* Instant accept or */}
-            <Card className="flex p-5 items-start gap-4">
-              <div className="w-10 h-10 rounded-full border border-muted flex items-center justify-center shrink-0">
-                <Zap className="w-5 h-5 text-muted" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-fg">Instant accept or</h3>
-                <p className="text-sm text-muted">
-                  Check-in double, decline or rejection
-                </p>
-              </div>
-            </Card>
-
-            {/* Get instant decision */}
-            <Card className="flex p-5 items-start gap-4">
-              <div className="w-10 h-10 rounded-full border border-muted flex items-center justify-center shrink-0">
-                <Shield className="w-5 h-5 text-muted" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-fg">Get instant decision</h3>
-                <p className="text-sm text-muted">
-                  No charge. Try another price or date.
-                </p>
-              </div>
-            </Card>
-          </div>
-        </div>
-
-        {/* How It Works Stepper */}
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold text-fg mb-6">How It Works</h2>
-          <div className="flex items-center border border-line rounded-lg py-4 px-6">
-            <div className="flex items-center gap-3 flex-1 justify-center">
-              <div className="w-8 h-8 rounded-full border border-muted flex items-center justify-center">
-                <span className="text-muted text-xs">1</span>
-              </div>
-              <span className="text-fg text-sm">Verify student status</span>
-            </div>
-            {/* divider */}
-            <div className="flex-1 flex flex-row items-center">
-              <div className="flex-1 border-t-2" />
-              <ChevronRight className="h-4 w-4 text-muted" />
-            </div>
-            <div className="flex items-center gap-3 flex-1 justify-center">
-              <div className="w-8 h-8 rounded-full border border-muted flex items-center justify-center">
-                <span className="text-muted text-xs">2</span>
-              </div>
-              <span className="text-fg text-sm">Name your price</span>
-            </div>
-            {/* divider */}
-            <div className="flex-1 flex flex-row items-center">
-              <div className="flex-1 border-t-2" />
-              <ChevronRight className="h-4 w-4 text-muted" />
-            </div>
-            <div className="flex items-center gap-3 flex-1 justify-center">
-              <div className="w-8 h-8 rounded-full border border-muted flex items-center justify-center">
-                <span className="text-muted text-xs">3</span>
-              </div>
-              <span className="text-fg text-sm">Get instant decision</span>
-            </div>
-          </div>
-        </div>
-
-        {/* FAQ Accordion */}
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold text-fg mb-6">FAQ Accordion</h2>
-          <Accordion type="single" collapsible className="w-full">
-            {FAQ_DATA.map((faq) => (
-              <AccordionItem
-                key={faq.id}
-                value={faq.id}
-                className="border border-line rounded-lg mb-3 px-4"
-              >
-                <AccordionTrigger className="text-fg hover:no-underline">
-                  "{faq.question}"
-                </AccordionTrigger>
-                <AccordionContent className="text-muted">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-            <AccordionItem value="" />
-          </Accordion>
-        </div>
-
-        {/* Map Section - Only show if lat/lng exist */}
-        {place.latitude && place.longitude && (
-          <div className="mt-8">
-            <div className="flex items-center gap-2 mb-4">
-              <MapPin className="h-5 w-5 text-muted" />
-              <h3 className="text-lg font-semibold text-fg">Location</h3>
-            </div>
-            <p className="text-muted mb-4">{place.address}</p>
-            <div className="relative w-full h-80 rounded-lg overflow-hidden">
-              <Map
-                initialViewState={{
-                  latitude: place.latitude,
-                  longitude: place.longitude,
-                  zoom: 14,
-                }}
-                style={{ width: "100%", height: "100%" }}
-                mapStyle="mapbox://styles/mapbox/dark-v11"
-                mapboxAccessToken={MAPBOX_TOKEN}
-              >
-                <NavigationControl position="top-right" />
-                <Marker
-                  latitude={place.latitude}
-                  longitude={place.longitude}
-                  anchor="bottom"
-                >
-                  <div
-                    style={{
-                      background: "linear-gradient(180deg, #283B66, #1E2A44)",
-                      color: "#F5F3EE",
-                      border: "1px solid #93A4C9",
-                      padding: "6px 12px",
-                      borderRadius: "12px",
-                      fontWeight: 600,
-                      fontSize: "12px",
-                      boxShadow: "0 0 14px rgba(140, 160, 255, 0.45)",
-                    }}
-                  >
-                    BID
-                  </div>
-                </Marker>
-              </Map>
-            </div>
-          </div>
-        )}
-
-        {/* Similar Listings */}
-        {similarPlaces.length > 0 && (
-          <div className="mt-12">
-            <h2 className="text-2xl font-bold text-fg mb-6">
-              {place.city} Listings
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {similarPlaces.map((listing) => {
-                const imageUrl =
-                  (listing.images[0] as any)?.url ||
-                  "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400";
-                return (
-                  <Card
-                    key={listing.id}
-                    className="cursor-pointer group gap-0"
-                    onClick={() =>
-                      navigate(
-                        getRoute(ROUTES.PUBLIC_PLACE_DETAIL, {
-                          id: listing.id,
-                        }),
-                      )
-                    }
-                  >
-                    {/* Image */}
-                    <div className="relative aspect-[4/3] rounded-lg overflow-hidden mb-3">
-                      <img
-                        src={imageUrl}
-                        alt={listing.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      {/* Price tag */}
-                      <div className="absolute bottom-3 right-3 bg-black/70 text-white text-sm px-2 py-1 rounded">
-                        <span className="line-through text-muted text-xs mr-1">
-                          ${listing.retailPrice}
-                        </span>
-                        <span className="text-fg">Retail</span>
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex flex-col p-2 flex-1  justify-between">
-                      <div>
-                        <h3 className="font-semibold text-fg mb-1 group-hover:text-brand transition-colors">
-                          {listing.name}
-                        </h3>
-                        <p className="text-sm text-muted mb-2">
-                          {listing.city} ·{" "}
-                          {ACCOMMODATION_TYPE_LABELS[listing.accommodationType]}
-                        </p>
-                        <p className="text-sm text-muted line-clamp-2">
-                          {listing.shortDescription}
-                        </p>
-                      </div>
-
-                      {/* Bid Button */}
-                      <button
-                        className="btn-bid mt-3 w-full text-sm p-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(
-                            getRoute(ROUTES.PUBLIC_PLACE_DETAIL, {
-                              id: listing.id,
-                            }),
-                          );
-                        }}
-                      >
-                        ⏳ PLACE BID
-                      </button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
