@@ -65,7 +65,7 @@ export function PlacesMap({
         onPlaceSelect(place.id);
       }
     },
-    [onPlaceSelect]
+    [onPlaceSelect],
   );
 
   const handlePopupClose = useCallback(() => {
@@ -76,7 +76,7 @@ export function PlacesMap({
     (placeId: string) => {
       navigate(getRoute(ROUTES.PUBLIC_PLACE_DETAIL, { id: placeId }));
     },
-    [navigate]
+    [navigate],
   );
 
   // Filter only places with valid coordinates
@@ -89,9 +89,9 @@ export function PlacesMap({
           place.latitude !== null &&
           place.longitude !== null &&
           !isNaN(place.latitude) &&
-          !isNaN(place.longitude)
+          !isNaN(place.longitude),
       ),
-    [places]
+    [places],
   );
 
   // Calculate bounds for the map
@@ -111,7 +111,53 @@ export function PlacesMap({
     };
   }, [placesWithCoords]);
 
-  // Default center
+  // Helper: Haversine distance in km
+  function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const R = 6371; // Earth radius in km
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  // Simple clustering: group places within threshold km
+  function clusterPlaces(
+    places: { latitude: number; longitude: number }[],
+    thresholdKm = 10,
+  ) {
+    const clusters: number[][] = [];
+    const visited = new Array(places.length).fill(false);
+
+    for (let i = 0; i < places.length; i++) {
+      if (visited[i]) continue;
+      const cluster = [i];
+      visited[i] = true;
+      for (let j = 0; j < places.length; j++) {
+        if (i !== j && !visited[j]) {
+          const d = haversine(
+            places[i].latitude,
+            places[i].longitude,
+            places[j].latitude,
+            places[j].longitude,
+          );
+          if (d <= thresholdKm) {
+            cluster.push(j);
+            visited[j] = true;
+          }
+        }
+      }
+      clusters.push(cluster);
+    }
+    return clusters;
+  }
+
   const initialViewState = useMemo(() => {
     if (placesWithCoords.length === 0) {
       return {
@@ -121,12 +167,27 @@ export function PlacesMap({
       };
     }
 
+    // Prepare array of guaranteed lat/lng objects and keep index mapping
+    const coordsArr = placesWithCoords.map((p, i) => ({
+      latitude: p.latitude!,
+      longitude: p.longitude!,
+      origIdx: i,
+    }));
+    // Cluster places by proximity (10km threshold)
+    const clusters = clusterPlaces(coordsArr, 10);
+    // Find largest cluster
+    let largestCluster = clusters[0] || [];
+    for (const c of clusters) {
+      if (c.length > largestCluster.length) largestCluster = c;
+    }
+    // Calculate centroid of largest cluster
+    const clusterPlacesArr = largestCluster.map((idx) => coordsArr[idx]);
     const avgLat =
-      placesWithCoords.reduce((sum, p) => sum + p.latitude!, 0) /
-      placesWithCoords.length;
+      clusterPlacesArr.reduce((sum, p) => sum + p.latitude, 0) /
+      clusterPlacesArr.length;
     const avgLng =
-      placesWithCoords.reduce((sum, p) => sum + p.longitude!, 0) /
-      placesWithCoords.length;
+      clusterPlacesArr.reduce((sum, p) => sum + p.longitude, 0) /
+      clusterPlacesArr.length;
 
     return {
       longitude: avgLng,
@@ -143,7 +204,7 @@ export function PlacesMap({
           [bounds.minLng - 0.02, bounds.minLat - 0.02],
           [bounds.maxLng + 0.02, bounds.maxLat + 0.02],
         ],
-        { padding: 50, duration: 1000, maxZoom: 14 }
+        { padding: 50, duration: 1000, maxZoom: 14 },
       );
     }
   }, [bounds, placesWithCoords.length]);
