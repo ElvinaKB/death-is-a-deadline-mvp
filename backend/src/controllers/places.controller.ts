@@ -74,6 +74,7 @@ export async function listPublicPlaces(req: Request, res: Response) {
     sortBy = "price-asc",
     page = 1,
     limit = 12,
+    date,
   } = req.query as unknown as PublicPlacesQuery;
 
   const skip = (page - 1) * limit;
@@ -105,12 +106,14 @@ export async function listPublicPlaces(req: Request, res: Response) {
     };
   }
 
+  // blackoutDates filtering will be done after fetching
+
   // Build orderBy
   const orderBy: Prisma.PlaceOrderByWithRelationInput =
     sortBy === "price-desc" ? { retailPrice: "desc" } : { retailPrice: "asc" };
 
   console.log("Where:", where);
-  const [places, total] = await Promise.all([
+  let [places, total] = await Promise.all([
     prisma.place.findMany({
       where,
       include: { images: { orderBy: { order: "asc" } } },
@@ -120,6 +123,18 @@ export async function listPublicPlaces(req: Request, res: Response) {
     }),
     prisma.place.count({ where }),
   ]);
+
+  // Filter out places with blackoutDates containing the requested date
+  if (date) {
+    const isWithin = (blackout: any) =>
+      blackout.start <= date && blackout.end >= date;
+    places = places.filter((place) =>
+      !Array.isArray(place.blackoutDates)
+        ? true
+        : !place.blackoutDates.some(isWithin),
+    );
+    total = places.length;
+  }
 
   res.status(200).json({
     data: {

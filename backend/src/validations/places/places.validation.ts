@@ -100,6 +100,7 @@ export const publicPlacesQuerySchema = z.object({
   sortBy: z.enum(["price-asc", "price-desc"]).optional().default("price-asc"),
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(100).optional().default(12),
+  date: z.string().optional(),
 });
 
 // Type exports

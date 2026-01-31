@@ -12,7 +12,9 @@ import infoImg from "../../assets/info.png";
 import { Dialog, DialogContent } from "../components/ui/dialog";
 
 export function HomePage() {
-  const { searchQuery, maxBid } = useAppSelector((state) => state.search);
+  const { searchQuery, maxBid, selectedDate } = useAppSelector(
+    (state) => state.search,
+  );
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | undefined>();
   const [hoveredPlaceId, setHoveredPlaceId] = useState<string | null>(null);
 
@@ -26,6 +28,7 @@ export function HomePage() {
   const params = {
     searchQuery: searchDebounced,
     ...(maxBidDebounced && { maxPrice: Number(maxBidDebounced) }),
+    ...(selectedDate && { date: selectedDate }),
   };
 
   const queryClient = useQueryClient();
