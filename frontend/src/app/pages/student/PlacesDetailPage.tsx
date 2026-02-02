@@ -43,7 +43,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "../../components/ui/carousel";
-import placeDetailBackgroundImage from "../../../assets/place-details.png";
+import placeDetailBackgroundImage from "../../../assets/place-details.jpeg";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_APP_MAPBOX;
 
