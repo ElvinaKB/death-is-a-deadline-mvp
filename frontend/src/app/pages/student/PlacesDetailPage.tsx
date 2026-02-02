@@ -429,7 +429,7 @@ export function PlaceDetailPage() {
           {/* How It Works Stepper */}
           <div className="mt-12">
             <h2 className="text-2xl font-bold text-fg mb-6">How It Works</h2>
-            <div className="flex items-center border border-line rounded-lg py-4 px-6">
+            <div className="bg-glass-2 flex items-center border border-line rounded-lg py-4 px-6">
               <div className="flex items-center gap-3 flex-1 justify-center">
                 <div className="w-8 h-8 rounded-full border border-muted flex items-center justify-center">
                   <span className="text-muted text-xs">1</span>
@@ -469,7 +469,7 @@ export function PlaceDetailPage() {
                 <AccordionItem
                   key={faq.id}
                   value={faq.id}
-                  className="border border-line rounded-lg mb-3 px-4"
+                  className="bg-glass-2 border border-line rounded-lg mb-3 px-4"
                 >
                   <AccordionTrigger className="text-fg hover:no-underline">
                     "{faq.question}"
