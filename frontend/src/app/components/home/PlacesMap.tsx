@@ -271,9 +271,6 @@ export function PlacesMap({
               <p className="text-sm text-muted">
                 {popupInfo.city}, {popupInfo.country}
               </p>
-              <p className="text-sm font-medium text-success mt-1">
-                From ${popupInfo.minimumBid}/night
-              </p>
               <p className="text-xs text-brand mt-2 hover:underline">
                 View Details →
               </p>
