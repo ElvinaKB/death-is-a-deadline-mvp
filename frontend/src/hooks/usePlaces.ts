@@ -92,7 +92,7 @@ export const useUpdatePlace = () => {
   });
 };
 
-export const useUpdatePlaceStatus = () => {
+export const useUpdatePlaceStatus = (queryKey?: any) => {
   const queryClient = useQueryClient();
 
   return useApiMutation<PlaceResponse, UpdatePlaceStatusInput>({
@@ -100,7 +100,9 @@ export const useUpdatePlaceStatus = () => {
     method: "PATCH",
     transformVariables: (data) => ({ status: data.status }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PLACES });
+      queryClient.invalidateQueries({
+        queryKey: queryKey ?? QUERY_KEYS.PLACES,
+      });
       toast.success("Status updated successfully");
     },
   });

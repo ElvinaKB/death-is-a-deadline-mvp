@@ -41,6 +41,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
+import { Switch } from "../../components/ui/switch";
 
 const STATUS_COLORS: Record<PlaceStatus, string> = {
   [PlaceStatus.DRAFT]: "bg-muted/20 text-muted hover:bg-muted/30",
@@ -65,7 +66,11 @@ export function PlacesListPage() {
     },
   });
 
-  const updateStatus = useUpdatePlaceStatus();
+  const updateStatus = useUpdatePlaceStatus([
+    QUERY_KEYS.PLACES,
+    currentPage,
+    filter,
+  ]);
 
   const handleStatusToggle = (place: Place) => {
     let newStatus: PlaceStatus;
@@ -114,7 +119,27 @@ export function PlacesListPage() {
     {
       header: "Status",
       field: "status",
-      render: (row) => getStatusBadge(row.status),
+      render: (row) => (
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={row.status === PlaceStatus.LIVE}
+            onCheckedChange={(checked) => {
+              updateStatus.mutate({
+                id: row.id,
+                status: checked ? PlaceStatus.LIVE : PlaceStatus.PAUSED,
+              });
+            }}
+            disabled={updateStatus.isPending}
+          />
+          <span className="text-xs text-muted">
+            {row.status === PlaceStatus.LIVE
+              ? "Live"
+              : row.status === PlaceStatus.PAUSED
+                ? "Paused"
+                : "Draft"}
+          </span>
+        </div>
+      ),
     },
     {
       header: "Created",
