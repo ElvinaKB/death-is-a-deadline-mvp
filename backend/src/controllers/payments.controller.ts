@@ -1,5 +1,5 @@
 import { bid_status, payment_status, Prisma } from "@prisma/client";
-import { addDays, format } from "date-fns";
+import { addDays, format, eachDayOfInterval } from "date-fns";
 import { Request, Response } from "express";
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
@@ -12,6 +12,56 @@ import {
   CreatePaymentIntentInput,
   ListPaymentsQuery,
 } from "../validations/payments/payments.validation";
+
+/**
+ * Check inventory availability for all dates in a bid's date range
+ * Returns the first date that is overbooked, or null if all dates have availability
+ */
+async function checkInventoryForBidDates(
+  placeId: string,
+  maxInventory: number,
+  checkInDate: Date,
+  checkOutDate: Date,
+  excludeBidId?: string,
+): Promise<{
+  isOverbooked: boolean;
+  overbookedDate?: string;
+  availableSlots?: number;
+}> {
+  // Get all dates in the range (excluding checkout date)
+  const dates = eachDayOfInterval({
+    start: checkInDate,
+    end: new Date(checkOutDate.getTime() - 24 * 60 * 60 * 1000), // Exclude checkout date
+  });
+
+  for (const date of dates) {
+    const dateStr = date.toISOString().split("T")[0];
+
+    // Count accepted bids that overlap with this date
+    const acceptedBidsCount = await prisma.bid.count({
+      where: {
+        placeId,
+        status: bid_status.ACCEPTED,
+        checkInDate: { lte: date },
+        checkOutDate: { gt: date },
+        // Exclude the current bid if provided (for updates)
+        ...(excludeBidId && { id: { not: excludeBidId } }),
+      },
+    });
+
+    const availableSlots = maxInventory - acceptedBidsCount;
+
+    if (availableSlots <= 0) {
+      return {
+        isOverbooked: true,
+        overbookedDate: format(date, "MMM d, yyyy"),
+        availableSlots: 0,
+      };
+    }
+  }
+
+  return { isOverbooked: false };
+}
 
 // Helper to format payment response
 const formatPayment = (payment: any) => ({
@@ -84,6 +134,31 @@ export async function createPaymentIntent(req: Request, res: Response) {
   // Verify the bid is accepted
   if (bid.status !== bid_status.ACCEPTED) {
     throw new CustomError("Only accepted bids can be paid", 400);
+  }
+
+  // Check inventory availability before creating payment intent
+  const inventoryCheck = await checkInventoryForBidDates(
+    bid.placeId,
+    bid.place.maxInventory,
+    new Date(bid.checkInDate),
+    new Date(bid.checkOutDate),
+    bid.id,
+  );
+
+  if (inventoryCheck.isOverbooked) {
+    // Reject the bid since inventory is now exhausted
+    await prisma.bid.update({
+      where: { id: bid.id },
+      data: {
+        status: bid_status.REJECTED,
+        rejectionReason: `Inventory sold out for ${inventoryCheck.overbookedDate}. Another booking was confirmed before yours.`,
+      },
+    });
+
+    throw new CustomError(
+      `Sorry, this place is now fully booked for ${inventoryCheck.overbookedDate}. Your bid has been automatically rejected.`,
+      409,
+    );
   }
 
   // Check if payment already exists
@@ -353,6 +428,48 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
   };
 
   if (paymentIntent.status === "requires_capture") {
+    // CRITICAL: Check inventory availability before accepting the authorization
+    // This prevents overbooking during simultaneous bids
+    const bid = payment.bid;
+    const place = bid.place;
+
+    const inventoryCheck = await checkInventoryForBidDates(
+      bid.placeId,
+      place.maxInventory,
+      new Date(bid.checkInDate),
+      new Date(bid.checkOutDate),
+      bid.id, // Exclude this bid from the count
+    );
+
+    if (inventoryCheck.isOverbooked) {
+      // Cancel the Stripe payment intent since inventory is exhausted
+      await stripe.paymentIntents.cancel(payment.stripePaymentIntentId);
+
+      // Update payment as cancelled
+      await prisma.payment.update({
+        where: { id },
+        data: {
+          status: payment_status.CANCELLED,
+          cancelledAt: new Date(),
+          failureReason: `Inventory sold out for ${inventoryCheck.overbookedDate}. Another booking was confirmed before yours.`,
+        },
+      });
+
+      // Update bid status back to pending or rejected
+      await prisma.bid.update({
+        where: { id: bid.id },
+        data: {
+          status: bid_status.REJECTED,
+          rejectionReason: `Inventory sold out for ${inventoryCheck.overbookedDate}. Another booking was confirmed before yours.`,
+        },
+      });
+
+      throw new CustomError(
+        `Sorry, this place is now fully booked for ${inventoryCheck.overbookedDate}. Another guest confirmed their booking just before you. Your payment has been cancelled and you have not been charged.`,
+        409, // Conflict status code
+      );
+    }
+
     // Funds are held (pre-authorization successful)
     newStatus = payment_status.AUTHORIZED;
     updateData.status = payment_status.AUTHORIZED;

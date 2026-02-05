@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../libs/config/prisma";
 import { CustomError } from "../libs/utils/CustomError";
-import { PlaceStatus, Prisma } from "@prisma/client";
+import { PlaceStatus, Prisma, bid_status } from "@prisma/client";
 import {
   CreatePlaceInput,
   UpdatePlaceInput,
@@ -11,7 +11,13 @@ import {
 } from "../validations/places/places.validation";
 
 // Helper to format place response
-const formatPlace = (place: any) => ({
+const formatPlace = (
+  place: any,
+  inventoryInfo?: {
+    availableInventory?: number;
+    isInventoryExhausted?: boolean;
+  },
+) => ({
   id: place.id,
   name: place.name,
   email: place.email,
@@ -27,12 +33,55 @@ const formatPlace = (place: any) => ({
   autoAcceptAboveMinimum: place.autoAcceptAboveMinimum,
   blackoutDates: place.blackoutDates || [],
   allowedDaysOfWeek: place.allowedDaysOfWeek || [0, 1, 2, 3, 4, 5, 6],
+  maxInventory: place.maxInventory || 1,
   status: place.status,
   createdAt: place.createdAt,
   updatedAt: place.updatedAt,
   latitude: place.latitude,
   longitude: place.longitude,
+  // Include inventory info if provided
+  ...(inventoryInfo && {
+    availableInventory: inventoryInfo.availableInventory,
+    isInventoryExhausted: inventoryInfo.isInventoryExhausted,
+  }),
 });
+
+// Helper to count accepted bids for a place on a specific date
+// A bid is considered to occupy a date if the date falls within [checkInDate, checkOutDate)
+async function getAcceptedBidsCountForDate(
+  placeId: string,
+  date: string,
+): Promise<number> {
+  const targetDate = new Date(date);
+
+  const count = await prisma.bid.count({
+    where: {
+      placeId,
+      status: bid_status.ACCEPTED,
+      checkInDate: { lte: targetDate },
+      checkOutDate: { gt: targetDate },
+    },
+  });
+
+  return count;
+}
+
+// Helper to check inventory availability for a place on a specific date
+async function getInventoryStatus(
+  place: { id: string; maxInventory: number },
+  date: string,
+): Promise<{ availableInventory: number; isInventoryExhausted: boolean }> {
+  const acceptedBidsCount = await getAcceptedBidsCountForDate(place.id, date);
+  const availableInventory = Math.max(
+    0,
+    place.maxInventory - acceptedBidsCount,
+  );
+
+  return {
+    availableInventory,
+    isInventoryExhausted: availableInventory === 0,
+  };
+}
 
 // List all places (admin - optionally filter by status, with pagination)
 export async function listPlaces(req: Request, res: Response) {
@@ -58,7 +107,7 @@ export async function listPlaces(req: Request, res: Response) {
 
   res.status(200).json({
     data: {
-      places: places.map(formatPlace),
+      places: places.map((p) => formatPlace(p)),
       total,
       page,
       limit,
@@ -134,12 +183,30 @@ export async function listPublicPlaces(req: Request, res: Response) {
         ? true
         : !place.blackoutDates.some(isWithin),
     );
-    total = places.length;
   }
+
+  // If date is provided, filter out places with exhausted inventory
+  if (date) {
+    const placesWithInventory = await Promise.all(
+      places.map(async (place) => {
+        const inventoryStatus = await getInventoryStatus(place, date);
+        return { place, inventoryStatus };
+      }),
+    );
+
+    // Filter out places with exhausted inventory
+    const availablePlaces = placesWithInventory.filter(
+      (item) => !item.inventoryStatus.isInventoryExhausted,
+    );
+
+    places = availablePlaces.map((item) => item.place);
+  }
+
+  total = places.length;
 
   res.status(200).json({
     data: {
-      places: places.map(formatPlace),
+      places: places.map((p) => formatPlace(p)),
       total,
       page,
       limit,
@@ -162,6 +229,46 @@ export async function getPlace(req: Request, res: Response) {
 
   res.status(200).json({
     data: { place: formatPlace(place) },
+  });
+}
+
+// Get public place by ID (for students - includes inventory status)
+export async function getPublicPlace(req: Request, res: Response) {
+  const { id } = req.params;
+  const { date } = req.query as { date?: string };
+
+  const place = await prisma.place.findUnique({
+    where: { id },
+    include: { images: { orderBy: { order: "asc" } } },
+  });
+
+  if (!place) {
+    throw new CustomError("Place not found", 404);
+  }
+
+  // For public access, only show LIVE places
+  if (place.status !== PlaceStatus.LIVE) {
+    throw new CustomError("Place not found", 404);
+  }
+
+  // If a date is provided, include inventory status
+  let inventoryInfo:
+    | { availableInventory: number; isInventoryExhausted: boolean }
+    | undefined;
+
+  if (date) {
+    inventoryInfo = await getInventoryStatus(place, date);
+  }
+
+  res.status(200).json({
+    data: {
+      place: formatPlace(place, inventoryInfo),
+      // Include a clear message if inventory is exhausted
+      ...(inventoryInfo?.isInventoryExhausted && {
+        inventoryMessage:
+          "Inventory sold out for this day, try a different date or place",
+      }),
+    },
   });
 }
 
@@ -191,6 +298,7 @@ export async function createPlace(req: Request, res: Response) {
       autoAcceptAboveMinimum: data.autoAcceptAboveMinimum ?? true,
       blackoutDates: data.blackoutDates ?? [],
       allowedDaysOfWeek: data.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
+      maxInventory: data.maxInventory ?? 1,
       status: data.status ?? "DRAFT",
       images: {
         create: data.images.map((img, index) => ({
@@ -254,6 +362,9 @@ export async function updatePlace(req: Request, res: Response) {
       ...(data.blackoutDates && { blackoutDates: data.blackoutDates }),
       ...(data.allowedDaysOfWeek && {
         allowedDaysOfWeek: data.allowedDaysOfWeek,
+      }),
+      ...(data.maxInventory !== undefined && {
+        maxInventory: data.maxInventory,
       }),
       ...(data.status && { status: data.status }),
       ...(data.images &&

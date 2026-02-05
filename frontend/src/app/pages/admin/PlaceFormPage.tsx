@@ -101,7 +101,9 @@ export function PlaceFormPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   const [blackoutDates, setBlackoutDates] = useState<Date[]>([]);
-  const [allowedDaysOfWeek, setAllowedDaysOfWeek] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+  const [allowedDaysOfWeek, setAllowedDaysOfWeek] = useState<number[]>([
+    0, 1, 2, 3, 4, 5, 6,
+  ]);
   const [isUploading, setIsUploading] = useState(false);
 
   const DAYS_OF_WEEK = [
@@ -130,6 +132,7 @@ export function PlaceFormPage() {
         existingPlace?.accommodationType || ("" as AccommodationType),
       retailPrice: existingPlace?.retailPrice || 0,
       minimumBid: existingPlace?.minimumBid || 0,
+      maxInventory: existingPlace?.maxInventory || 1,
       autoAcceptAboveMinimum: existingPlace?.autoAcceptAboveMinimum ?? true,
       status: existingPlace?.status || PlaceStatus.DRAFT,
     },
@@ -182,11 +185,15 @@ export function PlaceFormPage() {
   // Populate form with existing data
   useEffect(() => {
     if (existingPlace && isEditMode) {
-      const existingUrls = (existingPlace.images as { url: string }[]).map((img) => img.url);
+      const existingUrls = (existingPlace.images as { url: string }[]).map(
+        (img) => img.url,
+      );
       setExistingImageUrls(existingUrls);
       setImagePreviews(existingUrls);
       setBlackoutDates(existingPlace.blackoutDates.map((d) => new Date(d)));
-      setAllowedDaysOfWeek(existingPlace.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6]);
+      setAllowedDaysOfWeek(
+        existingPlace.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
+      );
     }
   }, [existingPlace, isEditMode]);
 
@@ -584,6 +591,30 @@ export function PlaceFormPage() {
               </div>
             </div>
 
+            <div>
+              <Label htmlFor="maxInventory" className="text-fg">
+                Max Inventory (rooms/beds) *
+              </Label>
+              <p className="text-sm text-muted mb-2">
+                Maximum number of rooms/beds available per date. Prevents
+                overselling.
+              </p>
+              <Input
+                id="maxInventory"
+                type="number"
+                {...formik.getFieldProps("maxInventory")}
+                placeholder="1"
+                min="1"
+                step="1"
+                className="w-32"
+              />
+              {formik.touched.maxInventory && formik.errors.maxInventory && (
+                <p className="text-sm text-error mt-1">
+                  {formik.errors.maxInventory}
+                </p>
+              )}
+            </div>
+
             <div className="flex items-center justify-between p-4 border border-white/10 rounded-lg">
               <div className="space-y-0.5">
                 <Label className="text-fg">
@@ -666,7 +697,7 @@ export function PlaceFormPage() {
                       "flex items-center justify-between gap-3 px-4 py-2 rounded-lg border cursor-pointer transition-colors min-w-[100px]",
                       allowedDaysOfWeek.includes(day.value)
                         ? "border-brand bg-brand/10"
-                        : "border-white/20 hover:border-white/40"
+                        : "border-white/20 hover:border-white/40",
                     )}
                   >
                     <span className="text-fg text-sm">
@@ -677,9 +708,13 @@ export function PlaceFormPage() {
                       checked={allowedDaysOfWeek.includes(day.value)}
                       onCheckedChange={(checked) => {
                         if (checked) {
-                          setAllowedDaysOfWeek([...allowedDaysOfWeek, day.value].sort());
+                          setAllowedDaysOfWeek(
+                            [...allowedDaysOfWeek, day.value].sort(),
+                          );
                         } else {
-                          setAllowedDaysOfWeek(allowedDaysOfWeek.filter((d) => d !== day.value));
+                          setAllowedDaysOfWeek(
+                            allowedDaysOfWeek.filter((d) => d !== day.value),
+                          );
                         }
                       }}
                     />

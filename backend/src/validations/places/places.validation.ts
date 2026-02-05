@@ -42,6 +42,12 @@ export const createPlaceSchema = z.object({
     .array(z.number().int().min(0).max(6))
     .optional()
     .default([0, 1, 2, 3, 4, 5, 6]),
+  maxInventory: z
+    .number()
+    .int()
+    .min(1, "Max inventory must be at least 1")
+    .optional()
+    .default(1),
   status: placeStatusSchema.optional().default("DRAFT"),
 });
 
@@ -63,6 +69,7 @@ export const updatePlaceSchema = z.object({
   autoAcceptAboveMinimum: z.boolean().optional(),
   blackoutDates: z.array(z.string()).optional(),
   allowedDaysOfWeek: z.array(z.number().int().min(0).max(6)).optional(),
+  maxInventory: z.number().int().min(1).optional(),
   status: placeStatusSchema.optional(),
 });
 

@@ -104,4 +104,9 @@ export const placeValidationSchema = yup.object({
         return value < this.parent.retailPrice;
       },
     ),
+  maxInventory: yup
+    .number()
+    .required("Max inventory is required")
+    .min(1, "Max inventory must be at least 1")
+    .integer("Max inventory must be a whole number"),
 });

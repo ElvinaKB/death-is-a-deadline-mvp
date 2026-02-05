@@ -54,6 +54,8 @@ import { toast } from "sonner";
 interface BidFormProps {
   place: Place;
   placeId: string;
+  onDateChange?: (date: string | undefined) => void;
+  isInventoryExhausted?: boolean;
 }
 
 interface BidResultState {
@@ -65,7 +67,12 @@ interface BidResultState {
 }
 
 // Inner form component that has access to Stripe context
-function BidFormInner({ place, placeId }: BidFormProps) {
+function BidFormInner({
+  place,
+  placeId,
+  onDateChange,
+  isInventoryExhausted,
+}: BidFormProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const stripe = useStripe();
@@ -227,7 +234,6 @@ function BidFormInner({ place, placeId }: BidFormProps) {
     },
   });
 
-  console.log("place?.allowedDaysOfWeek", place?.allowedDaysOfWeek);
   const isDateBlocked =
     (field: "checkInDate" | "checkOutDate") => (date: Date) => {
       if (
@@ -429,6 +435,10 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                   onSelect={(date) => {
                     formik.setFieldValue("checkInDate", date);
                     setCheckInOpen(false);
+                    // Notify parent of date change for inventory checking
+                    if (date && onDateChange) {
+                      onDateChange(date.toISOString().split("T")[0]);
+                    }
                   }}
                   disabled={isDateBlocked("checkOutDate")}
                   className=" text-fg"
@@ -596,6 +606,18 @@ function BidFormInner({ place, placeId }: BidFormProps) {
           </div>
         )}
 
+        {/* Inventory Exhausted Warning */}
+        {isInventoryExhausted && formik.values.checkInDate && (
+          <div className="p-3 rounded-lg border border-danger/30 bg-danger/10">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-danger" />
+              <p className="text-sm text-danger font-medium">
+                No availability for selected date. Please try a different date.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Submit Button - Different for authenticated vs unauthenticated */}
         {isAuthenticated ? (
           <Button
@@ -611,7 +633,8 @@ function BidFormInner({ place, placeId }: BidFormProps) {
               !formik.values.checkInDate ||
               !formik.values.checkOutDate ||
               !formik.values.bidPerNight ||
-              Number(formik.values.bidPerNight) <= 0
+              Number(formik.values.bidPerNight) <= 0 ||
+              isInventoryExhausted
             }
           >
             {isProcessing ? (
@@ -660,7 +683,12 @@ function BidFormInner({ place, placeId }: BidFormProps) {
 }
 
 // Exported component that wraps the form with Elements provider
-export function BidForm({ place, placeId }: BidFormProps) {
+export function BidForm({
+  place,
+  placeId,
+  onDateChange,
+  isInventoryExhausted,
+}: BidFormProps) {
   if (!stripePromise) {
     return (
       <div className="text-center py-4 text-muted">
@@ -671,7 +699,12 @@ export function BidForm({ place, placeId }: BidFormProps) {
 
   return (
     <Elements stripe={stripePromise}>
-      <BidFormInner place={place} placeId={placeId} />
+      <BidFormInner
+        place={place}
+        placeId={placeId}
+        onDateChange={onDateChange}
+        isInventoryExhausted={isInventoryExhausted}
+      />
     </Elements>
   );
 }

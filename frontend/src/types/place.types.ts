@@ -29,9 +29,13 @@ export interface Place {
   autoAcceptAboveMinimum: boolean;
   blackoutDates: string[]; // Array of ISO date strings
   allowedDaysOfWeek: number[]; // 0=Sunday, 1=Monday, ..., 6=Saturday
+  maxInventory: number; // Maximum rooms/beds available per date
   status: PlaceStatus;
   createdAt: string;
   updatedAt: string;
+  // Inventory status (only included when date is provided in public API)
+  availableInventory?: number;
+  isInventoryExhausted?: boolean;
 }
 
 export interface PlaceImage {
@@ -57,6 +61,7 @@ export interface CreatePlaceRequest {
   autoAcceptAboveMinimum: boolean;
   blackoutDates: string[];
   allowedDaysOfWeek: number[];
+  maxInventory: number;
   status: PlaceStatus;
 }
 
@@ -73,6 +78,7 @@ export const ACCOMMODATION_TYPE_LABELS: Record<AccommodationType, string> = {
 
 export interface PlaceResponse {
   place: Place;
+  inventoryMessage?: string; // Message when inventory is exhausted
 }
 
 export interface PlacesResponse {
@@ -99,6 +105,7 @@ export interface CreatePlacePayload {
   autoAcceptAboveMinimum: boolean;
   blackoutDates: string[];
   allowedDaysOfWeek: number[];
+  maxInventory: number;
   status: PlaceStatus;
 }
 

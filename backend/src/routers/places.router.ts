@@ -18,17 +18,24 @@ const router = Router();
 router.get(
   "/public",
   validate(publicPlacesQuerySchema, "query"),
-  placesController.listPublicPlaces
+  placesController.listPublicPlaces,
 );
 
 // Public route - get price range of LIVE places (for filters)
 router.get("/public/price-range", placesController.getPriceRange);
 
-// GET /api/places/:id - Get place by ID (public for viewing details)
+// Public route - get single place by ID (for students - includes inventory status)
+router.get(
+  "/public/:id",
+  validate(placeIdParamSchema, "params"),
+  placesController.getPublicPlace,
+);
+
+// GET /api/places/:id - Get place by ID (admin - no inventory filtering)
 router.get(
   "/:id",
   validate(placeIdParamSchema, "params"),
-  placesController.getPlace
+  placesController.getPlace,
 );
 
 // Admin only routes
@@ -38,7 +45,7 @@ router.use(authenticate(UserRole.ADMIN));
 router.get(
   "/",
   validate(listPlacesQuerySchema, "query"),
-  placesController.listPlaces
+  placesController.listPlaces,
 );
 
 // POST /api/places - Create new place
@@ -49,7 +56,7 @@ router.put(
   "/:id",
   validate(placeIdParamSchema, "params"),
   validate(updatePlaceSchema),
-  placesController.updatePlace
+  placesController.updatePlace,
 );
 
 // PATCH /api/places/:id/status - Update place status only
@@ -57,14 +64,14 @@ router.patch(
   "/:id/status",
   validate(placeIdParamSchema, "params"),
   validate(updatePlaceStatusSchema),
-  placesController.updatePlaceStatus
+  placesController.updatePlaceStatus,
 );
 
 // DELETE /api/places/:id - Delete place
 router.delete(
   "/:id",
   validate(placeIdParamSchema, "params"),
-  placesController.deletePlace
+  placesController.deletePlace,
 );
 
 export { router };

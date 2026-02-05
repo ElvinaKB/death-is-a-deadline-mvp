@@ -17,10 +17,24 @@ type CreatePlaceInput = CreatePlaceRequest & { imageUrls?: string[] };
 type UpdatePlaceStatusInput = { id: string; status: PlaceStatus };
 type UpdatePlaceInput = UpdatePlaceRequest & { imageUrls?: string[] };
 
+// Admin hook - get place by ID (no inventory filtering)
 export const usePlace = (id: string) => {
   return useApiQuery<PlaceResponse>({
     queryKey: QUERY_KEYS.PLACE(id),
     endpoint: ENDPOINTS.PLACE_DETAIL.replace(":id", id),
+    enabled: !!id,
+  });
+};
+
+// Public hook - get place by ID with optional date for inventory status
+export const usePublicPlace = (id: string, date?: string) => {
+  const endpoint = date
+    ? `${ENDPOINTS.PLACE_PUBLIC_DETAIL.replace(":id", id)}?date=${date}`
+    : ENDPOINTS.PLACE_PUBLIC_DETAIL.replace(":id", id);
+
+  return useApiQuery<PlaceResponse>({
+    queryKey: [...QUERY_KEYS.PLACE(id), "public", date],
+    endpoint,
     enabled: !!id,
   });
 };
@@ -45,6 +59,7 @@ export const useCreatePlace = () => {
         accommodationType: data.accommodationType,
         retailPrice: data.retailPrice,
         minimumBid: data.minimumBid,
+        maxInventory: data.maxInventory,
         autoAcceptAboveMinimum: data.autoAcceptAboveMinimum,
         blackoutDates: data.blackoutDates,
         allowedDaysOfWeek: data.allowedDaysOfWeek,

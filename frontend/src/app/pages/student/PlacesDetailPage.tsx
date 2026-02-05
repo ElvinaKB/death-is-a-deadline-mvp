@@ -9,6 +9,7 @@ import {
   Shield,
   XCircle,
   Zap,
+  AlertTriangle,
 } from "lucide-react";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useState } from "react";
@@ -18,7 +19,7 @@ import { ENDPOINTS } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
 import { ROUTES, getRoute } from "../../../config/routes.config";
 import { useApiQuery } from "../../../hooks/useApi";
-import { usePlace } from "../../../hooks/usePlaces";
+import { usePublicPlace } from "../../../hooks/usePlaces";
 import {
   ACCOMMODATION_TYPE_LABELS,
   PlaceImage,
@@ -43,6 +44,14 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "../../components/ui/carousel";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
 import placeDetailBackgroundImage from "../../../assets/place-details.jpeg";
 import { Testimonials } from "../../components/places/Testimonials";
 
@@ -84,13 +93,27 @@ const isPlaceImage = (image: PlaceImage | File): image is PlaceImage => {
 export function PlaceDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [selectedDate, setSelectedDate] = useState<string | undefined>(
+    undefined,
+  );
+  const [showSoldOutModal, setShowSoldOutModal] = useState(false);
 
   // Scroll to top when id changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [id]);
-  const { data, isLoading } = usePlace(id || "");
+
+  // Use public endpoint for students - includes inventory status when date is provided
+  const { data, isLoading } = usePublicPlace(id || "", selectedDate);
   const place = data?.place;
+  const inventoryMessage = data?.inventoryMessage;
+
+  // Show sold out modal when inventory is exhausted
+  useEffect(() => {
+    if (inventoryMessage && selectedDate) {
+      setShowSoldOutModal(true);
+    }
+  }, [inventoryMessage, selectedDate]);
 
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
@@ -333,7 +356,12 @@ export function PlaceDetailPage() {
 
                   {/* Bid Form */}
                   <div className="flex-1">
-                    <BidForm place={place} placeId={id} />
+                    <BidForm
+                      place={place}
+                      placeId={id}
+                      onDateChange={setSelectedDate}
+                      isInventoryExhausted={place.isInventoryExhausted}
+                    />
                   </div>
                 </div>
               </div>
@@ -579,6 +607,32 @@ export function PlaceDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Sold Out Modal - SweetAlert Style */}
+      <Dialog open={showSoldOutModal} onOpenChange={setShowSoldOutModal}>
+        <DialogContent className="sm:max-w-md bg-bg border-line text-center">
+          <DialogHeader className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-danger/20 flex items-center justify-center">
+              <AlertTriangle className="h-8 w-8 text-danger" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-fg">
+              Sold Out
+            </DialogTitle>
+            <DialogDescription className="text-muted text-base">
+              {inventoryMessage ||
+                "Inventory sold out for this day, try a different date or place"}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 sm:justify-center">
+            <Button
+              onClick={() => setShowSoldOutModal(false)}
+              className="btn-bid px-8"
+            >
+              Try Different Date
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
