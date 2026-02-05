@@ -27,7 +27,7 @@ import {
   AlertCircle,
   DollarSign,
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { StripeCardElement } from "@stripe/stripe-js";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
@@ -50,6 +50,60 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
+
+// LocalStorage key for persisting bid form state
+const BID_FORM_STORAGE_KEY = "pendingBidForm";
+
+interface StoredBidFormState {
+  placeId: string;
+  checkInDate: string | null;
+  checkOutDate: string | null;
+  bidPerNight: string;
+  timestamp: number;
+}
+
+// Helper to save form state to localStorage
+const saveBidFormToStorage = (placeId: string, values: { checkInDate?: Date; checkOutDate?: Date; bidPerNight: string }) => {
+  const state: StoredBidFormState = {
+    placeId,
+    checkInDate: values.checkInDate ? values.checkInDate.toISOString() : null,
+    checkOutDate: values.checkOutDate ? values.checkOutDate.toISOString() : null,
+    bidPerNight: values.bidPerNight,
+    timestamp: Date.now(),
+  };
+  localStorage.setItem(BID_FORM_STORAGE_KEY, JSON.stringify(state));
+};
+
+// Helper to load form state from localStorage
+const loadBidFormFromStorage = (placeId: string): { checkInDate?: Date; checkOutDate?: Date; bidPerNight: string } | null => {
+  try {
+    const stored = localStorage.getItem(BID_FORM_STORAGE_KEY);
+    if (!stored) return null;
+    
+    const state: StoredBidFormState = JSON.parse(stored);
+    
+    // Only restore if it's for the same place and not older than 1 hour
+    const ONE_HOUR = 60 * 60 * 1000;
+    if (state.placeId !== placeId || Date.now() - state.timestamp > ONE_HOUR) {
+      localStorage.removeItem(BID_FORM_STORAGE_KEY);
+      return null;
+    }
+    
+    return {
+      checkInDate: state.checkInDate ? new Date(state.checkInDate) : undefined,
+      checkOutDate: state.checkOutDate ? new Date(state.checkOutDate) : undefined,
+      bidPerNight: state.bidPerNight,
+    };
+  } catch {
+    localStorage.removeItem(BID_FORM_STORAGE_KEY);
+    return null;
+  }
+};
+
+// Helper to clear form state from localStorage
+const clearBidFormStorage = () => {
+  localStorage.removeItem(BID_FORM_STORAGE_KEY);
+};
 
 interface BidFormProps {
   place: Place;
@@ -91,6 +145,9 @@ function BidFormInner({
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   const cardElementRef = useRef<StripeCardElement | null>(null);
+
+  // Load saved form state from localStorage
+  const savedFormState = loadBidFormFromStorage(placeId);
 
   // Disable the query while processing to prevent unmounting the CardElement
   const { data: existingBidData, isLoading: isLoadingExistingBid } =
@@ -149,9 +206,9 @@ function BidFormInner({
 
   const formik = useFormik({
     initialValues: {
-      checkInDate: undefined as Date | undefined,
-      checkOutDate: undefined as Date | undefined,
-      bidPerNight: "",
+      checkInDate: savedFormState?.checkInDate,
+      checkOutDate: savedFormState?.checkOutDate,
+      bidPerNight: savedFormState?.bidPerNight || "",
     },
     validationSchema: bidValidationSchema,
     onSubmit: async (values) => {
@@ -233,6 +290,28 @@ function BidFormInner({
       }
     },
   });
+
+  // Notify parent of restored check-in date on mount (for inventory check)
+  useEffect(() => {
+    if (savedFormState?.checkInDate && onDateChange) {
+      onDateChange(savedFormState.checkInDate.toISOString().split("T")[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only on mount
+
+  // Clear localStorage when bid is successfully submitted
+  useEffect(() => {
+    if (paymentSuccess || bidResult) {
+      clearBidFormStorage();
+    }
+  }, [paymentSuccess, bidResult]);
+
+  // Clear localStorage when user becomes authenticated and has existing bid
+  useEffect(() => {
+    if (isAuthenticated && existingBidData?.bid) {
+      clearBidFormStorage();
+    }
+  }, [isAuthenticated, existingBidData]);
 
   const isDateBlocked =
     (field: "checkInDate" | "checkOutDate") => (date: Date) => {
@@ -650,11 +729,13 @@ function BidFormInner({
           <Button
             type="button"
             className="w-full btn-bid h-12 text-base font-medium"
-            onClick={() =>
+            onClick={() => {
+              // Save form state to localStorage before navigating to auth
+              saveBidFormToStorage(placeId, formik.values);
               navigate(ROUTES.SIGNUP, {
                 state: { returnUrl: location.pathname },
-              })
-            }
+              });
+            }}
           >
             <LogIn className="w-4 h-4 mr-2" />
             Verify .edu & Submit Bid
