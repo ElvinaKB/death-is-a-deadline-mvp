@@ -26,6 +26,7 @@ const formatPlace = (place: any) => ({
   minimumBid: place.minimumBid,
   autoAcceptAboveMinimum: place.autoAcceptAboveMinimum,
   blackoutDates: place.blackoutDates || [],
+  allowedDaysOfWeek: place.allowedDaysOfWeek || [0, 1, 2, 3, 4, 5, 6],
   status: place.status,
   createdAt: place.createdAt,
   updatedAt: place.updatedAt,
@@ -189,6 +190,7 @@ export async function createPlace(req: Request, res: Response) {
       minimumBid: data.minimumBid,
       autoAcceptAboveMinimum: data.autoAcceptAboveMinimum ?? true,
       blackoutDates: data.blackoutDates ?? [],
+      allowedDaysOfWeek: data.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
       status: data.status ?? "DRAFT",
       images: {
         create: data.images.map((img, index) => ({
@@ -250,6 +252,9 @@ export async function updatePlace(req: Request, res: Response) {
         autoAcceptAboveMinimum: data.autoAcceptAboveMinimum,
       }),
       ...(data.blackoutDates && { blackoutDates: data.blackoutDates }),
+      ...(data.allowedDaysOfWeek && {
+        allowedDaysOfWeek: data.allowedDaysOfWeek,
+      }),
       ...(data.status && { status: data.status }),
       ...(data.images &&
         data.images.length > 0 && {

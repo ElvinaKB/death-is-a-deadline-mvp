@@ -28,6 +28,7 @@ export interface Place {
   minimumBid: number;
   autoAcceptAboveMinimum: boolean;
   blackoutDates: string[]; // Array of ISO date strings
+  allowedDaysOfWeek: number[]; // 0=Sunday, 1=Monday, ..., 6=Saturday
   status: PlaceStatus;
   createdAt: string;
   updatedAt: string;
@@ -55,6 +56,7 @@ export interface CreatePlaceRequest {
   minimumBid: number;
   autoAcceptAboveMinimum: boolean;
   blackoutDates: string[];
+  allowedDaysOfWeek: number[];
   status: PlaceStatus;
 }
 
@@ -96,6 +98,7 @@ export interface CreatePlacePayload {
   minimumBid: number;
   autoAcceptAboveMinimum: boolean;
   blackoutDates: string[];
+  allowedDaysOfWeek: number[];
   status: PlaceStatus;
 }
 

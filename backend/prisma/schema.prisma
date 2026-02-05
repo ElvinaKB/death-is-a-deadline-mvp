@@ -25,6 +25,7 @@ model Place {
   minimumBid             Float
   autoAcceptAboveMinimum Boolean           @default(true)
   blackoutDates          String[]          @default([])
+  allowedDaysOfWeek      Int[]             @default([0, 1, 2, 3, 4, 5, 6]) @map("allowed_days_of_week")
   status                 PlaceStatus       @default(DRAFT)
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt

@@ -47,6 +47,7 @@ export const useCreatePlace = () => {
         minimumBid: data.minimumBid,
         autoAcceptAboveMinimum: data.autoAcceptAboveMinimum,
         blackoutDates: data.blackoutDates,
+        allowedDaysOfWeek: data.allowedDaysOfWeek,
         status: data.status,
         images: (data.imageUrls || []).map((url, index) => ({
           url,

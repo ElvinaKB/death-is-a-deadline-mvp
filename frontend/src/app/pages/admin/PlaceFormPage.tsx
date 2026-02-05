@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "../../components/ui/select";
 import { Switch } from "../../components/ui/switch";
+import { Checkbox } from "../../components/ui/checkbox";
 import { Calendar } from "../../components/ui/calendar";
 import {
   Popover,
@@ -100,7 +101,18 @@ export function PlaceFormPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   const [blackoutDates, setBlackoutDates] = useState<Date[]>([]);
+  const [allowedDaysOfWeek, setAllowedDaysOfWeek] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
   const [isUploading, setIsUploading] = useState(false);
+
+  const DAYS_OF_WEEK = [
+    { value: 1, label: "Monday" },
+    { value: 2, label: "Tuesday" },
+    { value: 3, label: "Wednesday" },
+    { value: 4, label: "Thursday" },
+    { value: 5, label: "Friday" },
+    { value: 6, label: "Saturday" },
+    { value: 0, label: "Sunday" },
+  ];
 
   const formik = useFormik({
     initialValues: {
@@ -148,6 +160,7 @@ export function PlaceFormPage() {
           blackoutDates: blackoutDates.map(
             (d) => d.toISOString().split("T")[0],
           ),
+          allowedDaysOfWeek,
           imageUrls: allImageUrls,
         };
 
@@ -169,10 +182,11 @@ export function PlaceFormPage() {
   // Populate form with existing data
   useEffect(() => {
     if (existingPlace && isEditMode) {
-      const existingUrls = existingPlace.images.map((img) => img.url);
+      const existingUrls = (existingPlace.images as { url: string }[]).map((img) => img.url);
       setExistingImageUrls(existingUrls);
       setImagePreviews(existingUrls);
       setBlackoutDates(existingPlace.blackoutDates.map((d) => new Date(d)));
+      setAllowedDaysOfWeek(existingPlace.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6]);
     }
   }, [existingPlace, isEditMode]);
 
@@ -640,6 +654,44 @@ export function PlaceFormPage() {
                 ))}
               </div>
             )}
+
+            <div className="border-t border-white/10 pt-4">
+              <Label className="text-fg">Days</Label>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {DAYS_OF_WEEK.map((day) => (
+                  <label
+                    key={day.value}
+                    htmlFor={`day-${day.value}`}
+                    className={cn(
+                      "flex items-center justify-between gap-3 px-4 py-2 rounded-lg border cursor-pointer transition-colors min-w-[100px]",
+                      allowedDaysOfWeek.includes(day.value)
+                        ? "border-brand bg-brand/10"
+                        : "border-white/20 hover:border-white/40"
+                    )}
+                  >
+                    <span className="text-fg text-sm">
+                      {day.label.slice(0, 3)}
+                    </span>
+                    <Checkbox
+                      id={`day-${day.value}`}
+                      checked={allowedDaysOfWeek.includes(day.value)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setAllowedDaysOfWeek([...allowedDaysOfWeek, day.value].sort());
+                        } else {
+                          setAllowedDaysOfWeek(allowedDaysOfWeek.filter((d) => d !== day.value));
+                        }
+                      }}
+                    />
+                  </label>
+                ))}
+              </div>
+              {allowedDaysOfWeek.length === 0 && (
+                <p className="text-sm text-error mt-2">
+                  At least one day must be selected
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
 

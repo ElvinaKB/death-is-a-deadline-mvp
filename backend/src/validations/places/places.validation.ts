@@ -38,6 +38,10 @@ export const createPlaceSchema = z.object({
   minimumBid: z.number().min(1, "Minimum bid must be greater than 0"),
   autoAcceptAboveMinimum: z.boolean().optional().default(true),
   blackoutDates: z.array(z.string()).optional().default([]),
+  allowedDaysOfWeek: z
+    .array(z.number().int().min(0).max(6))
+    .optional()
+    .default([0, 1, 2, 3, 4, 5, 6]),
   status: placeStatusSchema.optional().default("DRAFT"),
 });
 
@@ -58,6 +62,7 @@ export const updatePlaceSchema = z.object({
   minimumBid: z.number().min(1).optional(),
   autoAcceptAboveMinimum: z.boolean().optional(),
   blackoutDates: z.array(z.string()).optional(),
+  allowedDaysOfWeek: z.array(z.number().int().min(0).max(6)).optional(),
   status: placeStatusSchema.optional(),
 });
 

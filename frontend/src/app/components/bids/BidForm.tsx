@@ -227,6 +227,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
     },
   });
 
+  console.log("place?.allowedDaysOfWeek", place?.allowedDaysOfWeek);
   const isDateBlocked =
     (field: "checkInDate" | "checkOutDate") => (date: Date) => {
       if (
@@ -236,6 +237,16 @@ function BidFormInner({ place, placeId }: BidFormProps) {
       ) {
         return true;
       }
+
+      // Check if day of week is allowed
+      const dayOfWeek = date.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+      if (
+        place?.allowedDaysOfWeek &&
+        !place.allowedDaysOfWeek.includes(dayOfWeek)
+      ) {
+        return true;
+      }
+
       if (place?.blackoutDates) {
         const dateStr = format(date, "yyyy-MM-dd");
         return place.blackoutDates.includes(dateStr);
@@ -243,13 +254,9 @@ function BidFormInner({ place, placeId }: BidFormProps) {
       return false;
     };
 
-  // Check if any date in the selected range is a blackout date
-  const getBlackoutDatesInRange = () => {
-    if (
-      !formik.values.checkInDate ||
-      !formik.values.checkOutDate ||
-      !place?.blackoutDates
-    ) {
+  // Check if any date in the selected range is blocked (blackout or not allowed day)
+  const getBlockedDatesInRange = () => {
+    if (!formik.values.checkInDate || !formik.values.checkOutDate) {
       return [];
     }
 
@@ -259,12 +266,26 @@ function BidFormInner({ place, placeId }: BidFormProps) {
     });
 
     return datesInRange.filter((date) => {
-      const dateStr = format(date, "yyyy-MM-dd");
-      return place.blackoutDates.includes(dateStr);
+      // Check blackout dates
+      if (place?.blackoutDates) {
+        const dateStr = format(date, "yyyy-MM-dd");
+        if (place.blackoutDates.includes(dateStr)) {
+          return true;
+        }
+      }
+      // Check allowed days of week
+      const dayOfWeek = date.getDay();
+      if (
+        place?.allowedDaysOfWeek &&
+        !place.allowedDaysOfWeek.includes(dayOfWeek)
+      ) {
+        return true;
+      }
+      return false;
     });
   };
 
-  const blackoutDatesInRange = getBlackoutDatesInRange();
+  const blockedDatesInRange = getBlockedDatesInRange();
 
   const calculateTotalNights = () => {
     if (formik.values.checkInDate && formik.values.checkOutDate) {
@@ -501,8 +522,8 @@ function BidFormInner({ place, placeId }: BidFormProps) {
           </div>
         )}
 
-        {/* Blackout Date Warning */}
-        {blackoutDatesInRange.length > 0 && (
+        {/* Blocked Date Warning */}
+        {blockedDatesInRange.length > 0 && (
           <div className="glass rounded-lg p-3 border border-warning/50">
             <div className="flex gap-2">
               <AlertCircle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
@@ -512,7 +533,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
                 </p>
                 <p className="text-muted text-xs mt-1">
                   The following dates are blocked:{" "}
-                  {blackoutDatesInRange
+                  {blockedDatesInRange
                     .map((d) => format(d, "MMM d"))
                     .join(", ")}
                 </p>
@@ -583,7 +604,7 @@ function BidFormInner({ place, placeId }: BidFormProps) {
             disabled={
               isProcessing ||
               createBid.isPending ||
-              blackoutDatesInRange.length > 0 ||
+              blockedDatesInRange.length > 0 ||
               !stripe ||
               !elements ||
               !isCardComplete ||
