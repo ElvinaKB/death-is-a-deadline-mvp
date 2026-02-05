@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { EllipsisVertical, Pause, Pencil, Play, Plus } from "lucide-react";
+import {
+  EllipsisVertical,
+  Pause,
+  Pencil,
+  Play,
+  Plus,
+  MessageSquareQuote,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ENDPOINTS } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
@@ -132,6 +139,16 @@ export function PlacesListPage() {
             >
               <Pencil className="mr-2 h-4 w-4" />
               Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                navigate(
+                  getRoute(ROUTES.ADMIN_PLACES_TESTIMONIALS, { id: row.id }),
+                )
+              }
+            >
+              <MessageSquareQuote className="mr-2 h-4 w-4" />
+              Testimonials
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleStatusToggle(row)}>
               {row.status === PlaceStatus.LIVE ? (

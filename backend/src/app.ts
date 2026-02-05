@@ -11,6 +11,7 @@ import { router as studentsRouter } from "./routers/students.router";
 import { router as placesRouter } from "./routers/places.router";
 import { router as bidsRouter } from "./routers/bids.router";
 import { router as paymentsRouter } from "./routers/payments.router";
+import { router as testimonialsRouter } from "./routers/testimonials.router";
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use("/api/students", studentsRouter);
 app.use("/api/places", placesRouter);
 app.use("/api/bids", bidsRouter);
 app.use("/api/payments", paymentsRouter);
+app.use("/api/testimonials", testimonialsRouter);
 
 // Fallback error handler
 app.use(errorHandler);

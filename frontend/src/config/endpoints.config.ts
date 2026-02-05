@@ -46,11 +46,23 @@ export const ENDPOINTS = {
   // Profile
   PROFILE: "/api/profile",
   UPDATE_PROFILE: "/api/profile/update",
+
+  // Testimonials
+  TESTIMONIALS_LIST: "/api/testimonials",
+  TESTIMONIAL_CREATE: "/api/testimonials",
+  TESTIMONIAL_UPDATE: "/api/testimonials/:id",
+  TESTIMONIAL_DELETE: "/api/testimonials/:id",
+
+  // Review Platforms
+  REVIEW_PLATFORMS_LIST: "/api/testimonials/review-platforms",
+  REVIEW_PLATFORM_CREATE: "/api/testimonials/review-platforms",
+  REVIEW_PLATFORM_UPDATE: "/api/testimonials/review-platforms/:id",
+  REVIEW_PLATFORM_DELETE: "/api/testimonials/review-platforms/:id",
 } as const;
 
 export const getEndpoint = (
   endpoint: string,
-  params?: Record<string, string | number>
+  params?: Record<string, string | number>,
 ) => {
   if (!params) return endpoint;
 

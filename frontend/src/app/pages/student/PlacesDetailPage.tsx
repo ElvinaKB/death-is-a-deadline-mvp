@@ -44,6 +44,7 @@ import {
   CarouselPrevious,
 } from "../../components/ui/carousel";
 import placeDetailBackgroundImage from "../../../assets/place-details.jpeg";
+import { Testimonials } from "../../components/places/Testimonials";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_APP_MAPBOX;
 
@@ -148,8 +149,10 @@ export function PlaceDetailPage() {
       className="min-h-screen bg-bg relative"
       style={{
         backgroundImage: `url(${placeDetailBackgroundImage})`,
-        backgroundSize: "contain",
         backgroundPosition: "center",
+        // backgroundSize: "cover",
+        // backgroundRepeat: "no-repeat",
+        backgroundSize: "contain",
         backgroundRepeat: "repeat",
       }}
     >
@@ -426,108 +429,6 @@ export function PlaceDetailPage() {
             </div>
           </div>
 
-          {/* How It Works Stepper */}
-          <div className="mt-12">
-            <h2 className="text-2xl font-bold text-fg mb-6">How It Works</h2>
-            <div className="bg-glass-2 flex items-center border border-line rounded-lg py-4 px-6">
-              <div className="flex items-center gap-3 flex-1 justify-center">
-                <div className="w-8 h-8 rounded-full border border-muted flex items-center justify-center">
-                  <span className="text-muted text-xs">1</span>
-                </div>
-                <span className="text-fg text-sm">Verify student status</span>
-              </div>
-              {/* divider */}
-              <div className="flex-1 flex flex-row items-center">
-                <div className="flex-1 border-t-2" />
-                <ChevronRight className="h-4 w-4 text-muted" />
-              </div>
-              <div className="flex items-center gap-3 flex-1 justify-center">
-                <div className="w-8 h-8 rounded-full border border-muted flex items-center justify-center">
-                  <span className="text-muted text-xs">2</span>
-                </div>
-                <span className="text-fg text-sm">Name your price</span>
-              </div>
-              {/* divider */}
-              <div className="flex-1 flex flex-row items-center">
-                <div className="flex-1 border-t-2" />
-                <ChevronRight className="h-4 w-4 text-muted" />
-              </div>
-              <div className="flex items-center gap-3 flex-1 justify-center">
-                <div className="w-8 h-8 rounded-full border border-muted flex items-center justify-center">
-                  <span className="text-muted text-xs">3</span>
-                </div>
-                <span className="text-fg text-sm">Get instant decision</span>
-              </div>
-            </div>
-          </div>
-
-          {/* FAQ Accordion */}
-          <div className="mt-12">
-            <h2 className="text-2xl font-bold text-fg mb-6">FAQ Accordion</h2>
-            <Accordion type="single" collapsible className="w-full">
-              {FAQ_DATA.map((faq) => (
-                <AccordionItem
-                  key={faq.id}
-                  value={faq.id}
-                  className="bg-glass-2 border border-line rounded-lg mb-3 px-4"
-                >
-                  <AccordionTrigger className="text-fg hover:no-underline">
-                    "{faq.question}"
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-              <AccordionItem value="" />
-            </Accordion>
-          </div>
-
-          {/* Map Section - Only show if lat/lng exist */}
-          {place.latitude && place.longitude && (
-            <div className="mt-8">
-              <div className="flex items-center gap-2 mb-4">
-                <MapPin className="h-5 w-5 text-muted" />
-                <h3 className="text-lg font-semibold text-fg">Location</h3>
-              </div>
-              <p className="text-muted mb-4">{place.address}</p>
-              <div className="relative w-full h-80 rounded-lg overflow-hidden">
-                <Map
-                  initialViewState={{
-                    latitude: place.latitude,
-                    longitude: place.longitude,
-                    zoom: 14,
-                  }}
-                  style={{ width: "100%", height: "100%" }}
-                  mapStyle="mapbox://styles/mapbox/dark-v11"
-                  mapboxAccessToken={MAPBOX_TOKEN}
-                >
-                  <NavigationControl position="top-right" />
-                  <Marker
-                    latitude={place.latitude}
-                    longitude={place.longitude}
-                    anchor="bottom"
-                  >
-                    <div
-                      style={{
-                        background: "linear-gradient(180deg, #283B66, #1E2A44)",
-                        color: "#F5F3EE",
-                        border: "1px solid #93A4C9",
-                        padding: "6px 12px",
-                        borderRadius: "12px",
-                        fontWeight: 600,
-                        fontSize: "12px",
-                        boxShadow: "0 0 14px rgba(140, 160, 255, 0.45)",
-                      }}
-                    >
-                      BID
-                    </div>
-                  </Marker>
-                </Map>
-              </div>
-            </div>
-          )}
-
           {/* Similar Listings */}
           {similarPlaces.length > 0 && (
             <div className="mt-12">
@@ -604,6 +505,75 @@ export function PlaceDetailPage() {
                     </Card>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          <Testimonials placeId={id || ""} />
+
+          {/* FAQ Accordion */}
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-fg mb-6">FAQ Accordion</h2>
+            <Accordion type="single" collapsible className="w-full">
+              {FAQ_DATA.map((faq) => (
+                <AccordionItem
+                  key={faq.id}
+                  value={faq.id}
+                  className="bg-glass-2 border border-line rounded-lg mb-3 px-4"
+                >
+                  <AccordionTrigger className="text-fg hover:no-underline">
+                    "{faq.question}"
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+              <AccordionItem value="" />
+            </Accordion>
+          </div>
+
+          {/* Map Section - Only show if lat/lng exist */}
+          {place.latitude && place.longitude && (
+            <div className="mt-8">
+              <div className="flex items-center gap-2 mb-4">
+                <MapPin className="h-5 w-5 text-muted" />
+                <h3 className="text-lg font-semibold text-fg">Location</h3>
+              </div>
+              <p className="text-muted mb-4">{place.address}</p>
+              <div className="relative w-full h-80 rounded-lg overflow-hidden">
+                <Map
+                  initialViewState={{
+                    latitude: place.latitude,
+                    longitude: place.longitude,
+                    zoom: 14,
+                  }}
+                  style={{ width: "100%", height: "100%" }}
+                  mapStyle="mapbox://styles/mapbox/dark-v11"
+                  mapboxAccessToken={MAPBOX_TOKEN}
+                >
+                  <NavigationControl position="top-right" />
+                  <Marker
+                    latitude={place.latitude}
+                    longitude={place.longitude}
+                    anchor="bottom"
+                  >
+                    <div
+                      style={{
+                        background: "linear-gradient(180deg, #283B66, #1E2A44)",
+                        color: "#F5F3EE",
+                        border: "1px solid #93A4C9",
+                        padding: "6px 12px",
+                        borderRadius: "12px",
+                        fontWeight: 600,
+                        fontSize: "12px",
+                        boxShadow: "0 0 14px rgba(140, 160, 255, 0.45)",
+                      }}
+                    >
+                      BID
+                    </div>
+                  </Marker>
+                </Map>
               </div>
             </div>
           )}

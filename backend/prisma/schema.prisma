@@ -30,8 +30,53 @@ model Place {
   updatedAt              DateTime          @updatedAt
   bids                   Bid[]
   images                 PlaceImage[]
+  testimonials           Testimonial[]
+  reviewPlatforms        ReviewPlatform[]
 
   @@map("places")
+  @@schema("public")
+}
+
+model Testimonial {
+  id         String   @id @default(uuid())
+  place      Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  placeId    String   @map("place_id")
+  rating     Int
+  title      String
+  content    String
+  author     String
+  authorRole String?  @map("author_role")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([placeId])
+  @@map("testimonials")
+  @@schema("public")
+}
+
+model ReviewPlatform {
+  id          String       @id @default(uuid())
+  place       Place        @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  placeId     String       @map("place_id")
+  name        String
+  rating      Decimal      @db.Decimal(3, 2)
+  reviewCount Int          @map("review_count")
+  url         String
+  source      String
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  @@unique([placeId, source])
+  @@index([placeId])
+  @@index([source])
+  @@map("review_platforms")
+  @@schema("public")
+}
+
+enum ReviewSource {
+  google
+  yelp
+
   @@schema("public")
 }
 
