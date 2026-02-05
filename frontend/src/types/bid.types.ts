@@ -9,6 +9,7 @@ export interface BidPlace {
   name: string;
   city: string;
   country: string;
+  email?: string;
   images: { id: string; url: string }[];
 }
 
@@ -39,6 +40,12 @@ export interface Bid {
   bidPerNight: number;
   totalNights: number;
   totalAmount: number;
+  platformCommission: number | null;
+  payableToHotel: number | null;
+  payoutMethod: string | null;
+  isPaidToHotel: boolean;
+  paidToHotelAt: string | null;
+  payoutNotes: string | null;
   status: BidStatus;
   rejectionReason?: string;
   createdAt: string;
@@ -77,3 +84,20 @@ export interface UpdateBidStatusRequest {
   status: BidStatus;
   rejectionReason?: string;
 }
+
+export interface UpdatePayoutRequest {
+  id: string;
+  payoutMethod?: string;
+  isPaidToHotel?: boolean;
+  payoutNotes?: string;
+}
+
+export type PayoutMethod = "ACH" | "WIRE" | "ZELLE" | "WISE" | "OTHER";
+
+export const PAYOUT_METHODS: { value: PayoutMethod; label: string }[] = [
+  { value: "ACH", label: "ACH Transfer" },
+  { value: "WIRE", label: "Wire Transfer" },
+  { value: "ZELLE", label: "Zelle" },
+  { value: "WISE", label: "Wise" },
+  { value: "OTHER", label: "Other" },
+];

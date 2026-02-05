@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useBids } from "../../../hooks/useBids";
+import { useBids, useUpdatePayout } from "../../../hooks/useBids";
 import { Bid, BidStatus } from "../../../types/bid.types";
 import { DataTable } from "../../components/common/DataTable";
 import { TableColumn } from "../../../types/api.types";
 import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Switch } from "../../components/ui/switch";
 import {
   Card,
   CardContent,
@@ -17,6 +19,8 @@ import {
   TabsTrigger,
 } from "../../components/ui/tabs";
 import { format } from "date-fns";
+import { DollarSign, EyeIcon } from "lucide-react";
+import { PayoutModal } from "../../components/bids/PayoutModal";
 
 const BID_STATUS_COLORS: Record<BidStatus, string> = {
   [BidStatus.PENDING]: "bg-warning/20 text-warning hover:bg-warning/30",
@@ -37,12 +41,15 @@ const PAYMENT_STATUS_COLORS: Record<string, string> = {
 export function BidsListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [filter, setFilter] = useState<BidStatus | "ALL">("ALL");
+  const [selectedBid, setSelectedBid] = useState<Bid | null>(null);
 
   const { data, isLoading } = useBids({
     page: currentPage,
     limit: 10,
     ...(filter !== "ALL" ? { status: filter } : {}),
   });
+
+  const updatePayout = useUpdatePayout();
 
   const getBidStatusBadge = (status: BidStatus) => {
     return (
@@ -135,6 +142,54 @@ export function BidsListPage() {
       render: (row) => getPaymentStatusBadge(row.payment?.status),
     },
     {
+      header: "Hotel Paid",
+      field: "isPaidToHotel",
+      render: (row) => {
+        const canToggle =
+          row.status === BidStatus.ACCEPTED &&
+          row.payment &&
+          ["AUTHORIZED", "CAPTURED"].includes(row.payment.status);
+
+        return (
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={row.isPaidToHotel}
+              disabled={!canToggle || updatePayout.isPending}
+              onCheckedChange={(checked) => {
+                updatePayout.mutate({
+                  id: row.id,
+                  isPaidToHotel: checked,
+                });
+              }}
+            />
+            <span className="text-xs text-muted">
+              {row.isPaidToHotel ? "Paid" : "Unpaid"}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      header: "Actions",
+      field: "id",
+      render: (row) => {
+        const canViewPayout = row.status === BidStatus.ACCEPTED;
+
+        if (!canViewPayout) return null;
+
+        return (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setSelectedBid(row)}
+          >
+            <EyeIcon className="h-4 w-4 mr-1" />
+            View
+          </Button>
+        );
+      },
+    },
+    {
       header: "Created",
       field: "createdAt",
       render: (row) => (
@@ -217,6 +272,15 @@ export function BidsListPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Payout Modal */}
+      <PayoutModal
+        bid={selectedBid}
+        open={!!selectedBid}
+        onOpenChange={(open) => {
+          if (!open) setSelectedBid(null);
+        }}
+      />
     </div>
   );
 }

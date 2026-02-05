@@ -21,6 +21,14 @@ const formatBid = (bid: any) => ({
   bidPerNight: Number(bid.bidPerNight),
   totalNights: bid.totalNights,
   totalAmount: Number(bid.totalAmount),
+  platformCommission: bid.platformCommission
+    ? Number(bid.platformCommission)
+    : null,
+  payableToHotel: bid.payableToHotel ? Number(bid.payableToHotel) : null,
+  payoutMethod: bid.payoutMethod,
+  isPaidToHotel: bid.isPaidToHotel,
+  paidToHotelAt: bid.paidToHotelAt,
+  payoutNotes: bid.payoutNotes,
   status: bid.status,
   rejectionReason: bid.rejectionReason,
   createdAt: bid.createdAt,
@@ -31,7 +39,15 @@ const formatBid = (bid: any) => ({
         name: bid.place.name,
         city: bid.place.city,
         country: bid.place.country,
+        email: bid.place.email,
         images: bid.place.images || [],
+      }
+    : undefined,
+  student: bid.users
+    ? {
+        id: bid.users.id,
+        name: (bid.users.raw_user_meta_data as any)?.name || null,
+        email: bid.users.email,
       }
     : undefined,
   payment: bid.payment
@@ -79,7 +95,7 @@ export async function createBid(req: Request, res: Response) {
     if (blackout >= checkInDate && blackout < checkOutDate) {
       throw new CustomError(
         `The place is not available on ${blackoutDate}. Please choose different dates.`,
-        400
+        400,
       );
     }
   }
@@ -92,7 +108,7 @@ export async function createBid(req: Request, res: Response) {
   if (data.bidPerNight < place.minimumBid) {
     throw new CustomError(
       `Your bid is very low, try again by increasing it.`,
-      400
+      400,
     );
   }
 
@@ -115,7 +131,7 @@ export async function createBid(req: Request, res: Response) {
   if (existingBid) {
     throw new CustomError(
       "You already have a pending bid for this place with overlapping dates",
-      400
+      400,
     );
   }
 
@@ -345,5 +361,73 @@ export async function updateBidStatus(req: Request, res: Response) {
       message: `Bid ${status.toLowerCase()} successfully`,
       bid: formatBid(bid),
     },
+  });
+}
+
+// Update payout status (admin only)
+export async function updatePayout(req: Request, res: Response) {
+  const { id } = req.params;
+  const { payoutMethod, isPaidToHotel, payoutNotes } = req.body;
+
+  const existingBid = await prisma.bid.findUnique({
+    where: { id },
+    include: { payment: true },
+  });
+
+  if (!existingBid) {
+    throw new CustomError("Bid not found", 404);
+  }
+
+  // Can only update payout for accepted bids with authorized/captured payment
+  if (existingBid.status !== bid_status.ACCEPTED) {
+    throw new CustomError("Can only update payout for accepted bids", 400);
+  }
+
+  if (
+    !existingBid.payment ||
+    !["AUTHORIZED", "CAPTURED"].includes(existingBid.payment.status)
+  ) {
+    throw new CustomError(
+      "Can only update payout for bids with authorized or captured payment",
+      400,
+    );
+  }
+
+  const updateData: any = {};
+
+  if (payoutMethod !== undefined) {
+    updateData.payoutMethod = payoutMethod;
+  }
+
+  if (isPaidToHotel !== undefined) {
+    updateData.isPaidToHotel = isPaidToHotel;
+    if (isPaidToHotel && !existingBid.isPaidToHotel) {
+      // Mark as paid now
+      updateData.paidToHotelAt = new Date();
+    } else if (!isPaidToHotel) {
+      // Clear paid timestamp if unmarking
+      updateData.paidToHotelAt = null;
+    }
+  }
+
+  if (payoutNotes !== undefined) {
+    updateData.payoutNotes = payoutNotes;
+  }
+
+  const bid = await prisma.bid.update({
+    where: { id },
+    data: updateData,
+    include: {
+      place: {
+        include: { images: { orderBy: { order: "asc" }, take: 1 } },
+      },
+      payment: true,
+      users: true,
+    },
+  });
+
+  res.status(200).json({
+    message: "Payout updated successfully",
+    data: { bid: formatBid(bid) },
   });
 }

@@ -227,7 +227,7 @@ export async function handlePaymentWebhook(req: Request, res: Response) {
   } catch (err: any) {
     throw new CustomError(
       `Webhook signature verification failed: ${err.message}`,
-      400
+      400,
     );
   }
 
@@ -236,15 +236,34 @@ export async function handlePaymentWebhook(req: Request, res: Response) {
   switch (event.type) {
     case "payment_intent.amount_capturable_updated":
       // Payment authorized successfully (funds held)
-      await prisma.payment.update({
+      const authorizedPayment = await prisma.payment.update({
         where: { stripePaymentIntentId: paymentIntent.id },
         data: {
           status: payment_status.AUTHORIZED,
           authorizedAt: new Date(),
           stripePaymentMethodId: paymentIntent.payment_method,
         },
+        include: { bid: true },
       });
-      console.log("Payment status updated to: CAPTURED");
+
+      // Calculate and save commission when payment is authorized
+      if (authorizedPayment.bid) {
+        const totalAmount = Number(authorizedPayment.bid.totalAmount);
+        const platformCommission =
+          Math.round(
+            totalAmount * STRIPE_CONFIG.PLATFORM_COMMISSION_RATE * 100,
+          ) / 100;
+        const payableToHotel =
+          Math.round((totalAmount - platformCommission) * 100) / 100;
+
+        await prisma.bid.update({
+          where: { id: authorizedPayment.bidId },
+          data: {
+            platformCommission,
+            payableToHotel,
+          },
+        });
+      }
       break;
 
     case "payment_intent.payment_failed":
@@ -325,7 +344,7 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
 
   // Get latest status from Stripe
   const paymentIntent = await stripe.paymentIntents.retrieve(
-    payment.stripePaymentIntentId
+    payment.stripePaymentIntentId,
   );
 
   let newStatus: payment_status = payment.status;
@@ -338,6 +357,23 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
     newStatus = payment_status.AUTHORIZED;
     updateData.status = payment_status.AUTHORIZED;
     updateData.authorizedAt = new Date();
+
+    // Calculate and save commission when payment is authorized
+    const totalAmount = Number(payment.bid.totalAmount);
+    const platformCommission =
+      Math.round(totalAmount * STRIPE_CONFIG.PLATFORM_COMMISSION_RATE * 100) /
+      100;
+    const payableToHotel =
+      Math.round((totalAmount - platformCommission) * 100) / 100;
+
+    // Update bid with commission fields
+    await prisma.bid.update({
+      where: { id: payment.bidId },
+      data: {
+        platformCommission,
+        payableToHotel,
+      },
+    });
   } else if (paymentIntent.status === "requires_action") {
     newStatus = payment_status.REQUIRES_ACTION;
     updateData.status = payment_status.REQUIRES_ACTION;
@@ -531,7 +567,7 @@ export async function capturePayment(req: Request, res: Response) {
   if (payment.status !== payment_status.AUTHORIZED) {
     throw new CustomError(
       `Cannot capture payment with status: ${payment.status}. Only AUTHORIZED payments can be captured.`,
-      400
+      400,
     );
   }
 
@@ -598,7 +634,7 @@ export async function cancelPayment(req: Request, res: Response) {
   ) {
     throw new CustomError(
       `Cannot cancel payment with status: ${payment.status}. Only PENDING or AUTHORIZED payments can be cancelled.`,
-      400
+      400,
     );
   }
 

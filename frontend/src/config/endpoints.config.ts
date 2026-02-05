@@ -33,6 +33,7 @@ export const ENDPOINTS = {
   BID_DETAIL: "/api/bids/:id",
   BIDS_LIST: "/api/bids",
   BID_STATUS: "/api/bids/:id/status",
+  BID_PAYOUT: "/api/bids/:id/payout",
 
   // Payments
   PAYMENT_CREATE_INTENT: "/api/payments/create-intent",

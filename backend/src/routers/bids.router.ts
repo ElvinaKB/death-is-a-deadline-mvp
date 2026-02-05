@@ -17,6 +17,7 @@ import {
   getBid,
   listBids,
   updateBidStatus,
+  updatePayout,
 } from "../controllers/bids.controller";
 
 const router = Router();
@@ -27,7 +28,7 @@ router.post(
   "/",
   authenticate(UserRole.STUDENT),
   validate(createBidSchema, "body"),
-  createBid
+  createBid,
 );
 
 // Get student's own bids
@@ -35,7 +36,7 @@ router.get(
   "/my",
   authenticate(UserRole.STUDENT),
   validate(myBidsQuerySchema, "query"),
-  getMyBids
+  getMyBids,
 );
 
 // Get student's existing bid for a specific place
@@ -43,7 +44,7 @@ router.get(
   "/place/:placeId",
   authenticate(UserRole.STUDENT),
   validate(placeIdParamSchema, "params"),
-  getBidForPlace
+  getBidForPlace,
 );
 
 // Get single bid by ID (student can view own, admin can view all)
@@ -51,7 +52,7 @@ router.get(
   "/:id",
   authenticate(UserRole.STUDENT, UserRole.ADMIN),
   validate(bidIdParamSchema, "params"),
-  getBid
+  getBid,
 );
 
 // Admin routes
@@ -60,7 +61,7 @@ router.get(
   "/",
   authenticate(UserRole.ADMIN),
   validate(listBidsQuerySchema, "query"),
-  listBids
+  listBids,
 );
 
 // Update bid status (admin only)
@@ -69,7 +70,15 @@ router.patch(
   authenticate(UserRole.ADMIN),
   validate(bidIdParamSchema, "params"),
   validate(updateBidStatusSchema, "body"),
-  updateBidStatus
+  updateBidStatus,
+);
+
+// Update payout status (admin only)
+router.patch(
+  "/:id/payout",
+  authenticate(UserRole.ADMIN),
+  validate(bidIdParamSchema, "params"),
+  updatePayout,
 );
 
 export { router };

@@ -9,12 +9,13 @@ import {
   MyBidsResponse,
   BidDetailResponse,
   UpdateBidStatusRequest,
+  UpdatePayoutRequest,
 } from "../types/bid.types";
 
 // Check if student has existing bid for a place
 export const useBidForPlace = (
   placeId: string,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean },
 ) => {
   return useApiQuery<BidDetailResponse | null>({
     queryKey: ["bids", "place", placeId],
@@ -68,7 +69,7 @@ export const useCreateBid = () => {
     method: "POST",
     showErrorToast: false,
     // onSuccess: () => {
-    //   queryClient.invalidateQueries({ queryKey: ["bids"] });
+    //   queryClient.invalidateQueries({ queryKey: ["bids", "admin",] });
     // },
   });
 };
@@ -85,7 +86,25 @@ export const useUpdateBidStatus = () => {
       rejectionReason,
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bids"] });
+      queryClient.invalidateQueries({ queryKey: ["bids", "admin"] });
+    },
+  });
+};
+
+// Update payout status (admin)
+export const useUpdatePayout = () => {
+  const queryClient = useQueryClient();
+
+  return useApiMutation<{ bid: Bid }, UpdatePayoutRequest>({
+    endpoint: (vars) => getEndpoint(ENDPOINTS.BID_PAYOUT, { id: vars.id }),
+    method: "PATCH",
+    transformVariables: ({ payoutMethod, isPaidToHotel, payoutNotes }) => ({
+      payoutMethod,
+      isPaidToHotel,
+      payoutNotes,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bids", "admin"] });
     },
   });
 };
