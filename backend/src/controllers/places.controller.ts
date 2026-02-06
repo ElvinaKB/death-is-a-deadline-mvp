@@ -120,6 +120,7 @@ export async function listPublicPlaces(req: Request, res: Response) {
   const {
     searchQuery,
     selectedType,
+    city,
     priceRange,
     sortBy = "price-asc",
     page = 1,
@@ -133,6 +134,11 @@ export async function listPublicPlaces(req: Request, res: Response) {
   const where: Prisma.PlaceWhereInput = {
     status: PlaceStatus.LIVE,
   };
+
+  // City filter (exact match, case-insensitive)
+  if (city && city.trim()) {
+    where.city = { equals: city, mode: "insensitive" };
+  }
 
   // Search filter (name or city)
   if (searchQuery && searchQuery.trim()) {

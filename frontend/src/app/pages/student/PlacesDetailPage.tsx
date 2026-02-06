@@ -118,12 +118,12 @@ export function PlaceDetailPage() {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
 
-  // Fetch similar places (limit 3, excluding current place)
+  // Fetch similar places in the same city (limit 4, excluding current place)
   const { data: similarData } = useApiQuery<PlacesResponse>({
-    queryKey: [QUERY_KEYS.PLACES, "similar", id],
+    queryKey: [QUERY_KEYS.PLACES, "similar", id, place?.city],
     endpoint: ENDPOINTS.PLACES_PUBLIC,
-    params: { limit: 4 },
-    enabled: !!id,
+    params: { limit: 4, city: place?.city },
+    enabled: !!id && !!place?.city,
   });
 
   // Filter out current place and limit to 3

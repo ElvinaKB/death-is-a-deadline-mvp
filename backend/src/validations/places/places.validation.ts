@@ -94,6 +94,7 @@ export const listPlacesQuerySchema = z.object({
 export const publicPlacesQuerySchema = z.object({
   searchQuery: z.string().optional(),
   selectedType: z.union([accommodationTypeSchema, z.literal("all")]).optional(),
+  city: z.string().optional(), // Filter by specific city
   priceRange: z
     .string()
     .optional()
