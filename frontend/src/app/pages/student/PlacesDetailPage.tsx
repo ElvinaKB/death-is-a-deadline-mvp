@@ -556,13 +556,6 @@ export function PlaceDetailPage() {
                           alt={listing.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                        {/* Price tag */}
-                        <div className="absolute bottom-3 right-3 bg-black/70 text-white text-sm px-2 py-1 rounded">
-                          <span className="line-through text-muted text-xs mr-1">
-                            ${listing.retailPrice}
-                          </span>
-                          <span className="text-fg">Retail</span>
-                        </div>
                       </div>
 
                       {/* Content */}

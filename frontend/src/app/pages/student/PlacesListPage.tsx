@@ -95,7 +95,7 @@ export function PlacesListPage() {
                 className="overflow-hidden glass-2 border-white/10 hover:border-brand/50 transition-all cursor-pointer"
                 onClick={() =>
                   navigate(
-                    getRoute(ROUTES.PUBLIC_PLACE_DETAIL, { id: place.id })
+                    getRoute(ROUTES.PUBLIC_PLACE_DETAIL, { id: place.id }),
                   )
                 }
               >
@@ -133,17 +133,6 @@ export function PlacesListPage() {
                   </p>
 
                   <div className="flex items-center justify-between pt-4 border-t">
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        Retail Price
-                      </p>
-                      <p className="text-xl font-bold">
-                        ${place.retailPrice}
-                        <span className="text-sm font-normal text-muted-foreground">
-                          /night
-                        </span>
-                      </p>
-                    </div>
                     <Button size="sm">View Details</Button>
                   </div>
                 </CardContent>
