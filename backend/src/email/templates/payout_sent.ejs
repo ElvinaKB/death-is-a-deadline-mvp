@@ -1,0 +1,97 @@
+<html>
+  <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <h2 style="color: #166534;">💰 Payout Sent!</h2>
+    <p>Hello,</p>
+    <p>
+      Great news! Your payout for the booking at
+      <strong><%= placeName %></strong> has been processed.
+    </p>
+    
+    <h3 style="margin-top: 24px; margin-bottom: 12px;">Booking Details</h3>
+    <table style="border-collapse: collapse; width: 100%; max-width: 450px;">
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;">
+          <strong>Guest:</strong>
+        </td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;">
+          <%= studentName %>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;">
+          <strong>Check-in:</strong>
+        </td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;">
+          <%= checkInDate %>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;">
+          <strong>Check-out:</strong>
+        </td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;">
+          <%= checkOutDate %>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;">
+          <strong>Total Nights:</strong>
+        </td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #eee;">
+          <%= totalNights %>
+        </td>
+      </tr>
+    </table>
+
+    <h3 style="margin-top: 24px; margin-bottom: 12px;">Payment Breakdown</h3>
+    <table style="border-collapse: collapse; width: 100%; max-width: 450px; background: #f9fafb; border-radius: 8px;">
+      <tr>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
+          Student Paid (Total)
+        </td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+          $<%= totalAmount %>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #dc2626;">
+          Platform Commission (<%= commissionRate %>%)
+        </td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #dc2626;">
+          - $<%= platformCommission %>
+        </td>
+      </tr>
+      <tr style="background: #ecfdf5;">
+        <td style="padding: 12px; font-weight: bold; color: #166534;">
+          Your Payout
+        </td>
+        <td style="padding: 12px; text-align: right; font-weight: bold; font-size: 18px; color: #166534;">
+          $<%= payableToHotel %>
+        </td>
+      </tr>
+    </table>
+
+    <% if (payoutMethod) { %>
+    <p style="margin-top: 16px;">
+      <strong>Payout Method:</strong> <%= payoutMethod %>
+    </p>
+    <% } %>
+
+    <% if (payoutNotes) { %>
+    <p style="margin-top: 8px; padding: 12px; background: #f3f4f6; border-radius: 6px; font-style: italic;">
+      <strong>Notes:</strong> <%= payoutNotes %>
+    </p>
+    <% } %>
+
+    <p style="margin-top: 24px; padding: 16px; background-color: #f0fdf4; border-radius: 6px; color: #166534;">
+      <strong>✓ Payout Sent:</strong> <%= paidAt %>
+    </p>
+
+    <p style="margin-top: 24px; color: #6b7280; font-size: 14px;">
+      If you have any questions about this payout, please contact our support team.
+    </p>
+
+    <p style="margin-top: 24px;">Thank you for partnering with us!</p>
+    <p><strong><%= appName %> Team</strong></p>
+  </body>
+</html>

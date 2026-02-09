@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../libs/config/prisma";
 import { CustomError } from "../libs/utils/CustomError";
 import { PlaceStatus, Prisma, bid_status } from "@prisma/client";
-import { differenceInDays, parseISO } from "date-fns";
+import { differenceInDays, parseISO, format } from "date-fns";
 import {
   CreateBidInput,
   UpdateBidStatusInput,
@@ -10,6 +10,8 @@ import {
   MyBidsQuery,
 } from "../validations/bids/bids.validation";
 import { UserRole } from "../types/auth.types";
+import { sendEmail } from "../email/sendEmail";
+import { EmailType } from "../email/emailTypes";
 
 // Helper to format bid response
 const formatBid = (bid: any) => ({
@@ -399,9 +401,12 @@ export async function updatePayout(req: Request, res: Response) {
     updateData.payoutMethod = payoutMethod;
   }
 
+  // Track if we're newly marking as paid (for sending email)
+  const isNewlyMarkedPaid = isPaidToHotel && !existingBid.isPaidToHotel;
+
   if (isPaidToHotel !== undefined) {
     updateData.isPaidToHotel = isPaidToHotel;
-    if (isPaidToHotel && !existingBid.isPaidToHotel) {
+    if (isNewlyMarkedPaid) {
       // Mark as paid now
       updateData.paidToHotelAt = new Date();
     } else if (!isPaidToHotel) {
@@ -425,6 +430,40 @@ export async function updatePayout(req: Request, res: Response) {
       users: true,
     },
   });
+
+  // Send payout confirmation email to hotel if newly marked as paid
+  if (isNewlyMarkedPaid && bid.place.email) {
+    const commissionRate = 6.66;
+    const totalAmount = Number(bid.totalAmount);
+    const platformCommission = Number(bid.platformCommission) || (totalAmount * commissionRate / 100);
+    const payableToHotel = Number(bid.payableToHotel) || (totalAmount - platformCommission);
+
+    try {
+      await sendEmail({
+        type: EmailType.PAYOUT_SENT,
+        to: bid.place.email,
+        subject: `Payout Sent - ${bid.place.name} Booking`,
+        variables: {
+          placeName: bid.place.name,
+          studentName: (bid.users?.raw_user_meta_data as any)?.name || bid.users?.email || "Guest",
+          checkInDate: format(new Date(bid.checkInDate), "MMM dd, yyyy"),
+          checkOutDate: format(new Date(bid.checkOutDate), "MMM dd, yyyy"),
+          totalNights: bid.totalNights,
+          totalAmount: totalAmount.toFixed(2),
+          commissionRate: commissionRate.toFixed(2),
+          platformCommission: platformCommission.toFixed(2),
+          payableToHotel: payableToHotel.toFixed(2),
+          payoutMethod: bid.payoutMethod || null,
+          payoutNotes: bid.payoutNotes || null,
+          paidAt: format(new Date(), "MMM dd, yyyy 'at' h:mm a"),
+          appName: "Death Is A Deadline",
+        },
+      });
+    } catch (emailError) {
+      // Log but don't fail the request if email fails
+      console.error("Failed to send payout email to hotel:", emailError);
+    }
+  }
 
   res.status(200).json({
     message: "Payout updated successfully",
