@@ -411,7 +411,7 @@ export function PlaceDetailPage() {
           {/* Ready Section */}
           <div className="mt-12">
             <h2 className="text-2xl font-bold text-fg mb-6 text-center">
-              Ready? Submit your bid → Verify → Sleep cheap.
+              Ready? Bid -> Verify -> Pack your bag.
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Students Use This */}

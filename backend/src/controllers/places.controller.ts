@@ -168,7 +168,6 @@ export async function listPublicPlaces(req: Request, res: Response) {
   const orderBy: Prisma.PlaceOrderByWithRelationInput =
     sortBy === "price-desc" ? { retailPrice: "desc" } : { retailPrice: "asc" };
 
-  console.log("Where:", where);
   let [places, total] = await Promise.all([
     prisma.place.findMany({
       where,
