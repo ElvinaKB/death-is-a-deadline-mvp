@@ -28,16 +28,6 @@ const BID_STATUS_COLORS: Record<BidStatus, string> = {
   [BidStatus.REJECTED]: "bg-danger/20 text-danger hover:bg-danger/30",
 };
 
-const PAYMENT_STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-muted/20 text-muted",
-  REQUIRES_ACTION: "bg-brand/20 text-brand",
-  AUTHORIZED: "bg-brand/20 text-brand",
-  CAPTURED: "bg-success/20 text-success",
-  CANCELLED: "bg-danger/20 text-danger",
-  FAILED: "bg-danger/20 text-danger",
-  EXPIRED: "bg-warning/20 text-warning",
-};
-
 export function BidsListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [filter, setFilter] = useState<BidStatus | "ALL">("ALL");
@@ -59,17 +49,31 @@ export function BidsListPage() {
     );
   };
 
-  const getPaymentStatusBadge = (status?: string) => {
-    if (!status) {
-      return (
-        <Badge variant="outline" className="text-muted border-line">
-          No Payment
-        </Badge>
-      );
-    }
+  const getStudentPaidBadge = (payment?: { status: string } | null) => {
+    const isStudentPaid = payment?.status === "CAPTURED";
     return (
-      <Badge className={PAYMENT_STATUS_COLORS[status] || "bg-muted/20"}>
-        {status.replace(/_/g, " ")}
+      <Badge
+        className={
+          isStudentPaid
+            ? "bg-success/20 text-success"
+            : "bg-muted/20 text-muted"
+        }
+      >
+        {isStudentPaid ? "Paid" : "Unpaid"}
+      </Badge>
+    );
+  };
+
+  const getHotelPaidBadge = (isPaidToHotel: boolean) => {
+    return (
+      <Badge
+        className={
+          isPaidToHotel
+            ? "bg-success/20 text-success"
+            : "bg-warning/20 text-warning"
+        }
+      >
+        {isPaidToHotel ? "Paid" : "Unpaid"}
       </Badge>
     );
   };
@@ -137,9 +141,9 @@ export function BidsListPage() {
       render: (row) => getBidStatusBadge(row.status),
     },
     {
-      header: "Payment Status",
+      header: "Student Paid",
       field: "payment",
-      render: (row) => getPaymentStatusBadge(row.payment?.status),
+      render: (row) => getStudentPaidBadge(row.payment),
     },
     {
       header: "Hotel Paid",
@@ -148,7 +152,7 @@ export function BidsListPage() {
         const canToggle =
           row.status === BidStatus.ACCEPTED &&
           row.payment &&
-          ["AUTHORIZED", "CAPTURED"].includes(row.payment.status);
+          row.payment.status === "CAPTURED";
 
         return (
           <div className="flex items-center gap-2">
@@ -162,9 +166,7 @@ export function BidsListPage() {
                 });
               }}
             />
-            <span className="text-xs text-muted">
-              {row.isPaidToHotel ? "Paid" : "Unpaid"}
-            </span>
+            {getHotelPaidBadge(row.isPaidToHotel)}
           </div>
         );
       },

@@ -44,11 +44,6 @@ const paymentStatusConfig: Record<
     label: "Action Required",
     icon: Clock,
   },
-  AUTHORIZED: {
-    color: "bg-brand/20 text-brand",
-    label: "Payment Authorized",
-    icon: CheckCircle,
-  },
   CAPTURED: {
     color: "bg-success/20 text-success",
     label: "Payment Complete",
@@ -66,7 +61,7 @@ const paymentStatusConfig: Record<
   },
   EXPIRED: {
     color: "bg-muted/20 text-muted",
-    label: "Authorization Expired",
+    label: "Payment Expired",
     icon: Clock,
   },
 };
@@ -135,7 +130,6 @@ export function MyBidsPage() {
                 paymentStatus === "PENDING" ||
                 paymentStatus === "FAILED" ||
                 paymentStatus === "EXPIRED");
-            const isPaymentAuthorized = paymentStatus === "AUTHORIZED";
             const isPaymentCaptured = paymentStatus === "CAPTURED";
             const isPaymentCancelled = paymentStatus === "CANCELLED";
 
@@ -210,19 +204,11 @@ export function MyBidsPage() {
                       </Button>
                     )}
 
-                    {/* Payment authorized - awaiting capture */}
-                    {isPaymentAuthorized && (
-                      <div className="flex items-center gap-2 text-sm text-brand glass px-3 py-1.5 rounded-md border border-brand/30">
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Payment authorized - awaiting confirmation</span>
-                      </div>
-                    )}
-
                     {/* Payment captured - completed */}
                     {isPaymentCaptured && (
                       <div className="flex items-center gap-2 text-sm text-success glass px-3 py-1.5 rounded-md border border-success/30">
                         <CheckCircle className="w-4 h-4" />
-                        <span>Payment complete - awaiting confirmation!</span>
+                        <span>Payment complete - booking confirmed!</span>
                       </div>
                     )}
 

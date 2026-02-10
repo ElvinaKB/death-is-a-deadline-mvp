@@ -76,10 +76,8 @@ export function PayoutModal({ bid, open, onOpenChange }: PayoutModalProps) {
     onOpenChange(false);
   };
 
-  const paymentStatus = bid.payment?.status;
-  const isPaymentCaptured = paymentStatus === "CAPTURED";
-  const isPaymentAuthorized = paymentStatus === "AUTHORIZED";
-  const canPayout = isPaymentCaptured || isPaymentAuthorized;
+  const isPaymentCaptured = bid.payment?.status === "CAPTURED";
+  const canPayout = isPaymentCaptured;
 
   // Calculate commission rate for display
   const commissionRate =
@@ -182,12 +180,12 @@ export function PayoutModal({ bid, open, onOpenChange }: PayoutModalProps) {
               <Badge
                 className={cn(
                   "text-sm",
-                  paymentStatus === "CAPTURED" && "bg-success/20 text-success",
-                  paymentStatus === "AUTHORIZED" && "bg-brand/20 text-brand",
-                  !canPayout && "bg-muted/20 text-muted",
+                  isPaymentCaptured
+                    ? "bg-success/20 text-success"
+                    : "bg-muted/20 text-muted",
                 )}
               >
-                Payment: {paymentStatus || "None"}
+                Student: {isPaymentCaptured ? "Paid" : "Unpaid"}
               </Badge>
 
               <Badge
@@ -198,7 +196,7 @@ export function PayoutModal({ bid, open, onOpenChange }: PayoutModalProps) {
                     : "bg-warning/20 text-warning",
                 )}
               >
-                {bid.isPaidToHotel ? "Hotel Paid" : "Hotel Unpaid"}
+                Hotel: {bid.isPaidToHotel ? "Paid" : "Unpaid"}
               </Badge>
 
               {bid.paidToHotelAt && (
@@ -211,7 +209,7 @@ export function PayoutModal({ bid, open, onOpenChange }: PayoutModalProps) {
             {!canPayout && (
               <p className="text-sm text-warning flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
-                Payment must be authorized or captured before payout can be
+                Student payment must be completed before hotel payout can be
                 processed
               </p>
             )}

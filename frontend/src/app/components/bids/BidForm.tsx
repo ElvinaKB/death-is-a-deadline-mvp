@@ -63,11 +63,16 @@ interface StoredBidFormState {
 }
 
 // Helper to save form state to localStorage
-const saveBidFormToStorage = (placeId: string, values: { checkInDate?: Date; checkOutDate?: Date; bidPerNight: string }) => {
+const saveBidFormToStorage = (
+  placeId: string,
+  values: { checkInDate?: Date; checkOutDate?: Date; bidPerNight: string },
+) => {
   const state: StoredBidFormState = {
     placeId,
     checkInDate: values.checkInDate ? values.checkInDate.toISOString() : null,
-    checkOutDate: values.checkOutDate ? values.checkOutDate.toISOString() : null,
+    checkOutDate: values.checkOutDate
+      ? values.checkOutDate.toISOString()
+      : null,
     bidPerNight: values.bidPerNight,
     timestamp: Date.now(),
   };
@@ -75,23 +80,27 @@ const saveBidFormToStorage = (placeId: string, values: { checkInDate?: Date; che
 };
 
 // Helper to load form state from localStorage
-const loadBidFormFromStorage = (placeId: string): { checkInDate?: Date; checkOutDate?: Date; bidPerNight: string } | null => {
+const loadBidFormFromStorage = (
+  placeId: string,
+): { checkInDate?: Date; checkOutDate?: Date; bidPerNight: string } | null => {
   try {
     const stored = localStorage.getItem(BID_FORM_STORAGE_KEY);
     if (!stored) return null;
-    
+
     const state: StoredBidFormState = JSON.parse(stored);
-    
+
     // Only restore if it's for the same place and not older than 1 hour
     const ONE_HOUR = 60 * 60 * 1000;
     if (state.placeId !== placeId || Date.now() - state.timestamp > ONE_HOUR) {
       localStorage.removeItem(BID_FORM_STORAGE_KEY);
       return null;
     }
-    
+
     return {
       checkInDate: state.checkInDate ? new Date(state.checkInDate) : undefined,
-      checkOutDate: state.checkOutDate ? new Date(state.checkOutDate) : undefined,
+      checkOutDate: state.checkOutDate
+        ? new Date(state.checkOutDate)
+        : undefined,
       bidPerNight: state.bidPerNight,
     };
   } catch {
@@ -192,12 +201,8 @@ function BidFormInner({
       return { success: false, error: error.message || "Payment failed" };
     }
 
-    // For pre-auth, the status should be "requires_capture"
-    if (
-      paymentIntent &&
-      (paymentIntent.status === "requires_capture" ||
-        paymentIntent.status === "succeeded")
-    ) {
+    // Payment succeeded - funds have been charged
+    if (paymentIntent && paymentIntent.status === "succeeded") {
       return { success: true };
     }
 
@@ -833,7 +838,7 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
     },
     EXPIRED: {
       color: "bg-muted/20 text-muted",
-      label: "Authorization Expired",
+      label: "Payment Expired",
       icon: Clock,
     },
   };
@@ -845,7 +850,6 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
       paymentStatus === PaymentStatus.PENDING ||
       paymentStatus === PaymentStatus.FAILED ||
       paymentStatus === PaymentStatus.EXPIRED);
-  const isPaymentAuthorized = paymentStatus === PaymentStatus.AUTHORIZED;
   const isPaymentCaptured = paymentStatus === PaymentStatus.CAPTURED;
   const isPaymentCancelled = paymentStatus === PaymentStatus.CANCELLED;
 
@@ -947,13 +951,6 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
               : "Complete Payment"}
           </Link>
         </Button>
-      )}
-
-      {isPaymentAuthorized && (
-        <div className="flex items-center justify-center gap-2 text-sm text-brand glass px-3 py-2 rounded-md border border-brand/30">
-          <CheckCircle className="w-4 h-4" />
-          <span>Payment authorized - awaiting confirmation</span>
-        </div>
       )}
 
       {isPaymentCaptured && (

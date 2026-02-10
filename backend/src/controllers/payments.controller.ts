@@ -1,5 +1,5 @@
 import { bid_status, payment_status, Prisma } from "@prisma/client";
-import { addDays, format, eachDayOfInterval } from "date-fns";
+import { format, eachDayOfInterval } from "date-fns";
 import { Request, Response } from "express";
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
@@ -187,11 +187,11 @@ export async function createPaymentIntent(req: Request, res: Response) {
   // Convert Decimal to number for Stripe (amount in cents)
   const amountInCents = Math.round(Number(bid.totalAmount) * 100);
 
-  // Create Stripe PaymentIntent with manual capture
+  // Create Stripe PaymentIntent with automatic capture (immediate charge)
   const paymentIntent = await stripe.paymentIntents.create({
     amount: amountInCents,
     currency: STRIPE_CONFIG.CURRENCY,
-    capture_method: "manual", // This enables pre-authorization
+    capture_method: "automatic", // Charge immediately when payment is confirmed
     metadata: {
       [STRIPE_CONFIG.METADATA_KEYS.BID_ID]: bid.id,
       [STRIPE_CONFIG.METADATA_KEYS.STUDENT_ID]: studentId,
@@ -204,9 +204,6 @@ export async function createPaymentIntent(req: Request, res: Response) {
     description: `Bid for ${bid.place.name} - ${bid.totalNights} nights`,
   });
 
-  // Calculate expiry date (6 days from now)
-  const expiresAt = addDays(new Date(), STRIPE_CONFIG.AUTH_EXPIRY_DAYS);
-
   // Create or update payment record
   const payment = await prisma.payment.upsert({
     where: { bidId: bid.id },
@@ -218,13 +215,11 @@ export async function createPaymentIntent(req: Request, res: Response) {
       stripePaymentIntentId: paymentIntent.id,
       stripeClientSecret: paymentIntent.client_secret,
       status: payment_status.PENDING,
-      expiresAt,
     },
     update: {
       stripePaymentIntentId: paymentIntent.id,
       stripeClientSecret: paymentIntent.client_secret,
       status: payment_status.PENDING,
-      expiresAt,
       failureReason: null,
       failedAt: null,
     },
@@ -309,21 +304,21 @@ export async function handlePaymentWebhook(req: Request, res: Response) {
   const paymentIntent = event.data.object as any;
 
   switch (event.type) {
-    case "payment_intent.amount_capturable_updated":
-      // Payment authorized successfully (funds held)
-      const authorizedPayment = await prisma.payment.update({
+    case "payment_intent.succeeded":
+      // Payment succeeded - funds have been charged
+      const succeededPayment = await prisma.payment.update({
         where: { stripePaymentIntentId: paymentIntent.id },
         data: {
-          status: payment_status.AUTHORIZED,
-          authorizedAt: new Date(),
+          status: payment_status.CAPTURED,
+          capturedAt: new Date(),
           stripePaymentMethodId: paymentIntent.payment_method,
         },
         include: { bid: true },
       });
 
-      // Calculate and save commission when payment is authorized
-      if (authorizedPayment.bid) {
-        const totalAmount = Number(authorizedPayment.bid.totalAmount);
+      // Calculate and save commission when payment is captured
+      if (succeededPayment.bid) {
+        const totalAmount = Number(succeededPayment.bid.totalAmount);
         const platformCommission =
           Math.round(
             totalAmount * STRIPE_CONFIG.PLATFORM_COMMISSION_RATE * 100,
@@ -332,13 +327,14 @@ export async function handlePaymentWebhook(req: Request, res: Response) {
           Math.round((totalAmount - platformCommission) * 100) / 100;
 
         await prisma.bid.update({
-          where: { id: authorizedPayment.bidId },
+          where: { id: succeededPayment.bidId },
           data: {
             platformCommission,
             payableToHotel,
           },
         });
       }
+      console.log("Payment status updated to: CAPTURED");
       break;
 
     case "payment_intent.payment_failed":
@@ -365,18 +361,6 @@ export async function handlePaymentWebhook(req: Request, res: Response) {
         },
       });
       console.log("Payment status updated to: CANCELLED");
-      break;
-
-    case "payment_intent.succeeded":
-      // This happens after capture
-      await prisma.payment.update({
-        where: { stripePaymentIntentId: paymentIntent.id },
-        data: {
-          status: payment_status.CAPTURED,
-          capturedAt: new Date(),
-        },
-      });
-      console.log("Payment status updated to: CAPTURED");
       break;
   }
 
@@ -427,55 +411,13 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
     stripePaymentMethodId: paymentIntent.payment_method as string,
   };
 
-  if (paymentIntent.status === "requires_capture") {
-    // CRITICAL: Check inventory availability before accepting the authorization
-    // This prevents overbooking during simultaneous bids
-    const bid = payment.bid;
-    const place = bid.place;
+  if (paymentIntent.status === "succeeded") {
+    // Payment succeeded - funds have been charged
+    newStatus = payment_status.CAPTURED;
+    updateData.status = payment_status.CAPTURED;
+    updateData.capturedAt = new Date();
 
-    const inventoryCheck = await checkInventoryForBidDates(
-      bid.placeId,
-      place.maxInventory,
-      new Date(bid.checkInDate),
-      new Date(bid.checkOutDate),
-      bid.id, // Exclude this bid from the count
-    );
-
-    if (inventoryCheck.isOverbooked) {
-      // Cancel the Stripe payment intent since inventory is exhausted
-      await stripe.paymentIntents.cancel(payment.stripePaymentIntentId);
-
-      // Update payment as cancelled
-      await prisma.payment.update({
-        where: { id },
-        data: {
-          status: payment_status.CANCELLED,
-          cancelledAt: new Date(),
-          failureReason: `Inventory sold out for ${inventoryCheck.overbookedDate}. Another booking was confirmed before yours.`,
-        },
-      });
-
-      // Update bid status back to pending or rejected
-      await prisma.bid.update({
-        where: { id: bid.id },
-        data: {
-          status: bid_status.REJECTED,
-          rejectionReason: `Inventory sold out for ${inventoryCheck.overbookedDate}. Another booking was confirmed before yours.`,
-        },
-      });
-
-      throw new CustomError(
-        `Sorry, this place is now fully booked for ${inventoryCheck.overbookedDate}. Another guest confirmed their booking just before you. Your payment has been cancelled and you have not been charged.`,
-        409, // Conflict status code
-      );
-    }
-
-    // Funds are held (pre-authorization successful)
-    newStatus = payment_status.AUTHORIZED;
-    updateData.status = payment_status.AUTHORIZED;
-    updateData.authorizedAt = new Date();
-
-    // Calculate and save commission when payment is authorized
+    // Calculate and save commission when payment is captured
     const totalAmount = Number(payment.bid.totalAmount);
     const platformCommission =
       Math.round(totalAmount * STRIPE_CONFIG.PLATFORM_COMMISSION_RATE * 100) /
@@ -520,8 +462,8 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
     },
   });
 
-  // Send confirmation emails if payment was authorized
-  if (newStatus === payment_status.AUTHORIZED && updatedPayment.bid) {
+  // Send confirmation emails if payment was captured
+  if (newStatus === payment_status.CAPTURED && updatedPayment.bid) {
     const bid = updatedPayment.bid;
     const place = bid.place as typeof bid.place & { email?: string | null };
     const student = updatedPayment.student;
@@ -573,8 +515,8 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
 
   res.status(200).json({
     message:
-      newStatus === payment_status.AUTHORIZED
-        ? "Payment authorized successfully. Funds are held."
+      newStatus === payment_status.CAPTURED
+        ? "Payment successful. Your booking is confirmed."
         : `Payment status: ${newStatus}`,
     data: { payment: formatPayment(updatedPayment) },
   });
@@ -658,7 +600,9 @@ export async function getPayment(req: Request, res: Response) {
 
 /**
  * Capture payment (admin only)
- * This actually charges the customer's card
+ * Note: With automatic capture, payments are charged immediately.
+ * This endpoint is kept for backwards compatibility but will return an error
+ * since payments are no longer pre-authorized.
  */
 export async function capturePayment(req: Request, res: Response) {
   const { id } = req.params;
@@ -681,54 +625,41 @@ export async function capturePayment(req: Request, res: Response) {
     throw new CustomError("Payment not found", 404);
   }
 
-  if (payment.status !== payment_status.AUTHORIZED) {
-    throw new CustomError(
-      `Cannot capture payment with status: ${payment.status}. Only AUTHORIZED payments can be captured.`,
-      400,
-    );
-  }
-
-  if (!payment.stripePaymentIntentId) {
-    throw new CustomError("No payment intent found", 400);
-  }
-
-  // Capture the payment in Stripe
-  try {
-    await stripe.paymentIntents.capture(payment.stripePaymentIntentId);
-  } catch (error: any) {
-    throw new CustomError(`Failed to capture payment: ${error.message}`, 500);
-  }
-
-  // Update payment record
-  const updatedPayment = await prisma.payment.update({
-    where: { id },
-    data: {
-      status: "CAPTURED",
-      capturedAt: new Date(),
-      adminNotes: adminNotes || payment.adminNotes,
-    },
-    include: {
-      bid: {
+  // Since we now use automatic capture, payments go directly to CAPTURED status
+  if (payment.status === payment_status.CAPTURED) {
+    // Update admin notes if provided
+    if (adminNotes) {
+      const updatedPayment = await prisma.payment.update({
+        where: { id },
+        data: { adminNotes },
         include: {
-          place: {
-            include: { images: { orderBy: { order: "asc" }, take: 1 } },
+          bid: {
+            include: {
+              place: {
+                include: { images: { orderBy: { order: "asc" }, take: 1 } },
+              },
+            },
           },
         },
-      },
-    },
-  });
+      });
+      return res.status(200).json({
+        message: "Payment already captured. Admin notes updated.",
+        data: { payment: formatPayment(updatedPayment) },
+      });
+    }
+    throw new CustomError("Payment already captured", 400);
+  }
 
-  res.status(200).json({
-    message: "Payment captured successfully. Funds have been charged.",
-    data: {
-      payment: formatPayment(updatedPayment),
-    },
-  });
+  throw new CustomError(
+    `Cannot capture payment with status: ${payment.status}. Payments are now charged immediately upon confirmation.`,
+    400,
+  );
 }
 
 /**
- * Cancel payment / release hold (admin only)
- * This releases the held funds back to the customer
+ * Cancel payment (admin only)
+ * This cancels pending payments before they are completed
+ * Note: Once a payment is captured, it cannot be cancelled - a refund would be needed instead
  */
 export async function cancelPayment(req: Request, res: Response) {
   const { id } = req.params;
@@ -745,12 +676,9 @@ export async function cancelPayment(req: Request, res: Response) {
     throw new CustomError("Payment not found", 404);
   }
 
-  if (
-    payment.status !== payment_status.AUTHORIZED &&
-    payment.status !== payment_status.PENDING
-  ) {
+  if (payment.status !== payment_status.PENDING) {
     throw new CustomError(
-      `Cannot cancel payment with status: ${payment.status}. Only PENDING or AUTHORIZED payments can be cancelled.`,
+      `Cannot cancel payment with status: ${payment.status}. Only PENDING payments can be cancelled. For captured payments, a refund is required.`,
       400,
     );
   }
@@ -759,7 +687,7 @@ export async function cancelPayment(req: Request, res: Response) {
     throw new CustomError("No payment intent found", 400);
   }
 
-  // Cancel the payment intent in Stripe (releases the hold)
+  // Cancel the payment intent in Stripe
   try {
     await stripe.paymentIntents.cancel(payment.stripePaymentIntentId, {
       cancellation_reason: "requested_by_customer",
@@ -798,7 +726,7 @@ export async function cancelPayment(req: Request, res: Response) {
   });
 
   res.status(200).json({
-    message: "Payment cancelled. Held funds have been released.",
+    message: "Payment cancelled.",
     data: {
       payment: formatPayment(updatedPayment),
     },
