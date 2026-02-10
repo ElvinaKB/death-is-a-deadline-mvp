@@ -1,20 +1,22 @@
 import {
+  AlertTriangle,
   Building2,
   CheckCircle,
-  ChevronRight,
+  CreditCard,
   DollarSign,
   GraduationCap,
   Home,
+  Lock,
   MapPin,
-  Shield,
+  RefreshCw,
   XCircle,
   Zap,
-  AlertTriangle,
 } from "lucide-react";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useState } from "react";
 import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
 import { useNavigate, useParams } from "react-router-dom";
+import placeDetailBackgroundImage from "../../../assets/place-details.jpeg";
 import { ENDPOINTS } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
 import { ROUTES, getRoute } from "../../../config/routes.config";
@@ -29,6 +31,7 @@ import { BidForm } from "../../components/bids/BidForm";
 import { ImageGalleryModal } from "../../components/common/ImageGalleryModal";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
 import { HomeHeader } from "../../components/home";
+import { Testimonials } from "../../components/places/Testimonials";
 import {
   Accordion,
   AccordionContent,
@@ -52,8 +55,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog";
-import placeDetailBackgroundImage from "../../../assets/place-details.jpeg";
-import { Testimonials } from "../../components/places/Testimonials";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_APP_MAPBOX;
 
@@ -73,15 +74,15 @@ const FAQ_DATA = [
   },
   {
     id: "charged",
-    question: "Will my card be charged?",
+    question: "When will my card be charged?",
     answer:
-      "Your card is only charged if your bid is accepted. We securely store your payment information, but no charge is made until a hotel accepts your offer.",
+      "Your card is charged immediately when your bid is accepted. If your bid is rejected, no charge is made. You'll receive a confirmation email once your booking is confirmed.",
   },
   {
     id: "cancel",
     question: "Can I cancel a bid?",
     answer:
-      "Once a bid is accepted, it's considered a confirmed booking and follows standard hotel cancellation policies. Pending bids can be cancelled anytime before acceptance.",
+      "Once a bid is accepted and payment is processed, it's considered a confirmed booking and follows standard hotel cancellation policies. Pending bids can be cancelled anytime before acceptance.",
   },
 ];
 
@@ -317,8 +318,8 @@ export function PlaceDetailPage() {
           {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Section - Description & Bid Form */}
-            <div className="lg:col-span-2 space-y-6">
-              <div className="glass-2 rounded-2xl p-6 border border-line">
+            <div className="h-full lg:col-span-2 space-y-6">
+              <div className="h-full glass-2 rounded-2xl p-6 border border-line">
                 <div className="flex gap-8">
                   {/* Description */}
                   <div className="flex flex-1 flex-col gap-5">
@@ -368,39 +369,55 @@ export function PlaceDetailPage() {
             </div>
 
             {/* Right Section - Potential Outcomes */}
-            <div className="lg:col-span-1">
-              <div className="glass-2 rounded-2xl p-6 border border-line">
-                <h3 className="text-lg font-semibold text-fg mb-4">
-                  Your Potential Outcomes
+            <div className="h-full lg:col-span-1">
+              <div className="h-full glass-2 rounded-2xl p-6 border border-line">
+                <h3 className="text-lg font-semibold text-fg mb-4 text-center">
+                  Your Outcomes
                 </h3>
 
                 {/* Accepted Outcome */}
-                <div className="glass rounded-xl p-4 mb-3 border border-line">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 bg-success rounded-full flex items-center justify-center shrink-0">
-                      <CheckCircle className="w-6 h-6 text-white" />
+                <div className="glass rounded-xl p-5 mb-3 border border-line text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-14 h-14 bg-success rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-fg">Bid Accepted!</h4>
-                      <p className="text-sm text-muted">
-                        Automatically accepted based on hotel's minimum price
-                        rules.
+                      <h4 className="font-bold text-fg text-lg">
+                        Bid Accepted!
+                      </h4>
+                      <p className="text-success text-sm mt-1">
+                        You're booked{" "}
+                        <span className="text-muted">at your price.</span>
+                      </p>
+                    </div>
+                    <div className="border-t border-line w-full pt-3 mt-1">
+                      <div className="flex items-center justify-center gap-2 text-muted text-sm">
+                        <CreditCard className="w-4 h-4" />
+                        <span>Card charged now</span>
+                      </div>
+                      <p className="text-muted text-xs mt-2">
+                        Private rate. Not publicly listed.
                       </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Rejected Outcome */}
-                <div className="glass rounded-xl p-4 border border-line">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 bg-danger rounded-full flex items-center justify-center shrink-0">
-                      <XCircle className="w-6 h-6 text-white" />
+                <div className="glass rounded-xl p-5 border border-line text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-14 h-14 bg-danger rounded-full flex items-center justify-center">
+                      <XCircle className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-fg">Rejected Bid</h4>
-                      <p className="text-sm text-muted">
-                        No charge. Try adjusting your dates or price.
-                      </p>
+                      <h4 className="font-bold text-fg text-lg">Too Low</h4>
+                      <p className="text-danger text-sm mt-1">No charge.</p>
+                    </div>
+                    <div className="border-t border-line w-full pt-3 mt-1">
+                      <div className="flex items-center justify-center gap-2 text-warning text-sm">
+                        <RefreshCw className="w-4 h-4" />
+                        <span>Raise your bid</span>
+                      </div>
+                      <p className="text-warning text-sm">or try new dates.</p>
                     </div>
                   </div>
                 </div>
@@ -410,48 +427,63 @@ export function PlaceDetailPage() {
 
           {/* Ready Section */}
           <div className="mt-12">
-            <h2 className="text-2xl font-bold text-fg mb-6 text-center">
-              {"Ready? Bid -> Verify -> Pack your bag."}
+            <h2 className="text-2xl font-bold text-fg mb-8 text-center">
+              Ready? <span className="text-muted">→</span> Bid{" "}
+              <span className="text-muted">→</span> Verify{" "}
+              <span className="text-muted">→</span> Pack Your Bag
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Students Use This */}
-              <Card className="flex p-5 items-start gap-4">
-                <div className="w-10 h-10 rounded-full border border-muted flex items-center justify-center shrink-0">
-                  <GraduationCap className="w-5 h-5 text-muted" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-fg">Students Use This</h3>
-                  <p className="text-sm text-muted">
-                    Save up to 60% of normal hotel rates.
-                  </p>
-                </div>
-              </Card>
-
-              {/* Instant accept or */}
-              <Card className="flex p-5 items-start gap-4">
-                <div className="w-10 h-10 rounded-full border border-muted flex items-center justify-center shrink-0">
-                  <Zap className="w-5 h-5 text-muted" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-fg">Instant accept or</h3>
-                  <p className="text-sm text-muted">
-                    Check-in double, decline or rejection
-                  </p>
+              {/* Verify Card */}
+              <Card className="glass-2 border-warning/30 p-6 text-center">
+                <div className="flex flex-col items-center">
+                  <GraduationCap className="w-10 h-10 text-warning mb-4" />
+                  <h3 className="font-bold text-fg text-2xl mb-1">Verify</h3>
+                  <p className="text-success text-base mb-4">Students only.</p>
+                  <div className="border-t border-line w-full pt-4">
+                    <p className="text-fg font-semibold text-lg mb-1">
+                      up to 60% off retail
+                    </p>
+                    <p className="text-muted text-base">
+                      .edu unlocks hidden rates.
+                    </p>
+                  </div>
                 </div>
               </Card>
 
-              {/* Get instant decision */}
-              <Card className="flex p-5 items-start gap-4">
-                <div className="w-10 h-10 rounded-full border border-muted flex items-center justify-center shrink-0">
-                  <Shield className="w-5 h-5 text-muted" />
+              {/* Bid Card */}
+              <Card className="glass-2 border-warning/30 p-6 text-center">
+                <div className="flex flex-col items-center">
+                  <DollarSign className="w-10 h-10 text-warning mb-4" />
+                  <h3 className="font-bold text-fg text-2xl mb-1">Bid</h3>
+                  <p className="text-muted text-base mb-4">Name your price.</p>
+                  <div className="border-t border-line w-full pt-4">
+                    <div className="inline-flex items-center gap-2 bg-glass px-4 py-2 rounded-full border border-line">
+                      <Lock className="w-5 h-5 text-muted" />
+                      <span className="text-muted text-base">Private</span>
+                    </div>
+                    <p className="text-muted text-base mt-3">
+                      No public discounts.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-fg">
-                    Get instant decision
+              </Card>
+
+              {/* Win or Walk Card */}
+              <Card className="glass-2 border-warning/30 p-6 text-center">
+                <div className="flex flex-col items-center">
+                  <Zap className="w-10 h-10 text-warning mb-4" />
+                  <h3 className="font-bold text-fg text-2xl mb-1">
+                    Win or Walk
                   </h3>
-                  <p className="text-sm text-muted">
-                    No charge. Try another price or date.
-                  </p>
+                  <p className="text-muted text-base mb-4">Accepted → Booked</p>
+                  <div className="border-t border-line w-full pt-4">
+                    <div className="flex items-center justify-center gap-2 text-base">
+                      <XCircle className="w-5 h-5 text-danger" />
+                      <span className="text-danger">Too low</span>
+                      <span className="text-muted">→</span>
+                      <span className="text-muted">No charge</span>
+                    </div>
+                  </div>
                 </div>
               </Card>
             </div>

@@ -26,6 +26,7 @@ import {
   XCircle,
   AlertCircle,
   DollarSign,
+  RefreshCw,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import type { StripeCardElement } from "@stripe/stripe-js";
@@ -259,21 +260,135 @@ function BidFormInner({
                 await confirmPayment.mutateAsync({
                   id: paymentResult.payment.id,
                 });
-                toast.success("Payment authorized! Awaiting confirmation.");
+                toast.custom(
+                  () => (
+                    <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-12 h-12 rounded-full border-2 border-success flex items-center justify-center">
+                          <CheckCircle className="w-7 h-7 text-success" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-fg text-lg">
+                            Bid Accepted!
+                          </h3>
+                          <p className="text-success text-sm">
+                            You're booked at your price.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="border-t border-line pt-3">
+                        <div className="flex items-center gap-2 text-muted">
+                          <CreditCard className="w-4 h-4" />
+                          <div>
+                            <p className="text-fg text-sm">Card charged now</p>
+                            <p className="text-muted text-xs">
+                              Private rate. Not publicly listed.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                  { duration: 5000 },
+                );
                 setPaymentSuccess(true);
               } catch (err) {
                 // Payment succeeded with Stripe but backend update failed
-                toast.success("Payment authorized! Awaiting confirmation.");
+                toast.custom(
+                  () => (
+                    <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-12 h-12 rounded-full border-2 border-success flex items-center justify-center">
+                          <CheckCircle className="w-7 h-7 text-success" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-fg text-lg">
+                            Bid Accepted!
+                          </h3>
+                          <p className="text-success text-sm">
+                            You're booked at your price.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="border-t border-line pt-3">
+                        <div className="flex items-center gap-2 text-muted">
+                          <CreditCard className="w-4 h-4" />
+                          <div>
+                            <p className="text-fg text-sm">Card charged now</p>
+                            <p className="text-muted text-xs">
+                              Private rate. Not publicly listed.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                  { duration: 5000 },
+                );
                 setPaymentSuccess(true);
               }
             } else {
               setPaymentError(confirmResult.error || "Payment failed");
             }
           } else {
-            toast.success("Bid accepted!");
+            toast.custom(
+              () => (
+                <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 rounded-full border-2 border-success flex items-center justify-center">
+                      <CheckCircle className="w-7 h-7 text-success" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-fg text-lg">
+                        Bid Accepted!
+                      </h3>
+                      <p className="text-success text-sm">
+                        You're booked at your price.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="border-t border-line pt-3">
+                    <div className="flex items-center gap-2 text-muted">
+                      <CreditCard className="w-4 h-4" />
+                      <div>
+                        <p className="text-fg text-sm">Card charged now</p>
+                        <p className="text-muted text-xs">
+                          Private rate. Not publicly listed.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ),
+              { duration: 5000 },
+            );
           }
           setIsProcessing(false);
         } else if (result.status === BidStatus.REJECTED) {
+          toast.custom(
+            () => (
+              <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-full border-2 border-danger flex items-center justify-center">
+                    <XCircle className="w-7 h-7 text-danger" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-fg text-lg">Too Low</h3>
+                    <p className="text-danger text-sm">No charge.</p>
+                  </div>
+                </div>
+                <div className="border-t border-line pt-3">
+                  <div className="flex items-center gap-2 text-warning">
+                    <RefreshCw className="w-4 h-4" />
+                    <p className="text-muted text-sm">
+                      Raise your bid or try new dates.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ),
+            { duration: 5000 },
+          );
           setIsProcessing(false);
         } else {
           // PENDING status
@@ -424,7 +539,7 @@ function BidFormInner({
             Booking Confirmed!
           </h3>
           <p className="text-sm text-muted mb-4">
-            Your payment has been authorized and your booking is confirmed.
+            Your payment has been captured and your booking is confirmed.
           </p>
         </div>
 
