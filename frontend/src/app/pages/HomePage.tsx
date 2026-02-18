@@ -18,9 +18,16 @@ export function HomePage() {
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | undefined>();
   const [hoveredPlaceId, setHoveredPlaceId] = useState<string | null>(null);
 
-  // Dialog open state for info modal
-  const [open, setOpen] = useState(true);
-  const onOpenChange = (val: boolean) => setOpen(val);
+  // Dialog open state for info modal - only show if not seen before
+  const [open, setOpen] = useState(() => {
+    return localStorage.getItem("infoModalSeen") !== "true";
+  });
+  const onOpenChange = (val: boolean) => {
+    setOpen(val);
+    if (!val) {
+      localStorage.setItem("infoModalSeen", "true");
+    }
+  };
 
   const searchDebounced = useDebounce(searchQuery, 300);
   const maxBidDebounced = useDebounce(maxBid, 300);
