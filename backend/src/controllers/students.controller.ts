@@ -23,7 +23,7 @@ export const getStudentDetails = async (id: string) => {
     "get_student_detail",
     {
       student_id: id,
-    }
+    },
   );
   const student = getRawStudent(data);
 
@@ -98,7 +98,7 @@ export async function rejectStudent(req: Request, res: Response) {
     process.env.JWT_SECRET ?? "jwt_secret",
     {
       expiresIn: "1d",
-    }
+    },
   );
 
   await sendEmail({
@@ -117,7 +117,28 @@ export async function rejectStudent(req: Request, res: Response) {
 }
 
 export async function getStudentsStats(req: Request, res: Response) {
-  const { data, error } = await supabase.rpc("students_stats");
-  if (error) throw new CustomError(error.message, 400);
+  const [studentStats, bidStats, hotelStats, topProperties] = await Promise.all(
+    [
+      supabase.rpc("students_stats"),
+      supabase.rpc("bid_stats"),
+      supabase.rpc("hotel_stats"),
+      supabase.rpc("top_properties"),
+    ],
+  );
+
+  if (studentStats.error)
+    throw new CustomError(studentStats.error.message, 400);
+  if (bidStats.error) throw new CustomError(bidStats.error.message, 400);
+  if (hotelStats.error) throw new CustomError(hotelStats.error.message, 400);
+  if (topProperties.error)
+    throw new CustomError(topProperties.error.message, 400);
+
+  const data = {
+    ...studentStats.data,
+    ...bidStats.data,
+    ...hotelStats.data,
+    topProperties: topProperties.data,
+  };
+
   res.status(200).json({ data });
 }
