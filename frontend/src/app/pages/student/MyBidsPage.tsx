@@ -66,7 +66,6 @@ const paymentStatusConfig: Record<
   },
 };
 
-// Helper function to format currency
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -92,7 +91,7 @@ export function MyBidsPage() {
     return (
       <div className="min-h-screen bg-bg">
         <HomeHeader />
-        <div className="container mx-auto py-8">
+        <div className="container mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold text-fg mb-6">My Bids</h1>
           <Card className="bg-glass-2 border-line">
             <CardContent className="py-12 text-center">
@@ -112,10 +111,12 @@ export function MyBidsPage() {
   return (
     <div className="min-h-screen bg-bg">
       <HomeHeader />
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-bold text-fg mb-6">My Bids</h1>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <h1 className="text-xl sm:text-2xl font-bold text-fg mb-4 sm:mb-6">
+          My Bids
+        </h1>
 
-        <div className="grid gap-4">
+        <div className="grid gap-3 sm:gap-4">
           {bids.map((bid) => {
             const payment = bid.payment;
             const paymentStatus = payment?.status;
@@ -123,7 +124,6 @@ export function MyBidsPage() {
               ? paymentStatusConfig[paymentStatus]
               : null;
 
-            // Determine what action button to show
             const canCheckout =
               bid.status === "ACCEPTED" &&
               (!payment ||
@@ -135,94 +135,108 @@ export function MyBidsPage() {
 
             return (
               <Card key={bid.id} className="bg-glass-2 border-line">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg text-fg">
+                <CardHeader className="pb-2 px-4 sm:px-6">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-base sm:text-lg text-fg truncate">
                         {bid.place?.name || "Unknown Place"}
                       </CardTitle>
-                      <CardDescription className="flex items-center gap-1 mt-1 text-muted">
-                        <MapPin className="w-3 h-3" />
-                        {bid.place?.city}, {bid.place?.country}
+                      <CardDescription className="flex items-center gap-1 mt-1 text-muted text-xs sm:text-sm">
+                        <MapPin className="w-3 h-3 shrink-0" />
+                        <span className="truncate">
+                          {bid.place?.city}, {bid.place?.country}
+                        </span>
                       </CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className={bidStatusColors[bid.status] || ""}>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0">
+                      <Badge
+                        className={`text-xs ${bidStatusColors[bid.status] || ""}`}
+                      >
                         {bid.status}
                       </Badge>
                       {paymentConfig && (
-                        <Badge className={paymentConfig.color}>
+                        <Badge className={`text-xs ${paymentConfig.color}`}>
                           <paymentConfig.icon className="w-3 h-3 mr-1" />
-                          {paymentConfig.label}
+                          <span className="hidden sm:inline">
+                            {paymentConfig.label}
+                          </span>
+                          <span className="sm:hidden">
+                            {paymentConfig.label.split(" ")[0]}
+                          </span>
                         </Badge>
                       )}
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-muted" />
-                      <span className="text-fg">
+                <CardContent className="px-4 sm:px-6">
+                  {/* Stats grid: 2 cols on mobile, 4 on desktop */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
+                    <div className="flex items-center gap-1.5">
+                      <DollarSign className="w-4 h-4 text-muted shrink-0" />
+                      <span className="text-fg text-xs sm:text-sm">
                         <strong>Bid:</strong> {formatCurrency(bid.bidPerNight)}
-                        /night
+                        <span className="text-muted">/night</span>
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-muted" />
-                      <span className="text-fg">
-                        <strong>Check-in:</strong>{" "}
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-muted shrink-0" />
+                      <span className="text-fg text-xs sm:text-sm">
+                        <strong>In:</strong>{" "}
                         {format(new Date(bid.checkInDate), "MMM d, yyyy")}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-muted" />
-                      <span className="text-fg">
-                        <strong>Check-out:</strong>{" "}
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-muted shrink-0" />
+                      <span className="text-fg text-xs sm:text-sm">
+                        <strong>Out:</strong>{" "}
                         {format(new Date(bid.checkOutDate), "MMM d, yyyy")}
                       </span>
                     </div>
-                    <div className="text-muted">
+                    <div className="flex items-center gap-1.5 text-xs sm:text-sm">
                       <strong className="text-fg">Total:</strong>{" "}
-                      {formatCurrency(bid.totalAmount)}
+                      <span className="text-fg">
+                        {formatCurrency(bid.totalAmount)}
+                      </span>
                     </div>
                   </div>
 
+                  {/* Action buttons */}
                   <div className="flex items-center gap-2 mt-4 flex-wrap">
-                    {/* Show checkout button if payment not made or failed */}
                     {canCheckout && (
-                      <Button asChild size="sm" className="btn-bid">
+                      <Button
+                        asChild
+                        size="sm"
+                        className="btn-bid h-8 text-xs sm:text-sm"
+                      >
                         <Link
                           to={ROUTES.STUDENT_CHECKOUT.replace(":bidId", bid.id)}
                         >
-                          <CreditCard className="w-4 h-4 mr-1" />
+                          <CreditCard className="w-3.5 h-3.5 mr-1" />
                           {paymentStatus === "FAILED" ||
                           paymentStatus === "EXPIRED"
                             ? "Retry Payment"
-                            : "Proceed to Checkout"}
+                            : "Checkout"}
                         </Link>
                       </Button>
                     )}
 
-                    {/* Payment captured - completed */}
                     {isPaymentCaptured && (
-                      <div className="flex items-center gap-2 text-sm text-success glass px-3 py-1.5 rounded-md border border-success/30">
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Payment complete - booking confirmed!</span>
+                      <div className="flex items-center gap-1.5 text-xs sm:text-sm text-success glass px-2.5 py-1.5 rounded-md border border-success/30">
+                        <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>Booking confirmed!</span>
                       </div>
                     )}
 
-                    {/* Payment cancelled */}
                     {isPaymentCancelled && (
-                      <div className="flex items-center gap-2 text-sm text-muted glass px-3 py-1.5 rounded-md border border-line">
-                        <XCircle className="w-4 h-4" />
-                        <span>Payment was cancelled</span>
+                      <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted glass px-2.5 py-1.5 rounded-md border border-line">
+                        <XCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>Payment cancelled</span>
                       </div>
                     )}
 
                     {bid.status === "REJECTED" && bid.rejectionReason && (
-                      <span className="text-sm text-danger">
-                        Rejection reason: {bid.rejectionReason}
+                      <span className="text-xs sm:text-sm text-danger">
+                        Rejected: {bid.rejectionReason}
                       </span>
                     )}
 
@@ -230,7 +244,7 @@ export function MyBidsPage() {
                       variant="outline"
                       size="sm"
                       asChild
-                      className="border-line text-fg hover:bg-glass"
+                      className="border-line text-fg hover:bg-glass h-8 text-xs sm:text-sm ml-auto"
                     >
                       <Link
                         to={ROUTES.PUBLIC_PLACE_DETAIL.replace(
