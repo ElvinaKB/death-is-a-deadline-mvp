@@ -212,10 +212,10 @@ export function AdminDashboardPage() {
       </section>
 
       {/* ── STUDENTS + TOP PROPERTIES: Side by side ── */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section className="flex flex-col md:flex-row w-full gap-6">
         {/* Students: stacked breakdown with ratio bars */}
-        <div>
-          <p className="text-xs font-semibold text-muted uppercase tracking-widest mb-4">
+        <div className="w-full">
+          <p className=" text-xs font-semibold text-muted uppercase tracking-widest mb-4">
             Students
           </p>
           <Card className="bg-glass-2 border-line h-full">
@@ -302,7 +302,7 @@ export function AdminDashboardPage() {
         </div>
 
         {/* Top Properties: ranked list with inline revenue bars */}
-        <div>
+        <div className="w-full">
           <p className="text-xs font-semibold text-muted uppercase tracking-widest mb-4 flex items-center gap-1.5">
             <Trophy className="h-3.5 w-3.5" /> Top Properties by Revenue
           </p>

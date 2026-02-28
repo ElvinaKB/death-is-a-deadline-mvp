@@ -156,7 +156,7 @@ export function PlacesListPage() {
               <EllipsisVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent className="bg-bg" align="end">
             <DropdownMenuItem
               onClick={() =>
                 navigate(getRoute(ROUTES.ADMIN_PLACES_EDIT, { id: row.id }))
