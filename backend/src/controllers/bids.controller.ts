@@ -63,6 +63,7 @@ const formatBid = (bid: any) => ({
         cancelledAt: bid.payment.cancelledAt,
         failedAt: bid.payment.failedAt,
         expiresAt: bid.payment.expiresAt,
+        stripePaymentIntentId: bid.payment.stripePaymentIntentId, // Added this line
       }
     : undefined,
 });
@@ -311,18 +312,20 @@ export async function listBids(req: Request, res: Response) {
     prisma.bid.count({ where }),
   ]);
 
+  const data = bids.map((bid: any) => ({
+    ...formatBid(bid),
+    student: bid.users
+      ? {
+          id: bid.users.id,
+          name: (bid.users.raw_user_meta_data as any)?.name || "N/A",
+          email: bid.users.email,
+        }
+      : undefined,
+  }));
+
   res.status(200).json({
     data: {
-      bids: bids.map((bid: any) => ({
-        ...formatBid(bid),
-        student: bid.users
-          ? {
-              id: bid.users.id,
-              name: (bid.users.raw_user_meta_data as any)?.name || "N/A",
-              email: bid.users.email,
-            }
-          : undefined,
-      })),
+      bids: data,
       total,
       page,
       limit,
@@ -435,8 +438,10 @@ export async function updatePayout(req: Request, res: Response) {
   if (isNewlyMarkedPaid && bid.place.email) {
     const commissionRate = 6.66;
     const totalAmount = Number(bid.totalAmount);
-    const platformCommission = Number(bid.platformCommission) || (totalAmount * commissionRate / 100);
-    const payableToHotel = Number(bid.payableToHotel) || (totalAmount - platformCommission);
+    const platformCommission =
+      Number(bid.platformCommission) || (totalAmount * commissionRate) / 100;
+    const payableToHotel =
+      Number(bid.payableToHotel) || totalAmount - platformCommission;
 
     try {
       await sendEmail({
@@ -445,7 +450,10 @@ export async function updatePayout(req: Request, res: Response) {
         subject: `Payout Sent - ${bid.place.name} Booking`,
         variables: {
           placeName: bid.place.name,
-          studentName: (bid.users?.raw_user_meta_data as any)?.name || bid.users?.email || "Guest",
+          studentName:
+            (bid.users?.raw_user_meta_data as any)?.name ||
+            bid.users?.email ||
+            "Guest",
           checkInDate: format(new Date(bid.checkInDate), "MMM dd, yyyy"),
           checkOutDate: format(new Date(bid.checkOutDate), "MMM dd, yyyy"),
           totalNights: bid.totalNights,

@@ -29,6 +29,7 @@ import {
   Calendar,
   CreditCard,
   AlertCircle,
+  ExternalLink,
 } from "lucide-react";
 import { Bid, PAYOUT_METHODS, PayoutMethod } from "../../../types/bid.types";
 import { useUpdatePayout } from "../../../hooks/useBids";
@@ -84,6 +85,15 @@ export function PayoutModal({ bid, open, onOpenChange }: PayoutModalProps) {
     bid.totalAmount && bid.platformCommission
       ? ((bid.platformCommission / bid.totalAmount) * 100).toFixed(2)
       : "6.66";
+
+  const onOpenStripe = () => {
+    const baseUrl =
+      process.env.NODE_ENV === "development"
+        ? "https://dashboard.stripe.com/test/payments"
+        : "https://dashboard.stripe.com/payments";
+
+    window.open(`${baseUrl}/${bid.payment!.stripePaymentIntentId}`, "_blank");
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -262,6 +272,16 @@ export function PayoutModal({ bid, open, onOpenChange }: PayoutModalProps) {
         </div>
 
         <DialogFooter className="flex-shrink-0">
+          {bid.payment?.stripePaymentIntentId && (
+            <Button
+              variant="outline"
+              onClick={onOpenStripe}
+              className="border-line text-fg"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              View in Stripe
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
