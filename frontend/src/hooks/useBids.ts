@@ -60,6 +60,20 @@ export const useBids = (params?: {
   });
 };
 
+// Get all bids (hotel owner)
+export const useHotelBids = (params?: {
+  status?: BidStatus;
+  placeId?: string;
+  page?: number;
+  limit?: number;
+}) => {
+  return useApiQuery<MyBidsResponse>({
+    queryKey: ["bids", "admin", params],
+    endpoint: ENDPOINTS.HOTEL_BIDS_LIST,
+    params,
+  });
+};
+
 // Create a new bid
 export const useCreateBid = () => {
   //   const queryClient = useQueryClient();

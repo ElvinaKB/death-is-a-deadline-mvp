@@ -1,9 +1,13 @@
+import { LogOut, Menu } from "lucide-react";
 import { useState } from "react";
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { useAppSelector, useAppDispatch } from "../../store/hooks";
-import { logout } from "../../store/slices/authSlice";
-import { removeAuthToken } from "../../utils/tokenHelpers";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { ROUTES } from "../../config/routes.config";
 import { useAdminSidebar } from "../../hooks/useAdminSidebar";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { logout } from "../../store/slices/authSlice";
+import { UserRole } from "../../types/auth.types";
+import { removeAuthToken } from "../../utils/tokenHelpers";
+import { Avatar, AvatarFallback } from "../components/ui/avatar";
 import { Button } from "../components/ui/button";
 import {
   DropdownMenu,
@@ -13,10 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "../components/ui/avatar";
-import { LogOut, Menu, X } from "lucide-react";
 import { cn } from "../components/ui/utils";
-import { ROUTES } from "../../config/routes.config";
 
 export function AdminLayout() {
   const location = useLocation();
@@ -25,6 +26,7 @@ export function AdminLayout() {
   const user = useAppSelector((state) => state.auth.user);
   const sidebarItems = useAdminSidebar();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isAdmin = user?.role === UserRole.ADMIN;
 
   const handleLogout = () => {
     dispatch(logout());
@@ -44,7 +46,9 @@ export function AdminLayout() {
   const SidebarContent = () => (
     <>
       <div className="p-5 border-b border-line">
-        <h1 className="text-xl font-bold text-brand">Admin Panel</h1>
+        <h1 className="text-xl font-bold text-brand">
+          {!isAdmin && "Hotel "}Admin Panel
+        </h1>
       </div>
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {sidebarItems.map((item) => {

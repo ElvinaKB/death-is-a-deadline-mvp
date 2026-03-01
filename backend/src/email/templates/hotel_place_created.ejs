@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>New property listed on Death is a Deadline</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background-color: #0d0d0d;
+      color: #e8e2d9;
+      padding: 40px 16px;
+    }
+    .wrapper {
+      max-width: 560px;
+      margin: 0 auto;
+      background-color: #141414;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .header {
+      background-color: #1a1a1a;
+      border-bottom: 1px solid #2a2a2a;
+      padding: 32px 40px;
+      text-align: center;
+    }
+    .header .brand {
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #c9a96e;
+      margin-bottom: 12px;
+    }
+    .header h1 {
+      font-size: 22px;
+      font-weight: normal;
+      color: #f0ebe3;
+      line-height: 1.3;
+    }
+    .body {
+      padding: 36px 40px;
+    }
+    .body p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: #b0a899;
+      margin-bottom: 16px;
+    }
+    .property-card {
+      background-color: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      padding: 20px 24px;
+      margin: 24px 0;
+    }
+    .property-card .label {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #6b6258;
+      margin-bottom: 6px;
+    }
+    .property-card .name {
+      font-size: 18px;
+      color: #f0ebe3;
+      margin-bottom: 4px;
+    }
+    .property-card .location {
+      font-size: 13px;
+      color: #7a7068;
+    }
+    .cta-wrapper {
+      text-align: center;
+      margin: 32px 0;
+    }
+    .cta {
+      display: inline-block;
+      background-color: #c9a96e;
+      color: #0d0d0d;
+      font-family: Georgia, serif;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      padding: 14px 36px;
+      border-radius: 4px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #2a2a2a;
+      margin: 28px 0;
+    }
+    .footer {
+      padding: 20px 40px 28px;
+      text-align: center;
+    }
+    .footer p {
+      font-size: 12px;
+      color: #4a4540;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <p class="brand">Death is a Deadline</p>
+      <h1>A new property has been added<br/>to your account.</h1>
+    </div>
+
+    <div class="body">
+      <p>
+        An administrator has listed a new property under your account on Death is a Deadline.
+        You can now manage its availability, set your minimum bid, and track bookings from your dashboard.
+      </p>
+
+      <div class="property-card">
+        <p class="label">New Property</p>
+        <p class="name"><%= placeName %></p>
+        <p class="location"><%= placeCity %>, <%= placeCountry %></p>
+      </div>
+
+      <p>
+        Head to your dashboard to review the listing details, update availability, 
+        and configure your bidding preferences.
+      </p>
+
+      <div class="cta-wrapper">
+        <a href="<%= dashboardUrl %>" class="cta">Go to My Dashboard</a>
+      </div>
+
+      <hr class="divider" />
+
+      <p>
+        If you believe this was added in error, please contact our support team.
+      </p>
+    </div>
+
+    <div class="footer">
+      <p>Death is a Deadline &mdash; Student accommodation bidding platform</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -2,6 +2,7 @@ export const ROUTES = {
   // Auth routes
   LOGIN: "/login",
   SIGNUP: "/signup",
+  HOTEL_SIGNUP: "/hotel/signup",
   RESUBMIT: "/resubmit",
   FORGOT_PASSWORD: "/forgot-password",
   RESET_PASSWORD: "/reset-password",
@@ -16,6 +17,10 @@ export const ROUTES = {
 
   // Hotel Owner routes
   HOTEL_DASHBOARD: "/hotel/dashboard",
+  HOTEL_PLACE: "/hotel/place",
+  HOTEL_BIDS: "/hotel/bids",
+  HOTEL_PLACES_EDIT: "/hotel/places/:id/edit",
+  HOTEL_PLACES: "/hotel/places",
 
   // Admin routes
   ADMIN_DASHBOARD: "/admin/dashboard",

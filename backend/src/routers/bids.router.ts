@@ -18,9 +18,19 @@ import {
   listBids,
   updateBidStatus,
   updatePayout,
+  listHotelBids,
 } from "../controllers/bids.controller";
 
 const router = Router();
+
+// Hotel routes
+// List all bids (hotel owner only)
+router.get(
+  "/hotel",
+  authenticate(UserRole.HOTEL_OWNER),
+  validate(listBidsQuerySchema, "query"),
+  listHotelBids,
+);
 
 // Student routes
 // Create a new bid (student only)

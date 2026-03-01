@@ -116,6 +116,10 @@ export const publicPlacesQuerySchema = z.object({
   date: z.string().optional(),
 });
 
+export const resendHotelInviteSchema = z.object({
+  placeId: z.string().uuid({ message: "Invalid place id" }),
+});
+
 // Type exports
 export type CreatePlaceInput = z.infer<typeof createPlaceSchema>;
 export type UpdatePlaceInput = z.infer<typeof updatePlaceSchema>;

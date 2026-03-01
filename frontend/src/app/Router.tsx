@@ -14,7 +14,7 @@ import { HomePage } from "./pages/HomePage";
 import { PlaceDetailPage as StudentPlacesDetailPage } from "./pages/student/PlacesDetailPage";
 import { MyBidsPage } from "./pages/student/MyBidsPage";
 import { CheckoutPage } from "./pages/student/CheckoutPage";
-import { HotelDashboardPage } from "./pages/HotelDashboardPage";
+import { HotelDashboardPage } from "./pages/hotel/HotelDashboardPage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { StudentsListPage } from "./pages/admin/StudentsListPage";
 import { StudentDetailPage } from "./pages/admin/StudentDetailPage";
@@ -31,11 +31,16 @@ import { PlaceFormPage } from "./pages/admin/PlaceFormPage";
 import { PlacesListPage } from "./pages/admin/PlacesListPage";
 import { BidsListPage } from "./pages/admin/BidsListPage";
 import { PlaceTestimonialsPage } from "./pages/admin/PlaceTestimonialsPage";
+import { HotelBidsPage } from "./pages/hotel/HotelBidsListPage";
+import { HotelPlaceFormPage } from "./pages/hotel/HotelPlaceFormPage";
+import { HotelSignupPage } from "./pages/hotel/HotelSignupPage";
+import { HotelPlacesListPage } from "./pages/hotel/HotelPlaceListPage";
 
 // Auth routes (redirect to protected base if already authenticated)
 const authRoutes = [
   { path: ROUTES.LOGIN, element: <LoginPage /> },
   { path: ROUTES.SIGNUP, element: <SignupPage /> },
+  { path: ROUTES.HOTEL_SIGNUP, element: <HotelSignupPage /> },
   { path: ROUTES.RESUBMIT, element: <ResubmitPage /> },
   { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPasswordPage /> },
   { path: ROUTES.RESET_PASSWORD, element: <ResetPasswordPage /> },
@@ -64,9 +69,15 @@ const protectedRoutes = [
     ],
   },
   {
-    path: ROUTES.HOTEL_DASHBOARD,
+    path: "/hotel",
     allowedRoles: [UserRole.HOTEL_OWNER],
-    element: <HotelDashboardPage />,
+    element: <AdminLayout />,
+    children: [
+      { path: ROUTES.HOTEL_DASHBOARD, element: <HotelDashboardPage /> },
+      { path: ROUTES.HOTEL_PLACES, element: <HotelPlacesListPage /> },
+      { path: ROUTES.HOTEL_PLACES_EDIT, element: <HotelPlaceFormPage /> },
+      { path: ROUTES.HOTEL_BIDS, element: <HotelBidsPage /> },
+    ],
   },
   {
     path: "/admin",

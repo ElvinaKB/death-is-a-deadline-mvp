@@ -478,3 +478,64 @@ export async function updatePayout(req: Request, res: Response) {
     data: { bid: formatBid(bid) },
   });
 }
+
+// Hotel Owner
+// listHotelBids — for authenticated hotel owners
+export async function listHotelBids(req: Request, res: Response) {
+  const userEmail = req.user?.email ?? ""; // from auth middleware
+  const {
+    status,
+    page = 1,
+    limit = 10,
+  } = req.query as unknown as ListBidsQuery;
+  const skip = (page - 1) * limit;
+
+  // First, find all places owned by this hotel user
+  const ownedPlaces = await prisma.place.findMany({
+    where: { email: userEmail }, // or however ownership is modeled
+    select: { id: true },
+  });
+
+  const placeIds = ownedPlaces.map((p) => p.id);
+
+  if (placeIds.length === 0) {
+    return res.status(200).json({ data: { bids: [], total: 0, page, limit } });
+  }
+
+  const where: Prisma.BidWhereInput = {
+    placeId: { in: placeIds },
+    ...(status && { status }),
+  };
+
+  const [bids, total] = await Promise.all([
+    prisma.bid.findMany({
+      where,
+      include: {
+        place: {
+          include: { images: { orderBy: { order: "asc" }, take: 1 } },
+        },
+        payment: true,
+        users: {
+          select: { id: true, email: true, raw_user_meta_data: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.bid.count({ where }),
+  ]);
+
+  const data = bids.map((bid: any) => ({
+    ...formatBid(bid),
+    student: bid.users
+      ? {
+          id: bid.users.id,
+          name: (bid.users.raw_user_meta_data as any)?.name || "N/A",
+          email: bid.users.email,
+        }
+      : undefined,
+  }));
+
+  res.status(200).json({ data: { bids: data, total, page, limit } });
+}

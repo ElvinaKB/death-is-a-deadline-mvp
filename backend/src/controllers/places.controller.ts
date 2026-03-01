@@ -9,6 +9,12 @@ import {
   ListPlacesQuery,
   PublicPlacesQuery,
 } from "../validations/places/places.validation";
+import { sendEmail } from "../email/sendEmail";
+import { EmailType } from "../email/emailTypes";
+import { createHotelInviteToken } from "../libs/utils/inviteToken";
+import { supabase } from "../libs/config/supabase";
+
+const APP_URL = process.env.CLIENT_URL;
 
 // Helper to format place response
 const formatPlace = (
@@ -105,9 +111,72 @@ export async function listPlaces(req: Request, res: Response) {
     prisma.place.count({ where }),
   ]);
 
+  // Collect all emails from this page of results
+  const emails = places.map((p) => p.email).filter(Boolean);
+
+  // One query to find which emails already have a user account
+  const existingUsers = await supabase.rpc("get_users_by_emails", { emails });
+  if (existingUsers.error)
+    throw new CustomError("Failed to fetch user accounts", 500);
+  // or: prisma query against your users table if you mirror them there
+  const accountEmails = new Set(existingUsers.data.map((u: any) => u.email));
+
+  // Attach the flag to each place
+  const data = places.map((place) => ({
+    ...formatPlace(place),
+    hasHotelAccount: place.email ? accountEmails.has(place.email) : false,
+  }));
+
   res.status(200).json({
     data: {
-      places: places.map((p) => formatPlace(p)),
+      places: data,
+      total,
+      page,
+      limit,
+    },
+  });
+}
+
+// List places owned by the authenticated hotel user
+// Ownership is determined by matching place.email to req.user.email
+export async function listHotelPlaces(req: Request, res: Response) {
+  const {
+    status,
+    page = 1,
+    limit = 10,
+  } = req.query as unknown as ListPlacesQuery;
+
+  const hotelEmail = req.user?.email;
+
+  console.log("Hotel email from token:", req.user);
+
+  if (!hotelEmail) {
+    throw new CustomError("Could not determine hotel identity", 400);
+  }
+
+  const skip = (page - 1) * limit;
+
+  const where: Prisma.PlaceWhereInput = {
+    email: hotelEmail,
+    ...(status ? { status } : {}),
+  };
+
+  const [places, total] = await Promise.all([
+    prisma.place.findMany({
+      where,
+      include: { images: { orderBy: { order: "asc" } } },
+      orderBy: { updatedAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.place.count({ where }),
+  ]);
+
+  const data = places.map((place) => formatPlace(place));
+
+  res.status(200).json({
+    data: {
+      places: data,
       total,
       page,
       limit,
@@ -277,7 +346,6 @@ export async function getPublicPlace(req: Request, res: Response) {
   });
 }
 
-// Create new place
 export async function createPlace(req: Request, res: Response) {
   const data = req.body as CreatePlaceInput;
 
@@ -315,10 +383,73 @@ export async function createPlace(req: Request, res: Response) {
     include: { images: { orderBy: { order: "asc" } } },
   });
 
+  // Send email to hotel if an email was provided
+  if (data.email) {
+    await notifyHotelOnPlaceCreated({
+      placeEmail: data.email,
+      placeName: place.name,
+      placeCity: place.city,
+      placeCountry: place.country,
+    });
+  }
+
   res.status(201).json({
     message: "Place created successfully",
     data: { place: formatPlace(place) },
   });
+}
+
+// ---------------------------------------------------------------------------
+// Internal helper
+// ---------------------------------------------------------------------------
+
+async function notifyHotelOnPlaceCreated({
+  placeEmail,
+  placeName,
+  placeCity,
+  placeCountry,
+}: {
+  placeEmail: string;
+  placeName: string;
+  placeCity: string;
+  placeCountry: string;
+}) {
+  // Check if a hotel user account already exists for this email
+  const existingUser = await prisma.users.findFirst({
+    where: { email: placeEmail },
+  });
+
+  if (existingUser) {
+    // User already has an account — send a simple notification
+    await sendEmail({
+      type: EmailType.HOTEL_PLACE_CREATED,
+      to: placeEmail,
+      subject: `New property listed: ${placeName}`,
+      variables: {
+        placeName,
+        placeCity,
+        placeCountry,
+        dashboardUrl: `${APP_URL}/hotel/dashboard`,
+      },
+    });
+  } else {
+    // New hotel — generate an invite token and send the signup link
+    const token = await createHotelInviteToken(placeEmail);
+    const inviteUrl = `${APP_URL}/hotel/signup?token=${token}`;
+
+    await sendEmail({
+      type: EmailType.HOTEL_INVITE,
+      to: placeEmail,
+      subject: `You're invited to list ${placeName} on Death is a Deadline`,
+      variables: {
+        placeName,
+        placeCity,
+        placeCountry,
+        inviteUrl,
+        expiryMinutes: 15,
+      },
+    });
+  }
 }
 
 // Update place
@@ -445,4 +576,94 @@ export async function getPriceRange(req: Request, res: Response) {
       maxPrice: result._max.retailPrice ?? 0,
     },
   });
+}
+
+export async function resendHotelInvite(req: Request, res: Response) {
+  const { placeId } = req.body;
+
+  if (!placeId) {
+    throw new CustomError("placeId is required", 400);
+  }
+
+  // Fetch the place to get its email, name, city, country
+  const place = await prisma.place.findUnique({
+    where: { id: placeId },
+    select: { email: true, name: true, city: true, country: true },
+  });
+
+  if (!place) {
+    throw new CustomError("Place not found", 404);
+  }
+
+  if (!place.email) {
+    throw new CustomError("This place has no email address on file", 400);
+  }
+
+  // Reject if a user account already exists for this email —
+  // they should just log in, not go through the invite flow again
+  const { data: existingUser } = await supabase.rpc("get_user_by_email", {
+    email: place.email,
+  });
+
+  if (existingUser) {
+    throw new CustomError(
+      "A hotel account already exists for this email. The owner should log in directly.",
+      400,
+    );
+  }
+
+  // Generate a fresh token (upserts, so any expired/unused old token is replaced)
+  const token = await createHotelInviteToken(place.email);
+  const inviteUrl = `${APP_URL}/hotel/signup?token=${token}`;
+
+  await sendEmail({
+    type: EmailType.HOTEL_INVITE,
+    to: place.email,
+    subject: `You're invited to list ${place.name} on Death is a Deadline`,
+    variables: {
+      placeName: place.name,
+      placeCity: place.city,
+      placeCountry: place.country,
+      inviteUrl,
+      expiryMinutes: 15,
+    },
+  });
+
+  return res.status(200).json({
+    message: `Invite resent to ${place.email}`,
+  });
+}
+
+export async function getHotelDashboardStats(req: Request, res: Response) {
+  const hotelEmail = req.user?.email;
+
+  if (!hotelEmail) {
+    throw new CustomError("Could not determine hotel identity", 400);
+  }
+
+  const [earningsStats, bookingStats, propertyStats, propertyBreakdown] =
+    await Promise.all([
+      supabase.rpc("hotel_earnings_stats", { p_email: hotelEmail }),
+      supabase.rpc("hotel_booking_stats", { p_email: hotelEmail }),
+      supabase.rpc("hotel_property_stats", { p_email: hotelEmail }),
+      supabase.rpc("hotel_property_breakdown", { p_email: hotelEmail }),
+    ]);
+
+  if (earningsStats.error)
+    throw new CustomError(earningsStats.error.message, 400);
+  if (bookingStats.error)
+    throw new CustomError(bookingStats.error.message, 400);
+  if (propertyStats.error)
+    throw new CustomError(propertyStats.error.message, 400);
+  if (propertyBreakdown.error)
+    throw new CustomError(propertyBreakdown.error.message, 400);
+
+  const data = {
+    ...earningsStats.data,
+    ...bookingStats.data,
+    ...propertyStats.data,
+    propertyStats: propertyBreakdown.data,
+  };
+
+  res.status(200).json({ data });
 }

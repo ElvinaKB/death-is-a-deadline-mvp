@@ -7,6 +7,12 @@ export const signupSchema = z.object({
   studentIdUrl: z.string().optional(),
 });
 
+export const hotelSignupSchema = z.object({
+  name: z.string().min(1),
+  password: z.string().min(6),
+  token: z.string().min(1),
+});
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),

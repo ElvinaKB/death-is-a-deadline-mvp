@@ -36,6 +36,7 @@ export interface Place {
   // Inventory status (only included when date is provided in public API)
   availableInventory?: number;
   isInventoryExhausted?: boolean;
+  hasHotelAccount?: boolean;
 }
 
 export interface PlaceImage {

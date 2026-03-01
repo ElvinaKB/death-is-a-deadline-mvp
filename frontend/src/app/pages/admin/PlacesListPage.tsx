@@ -6,12 +6,13 @@ import {
   Play,
   Plus,
   MessageSquareQuote,
+  Mail,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ENDPOINTS } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
 import { ROUTES, getRoute } from "../../../config/routes.config";
-import { useApiQuery } from "../../../hooks/useApi";
+import { useApiQuery, useApiMutation } from "../../../hooks/useApi";
 import { useUpdatePlaceStatus } from "../../../hooks/usePlaces";
 import {
   ACCOMMODATION_TYPE_LABELS,
@@ -39,9 +40,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
 import { Switch } from "../../components/ui/switch";
+import { toast } from "sonner";
 
 const STATUS_COLORS: Record<PlaceStatus, string> = {
   [PlaceStatus.DRAFT]: "bg-muted/20 text-muted hover:bg-muted/30",
@@ -55,6 +58,8 @@ export function PlacesListPage() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [filter, setFilter] = useState<PlaceStatus | "ALL">("ALL");
+  // Track which placeId is currently sending an invite to show per-row loading
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   const { data, isLoading } = useApiQuery<PlacesResponse>({
     queryKey: [QUERY_KEYS.PLACES, currentPage, filter],
@@ -72,9 +77,27 @@ export function PlacesListPage() {
     filter,
   ]);
 
+  const resendInvite = useApiMutation<{ message: string }, { placeId: string }>(
+    {
+      endpoint: ENDPOINTS.RESEND_HOTEL_INVITE, // POST /admin/places/resend-invite
+      showErrorToast: true,
+      onSuccess: (_, variables) => {
+        toast.success("Invite email resent successfully");
+        setResendingId(null);
+      },
+      onError: () => {
+        setResendingId(null);
+      },
+    },
+  );
+
+  const handleResendInvite = (placeId: string) => {
+    setResendingId(placeId);
+    resendInvite.mutate({ placeId });
+  };
+
   const handleStatusToggle = (place: Place) => {
     let newStatus: PlaceStatus;
-
     if (place.status === PlaceStatus.LIVE) {
       newStatus = PlaceStatus.PAUSED;
     } else if (place.status === PlaceStatus.PAUSED) {
@@ -82,17 +105,14 @@ export function PlacesListPage() {
     } else {
       newStatus = PlaceStatus.LIVE;
     }
-
     updateStatus.mutate({ id: place.id, status: newStatus });
   };
 
-  const getStatusBadge = (status: PlaceStatus) => {
-    return (
-      <Badge className={STATUS_COLORS[status]}>
-        {status.charAt(0) + status.slice(1).toLowerCase()}
-      </Badge>
-    );
-  };
+  const getStatusBadge = (status: PlaceStatus) => (
+    <Badge className={STATUS_COLORS[status]}>
+      {status.charAt(0) + status.slice(1).toLowerCase()}
+    </Badge>
+  );
 
   const columns: TableColumn<PlaceRow>[] = [
     {
@@ -115,6 +135,42 @@ export function PlacesListPage() {
           {ACCOMMODATION_TYPE_LABELS[row.accommodationType]}
         </Badge>
       ),
+    },
+    {
+      header: "Hotel Account",
+      field: "email",
+      render: (row) => {
+        // hasHotelAccount is included by the backend in the list response.
+        // true  → hotel user exists, no action needed
+        // false → no account yet, show resend invite (only if place has an email)
+        const hasAccount = row.hasHotelAccount as boolean | undefined;
+
+        if (hasAccount === undefined || !row.email) {
+          // No email on the place — nothing to send
+          return <span className="text-xs text-muted">No email</span>;
+        }
+
+        if (hasAccount) {
+          return (
+            <span className="text-xs text-success flex items-center gap-1">
+              ✓ Account active
+            </span>
+          );
+        }
+
+        return (
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-line text-fg hover:bg-glass h-7 text-xs gap-1.5"
+            disabled={resendingId === row.id}
+            onClick={() => handleResendInvite(row.id)}
+          >
+            <Mail className="h-3.5 w-3.5" />
+            {resendingId === row.id ? "Sending..." : "Resend Invite"}
+          </Button>
+        );
+      },
     },
     {
       header: "Status",
@@ -188,11 +244,26 @@ export function PlacesListPage() {
                 </>
               )}
             </DropdownMenuItem>
+
+            {/* Resend invite option in dropdown too — for places without an account */}
+            {!(row as any).hasHotelAccount && row.email && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleResendInvite(row.id)}
+                  disabled={resendingId === row.id}
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  {resendingId === row.id ? "Sending..." : "Resend Invite"}
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       ),
     },
   ];
+
   const places = data?.places || [];
 
   return (
@@ -214,7 +285,10 @@ export function PlacesListPage() {
       <Tabs
         defaultValue="ALL"
         value={filter}
-        onValueChange={(v) => setFilter(v as PlaceStatus | "ALL")}
+        onValueChange={(v) => {
+          setFilter(v as PlaceStatus | "ALL");
+          setCurrentPage(1);
+        }}
       >
         <TabsList className="bg-glass border border-line">
           <TabsTrigger
