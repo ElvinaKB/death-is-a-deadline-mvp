@@ -43,6 +43,7 @@ router.get("/public/price-range", placesController.getPriceRange);
 router.post(
   "/resend-invite",
   validate(resendHotelInviteSchema),
+  authenticate(UserRole.HOTEL_OWNER),
   placesController.resendHotelInvite,
 );
 
@@ -78,6 +79,7 @@ router.put(
   "/:id",
   validate(placeIdParamSchema, "params"),
   validate(updatePlaceSchema),
+  authenticate(UserRole.ADMIN, UserRole.HOTEL_OWNER), // Allow both admin and hotel owner to update place details
   placesController.updatePlace,
 );
 
@@ -86,6 +88,7 @@ router.patch(
   "/:id/status",
   validate(placeIdParamSchema, "params"),
   validate(updatePlaceStatusSchema),
+  authenticate(UserRole.ADMIN), // Allow only admin to update place status
   placesController.updatePlaceStatus,
 );
 
@@ -93,6 +96,7 @@ router.patch(
 router.delete(
   "/:id",
   validate(placeIdParamSchema, "params"),
+  authenticate(UserRole.ADMIN), // Allow admin  to delete place
   placesController.deletePlace,
 );
 
