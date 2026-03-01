@@ -635,18 +635,18 @@ export async function resendHotelInvite(req: Request, res: Response) {
 }
 
 export async function getHotelDashboardStats(req: Request, res: Response) {
-  const hotelEmail = req.user?.email;
+  const placeId = req.query.placeId as string;
 
-  if (!hotelEmail) {
-    throw new CustomError("Could not determine hotel identity", 400);
+  if (!placeId) {
+    throw new CustomError("placeId is required", 400);
   }
 
   const [earningsStats, bookingStats, propertyStats, propertyBreakdown] =
     await Promise.all([
-      supabase.rpc("hotel_earnings_stats", { p_email: hotelEmail }),
-      supabase.rpc("hotel_booking_stats", { p_email: hotelEmail }),
-      supabase.rpc("hotel_property_stats", { p_email: hotelEmail }),
-      supabase.rpc("hotel_property_breakdown", { p_email: hotelEmail }),
+      supabase.rpc("hotel_earnings_stats", { p_place_id: placeId }),
+      supabase.rpc("hotel_booking_stats", { p_place_id: placeId }),
+      supabase.rpc("hotel_property_stats", { p_place_id: placeId }),
+      supabase.rpc("hotel_property_breakdown", { p_place_id: placeId }),
     ]);
 
   if (earningsStats.error)

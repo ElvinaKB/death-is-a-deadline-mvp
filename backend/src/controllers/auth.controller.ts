@@ -116,6 +116,12 @@ export async function hotelSignup(
 
   const session = sessionData?.session;
 
+  // First, find all places owned by this hotel user
+  const places = await prisma.place.findMany({
+    where: { email }, // or however ownership is modeled
+    select: { id: true, name: true },
+  });
+
   return res.status(201).json({
     message: "Hotel account created successfully.",
     data: {
@@ -126,6 +132,7 @@ export async function hotelSignup(
         name,
         role: UserRole.HOTEL_OWNER,
         approvalStatus: ApprovalStatus.APPROVED,
+        places,
       },
     },
   });
@@ -205,7 +212,7 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
 export async function login(req: Request, res: Response, next: NextFunction) {
   const { email, password } = req.body as LoginRequest;
 
-  let placeId = "";
+  let places: { id: string }[] = [];
 
   const data = await supabasePasswordLogin({
     email,
@@ -228,12 +235,10 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
   if (data.user?.role === UserRole.HOTEL_OWNER) {
     // First, find all places owned by this hotel user
-    const ownedPlaces = await prisma.place.findMany({
+    places = await prisma.place.findMany({
       where: { email }, // or however ownership is modeled
-      select: { id: true },
+      select: { id: true, name: true },
     });
-
-    placeId = ownedPlaces[0]?.id || "";
   }
   // Return user info and session (token)
   return res.status(200).json({
@@ -242,7 +247,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
         ...data.user,
         approvalStatus: data.user?.user_metadata?.approvalStatus,
         name: data.user?.user_metadata?.name,
-        placeId,
+        places: places,
       },
       token: {
         access_token: data.access_token,

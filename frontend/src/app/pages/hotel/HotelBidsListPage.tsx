@@ -20,6 +20,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "../../components/ui/tabs";
+import { useHotel } from "../../../hooks/useHotel";
 
 const BID_STATUS_COLORS: Record<BidStatus, string> = {
   [BidStatus.PENDING]: "bg-warning/20 text-warning",
@@ -33,14 +34,16 @@ const formatCurrency = (amount: number) =>
   );
 
 export function HotelBidsPage() {
+  const { selectedHotelId } = useHotel();
   const [currentPage, setCurrentPage] = useState(1);
   const [filter, setFilter] = useState<BidStatus | "ALL">("ALL");
   const [selectedBid, setSelectedBid] = useState<Bid | null>(null);
 
-  const { data, isLoading } = useHotelBids({
+  const { data, isFetching: isLoading } = useHotelBids({
     page: currentPage,
     limit: 10,
     ...(filter !== "ALL" ? { status: filter } : {}),
+    placeId: selectedHotelId,
   });
 
   const bids = data?.bids || [];

@@ -44,6 +44,7 @@ import { supabase } from "../../../utils/supabaseClient";
 import { toast } from "sonner";
 import { SUPABASE_BUCKET } from "../../../lib/constants";
 import { useAppSelector } from "../../../store/hooks";
+import { useHotel } from "../../../hooks/useHotel";
 
 const uploadImagesToSupabase = async (files: File[]): Promise<string[]> => {
   const urls: string[] = [];
@@ -89,9 +90,10 @@ const DAYS_OF_WEEK = [
 
 export function HotelPlaceFormPage() {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const { selectedHotelId } = useHotel();
+  const id = selectedHotelId;
 
-  const { data, isLoading } = usePlace(id || "");
+  const { data, isFetching: isLoading } = usePlace(id || "");
   const updatePlace = useUpdatePlace();
   const existingPlace = data?.place;
 

@@ -50,8 +50,8 @@ export function useAdminSidebar(): SidebarItem[] {
       icon: LayoutDashboard,
     },
     {
-      title: "Places",
-      path: ROUTES.HOTEL_PLACES,
+      title: "Place Details",
+      path: ROUTES.HOTEL_PLACE,
       icon: MapPin,
     },
     {

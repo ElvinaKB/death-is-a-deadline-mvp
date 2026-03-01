@@ -74,8 +74,7 @@ const protectedRoutes = [
     element: <AdminLayout />,
     children: [
       { path: ROUTES.HOTEL_DASHBOARD, element: <HotelDashboardPage /> },
-      { path: ROUTES.HOTEL_PLACES, element: <HotelPlacesListPage /> },
-      { path: ROUTES.HOTEL_PLACES_EDIT, element: <HotelPlaceFormPage /> },
+      { path: ROUTES.HOTEL_PLACE, element: <HotelPlaceFormPage /> },
       { path: ROUTES.HOTEL_BIDS, element: <HotelBidsPage /> },
     ],
   },

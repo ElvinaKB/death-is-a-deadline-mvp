@@ -22,6 +22,7 @@ import {
 import { Alert, AlertDescription } from "../../components/ui/alert";
 import { AlertCircle, Building2, KeyRound, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { useHotel } from "../../../hooks/useHotel";
 
 interface HotelSignupRequest {
   name: string;
@@ -45,16 +46,22 @@ export function HotelSignupPage() {
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
+  const { setHotel } = useHotel();
 
   const signupMutation = useApiMutation<AuthResponse, HotelSignupRequest>({
     endpoint: ENDPOINTS.HOTEL_SIGNUP, // e.g. POST /signup/hotel
     showErrorToast: true,
     onSuccess: (data) => {
       if (data?.token) setAuthToken(data.token.access_token);
-      if (data?.user)
+      if (data?.user) {
         dispatch(
           setCredentials({ user: data.user, token: data.token.access_token }),
         );
+        // Auto-select first hotel after signup
+        if (data.user.places && data.user.places.length > 0) {
+          setHotel(data.user.places[0]);
+        }
+      }
       toast.success("Welcome! Your hotel account is ready.");
       navigate(ROUTES.HOTEL_DASHBOARD, { replace: true });
     },

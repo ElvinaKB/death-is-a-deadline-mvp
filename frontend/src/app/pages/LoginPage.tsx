@@ -36,6 +36,7 @@ import {
   DollarSign,
 } from "lucide-react";
 
+import { useHotel } from "../../hooks/useHotel";
 interface LocationState {
   returnUrl?: string;
 }
@@ -48,6 +49,7 @@ export function LoginPage() {
     email: "",
     password: "",
   });
+  const { setHotel } = useHotel();
 
   // Get return URL from location state
   const locationState = location.state as LocationState | null;
@@ -91,6 +93,10 @@ export function LoginPage() {
           navigate(ROUTES.HOME);
           break;
         case UserRole.HOTEL_OWNER:
+          // Auto-select first hotel on login
+          if (data.user.places && data.user.places.length > 0) {
+            setHotel(data.user.places[0]);
+          }
           navigate(ROUTES.HOTEL_DASHBOARD);
           break;
         default:

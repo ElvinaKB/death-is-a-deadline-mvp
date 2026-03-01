@@ -18,6 +18,7 @@ import { SkeletonLoader } from "../../components/common/SkeletonLoader";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useAppSelector } from "../../../store/hooks";
+import { useHotel } from "../../../hooks/useHotel";
 
 interface PropertyStat {
   propertyName: string;
@@ -58,12 +59,16 @@ const formatCurrency = (amount: number) =>
   }).format(amount);
 
 export function HotelDashboardPage() {
+  const { selectedHotelId } = useHotel();
+
   const user = useAppSelector((state) => state.auth.user);
 
-  const { data: stats, isLoading } = useApiQuery<HotelDashboardStats>({
-    queryKey: [QUERY_KEYS.HOTEL_DASHBOARD_STATS],
-    endpoint: ENDPOINTS.HOTEL_DASHBOARD_STATS, // GET /hotel/dashboard/stats
-  });
+  const { data: stats, isFetching: isLoading } =
+    useApiQuery<HotelDashboardStats>({
+      queryKey: [QUERY_KEYS.HOTEL_DASHBOARD_STATS, selectedHotelId],
+      endpoint: ENDPOINTS.HOTEL_DASHBOARD_STATS, // GET /hotel/dashboard/stats
+      params: { placeId: selectedHotelId },
+    });
 
   if (isLoading) {
     return (

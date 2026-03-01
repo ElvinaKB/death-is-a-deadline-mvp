@@ -25,7 +25,6 @@ router.get(
 
 router.get(
   "/hotel-stats",
-  validate(listPlacesQuerySchema, "query"),
   authenticate(UserRole.HOTEL_OWNER),
   placesController.getHotelDashboardStats,
 );

@@ -487,12 +487,13 @@ export async function listHotelBids(req: Request, res: Response) {
     status,
     page = 1,
     limit = 10,
+    placeId,
   } = req.query as unknown as ListBidsQuery;
   const skip = (page - 1) * limit;
 
   // First, find all places owned by this hotel user
   const ownedPlaces = await prisma.place.findMany({
-    where: { email: userEmail }, // or however ownership is modeled
+    where: { email: userEmail, id: placeId }, // or however ownership is modeled
     select: { id: true },
   });
 

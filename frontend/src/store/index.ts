@@ -12,17 +12,19 @@ import {
 import storage from "redux-persist/lib/storage";
 import authReducer from "./slices/authSlice";
 import searchReducer from "./slices/searchSlice";
+import hotelReducer from "./slices/hotelSlice";
 
 const persistConfig = {
   key: "root",
   version: 1,
   storage,
-  whitelist: ["auth"], // Only persist auth slice (not search)
+  whitelist: ["auth", "hotel"], // persist auth + selected hotel across refreshes
 };
 
 const rootReducer = combineReducers({
   auth: authReducer,
   search: searchReducer,
+  hotel: hotelReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -38,6 +40,5 @@ export const store = configureStore({
 });
 
 export const persistor = persistStore(store);
-
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
