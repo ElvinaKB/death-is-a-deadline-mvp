@@ -562,6 +562,17 @@ model users {
   @@schema("auth")
 }
 
+model HotelInviteToken {
+  id        String    @id @default(cuid())
+  email     String    @unique   // one active invite per email at a time
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?           // null = not yet consumed
+  createdAt DateTime  @default(now())
+
+  @@schema("public")
+}
+
 enum AccommodationType {
   POD_SHARE
   HOSTEL

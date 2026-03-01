@@ -320,7 +320,7 @@ export function PlaceDetailPage() {
             {/* Left Section - Description & Bid Form */}
             <div className="h-full lg:col-span-2 space-y-6">
               <div className="h-full glass-2 rounded-2xl p-6 border border-line">
-                <div className="flex gap-8">
+                <div className="flex flex-col sm:flex-row gap-8">
                   {/* Description */}
                   <div className="flex flex-1 flex-col gap-5">
                     <h2 className="text-2xl font-bold text-fg mb-2">
@@ -340,12 +340,6 @@ export function PlaceDetailPage() {
                         <MapPin className="h-5 w-5 text-muted" />
                         <span className="text-sm">
                           {place.city}, {place.country}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted">
-                        <DollarSign className="h-5 w-5 text-muted" />
-                        <span className="text-sm">
-                          ${place.retailPrice}/night retail
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-muted">

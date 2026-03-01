@@ -29,7 +29,8 @@ const templateMap: Record<EmailType, string> = {
   [EmailType.BOOKING_CONFIRMED_STUDENT]: "booking_confirmed_student.ejs",
   [EmailType.BOOKING_CONFIRMED_PLACE]: "booking_confirmed_place.ejs",
   [EmailType.PAYOUT_SENT]: "payout_sent.ejs",
-  // Add more mappings as needed
+  [EmailType.HOTEL_INVITE]: "hotel_invite.ejs",
+  [EmailType.HOTEL_PLACE_CREATED]: "hotel_place_created.ejs",
 };
 
 export async function sendEmail({
@@ -45,6 +46,7 @@ export async function sendEmail({
 }) {
   const templateFile = templateMap[type];
   if (!templateFile) throw new Error("Unknown email type");
+
   const templatePath = path.join(__dirname, "templates", templateFile);
   let html;
   try {

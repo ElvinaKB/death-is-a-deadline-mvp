@@ -21,6 +21,7 @@ export interface User {
   studentIdUrl?: string;
   createdAt: string;
   updatedAt: string;
+  placeId?: string;
 }
 
 export interface AuthState {

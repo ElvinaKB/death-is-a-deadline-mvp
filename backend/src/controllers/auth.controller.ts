@@ -11,6 +11,125 @@ import {
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
 import jwt from "jsonwebtoken";
+import { prisma } from "../libs/config/prisma";
+import {
+  consumeHotelInviteToken,
+  validateHotelInviteToken,
+} from "../libs/utils/inviteToken";
+
+export async function hotelSignup(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const { name, password, token } = req.body;
+
+  if (!token) {
+    throw new CustomError("Invite token is required", 400);
+  }
+
+  if (!name || !password) {
+    throw new CustomError("Name and password are required", 400);
+  }
+
+  // Validate the token — checks expiry and whether it's been used
+  const invite = await validateHotelInviteToken(token);
+  if (!invite) {
+    throw new CustomError(
+      "This invite link is invalid, expired, or has already been used",
+      400,
+    );
+  }
+
+  const { email } = invite;
+
+  // Guard: hotel account should not already exist
+  const { data: rpcUser } = await supabase.rpc("get_user_by_email", { email });
+  if (rpcUser) {
+    // Token is dangling — clean it up and reject
+    await consumeHotelInviteToken(token);
+    throw new CustomError(
+      "An account for this hotel already exists. Please log in.",
+      400,
+    );
+  }
+
+  // Use a new Supabase instance for this signup
+  const { createClient } = await import("@supabase/supabase-js");
+  const tempSupabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
+
+  // Create the Supabase user — no email confirmation needed since this is an
+  // admin-initiated invite flow (the email address is already trusted)
+  const { data, error } = await tempSupabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { name },
+      // No emailRedirectTo — we confirm programmatically below
+    },
+  });
+
+  if (error) {
+    throw new CustomError(error.message, 400);
+  }
+
+  const userId = data?.user?.id;
+  if (!userId) {
+    throw new CustomError("Failed to create user account", 500);
+  }
+
+  // Immediately confirm the email and set role + approval — no manual review needed
+  const { error: metaError } = await tempSupabase.auth.admin.updateUserById(
+    userId,
+    {
+      email_confirm: true,
+      user_metadata: {
+        name,
+        approvalStatus: ApprovalStatus.APPROVED,
+      },
+      role: UserRole.HOTEL_OWNER,
+    },
+  );
+
+  if (metaError) {
+    // Attempt to clean up the half-created Supabase user
+    await supabase.auth.admin.deleteUser(userId);
+    throw new CustomError(metaError.message, 400);
+  }
+
+  // Token is valid and user is created — consume it now so it can't be reused
+  await consumeHotelInviteToken(token);
+
+  // Sign the user in immediately so the frontend gets a session token
+  const { data: sessionData, error: sessionError } =
+    await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+  if (sessionError) {
+    throw new CustomError(sessionError.message, 400);
+  }
+
+  const session = sessionData?.session;
+
+  return res.status(201).json({
+    message: "Hotel account created successfully.",
+    data: {
+      token: session?.access_token,
+      user: {
+        id: userId,
+        email,
+        name,
+        role: UserRole.HOTEL_OWNER,
+        approvalStatus: ApprovalStatus.APPROVED,
+      },
+    },
+  });
+}
 
 export async function signup(req: Request, res: Response, next: NextFunction) {
   const {
@@ -42,7 +161,7 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
     // Call the custom RPC function to get the full user by email
     const { data: rpcUser, error: rpcError } = await supabase.rpc(
       "get_user_by_email",
-      { email }
+      { email },
     );
     if (rpcError) throw new CustomError(rpcError.message, 400);
     const user = rpcUser;
@@ -60,7 +179,7 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
     {
       user_metadata: { studentIdUrl, approvalStatus },
       role: UserRole.STUDENT,
-    }
+    },
   );
   if (metaError) {
     throw new CustomError(metaError.message, 400);
@@ -85,6 +204,9 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
 
 export async function login(req: Request, res: Response, next: NextFunction) {
   const { email, password } = req.body as LoginRequest;
+
+  let placeId = "";
+
   const data = await supabasePasswordLogin({
     email,
     password,
@@ -103,6 +225,16 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       },
     });
   }
+
+  if (data.user?.role === UserRole.HOTEL_OWNER) {
+    // First, find all places owned by this hotel user
+    const ownedPlaces = await prisma.place.findMany({
+      where: { email }, // or however ownership is modeled
+      select: { id: true },
+    });
+
+    placeId = ownedPlaces[0]?.id || "";
+  }
   // Return user info and session (token)
   return res.status(200).json({
     data: {
@@ -110,6 +242,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
         ...data.user,
         approvalStatus: data.user?.user_metadata?.approvalStatus,
         name: data.user?.user_metadata?.name,
+        placeId,
       },
       token: {
         access_token: data.access_token,
@@ -124,7 +257,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 export async function resubmit(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   const { token, studentIdUrl } = req.body;
 
@@ -159,7 +292,7 @@ export async function resubmit(
 export async function forgotPassword(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   const { email } = req.body;
 
@@ -180,7 +313,7 @@ export async function forgotPassword(
 export async function resetPassword(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   const { password } = req.body;
   const accessToken = req.headers.authorization?.replace("Bearer ", "");
@@ -190,7 +323,8 @@ export async function resetPassword(
   }
 
   // Get user from session using the access token
-  const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
+  const { data: userData, error: userError } =
+    await supabase.auth.getUser(accessToken);
 
   if (userError || !userData.user) {
     throw new CustomError("Invalid or expired token", 400);
@@ -206,6 +340,7 @@ export async function resetPassword(
   }
 
   return res.status(200).json({
-    message: "Password reset successfully. You can now login with your new password.",
+    message:
+      "Password reset successfully. You can now login with your new password.",
   });
 }

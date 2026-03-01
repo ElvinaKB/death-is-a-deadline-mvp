@@ -2,6 +2,7 @@ export const ENDPOINTS = {
   // Auth
   LOGIN: "/api/auth/login",
   SIGNUP: "/api/auth/signup",
+  HOTEL_SIGNUP: "/api/auth/signup/hotel",
   LOGOUT: "/api/auth/logout",
   VERIFY_EMAIL: "/api/auth/verify-email",
   RESUBMIT_ID: "/api/auth/resubmit",
@@ -26,6 +27,9 @@ export const ENDPOINTS = {
   PLACE_UPDATE: "/api/places/:id",
   PLACE_STATUS: "/api/places/:id/status",
   PLACE_DELETE: "/api/places/:id",
+  RESEND_HOTEL_INVITE: "/api/places/resend-invite",
+  HOTEL_PLACES_LIST: "/api/places/hotel",
+  HOTEL_DASHBOARD_STATS: "/api/places/hotel-stats",
 
   // Bids
   BIDS_CREATE: "/api/bids",
@@ -33,6 +37,7 @@ export const ENDPOINTS = {
   BID_FOR_PLACE: "/api/bids/place/:placeId",
   BID_DETAIL: "/api/bids/:id",
   BIDS_LIST: "/api/bids",
+  HOTEL_BIDS_LIST: "/api/bids/hotel",
   BID_STATUS: "/api/bids/:id/status",
   BID_PAYOUT: "/api/bids/:id/payout",
 

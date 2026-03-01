@@ -6,7 +6,8 @@ export const QUERY_KEYS = {
   STUDENTS_LIST: "studentsList",
   STUDENT_DETAIL: "studentDetail",
   STUDENTS_PENDING: "studentsPending",
-
+  HOTEL_PLACES: "hotel-places",
+  HOTEL_DASHBOARD_STATS: "hotel-dashboard-stats",
   // Profile
   PROFILE: "profile",
 

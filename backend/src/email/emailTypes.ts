@@ -5,5 +5,7 @@ export enum EmailType {
   BOOKING_CONFIRMED_STUDENT = "booking_confirmed_student",
   BOOKING_CONFIRMED_PLACE = "booking_confirmed_place",
   PAYOUT_SENT = "payout_sent",
+  HOTEL_PLACE_CREATED = "hotel_place_created",
+  HOTEL_INVITE = "hotel_invite",
   // Add more types as needed
 }

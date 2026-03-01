@@ -23,6 +23,7 @@ export interface BidPayment {
   cancelledAt?: string;
   failedAt?: string;
   expiresAt?: string;
+  stripePaymentIntentId?: string;
 }
 
 export interface BidStudent {

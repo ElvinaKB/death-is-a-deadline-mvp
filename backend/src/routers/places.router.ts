@@ -9,10 +9,26 @@ import {
   placeIdParamSchema,
   listPlacesQuerySchema,
   publicPlacesQuerySchema,
+  resendHotelInviteSchema,
 } from "../validations/places/places.validation";
 import { UserRole } from "../types/auth.types";
 
 const router = Router();
+
+// GET /api/places - List all places (hotel)
+router.get(
+  "/hotel",
+  validate(listPlacesQuerySchema, "query"),
+  authenticate(UserRole.HOTEL_OWNER),
+  placesController.listHotelPlaces,
+);
+
+router.get(
+  "/hotel-stats",
+  validate(listPlacesQuerySchema, "query"),
+  authenticate(UserRole.HOTEL_OWNER),
+  placesController.getHotelDashboardStats,
+);
 
 // Public route - list all LIVE places (for students marketplace)
 router.get(
@@ -23,6 +39,12 @@ router.get(
 
 // Public route - get price range of LIVE places (for filters)
 router.get("/public/price-range", placesController.getPriceRange);
+
+router.post(
+  "/resend-invite",
+  validate(resendHotelInviteSchema),
+  placesController.resendHotelInvite,
+);
 
 // Public route - get single place by ID (for students - includes inventory status)
 router.get(
