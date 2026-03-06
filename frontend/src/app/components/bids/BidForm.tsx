@@ -435,12 +435,28 @@ function BidFormInner({
 
   const isDateBlocked =
     (field: "checkInDate" | "checkOutDate") => (date: Date) => {
-      if (
-        isBefore(date, tomorrow) ||
-        isAfter(date, maxDate) ||
-        (formik.values[field] && isSameDay(date, formik.values[field]))
-      ) {
+      // Basic date range validation
+      if (isBefore(date, tomorrow) || isAfter(date, maxDate)) {
         return true;
+      }
+
+      // Prevent selecting the same date for both fields
+      if (formik.values[field] && isSameDay(date, formik.values[field])) {
+        return true;
+      }
+
+      // For check-in: disable dates on or after the selected check-out
+      if (field === "checkInDate" && formik.values.checkOutDate) {
+        if (!isBefore(date, formik.values.checkOutDate)) {
+          return true;
+        }
+      }
+
+      // For check-out: disable dates on or before the selected check-in
+      if (field === "checkOutDate" && formik.values.checkInDate) {
+        if (!isAfter(date, formik.values.checkInDate)) {
+          return true;
+        }
       }
 
       // Check if day of week is allowed
@@ -639,7 +655,7 @@ function BidFormInner({
                       onDateChange(date.toISOString().split("T")[0]);
                     }
                   }}
-                  disabled={isDateBlocked("checkOutDate")}
+                  disabled={isDateBlocked("checkInDate")}
                   className=" text-fg"
                 />
               </PopoverContent>
@@ -682,7 +698,7 @@ function BidFormInner({
                     formik.setFieldValue("checkOutDate", date);
                     setCheckOutOpen(false);
                   }}
-                  disabled={isDateBlocked("checkInDate")}
+                  disabled={isDateBlocked("checkOutDate")}
                 />
               </PopoverContent>
             </Popover>
