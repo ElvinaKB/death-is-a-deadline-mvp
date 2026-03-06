@@ -27,7 +27,7 @@ export function PlaceListItem({
 
   return (
     <div
-      className={`flex gap-4 p-3 rounded-xl cursor-pointer transition-all duration-200 ${
+      className={`flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 rounded-xl cursor-pointer transition-all duration-200 ${
         isSelected
           ? "bg-brand/10 ring-2 ring-brand"
           : "bg-glass hover:bg-glass-2 border border-line"
@@ -37,7 +37,7 @@ export function PlaceListItem({
       onMouseLeave={() => onHover?.(null)}
     >
       {/* Thumbnail */}
-      <div className="relative w-44 h-28 rounded-lg overflow-hidden shrink-0">
+      <div className="relative w-full sm:w-44 h-40 sm:h-28 rounded-lg overflow-hidden shrink-0">
         <img
           src={imageUrl}
           alt={place.name}
@@ -76,10 +76,23 @@ export function PlaceListItem({
             </p>
           )}
         </div>
+
+        {/* Mobile: Bid button at bottom of content */}
+        <div className="sm:hidden mt-3">
+          <button
+            className="btn-bid h-10 w-full text-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClick();
+            }}
+          >
+            BID
+          </button>
+        </div>
       </div>
 
-      {/* Price & Bid Button */}
-      <div className="text-right shrink-0 py-1 flex flex-col justify-end">
+      {/* Price & Bid Button - Desktop only */}
+      <div className="hidden sm:flex text-right shrink-0 py-1 flex-col justify-end">
         <button
           className="btn-bid h-8 px-4 text-sm"
           onClick={(e) => {
