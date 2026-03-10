@@ -335,6 +335,8 @@ function BidFormInner({
                 setPaymentSuccess(true);
               } catch (err) {
                 // Payment succeeded with Stripe but backend update failed
+                // This is OK - the webhook will update the status
+                // Still show success since the card WAS charged
                 toast.custom(
                   () => (
                     <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
@@ -344,23 +346,18 @@ function BidFormInner({
                         </div>
                         <div>
                           <h3 className="font-bold text-fg text-lg">
-                            Bid Accepted!
+                            Payment Complete!
                           </h3>
                           <p className="text-success text-sm">
-                            You're booked at your price.
+                            Your card has been charged.
                           </p>
                         </div>
                       </div>
                       <div className="border-t border-line pt-3">
-                        <div className="flex items-center gap-2 text-muted">
-                          <CreditCard className="w-4 h-4" />
-                          <div>
-                            <p className="text-fg text-sm">Card charged now</p>
-                            <p className="text-muted text-xs">
-                              Private rate. Not publicly listed.
-                            </p>
-                          </div>
-                        </div>
+                        <p className="text-muted text-sm">
+                          Your booking is being confirmed. Check My Bids for
+                          status.
+                        </p>
                       </div>
                     </div>
                   ),
