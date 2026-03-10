@@ -516,6 +516,16 @@ export async function updatePlace(req: Request, res: Response) {
     include: { images: { orderBy: { order: "asc" } } },
   });
 
+  // Send email notification if email was added or changed
+  if (data.email && data.email !== existingPlace.email) {
+    await notifyHotelOnPlaceCreated({
+      placeEmail: data.email,
+      placeName: place.name,
+      placeCity: place.city,
+      placeCountry: place.country,
+    });
+  }
+
   res.status(200).json({
     message: "Place updated successfully",
     data: { place: formatPlace(place) },
