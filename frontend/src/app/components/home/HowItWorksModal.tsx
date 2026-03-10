@@ -1,15 +1,33 @@
 import { useState } from "react";
-import howItWorksImage from "../../../assets/how-it-works.png";
+import infoImg from "../../../assets/info.png";
 import { Dialog, DialogContent } from "../ui/dialog";
 
-export function HowItWorksModal() {
-  const [open, onOpenChange] = useState(false);
+interface HowItWorksModalProps {
+  showOnFirstVisit?: boolean;
+}
+
+export function HowItWorksModal({
+  showOnFirstVisit = false,
+}: HowItWorksModalProps) {
+  const [open, setOpen] = useState(() => {
+    if (showOnFirstVisit) {
+      return localStorage.getItem("infoModalSeen") !== "true";
+    }
+    return false;
+  });
+
+  const onOpenChange = (val: boolean) => {
+    setOpen(val);
+    if (!val && showOnFirstVisit) {
+      localStorage.setItem("infoModalSeen", "true");
+    }
+  };
 
   return (
     <>
       <div className="flex items-end justify-end p-2 bg-bg border-b border-line">
         <button
-          onClick={() => onOpenChange(true)}
+          onClick={() => setOpen(true)}
           className="text-sm font-medium text-muted hover:text-fg transition-colors"
         >
           How It Works?
@@ -22,7 +40,7 @@ export function HowItWorksModal() {
         >
           <div className="w-full">
             <img
-              src={howItWorksImage}
+              src={infoImg}
               alt="How It Works - The Grim Keeper explains the bidding process"
               className="w-full h-auto max-h-[90vh] object-contain"
             />
