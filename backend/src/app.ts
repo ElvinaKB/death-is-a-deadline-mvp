@@ -6,6 +6,7 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import { errorHandler } from "./libs/middlewares/errorHandler";
+import { auditLogger } from "./libs/middlewares/auditLogger";
 import { router as authRouter } from "./routers/auth.router";
 import { router as studentsRouter } from "./routers/students.router";
 import { router as placesRouter } from "./routers/places.router";
@@ -23,6 +24,9 @@ app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
 // JSON parser for all other routes
 app.use(express.json());
 app.use(morgan("dev"));
+
+// Audit logging middleware - logs all requests to database
+app.use(auditLogger);
 
 app.get("/", (req, res) => {
   res.json({ status: "ok" });
