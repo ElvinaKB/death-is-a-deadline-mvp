@@ -174,7 +174,11 @@ function BidFormInner({
   // Helper function to confirm payment with card
   const confirmPaymentWithCard = async (
     clientSecret: string,
-  ): Promise<{ success: boolean; error?: string; requiresAction?: boolean }> => {
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    requiresAction?: boolean;
+  }> => {
     if (!stripe) {
       return { success: false, error: "Payment system not ready" };
     }
@@ -215,29 +219,35 @@ function BidFormInner({
       case "succeeded":
         // Payment succeeded - funds have been charged
         return { success: true };
-      
+
       case "processing":
         // Payment is being processed (rare for cards, common for bank transfers)
         return { success: true }; // Treat as success, webhook will confirm
-      
+
       case "requires_action":
         // 3D Secure or other authentication was needed but handled by Stripe
         // If we reach here, the modal was cancelled or failed
-        return { 
-          success: false, 
+        return {
+          success: false,
           error: "Additional authentication required. Please try again.",
-          requiresAction: true 
+          requiresAction: true,
         };
-      
+
       case "requires_payment_method":
         // Card was declined after 3D Secure
-        return { success: false, error: "Payment declined. Please try a different card." };
-      
+        return {
+          success: false,
+          error: "Payment declined. Please try a different card.",
+        };
+
       case "canceled":
         return { success: false, error: "Payment was cancelled" };
-      
+
       default:
-        return { success: false, error: `Unexpected payment status: ${paymentIntent.status}` };
+        return {
+          success: false,
+          error: `Unexpected payment status: ${paymentIntent.status}`,
+        };
     }
   };
 
@@ -365,7 +375,7 @@ function BidFormInner({
             // No clientSecret returned - this should never happen
             // but if it does, it's a system error
             setPaymentError(
-              "Something went wrong with payment processing. Please contact support."
+              "Something went wrong with payment processing. Please contact support.",
             );
             toast.custom(
               () => (
