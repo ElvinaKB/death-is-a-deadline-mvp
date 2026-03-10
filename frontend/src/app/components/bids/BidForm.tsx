@@ -174,7 +174,7 @@ function BidFormInner({
   // Helper function to confirm payment with card
   const confirmPaymentWithCard = async (
     clientSecret: string,
-  ): Promise<{ success: boolean; error?: string }> => {
+  ): Promise<{ success: boolean; error?: string; requiresAction?: boolean }> => {
     if (!stripe) {
       return { success: false, error: "Payment system not ready" };
     }
@@ -199,15 +199,46 @@ function BidFormInner({
     );
 
     if (error) {
+      // Card was declined or other error
+      if (error.type === "card_error" || error.type === "validation_error") {
+        return { success: false, error: error.message || "Card declined" };
+      }
       return { success: false, error: error.message || "Payment failed" };
     }
 
-    // Payment succeeded - funds have been charged
-    if (paymentIntent && paymentIntent.status === "succeeded") {
-      return { success: true };
+    if (!paymentIntent) {
+      return { success: false, error: "No payment response received" };
     }
 
-    return { success: false, error: "Unexpected payment status" };
+    // Handle different payment intent statuses
+    switch (paymentIntent.status) {
+      case "succeeded":
+        // Payment succeeded - funds have been charged
+        return { success: true };
+      
+      case "processing":
+        // Payment is being processed (rare for cards, common for bank transfers)
+        return { success: true }; // Treat as success, webhook will confirm
+      
+      case "requires_action":
+        // 3D Secure or other authentication was needed but handled by Stripe
+        // If we reach here, the modal was cancelled or failed
+        return { 
+          success: false, 
+          error: "Additional authentication required. Please try again.",
+          requiresAction: true 
+        };
+      
+      case "requires_payment_method":
+        // Card was declined after 3D Secure
+        return { success: false, error: "Payment declined. Please try a different card." };
+      
+      case "canceled":
+        return { success: false, error: "Payment was cancelled" };
+      
+      default:
+        return { success: false, error: `Unexpected payment status: ${paymentIntent.status}` };
+    }
   };
 
   const formik = useFormik({
@@ -331,36 +362,35 @@ function BidFormInner({
               setPaymentError(confirmResult.error || "Payment failed");
             }
           } else {
+            // No clientSecret returned - this should never happen
+            // but if it does, it's a system error
+            setPaymentError(
+              "Something went wrong with payment processing. Please contact support."
+            );
             toast.custom(
               () => (
                 <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-full border-2 border-success flex items-center justify-center">
-                      <CheckCircle className="w-7 h-7 text-success" />
+                    <div className="w-12 h-12 rounded-full border-2 border-danger flex items-center justify-center">
+                      <AlertCircle className="w-7 h-7 text-danger" />
                     </div>
                     <div>
                       <h3 className="font-bold text-fg text-lg">
-                        Bid Accepted!
+                        Payment Error
                       </h3>
-                      <p className="text-success text-sm">
-                        You're booked at your price.
+                      <p className="text-danger text-sm">
+                        Something went wrong
                       </p>
                     </div>
                   </div>
                   <div className="border-t border-line pt-3">
-                    <div className="flex items-center gap-2 text-muted">
-                      <CreditCard className="w-4 h-4" />
-                      <div>
-                        <p className="text-fg text-sm">Card charged now</p>
-                        <p className="text-muted text-xs">
-                          Private rate. Not publicly listed.
-                        </p>
-                      </div>
-                    </div>
+                    <p className="text-muted text-sm">
+                      Please contact support for assistance.
+                    </p>
                   </div>
                 </div>
               ),
-              { duration: 5000 },
+              { duration: 7000 },
             );
           }
           setIsProcessing(false);
