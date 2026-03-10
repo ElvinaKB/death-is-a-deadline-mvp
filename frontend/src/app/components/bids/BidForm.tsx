@@ -883,8 +883,6 @@ function BidFormInner({
           {isAuthenticated ? (
             <>
               Secure Stripe Checkout. Card is only charged if bid is accepted.
-              <br />
-              Cancel anytime before acceptance.
             </>
           ) : (
             <>
