@@ -62,12 +62,13 @@ export function SignupPage() {
     endpoint: ENDPOINTS.SIGNUP,
     showErrorToast: true,
     onSuccess: (data) => {
-      const isApproved = data?.user?.approvalStatus !== ApprovalStatus.APPROVED;
+      const isNotApproved =
+        data?.user?.approvalStatus !== ApprovalStatus.APPROVED;
       const notApproved =
         "NOTE: If you are a student with an academic email, you will be logged in automatically once your email is verified.";
       toast.success(
         "Account created successfully! Verify your email to continue." +
-          (isApproved ? notApproved : ""),
+          (isNotApproved ? notApproved : ""),
       );
     },
   });
