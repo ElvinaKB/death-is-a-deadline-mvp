@@ -777,7 +777,7 @@ export function PlaceFormPage() {
           >
             <Save className="mr-2 h-4 w-4" />
             {isUploading
-              ? "Uploading images..."
+              ? "Saving...."
               : createPlace.isPending || updatePlace.isPending
                 ? "Saving..."
                 : isEditMode

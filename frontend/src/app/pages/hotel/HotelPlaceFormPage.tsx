@@ -613,7 +613,7 @@ export function HotelPlaceFormPage() {
           <Button type="submit" disabled={updatePlace.isPending || isUploading}>
             <Save className="mr-2 h-4 w-4" />
             {isUploading
-              ? "Uploading images..."
+              ? "Saving..."
               : updatePlace.isPending
                 ? "Saving..."
                 : "Save Changes"}

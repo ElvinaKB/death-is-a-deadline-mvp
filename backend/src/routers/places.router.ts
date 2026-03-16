@@ -60,7 +60,16 @@ router.get(
   placesController.getPlace,
 );
 
-// Admin only routes
+// PUT /api/places/:id - Update place
+router.put(
+  "/:id",
+  validate(placeIdParamSchema, "params"),
+  validate(updatePlaceSchema),
+  authenticate(UserRole.ADMIN, UserRole.HOTEL_OWNER), // Allow both admin and hotel owner to update place details
+  placesController.updatePlace,
+);
+
+// -- Admin only routes --------------------------------
 router.use(authenticate(UserRole.ADMIN));
 
 // GET /api/places - List all places (admin)
@@ -72,15 +81,6 @@ router.get(
 
 // POST /api/places - Create new place
 router.post("/", validate(createPlaceSchema), placesController.createPlace);
-
-// PUT /api/places/:id - Update place
-router.put(
-  "/:id",
-  validate(placeIdParamSchema, "params"),
-  validate(updatePlaceSchema),
-  authenticate(UserRole.ADMIN, UserRole.HOTEL_OWNER), // Allow both admin and hotel owner to update place details
-  placesController.updatePlace,
-);
 
 // PATCH /api/places/:id/status - Update place status only
 router.patch(
