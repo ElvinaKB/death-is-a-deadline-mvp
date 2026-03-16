@@ -224,7 +224,7 @@ export function HotelPlaceFormPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate(ROUTES.HOTEL_PLACES)}
+          onClick={() => navigate(ROUTES.HOTEL_DASHBOARD)}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back

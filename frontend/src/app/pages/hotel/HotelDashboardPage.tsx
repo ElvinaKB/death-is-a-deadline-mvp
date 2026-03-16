@@ -379,10 +379,10 @@ export function HotelDashboardPage() {
 
               <div className="pt-2">
                 <Link
-                  to={ROUTES.HOTEL_PLACES}
+                  to={ROUTES.HOTEL_PLACE}
                   className="text-xs text-brand hover:underline"
                 >
-                  Manage all properties →
+                  Manage property →
                 </Link>
               </div>
             </CardContent>
