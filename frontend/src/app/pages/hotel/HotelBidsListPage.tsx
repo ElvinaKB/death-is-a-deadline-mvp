@@ -237,7 +237,7 @@ export function HotelBidsPage() {
           setCurrentPage(1);
         }}
       >
-        <TabsList className="bg-glass border border-line">
+        {/* <TabsList className="bg-glass border border-line">
           {(
             [
               "ALL",
@@ -256,7 +256,7 @@ export function HotelBidsPage() {
                 : val.charAt(0) + val.slice(1).toLowerCase()}
             </TabsTrigger>
           ))}
-        </TabsList>
+        </TabsList> */}
 
         <TabsContent value={filter} className="mt-4 sm:mt-6">
           <Card className="glass-2 border-line">

@@ -4,7 +4,7 @@ import { z } from "zod";
 export const accommodationTypeSchema = z.enum([
   "POD_SHARE",
   "HOSTEL",
-  "SHARED_APARTMENT",
+  // "SHARED_APARTMENT",
   "PRIVATE_ROOM",
 ]);
 

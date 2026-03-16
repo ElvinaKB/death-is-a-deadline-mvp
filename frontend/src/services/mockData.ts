@@ -37,41 +37,6 @@ export const MOCK_USERS: Record<string, User & { password: string }> = {
 // Mock places data
 export const MOCK_PLACES: Place[] = [
   {
-    id: "place-1",
-    name: "Downtown Student Hub",
-    shortDescription: "Modern accommodation in the heart of the city",
-    fullDescription:
-      "Experience comfortable living in our modern student hub located in downtown. Perfect for students looking for convenience and community. Walking distance to major universities and public transportation.",
-    city: "New York",
-    country: "USA",
-    address: "123 Broadway St, New York, NY 10001",
-    images: [
-      {
-        id: "img-1",
-        url: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800",
-        order: 0,
-      },
-      {
-        id: "img-2",
-        url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800",
-        order: 1,
-      },
-      {
-        id: "img-3",
-        url: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800",
-        order: 2,
-      },
-    ],
-    accommodationType: AccommodationType.SHARED_APARTMENT,
-    retailPrice: 85,
-    minimumBid: 60,
-    autoAcceptAboveMinimum: true,
-    blackoutDates: [],
-    status: PlaceStatus.LIVE,
-    createdAt: "2025-12-15T10:00:00Z",
-    updatedAt: "2025-12-15T10:00:00Z",
-  },
-  {
     id: "place-2",
     name: "Cozy Campus Pod",
     shortDescription: "Affordable pod-style living near campus",
@@ -165,31 +130,6 @@ export const MOCK_PLACES: Place[] = [
     status: PlaceStatus.LIVE,
     createdAt: "2025-11-28T10:00:00Z",
     updatedAt: "2025-11-28T10:00:00Z",
-  },
-  {
-    id: "place-5",
-    name: "Tech Quarter Shared Living",
-    shortDescription: "Modern shared apartment in tech district",
-    fullDescription:
-      "Live among fellow tech and engineering students in our modern shared apartments. Features include co-working spaces, gaming lounge, and maker lab. Fiber internet included.",
-    city: "San Francisco",
-    country: "USA",
-    address: "555 Silicon St, San Francisco, CA 94102",
-    images: [
-      {
-        id: "img-11",
-        url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",
-        order: 0,
-      },
-    ],
-    accommodationType: AccommodationType.SHARED_APARTMENT,
-    retailPrice: 110,
-    minimumBid: 85,
-    autoAcceptAboveMinimum: true,
-    blackoutDates: [],
-    status: PlaceStatus.PAUSED,
-    createdAt: "2025-11-20T10:00:00Z",
-    updatedAt: "2025-12-20T10:00:00Z",
   },
   {
     id: "place-6",
