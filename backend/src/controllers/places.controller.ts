@@ -368,7 +368,7 @@ export async function createPlace(req: Request, res: Response) {
       accommodationType: data.accommodationType,
       retailPrice: data.retailPrice,
       minimumBid: data.minimumBid,
-      autoAcceptAboveMinimum: data.autoAcceptAboveMinimum ?? true,
+      autoAcceptAboveMinimum: true,
       blackoutDates: data.blackoutDates ?? [],
       allowedDaysOfWeek: data.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
       maxInventory: data.maxInventory ?? 1,
@@ -492,9 +492,6 @@ export async function updatePlace(req: Request, res: Response) {
       }),
       ...(data.retailPrice !== undefined && { retailPrice: data.retailPrice }),
       ...(data.minimumBid !== undefined && { minimumBid: data.minimumBid }),
-      ...(data.autoAcceptAboveMinimum !== undefined && {
-        autoAcceptAboveMinimum: data.autoAcceptAboveMinimum,
-      }),
       ...(data.blackoutDates && { blackoutDates: data.blackoutDates }),
       ...(data.allowedDaysOfWeek && {
         allowedDaysOfWeek: data.allowedDaysOfWeek,

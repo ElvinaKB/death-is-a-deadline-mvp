@@ -133,7 +133,7 @@ export function PlaceFormPage() {
       retailPrice: existingPlace?.retailPrice || 0,
       minimumBid: existingPlace?.minimumBid || 0,
       maxInventory: existingPlace?.maxInventory || 1,
-      autoAcceptAboveMinimum: existingPlace?.autoAcceptAboveMinimum ?? true,
+      autoAcceptAboveMinimum: true,
       status: existingPlace?.status || PlaceStatus.DRAFT,
     },
     enableReinitialize: true,
@@ -615,7 +615,7 @@ export function PlaceFormPage() {
               )}
             </div>
 
-            <div className="flex items-center justify-between p-4 border border-white/10 rounded-lg">
+            {/* <div className="flex items-center justify-between p-4 border border-white/10 rounded-lg">
               <div className="space-y-0.5">
                 <Label className="text-fg">
                   Auto-accept bids above minimum
@@ -630,7 +630,7 @@ export function PlaceFormPage() {
                   formik.setFieldValue("autoAcceptAboveMinimum", checked)
                 }
               />
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 
