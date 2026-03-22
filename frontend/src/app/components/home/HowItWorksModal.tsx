@@ -1,5 +1,6 @@
 import { useState } from "react";
 import infoImg from "../../../assets/info.png";
+import howItWorksImg from "../../../assets/how-it-works.png";
 import { Dialog, DialogContent } from "../ui/dialog";
 
 interface HowItWorksModalProps {
@@ -22,6 +23,8 @@ export function HowItWorksModal({
       localStorage.setItem("infoModalSeen", "true");
     }
   };
+  const alreadySeen = localStorage.getItem("infoModalSeen") === "true";
+  const image = alreadySeen ? howItWorksImg : infoImg;
 
   return (
     <>
@@ -40,7 +43,7 @@ export function HowItWorksModal({
         >
           <div className="w-full">
             <img
-              src={infoImg}
+              src={image}
               alt="How It Works - The Grim Keeper explains the bidding process"
               className="w-full h-auto max-h-[90vh] object-contain"
             />
