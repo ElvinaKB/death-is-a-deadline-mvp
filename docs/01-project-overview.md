@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Death is a Deadline is a student accommodation bidding platform where students can bid on available accommodations (places) at prices they're willing to pay. The platform uses a pre-authorization payment system where funds are held on the student's card when their bid is accepted, but only charged after admin confirmation.
+Death is a Deadline is a student accommodation bidding platform where students can bid on available accommodations (places) at prices they're willing to pay. The platform uses a direct charge payment system where the student's card is charged when they confirm payment after their bid is accepted.
 
 ## Key Features
 
@@ -25,8 +25,7 @@ Death is a Deadline is a student accommodation bidding platform where students c
 This implementation covers Milestone 2 which includes:
 
 - ✅ PodShare (single hotel/place provider)
-- ✅ Stripe pre-authorization flow
-- ✅ Manual payment capture by admin
+- ✅ Stripe direct charge flow
 - ❌ No hotel onboarding (Milestone 3)
 - ❌ No automated payouts (Milestone 4)
 
