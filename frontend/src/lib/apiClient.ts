@@ -17,7 +17,7 @@ export class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const token = getAuthToken();
 
@@ -49,6 +49,7 @@ export class ApiClient {
 
       return data.data as T;
     } catch (error) {
+      console.log(error);
       if ("statusCode" in error) {
         if (error.statusCode === 401) {
           // logout user
@@ -70,7 +71,7 @@ export class ApiClient {
   async post<T>(
     endpoint: string,
     body?: unknown,
-    options?: RequestInit
+    options?: RequestInit,
   ): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
@@ -82,7 +83,7 @@ export class ApiClient {
   async put<T>(
     endpoint: string,
     body?: unknown,
-    options?: RequestInit
+    options?: RequestInit,
   ): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
@@ -94,7 +95,7 @@ export class ApiClient {
   async patch<T>(
     endpoint: string,
     body?: unknown,
-    options?: RequestInit
+    options?: RequestInit,
   ): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,

@@ -49,7 +49,7 @@ export async function deleteTestimonial(req: Request, res: Response) {
   const { id } = req.params;
   try {
     await prisma.testimonial.delete({ where: { id } });
-    res.status(204).end();
+    res.json({ message: "Testimonial deleted successfully" });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
@@ -89,6 +89,11 @@ export async function createReviewPlatform(req: Request, res: Response) {
     });
     res.status(201).json({ data: reviewPlatform });
   } catch (err: any) {
+    if (err.code === "P2002") {
+      return res.status(409).json({
+        error: `A ${source} review platform entry already exists for this place`,
+      });
+    }
     res.status(400).json({ error: err.message });
   }
 }
@@ -113,7 +118,7 @@ export async function deleteReviewPlatform(req: Request, res: Response) {
   const { id } = req.params;
   try {
     await prisma.reviewPlatform.delete({ where: { id } });
-    res.status(204).end();
+    res.json({ message: "Review platform deleted successfully" });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }

@@ -1,8 +1,7 @@
 export enum AccommodationType {
-  POD_SHARE = "POD_SHARE",
+  HOTEL = "HOTEL",
+  MOTEL = "MOTEL",
   HOSTEL = "HOSTEL",
-  // SHARED_APARTMENT = "SHARED_APARTMENT",
-  PRIVATE_ROOM = "PRIVATE_ROOM",
 }
 
 export enum PlaceStatus {
@@ -71,10 +70,9 @@ export interface UpdatePlaceRequest extends Partial<CreatePlaceRequest> {
 }
 
 export const ACCOMMODATION_TYPE_LABELS: Record<AccommodationType, string> = {
-  [AccommodationType.POD_SHARE]: "Pod Share",
+  [AccommodationType.HOTEL]: "Hotel",
+  [AccommodationType.MOTEL]: "Motel",
   [AccommodationType.HOSTEL]: "Hostel",
-  // [AccommodationType.SHARED_APARTMENT]: "Shared Apartment",
-  [AccommodationType.PRIVATE_ROOM]: "Private Room",
 };
 
 export interface PlaceResponse {

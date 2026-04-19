@@ -2,10 +2,9 @@ import { z } from "zod";
 
 // Enum schemas
 export const accommodationTypeSchema = z.enum([
-  "POD_SHARE",
+  "HOTEL",
+  "MOTEL",
   "HOSTEL",
-  // "SHARED_APARTMENT",
-  "PRIVATE_ROOM",
 ]);
 
 export const placeStatusSchema = z.enum(["DRAFT", "LIVE", "PAUSED"]);

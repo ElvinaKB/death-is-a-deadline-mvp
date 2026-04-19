@@ -523,7 +523,7 @@ export function PlaceFormPage() {
               <SelectTrigger>
                 <SelectValue placeholder="Select accommodation type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-bg">
                 {Object.entries(ACCOMMODATION_TYPE_LABELS).map(
                   ([value, label]) => (
                     <SelectItem key={value} value={value}>

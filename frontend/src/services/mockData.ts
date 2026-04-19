@@ -38,10 +38,10 @@ export const MOCK_USERS: Record<string, User & { password: string }> = {
 export const MOCK_PLACES: Place[] = [
   {
     id: "place-2",
-    name: "Cozy Campus Pod",
-    shortDescription: "Affordable pod-style living near campus",
+    name: "Downtown Motel",
+    shortDescription: "Affordable motel near campus",
     fullDescription:
-      "Innovative pod-sharing concept designed for budget-conscious students. Each pod features privacy curtains, personal storage, and shared common areas. Located just 5 minutes from campus.",
+      "Budget-friendly motel designed for students. Features comfortable rooms with private bathrooms, free WiFi, and convenient location just 5 minutes from campus.",
     city: "Boston",
     country: "USA",
     address: "456 College Ave, Boston, MA 02115",
@@ -57,7 +57,7 @@ export const MOCK_PLACES: Place[] = [
         order: 1,
       },
     ],
-    accommodationType: AccommodationType.POD_SHARE,
+    accommodationType: AccommodationType.MOTEL,
     retailPrice: 45,
     minimumBid: 30,
     autoAcceptAboveMinimum: false,
@@ -103,10 +103,10 @@ export const MOCK_PLACES: Place[] = [
   },
   {
     id: "place-4",
-    name: "Private Study Room",
-    shortDescription: "Your own private space for focused studying",
+    name: "Elite Hotel",
+    shortDescription: "Luxury hotel for discerning students",
     fullDescription:
-      "Perfect for graduate students and researchers who need a quiet, private space. Fully furnished with a desk, ergonomic chair, high-speed internet, and en-suite bathroom.",
+      "Premium hotel experience designed for graduate students and researchers who appreciate comfort. Fully furnished rooms with a desk, ergonomic chair, high-speed internet, and en-suite bathroom.",
     city: "Chicago",
     country: "USA",
     address: "321 University Dr, Chicago, IL 60601",
@@ -122,7 +122,7 @@ export const MOCK_PLACES: Place[] = [
         order: 1,
       },
     ],
-    accommodationType: AccommodationType.PRIVATE_ROOM,
+    accommodationType: AccommodationType.HOTEL,
     retailPrice: 95,
     minimumBid: 75,
     autoAcceptAboveMinimum: false,
@@ -133,10 +133,10 @@ export const MOCK_PLACES: Place[] = [
   },
   {
     id: "place-6",
-    name: "Eco-Friendly Student Pods",
-    shortDescription: "Sustainable pod living for eco-conscious students",
+    name: "Eco-Friendly Motel",
+    shortDescription: "Sustainable motel for eco-conscious students",
     fullDescription:
-      "Join our eco-conscious community in sustainably designed pods. Solar powered, water recycling, organic garden, and bike storage. Perfect for students who care about the environment.",
+      "Join our eco-conscious community in sustainably designed motel. Solar powered, water recycling, organic garden, and bike storage. Perfect for students who care about the environment.",
     city: "Portland",
     country: "USA",
     address: "888 Green Way, Portland, OR 97201",
@@ -152,7 +152,7 @@ export const MOCK_PLACES: Place[] = [
         order: 1,
       },
     ],
-    accommodationType: AccommodationType.POD_SHARE,
+    accommodationType: AccommodationType.MOTEL,
     retailPrice: 50,
     minimumBid: 35,
     autoAcceptAboveMinimum: true,

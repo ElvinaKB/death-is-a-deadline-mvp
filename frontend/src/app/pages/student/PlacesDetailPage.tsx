@@ -318,7 +318,7 @@ export function PlaceDetailPage() {
           {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Section - Description & Bid Form */}
-            <div className="h-full lg:col-span-2 space-y-6">
+            <div className="h-fit lg:col-span-2 space-y-6">
               <div className="h-full glass-2 rounded-2xl p-6 border border-line">
                 <div className="flex flex-col sm:flex-row gap-8">
                   {/* Description */}
@@ -345,6 +345,13 @@ export function PlaceDetailPage() {
                       <div className="flex items-center gap-2 text-muted">
                         <Home className="h-5 w-5 text-muted" />
                         <span className="text-sm">{place.address}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted">
+                        <DollarSign className="h-5 w-5 text-muted" />
+                        <span className="text-sm">{place.retailPrice}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted">
+                        <span className="text-sm">{place.fullDescription}</span>
                       </div>
                     </div>
                   </div>
