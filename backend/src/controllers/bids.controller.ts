@@ -180,10 +180,14 @@ export async function getBidForPlace(req: Request, res: Response) {
   const studentId = req.user!.id;
   const { placeId } = req.params;
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const bid = await prisma.bid.findFirst({
     where: {
       studentId,
       placeId,
+      checkOutDate: { gte: today },
     },
     include: {
       place: {

@@ -165,10 +165,9 @@ function BidFormInner({
       enabled: isAuthenticated && !isProcessing && !paymentSuccess,
     });
 
-  // Date restrictions: tomorrow to 30 days from today (no same-day bookings)
+  // Date restrictions: today to 30 days from today
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const tomorrow = addDays(today, 1);
   const maxDate = addDays(today, 30);
 
   // Helper function to confirm payment with card
@@ -473,7 +472,7 @@ function BidFormInner({
   const isDateBlocked =
     (field: "checkInDate" | "checkOutDate") => (date: Date) => {
       // Basic date range validation
-      if (isBefore(date, tomorrow) || isAfter(date, maxDate)) {
+      if (isBefore(date, today) || isAfter(date, maxDate)) {
         return true;
       }
 
@@ -618,7 +617,10 @@ function BidFormInner({
 
   // If user has existing bid for this place (only check when not processing)
   const existingBid = existingBidData?.bid;
-  if (existingBid && !isProcessing) {
+  const isPastBid =
+    existingBid && new Date(existingBid.checkOutDate) < today;
+
+  if (existingBid && !isProcessing && !isPastBid) {
     return <ExistingBidCard bid={existingBid} place={place} />;
   }
 
@@ -654,6 +656,22 @@ function BidFormInner({
   // Bid form
   return (
     <div className="space-y-4">
+      {isPastBid && existingBid && (
+        <div className="glass rounded-lg p-3 border border-line text-sm">
+          <p className="text-muted">
+            You stayed here{" "}
+            <span className="text-fg font-medium">
+              {format(new Date(existingBid.checkInDate), "MMM d")}–
+              {format(new Date(existingBid.checkOutDate), "MMM d, yyyy")}
+            </span>{" "}
+            for{" "}
+            <span className="text-fg font-medium">
+              ${existingBid.bidPerNight}/night
+            </span>
+            . Bid again for a new stay.
+          </p>
+        </div>
+      )}
       <form onSubmit={formik.handleSubmit} className="space-y-4">
         {/* Check-in and Check-out in one row */}
         <div className="grid grid-cols-2 gap-3">
