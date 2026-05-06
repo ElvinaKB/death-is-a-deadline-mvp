@@ -574,10 +574,9 @@ model HotelInviteToken {
 }
 
 enum AccommodationType {
-  POD_SHARE
+  MOTEL
+  HOTEL
   HOSTEL
-  SHARED_APARTMENT
-  PRIVATE_ROOM
 
   @@schema("public")
 }
