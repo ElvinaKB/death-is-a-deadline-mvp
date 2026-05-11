@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "prod": "vite -- --mode production"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "1.2.3",
