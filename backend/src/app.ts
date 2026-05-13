@@ -1,5 +1,8 @@
 import dotenv from "dotenv";
-dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || ".env", override: true });
+dotenv.config({
+  path: process.env.DOTENV_CONFIG_PATH || ".env",
+  override: true,
+});
 
 import "express-async-errors";
 import express from "express";
@@ -15,12 +18,6 @@ import { router as paymentsRouter } from "./routers/payments.router";
 import { router as testimonialsRouter } from "./routers/testimonials.router";
 
 const app = express();
-
-console.log(
-  "Starting server in",
-  process.env.SUPABASE_CONNECTION_STRING,
-  "mode",
-);
 
 app.use(cors());
 
