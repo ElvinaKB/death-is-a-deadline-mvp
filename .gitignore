@@ -3,3 +3,7 @@ node_modules
 dist
 .vercel
 .DS_Store
+.agents
+.claude
+skills-lock.json
+.mcp.json
