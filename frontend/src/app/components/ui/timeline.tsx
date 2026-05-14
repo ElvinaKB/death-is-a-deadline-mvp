@@ -162,7 +162,7 @@ export function Timeline({
             )}
 
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-medium leading-tight text-sm">{item.title}</h3>
+              <h3 className="font-medium leading-tight text-sm text-foreground">{item.title}</h3>
               {showTimestamps && timestampPosition === "inline" && item.timestamp && (
                 <time className="shrink-0 text-xs text-muted-foreground">
                   {formatTimestamp(item.timestamp)}
