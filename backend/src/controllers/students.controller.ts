@@ -16,6 +16,7 @@ export const getRawStudent = (item: RawUser) => ({
   createdAt: item.created_at,
   updatedAt: item.updated_at,
   rejectionReason: item.raw_user_meta_data?.rejectionReason,
+  emailConfirmedAt: item.email_confirmed_at ?? null,
 });
 
 export const getStudentDetails = async (id: string) => {
@@ -59,6 +60,9 @@ export async function approveStudent(req: Request, res: Response) {
 
   const student = await getStudentDetails(id);
   if (!student) throw new CustomError("Student not found", 404);
+
+  if (!student.emailConfirmedAt)
+    throw new CustomError("Student has not verified their email address", 400);
 
   const { error } = await supabase.rpc("approve_student", {
     student_id: id,

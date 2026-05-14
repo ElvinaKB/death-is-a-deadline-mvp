@@ -19,7 +19,7 @@ import {
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
-import { ArrowLeft, Check, X } from "lucide-react";
+import { ArrowLeft, Check, X, MailCheck, MailX } from "lucide-react";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
 
@@ -170,6 +170,22 @@ export function StudentDetailPage() {
                   </div>
                 </div>
                 <div>
+                  <p className="text-sm text-muted">Email Verified</p>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    {student.emailConfirmedAt ? (
+                      <>
+                        <MailCheck className="h-4 w-4 text-success" />
+                        <span className="text-sm font-medium text-success">Verified</span>
+                      </>
+                    ) : (
+                      <>
+                        <MailX className="h-4 w-4 text-error" />
+                        <span className="text-sm font-medium text-error">Not verified</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div>
                   <p className="text-sm text-muted">Registered</p>
                   <p className="font-medium text-fg">
                     {new Date(student.createdAt).toLocaleDateString()}
@@ -206,13 +222,19 @@ export function StudentDetailPage() {
               {student.approvalStatus === ApprovalStatus.PENDING && (
                 <>
                   <Button
-                    className="w-full bg-success hover:bg-success/90"
+                    className="w-full bg-success hover:bg-success/90 disabled:opacity-50"
                     onClick={handleApprove}
-                    disabled={approveMutation.isPending}
+                    disabled={approveMutation.isPending || !student.emailConfirmedAt}
+                    title={!student.emailConfirmedAt ? "Student must verify their email before approval" : undefined}
                   >
                     <Check className="h-4 w-4 mr-2" />
                     Approve Student
                   </Button>
+                  {!student.emailConfirmedAt && (
+                    <p className="text-xs text-error text-center">
+                      Approval blocked — student has not verified their email
+                    </p>
+                  )}
                   <Button
                     variant="destructive"
                     className="w-full"
