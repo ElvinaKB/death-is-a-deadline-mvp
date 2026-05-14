@@ -9,6 +9,7 @@ export interface Student {
   rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
+  emailConfirmedAt?: string | null;
 }
 
 export interface StudentsListResponse {

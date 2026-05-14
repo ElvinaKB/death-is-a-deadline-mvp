@@ -19,9 +19,66 @@ import {
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
-import { ArrowLeft, Check, X } from "lucide-react";
+import { ArrowLeft, Check, X, MailCheck, MailX } from "lucide-react";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
+import { Timeline, type TimelineItem } from "../../components/ui/timeline";
+
+function buildTimeline(student: {
+  createdAt: string;
+  emailConfirmedAt?: string | null;
+  approvalStatus: ApprovalStatus;
+  updatedAt: string;
+  rejectionReason?: string;
+}): TimelineItem[] {
+  const items: TimelineItem[] = [
+    {
+      id: "registered",
+      title: "Registered",
+      description: "Account created",
+      timestamp: student.createdAt,
+      status: "completed",
+    },
+    {
+      id: "email-verified",
+      title: "Email Verified",
+      description: student.emailConfirmedAt
+        ? "Email address confirmed"
+        : "Awaiting email verification",
+      timestamp: student.emailConfirmedAt ?? undefined,
+      status: student.emailConfirmedAt ? "completed" : "pending",
+    },
+  ];
+
+  if (student.approvalStatus === ApprovalStatus.APPROVED) {
+    items.push({
+      id: "approved",
+      title: "Account Approved",
+      description: "Admin approved the student",
+      timestamp: student.updatedAt,
+      status: "completed",
+    });
+  } else if (student.approvalStatus === ApprovalStatus.REJECTED) {
+    items.push({
+      id: "rejected",
+      title: "Account Rejected",
+      description: student.rejectionReason ?? "Admin rejected the student",
+      timestamp: student.updatedAt,
+      status: "error",
+    });
+  } else {
+    items.push({
+      id: "approval-pending",
+      title: "Awaiting Admin Approval",
+      description: student.emailConfirmedAt
+        ? "Email verified — pending admin review"
+        : "Must verify email first",
+      status: "pending",
+    });
+  }
+
+  return items;
+}
 
 export function StudentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -170,6 +227,22 @@ export function StudentDetailPage() {
                   </div>
                 </div>
                 <div>
+                  <p className="text-sm text-muted">Email Verified</p>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    {student.emailConfirmedAt ? (
+                      <>
+                        <MailCheck className="h-4 w-4 text-success" />
+                        <span className="text-sm font-medium text-success">Verified</span>
+                      </>
+                    ) : (
+                      <>
+                        <MailX className="h-4 w-4 text-error" />
+                        <span className="text-sm font-medium text-error">Not verified</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div>
                   <p className="text-sm text-muted">Registered</p>
                   <p className="font-medium text-fg">
                     {new Date(student.createdAt).toLocaleDateString()}
@@ -206,13 +279,19 @@ export function StudentDetailPage() {
               {student.approvalStatus === ApprovalStatus.PENDING && (
                 <>
                   <Button
-                    className="w-full bg-success hover:bg-success/90"
+                    className="w-full bg-success hover:bg-success/90 disabled:opacity-50"
                     onClick={handleApprove}
-                    disabled={approveMutation.isPending}
+                    disabled={approveMutation.isPending || !student.emailConfirmedAt}
+                    title={!student.emailConfirmedAt ? "Student must verify their email before approval" : undefined}
                   >
                     <Check className="h-4 w-4 mr-2" />
                     Approve Student
                   </Button>
+                  {!student.emailConfirmedAt && (
+                    <p className="text-xs text-error text-center">
+                      Approval blocked — student has not verified their email
+                    </p>
+                  )}
                   <Button
                     variant="destructive"
                     className="w-full"
@@ -246,22 +325,12 @@ export function StudentDetailPage() {
               <CardTitle className="text-fg">Timeline</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <p className="text-muted">Registered</p>
-                  <p className="font-medium text-fg">
-                    {new Date(student.createdAt).toLocaleString()}
-                  </p>
-                </div>
-                {student.updatedAt !== student.createdAt && (
-                  <div>
-                    <p className="text-muted">Last Updated</p>
-                    <p className="font-medium text-fg">
-                      {new Date(student.updatedAt).toLocaleString()}
-                    </p>
-                  </div>
-                )}
-              </div>
+              <Timeline
+                items={buildTimeline(student)}
+                variant="compact"
+                showTimestamps={true}
+                timestampPosition="top"
+              />
             </CardContent>
           </Card>
         </div>
