@@ -54,3 +54,7 @@ CREATE POLICY "Authenticated delete for student-id-cards"
   FOR DELETE
   TO authenticated
   USING (bucket_id = 'student-id-cards');
+
+  UPDATE storage.buckets
+  SET public = true
+  WHERE name = 'student-id-cards';
