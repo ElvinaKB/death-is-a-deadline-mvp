@@ -43,8 +43,12 @@ export async function sendEmail({
   to: string;
   subject: string;
   variables: Record<string, any>;
-}) {
+}): Promise<nodemailer.SentMessageInfo> {
+  console.log(
+    `Preparing to send email of type ${type} to ${to} with subject "${subject}" and variables:${JSON.stringify(variables)}`,
+  );
   const templateFile = templateMap[type];
+
   if (!templateFile) throw new Error("Unknown email type");
 
   const templatePath = path.join(__dirname, "templates", templateFile);
@@ -62,11 +66,14 @@ export async function sendEmail({
     html,
   };
 
-  return transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error("Error sending email:", error);
-      throw new Error("Failed to send email");
-    }
-    console.log("Email sent successfully:", info.messageId);
+  return new Promise((resolve, reject) => {
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("Error sending email:", error);
+        reject(error);
+      }
+      console.log("Email sent successfully:", info.messageId);
+      resolve(info);
+    });
   });
 }
