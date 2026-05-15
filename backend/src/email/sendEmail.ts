@@ -43,7 +43,7 @@ export async function sendEmail({
   to: string;
   subject: string;
   variables: Record<string, any>;
-}) {
+}): Promise<nodemailer.SentMessageInfo> {
   console.log(
     `Preparing to send email of type ${type} to ${to} with subject "${subject}"`,
   );
