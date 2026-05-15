@@ -44,13 +44,19 @@ export async function sendEmail({
   subject: string;
   variables: Record<string, any>;
 }) {
+  console.log(
+    `Preparing to send email of type ${type} to ${to} with subject "${subject}"`,
+  );
   const templateFile = templateMap[type];
+
+  console.log(`Selected template file: ${templateFile}`);
   if (!templateFile) throw new Error("Unknown email type");
 
   const templatePath = path.join(__dirname, "templates", templateFile);
   let html;
   try {
     html = await ejs.renderFile(templatePath, variables);
+    console.log(`Email template rendered successfully for type ${type}`);
   } catch (err: any) {
     throw new CustomError("Failed to read email template: " + err.message, 500);
   }
@@ -61,6 +67,7 @@ export async function sendEmail({
     subject,
     html,
   };
+  console.log(`Sending email with options: ${JSON.stringify(mailOptions)}`);
 
   return transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
