@@ -69,7 +69,7 @@ export async function sendEmail({
   };
   console.log(`Sending email with options: ${JSON.stringify(mailOptions)}`);
 
-  return await new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
         console.error("Error sending email:", error);
