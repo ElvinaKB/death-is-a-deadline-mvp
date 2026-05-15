@@ -44,10 +44,10 @@ app.use("/api/payments", paymentsRouter);
 app.use("/api/testimonials", testimonialsRouter);
 
 // Dev-only routes
-if (process.env.NODE_ENV === "development") {
-  const { router: devRouter } = require("./routers/dev.router");
-  app.use("/api/dev", devRouter);
-}
+// if (process.env.NODE_ENV === "development") {
+const { router: devRouter } = require("./routers/dev.router");
+app.use("/api/dev", devRouter);
+// }
 
 // Fallback error handler
 app.use(errorHandler);
