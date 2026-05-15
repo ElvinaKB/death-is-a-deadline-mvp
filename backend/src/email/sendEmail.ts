@@ -50,7 +50,6 @@ export async function sendEmail({
   const templatePath = path.join(__dirname, "templates", templateFile);
   let html;
   try {
-    console.log(templatePath, type, templateFile);
     html = await ejs.renderFile(templatePath, variables);
   } catch (err: any) {
     throw new CustomError("Failed to read email template: " + err.message, 500);

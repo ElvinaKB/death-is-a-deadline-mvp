@@ -463,6 +463,8 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
   });
 
   // Send confirmation emails if payment was captured
+  console.log(`Payment status updated to: ${newStatus}`);
+  console.log(`Bid details: ${JSON.stringify(updatedPayment.bid)}`);
   if (newStatus === payment_status.CAPTURED && updatedPayment.bid) {
     const bid = updatedPayment.bid;
     const place = bid.place as typeof bid.place & { email?: string | null };
@@ -483,8 +485,10 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
       appName: process.env.EMAIL_NAME || "Education Bidding",
       dashboardUrl: `${process.env.CLIENT_URL}/student/my-bids`,
     };
+    console.log(`email variables: ${JSON.stringify(emailVariables)}`);
 
     // Send email to student
+    console.log(`student email: ${student.email}`);
     if (student.email) {
       try {
         await sendEmail({
@@ -499,6 +503,7 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
     }
 
     // Send email to place if email is configured
+    console.log(`place email: ${place.email}`);
     if (place.email) {
       try {
         await sendEmail({
@@ -512,6 +517,7 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
       }
     }
   }
+  console.log(`Responding with payment status: ${newStatus}`);
 
   res.status(200).json({
     message:
