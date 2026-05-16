@@ -7,6 +7,7 @@ import { setAuthToken } from "../../utils/tokenHelpers";
 import { supabase } from "../../utils/supabaseClient";
 import { ROUTES } from "../../config/routes.config";
 import { ApprovalStatus, UserRole } from "../../types/auth.types";
+import { trackEvent } from "../../utils/analytics";
 
 function parseHashParams(hash: string) {
   const params: Record<string, string> = {};
@@ -87,6 +88,7 @@ export function RedirectPage() {
           token: access_token,
         })
       );
+      trackEvent("edu_verification_completed");
       navigate(ROUTES.HOME);
     });
   }, [dispatch, navigate]);

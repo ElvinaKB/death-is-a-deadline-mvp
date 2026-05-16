@@ -51,6 +51,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
+import { trackEvent } from "../../../utils/analytics";
 
 // LocalStorage key for persisting bid form state
 const BID_FORM_STORAGE_KEY = "pendingBidForm";
@@ -278,6 +279,7 @@ function BidFormInner({
       try {
         // Step 1: Create the bid
         const result = await createBid.mutateAsync(request);
+        trackEvent("bid_submitted", { place_id: placeId, status: result.status });
 
         // Step 2: If bid is accepted, create payment intent and complete payment
         if (result.status === BidStatus.ACCEPTED) {
@@ -300,6 +302,7 @@ function BidFormInner({
                 await confirmPayment.mutateAsync({
                   id: paymentResult.payment.id,
                 });
+                trackEvent("accepted_bid", { place_id: placeId });
                 toast.custom(
                   () => (
                     <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
@@ -401,6 +404,7 @@ function BidFormInner({
           }
           setIsProcessing(false);
         } else if (result.status === BidStatus.REJECTED) {
+          trackEvent("rejected_bid", { place_id: placeId });
           toast.custom(
             () => (
               <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">

@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Provider } from "react-redux";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, useLocation } from "react-router-dom";
 import { PersistGate } from "redux-persist/integration/react";
 import { persistor, store } from "../store";
 import { Toaster } from "./components/ui/sonner";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
+import { trackPageView } from "../utils/analytics";
 
 // Layouts
 
@@ -12,6 +14,14 @@ import { Loader2 } from "lucide-react";
 
 // Components
 import { AppRouter } from "./Router";
+
+function PageViewTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    trackPageView(location.pathname + location.search);
+  }, [location]);
+  return null;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +47,7 @@ export default function App() {
       <PersistGate loading={<AppLoader />} persistor={persistor}>
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
+            <PageViewTracker />
             <AppRouter />
             <Toaster position="top-right" richColors />
           </BrowserRouter>

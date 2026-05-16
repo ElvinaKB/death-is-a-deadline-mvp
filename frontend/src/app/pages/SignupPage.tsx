@@ -40,6 +40,7 @@ import {
 import { toast } from "sonner";
 import { SUPABASE_BUCKET } from "../../lib/constants";
 import { useDebounce } from "../../hooks/useDebounce";
+import { trackEvent } from "../../utils/analytics";
 
 interface LocationState {
   returnUrl?: string;
@@ -70,6 +71,7 @@ export function SignupPage() {
         "Account created successfully! Verify your email to continue." +
           (isNotApproved ? notApproved : ""),
       );
+      trackEvent("signup_completed");
     },
   });
 
