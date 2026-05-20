@@ -10,7 +10,6 @@ const SUPABASE_KEYS = [
 ];
 
 export const resetCookies = () => {
-  // Store tokens in cookies
   Cookies.remove("access_token");
   Cookies.remove("refresh_token");
   Cookies.remove("token_type");
@@ -23,21 +22,19 @@ export const getAuthToken = (): string | undefined => {
 
 export const setAuthToken = (token: string): void => {
   Cookies.set(TOKEN_KEY, token, {
-    expires: 7, // 7 days
+    expires: 7,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
   });
 };
 
 export const removeAuthToken = (): void => {
-  supabase.auth
-    .signOut()
-    .then(() => {
-      Cookies.remove(TOKEN_KEY);
-      localStorage.removeItem("persist:root");
-      SUPABASE_KEYS.map((key) => localStorage.removeItem(key));
-      resetCookies();
-      // window.location.reload();
-    })
-    .catch(() => {});
+  const clearLocal = () => {
+    Cookies.remove(TOKEN_KEY);
+    localStorage.removeItem("persist:root");
+    SUPABASE_KEYS.map((key) => localStorage.removeItem(key));
+    resetCookies();
+  };
+
+  supabase.auth.signOut().then(clearLocal).catch(clearLocal);
 };

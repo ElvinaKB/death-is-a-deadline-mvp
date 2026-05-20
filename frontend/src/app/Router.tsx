@@ -35,7 +35,11 @@ import { HotelBidsPage } from "./pages/hotel/HotelBidsListPage";
 import { HotelPlaceFormPage } from "./pages/hotel/HotelPlaceFormPage";
 import { HotelSignupPage } from "./pages/hotel/HotelSignupPage";
 import { HotelPlacesListPage } from "./pages/hotel/HotelPlaceListPage";
-
+import { PublicLayout } from "./layouts/PublicLayout";
+import { TermsPage } from "./pages/legal/TermsPage";
+import { PrivacyPage } from "./pages/legal/PrivacyPage";
+import { AccessibilityPage } from "./pages/legal/AccessibilityPage";
+import { ContactPage } from "./pages/ContactPage";
 // Auth routes (redirect to protected base if already authenticated)
 const authRoutes = [
   { path: ROUTES.LOGIN, element: <LoginPage /> },
@@ -50,6 +54,13 @@ const authRoutes = [
 const publicRoutes = [
   { path: ROUTES.UNAUTHORIZED, element: <UnauthorizedPage /> },
   { path: ROUTES.REDIRECT, element: <RedirectPage /> },
+  { path: ROUTES.TERMS, element: <TermsPage /> },
+  { path: ROUTES.PRIVACY, element: <PrivacyPage /> },
+  { path: ROUTES.ACCESSIBILITY, element: <AccessibilityPage /> },
+  { path: ROUTES.CONTACT, element: <ContactPage /> },
+];
+
+const publicLayoutRoutes = [
   { path: ROUTES.HOME, element: <HomePage /> },
   {
     path: ROUTES.PUBLIC_PLACE_DETAIL,
@@ -100,7 +111,12 @@ const protectedRoutes = [
 
 // Default and 404
 const miscRoutes = [
-  { path: "/", element: <Navigate to={ROUTES.LOGIN} replace /> },
+  {
+    path: "/",
+    element: (
+      <Navigate to={ROUTES.LOGIN} replace />
+    ),
+  },
   { path: "*", element: <NotFoundPage /> },
 ];
 
@@ -144,6 +160,11 @@ export function AppRouter() {
       {publicRoutes.map(({ path, element }, idx) => (
         <Route key={"public-" + idx} path={path} element={element} />
       ))}
+      <Route element={<PublicLayout />}>
+        {publicLayoutRoutes.map(({ path, element }, idx) => (
+          <Route key={"public-layout-" + idx} path={path} element={element} />
+        ))}
+      </Route>
       {/* Protected routes */}
       {protectedRoutes.map(({ path, element, allowedRoles, children }, idx) =>
         children ? (

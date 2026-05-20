@@ -37,7 +37,10 @@ export function useApiQuery<TData = unknown>(
 
   return useQuery<TData, ApiError>({
     queryKey,
-    queryFn: () => apiClient.get<TData>(`${endpoint}?${queryString}`),
+    queryFn: () => {
+      const url = queryString ? `${endpoint}?${queryString}` : endpoint;
+      return apiClient.get<TData>(url);
+    },
     placeholderData: keepPreviousData,
     ...restOptions,
   });

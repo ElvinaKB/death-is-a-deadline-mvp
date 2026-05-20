@@ -1,8 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { MapPin } from "lucide-react";
 import { getRoute, ROUTES } from "../../../config/routes.config";
+import { useAppSelector } from "../../../store/hooks";
 import { Place, ACCOMMODATION_TYPE_LABELS } from "../../../types/place.types";
-import { Badge } from "../ui/badge";
+import { formatCurrency } from "../../../utils/currency";
+import { toApiDateOnly } from "../../../utils/dateHelpers";
 
 interface PlaceListItemProps {
   place: Place;
@@ -16,28 +18,28 @@ export function PlaceListItem({
   onHover,
 }: PlaceListItemProps) {
   const navigate = useNavigate();
+  const { selectedDate } = useAppSelector((state) => state.search);
 
   const handleClick = () => {
-    navigate(getRoute(ROUTES.PUBLIC_PLACE_DETAIL, { id: place.id }));
+    const path = getRoute(ROUTES.PUBLIC_PLACE_DETAIL, { id: place.id });
+    const apiDate = toApiDateOnly(selectedDate);
+    navigate(apiDate ? `${path}?date=${encodeURIComponent(apiDate)}` : path);
   };
 
   const imageUrl =
-    (place.images[0] as any)?.url ||
+    (place.images[0] as { url?: string })?.url ||
     "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400";
 
   return (
     <div
-      className={`flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 rounded-xl cursor-pointer transition-all duration-200 ${
-        isSelected
-          ? "bg-brand/10 ring-2 ring-brand"
-          : "bg-glass hover:bg-glass-2 border border-line"
+      className={`listing-place-card flex flex-col sm:flex-row gap-3 sm:gap-4 p-3.5 min-h-[11rem] sm:min-h-[7.7rem] cursor-pointer transition-all duration-200 ${
+        isSelected ? "ring-1 ring-gold/50" : ""
       }`}
       onClick={handleClick}
       onMouseEnter={() => onHover?.(place.id)}
       onMouseLeave={() => onHover?.(null)}
     >
-      {/* Thumbnail */}
-      <div className="relative w-full sm:w-44 h-40 sm:h-28 rounded-lg overflow-hidden shrink-0">
+      <div className="relative w-full sm:w-44 h-44 sm:h-[7.7rem] rounded-lg overflow-hidden shrink-0">
         <img
           src={imageUrl}
           alt={place.name}
@@ -45,42 +47,32 @@ export function PlaceListItem({
         />
       </div>
 
-      {/* Content */}
       <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
         <div>
-          {/* Tags row */}
-          <div className="flex items-center gap-2 mb-2">
-            <Badge
-              variant="outline"
-              className="bg-tag-bg border-transparent text-tag-text text-xs px-2 py-0.5"
-            >
-              {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
-            </Badge>
-          </div>
+          <span className="listing-type-pill inline-block mb-2">
+            {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
+          </span>
 
-          {/* Title */}
           <h3 className="font-semibold text-fg text-base mb-1 truncate">
             {place.name}
           </h3>
 
-          {/* Location */}
-          <div className="flex items-center gap-1 text-muted text-sm mb-2">
-            <MapPin className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-1 text-[hsl(0_0%_65%)] text-sm mb-2">
+            <MapPin className="h-3.5 w-3.5 shrink-0" />
             <span>{place.city}</span>
           </div>
 
-          {/* Description */}
           {place.shortDescription && (
-            <p className="text-muted text-sm line-clamp-2">
+            <p className="listing-place-tagline line-clamp-2">
               {place.shortDescription}
             </p>
           )}
         </div>
 
-        {/* Mobile: Bid button at bottom of content */}
         <div className="sm:hidden mt-3">
           <button
-            className="btn-bid h-10 w-full text-sm"
+            type="button"
+            className="listing-card-bid-btn h-11 w-full rounded-lg text-sm uppercase"
             onClick={(e) => {
               e.stopPropagation();
               handleClick();
@@ -91,10 +83,18 @@ export function PlaceListItem({
         </div>
       </div>
 
-      {/* Price & Bid Button - Desktop only */}
-      <div className="hidden sm:flex text-right shrink-0 py-1 flex-col justify-end">
+      <div className="hidden sm:flex text-right shrink-0 py-1 flex-col justify-end gap-2 min-w-[72px]">
+        <div className="flex items-baseline justify-end gap-2">
+          <span className="text-[10px] font-semibold tracking-[0.14em] text-[hsl(0_0%_50%)] uppercase shrink-0">
+            Retail
+          </span>
+          <span className="text-[10px] font-semibold tracking-[0.14em] text-fg whitespace-nowrap">
+            {formatCurrency(place.retailPrice)}
+          </span>
+        </div>
         <button
-          className="btn-bid h-8 px-4 text-sm"
+          type="button"
+          className="listing-card-bid-btn h-10 px-4 rounded-lg text-xs uppercase"
           onClick={(e) => {
             e.stopPropagation();
             handleClick();
