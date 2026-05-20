@@ -68,6 +68,8 @@ import {
   ANALYTICS_EVENTS,
   trackEvent,
 } from "../../../utils/analytics";
+import { PREVIEW_BYPASS } from "../../../config/previewBypass";
+
 // LocalStorage key for persisting bid form state
 const BID_FORM_STORAGE_KEY = "pendingBidForm";
 
@@ -299,6 +301,7 @@ function BidFormInner({
       setIsProcessing(true);
 
       if (
+        !PREVIEW_BYPASS &&
         isAuthenticated &&
         (!isCardComplete || !stripe || !elements)
       ) {
@@ -320,6 +323,10 @@ function BidFormInner({
 
         // Step 2: If bid is accepted, create payment intent and complete payment
         if (result.status === BidStatus.ACCEPTED) {
+          if (PREVIEW_BYPASS) {
+            setPaymentSuccess(true);
+            setIsProcessing(false);
+          } else {
           const paymentResult = await createPaymentIntent.mutateAsync({
             bidId: result.bid.id,
           });
@@ -437,6 +444,7 @@ function BidFormInner({
             );
           }
           setIsProcessing(false);
+          }
         } else if (result.status === BidStatus.REJECTED) {
           toast.custom(
             () => (
@@ -657,7 +665,10 @@ function BidFormInner({
       });
       return;
     }
-    if (!isCardComplete || !stripe || !elements) {
+    if (
+      !PREVIEW_BYPASS &&
+      (!isCardComplete || !stripe || !elements)
+    ) {
       setPaymentError("Please enter valid card details.");
       return;
     }
@@ -985,7 +996,7 @@ function BidFormInner({
               <Label className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase">
                 Pay with
               </Label>
-              {isCardComplete && !isChangingCard ? (
+              {(isCardComplete || PREVIEW_BYPASS) && !isChangingCard ? (
                 <div className="listing-pay-card flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm text-fg">
                     <CreditCard className="h-4 w-4 text-muted" />

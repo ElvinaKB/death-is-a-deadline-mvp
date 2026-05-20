@@ -27,7 +27,10 @@ Use this before merging `kevin-golden-redesign` → `prod`.
 
 ## Analytics (production env vars set)
 
-- [ ] GA4 DebugView: `page_view`, `signup_completed`, `bid_submitted`, `accepted_bid`, `rejected_bid`
+- [ ] Cookie banner **accepted** (GA4 does not load until consent)
+- [ ] `VITE_GA4_MEASUREMENT_ID` set on Vercel preview/production
+- [ ] GA4 DebugView: `page_view`, `signup_completed`, `edu_verification_completed`, `bid_submitted`, `accepted_bid`
+- [ ] `rejected_bid` only when API returns `REJECTED` on bid create (see `docs/08-client-qa-analytics-and-bids.md`)
 - [ ] Clarity session recording
 - [ ] Meta Pixel PageView + custom events
 

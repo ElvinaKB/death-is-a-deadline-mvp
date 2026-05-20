@@ -2,111 +2,124 @@
 PREVIEW BYPASS — local UI only (no Supabase / API required)
 ================================================================================
 Created: 2026-05-17
-Re-enabled: 2026-05-19
+Re-enabled: 2026-05-19 (initial), 2026-05-20 (this session)
 Toggle: VITE_PREVIEW_BYPASS=true in frontend/.env.local
 
 --------------------------------------------------------------------------------
-QUICK REVERT (fastest)
+QUICK REVERT (fastest — no code changes)
 --------------------------------------------------------------------------------
 1. Delete frontend/.env.local  OR set:  VITE_PREVIEW_BYPASS=false
 2. Restart dev server (npm run dev)
 
-That disables bypass without deleting code. For a full cleanup, see FULL REVERT below.
+--------------------------------------------------------------------------------
+FULL REVERT (remove all bypass code from repo)
+--------------------------------------------------------------------------------
+Follow sections FILES ADDED (delete) and FILES MODIFIED (restore) below.
+See also BYPASS-ONLY PATCHES for feature files that reference PREVIEW_BYPASS.
 
 --------------------------------------------------------------------------------
-WHAT IT DOES WHEN ON (VITE_PREVIEW_BYPASS=true)
+CHANGELOG — 2026-05-20 re-enable (this session)
 --------------------------------------------------------------------------------
-- Amber banner at top (scrolls away; nav stays sticky)
-- "/" redirects to home instead of login
-- Supabase client uses placeholder URL/key so app boots without env
-- API calls use mock data (mockApiHandlers.ts + mockData.ts)
-- Auto sign-in as demo student: student@university.edu / student123
-- Legal, contact, and marketplace routes work without backend
+Re-applied full bypass after 2026-05-19 removal. Record for easy revert.
 
-Test accounts (mock login):
-  student@university.edu / student123
-  admin@bidplatform.com / admin123
-  hotel@example.com / hotel123
-
---------------------------------------------------------------------------------
-FILES ADDED (delete on FULL REVERT)
---------------------------------------------------------------------------------
+FILES ADDED (delete on full revert):
   frontend/src/config/previewBypass.ts
   frontend/src/services/mockApiHandlers.ts
   frontend/src/services/mockData.ts
   frontend/src/app/components/common/PreviewBypassBanner.tsx
   frontend/src/app/components/common/PreviewBypassBoot.tsx
-  frontend/.env.local
-  frontend/PREVIEW_BYPASS_REVERT.txt  (this file)
+  frontend/.env.local                    (VITE_PREVIEW_BYPASS=true)
+  frontend/PREVIEW_BYPASS_REVERT.txt     (keep for reference)
 
---------------------------------------------------------------------------------
-FILES MODIFIED (restore per FULL REVERT section)
---------------------------------------------------------------------------------
-  frontend/src/utils/supabaseClient.ts
-  frontend/src/utils/tokenHelpers.ts
-  frontend/src/hooks/useApi.ts
-  frontend/src/app/App.tsx
-  frontend/src/app/Router.tsx
-  frontend/.env.sample
-  frontend/src/vite-env.d.ts
+FILES MODIFIED — core wiring (restore per snippets below):
+  frontend/src/utils/supabaseClient.ts   — placeholder Supabase URL/key when bypass on
+  frontend/src/utils/tokenHelpers.ts     — skip supabase signOut; set logout session flag
+  frontend/src/hooks/useApi.ts           — route GET/POST through resolveMockApi
+  frontend/src/app/App.tsx               — mount PreviewBypassBoot + PreviewBypassBanner
+  frontend/src/app/Router.tsx            — "/" -> HOME when bypass on
+  frontend/.env.sample                   — VITE_PREVIEW_BYPASS=false documented
+  frontend/src/vite-env.d.ts             — VITE_PREVIEW_BYPASS type
 
-NOT part of bypass (keep when reverting bypass):
+BYPASS-ONLY PATCHES (remove PREVIEW_BYPASS branches only; keep real UI):
+  frontend/src/app/components/bids/BidForm.tsx
+    - import PREVIEW_BYPASS
+    - onSubmit: skip card validation when PREVIEW_BYPASS
+    - onSubmit: skip Stripe on ACCEPTED when PREVIEW_BYPASS (set paymentSuccess)
+    - handleReviewBindingBid: skip card check when PREVIEW_BYPASS
+  frontend/src/app/components/bids/BidOutcomePanel.tsx
+    - import PREVIEW_BYPASS
+    - rejected panel: mock "•••• 4242 Authorized" block when PREVIEW_BYPASS
+  frontend/src/app/components/home/HomeHeader.tsx
+    - import PREVIEW_BYPASS
+    - logout navigate -> HOME when PREVIEW_BYPASS (else LOGIN)
+  frontend/src/app/pages/LoginPage.tsx
+    - import clearPreviewBypassLoggedOut
+    - onSuccess: clearPreviewBypassLoggedOut()
+
+NOT part of bypass (never revert with bypass):
   frontend/src/utils/dateHelpers.ts
-  frontend/src/store/slices/searchSlice.ts  (yyyy-MM-dd dates)
-  frontend/src/app/pages/student/PlacesDetailPage.tsx  (?date= sync)
-  frontend/src/app/components/home/PlaceListItem.tsx
-  frontend/src/hooks/usePlaces.ts
-  backend/src/controllers/places.controller.ts  (blackout + inventory date fix)
+  frontend/src/store/slices/searchSlice.ts
+  frontend/src/app/pages/student/PlacesDetailPage.tsx
+  frontend/src/app/components/home/* (hero, cards, map pins, etc.)
+  frontend/src/app/components/bids/BidLockInModal.tsx (timer logic)
+  frontend/src/app/components/layout/DeadlineHeader.tsx (unused if HomeHeader on detail)
+  backend/**
 
 --------------------------------------------------------------------------------
-FULL REVERT (remove all bypass code from repo)
+WHAT IT DOES WHEN ON
 --------------------------------------------------------------------------------
-1. Delete FILES ADDED (list above), except you may keep this txt for reference.
+- Amber banner + auto-login as student@university.edu / student123
+- "/" -> marketplace (not login)
+- Mock API (no backend): places, login, contact, bids, payments
+- Logout sets session flag so auto-login does not return until manual login
+- Bid accept if bidPerNight >= place.minimumBid; else reject
+- Stripe skipped in UI on accept when bypass on
 
-2. supabaseClient.ts — restore to:
-   import { createClient } from "@supabase/supabase-js";
-   const supabaseUrl = import.meta.env.VITE_APP_SUPABASE_URL;
-   const supabaseAnonKey = import.meta.env.VITE_APP_SUPABASE_ANON_KEY;
-   export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-3. tokenHelpers.ts — remove PREVIEW_BYPASS import and if-block in removeAuthToken;
-   use only supabase.auth.signOut().then(...).catch(() => {});
-
-4. useApi.ts — remove PREVIEW_BYPASS + resolveMockApi imports and both if (PREVIEW_BYPASS) branches;
-   queryFn: () => apiClient.get<TData>(url)
-
-5. App.tsx — remove PreviewBypassBanner + PreviewBypassBoot imports and JSX
-
-6. Router.tsx — remove PREVIEW_BYPASS import; miscRoutes "/" -> Navigate to ROUTES.LOGIN only
-
-7. .env.sample — remove VITE_PREVIEW_BYPASS lines
-
-8. vite-env.d.ts — remove VITE_PREVIEW_BYPASS line (optional supabase env can stay optional)
-
-9. Restart dev server.
+Test accounts:
+  student@university.edu / student123
+  admin@bidplatform.com / admin123
+  hotel@example.com / hotel123
 
 --------------------------------------------------------------------------------
-PREVIEW MOCKS (2026-05-19)
+RESTORE SNIPPETS (full revert)
 --------------------------------------------------------------------------------
-  GET  /api/places/public              -> LIVE places; respects ?date=yyyy-MM-dd
-  GET  /api/places/public/:id          -> place + inventory; ?date= for sold-out msg
+
+supabaseClient.ts:
+  import { createClient } from "@supabase/supabase-js";
+  const supabaseUrl = import.meta.env.VITE_APP_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_APP_SUPABASE_ANON_KEY;
+  export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+tokenHelpers.ts removePreviewBypass — use only:
+  supabase.auth.signOut().then(clearLocal).catch(clearLocal);
+
+useApi.ts — remove PREVIEW_BYPASS + resolveMockApi; always apiClient.
+
+App.tsx — remove PreviewBypassBoot + PreviewBypassBanner.
+
+Router.tsx — "/" -> Navigate to ROUTES.LOGIN only.
+
+.env.sample — remove VITE_PREVIEW_BYPASS lines.
+vite-env.d.ts — remove VITE_PREVIEW_BYPASS line.
+
+--------------------------------------------------------------------------------
+MOCK API ENDPOINTS
+--------------------------------------------------------------------------------
+  GET  /api/places/public
+  GET  /api/places/public/:id
   GET  /api/bids/place/:placeId        -> { bid: null }
   GET  /api/testimonials               -> []
   GET  /api/testimonials/review-platforms -> []
-  POST /api/contact                    -> { success: true } (not emailed)
-  POST /api/auth/login                 -> mock users (see banner)
-  POST /api/bids                       -> ACCEPTED if bidPerNight >= place.minimumBid, else REJECTED
-  POST /api/payments/create-intent     -> preview client secret (Stripe skipped in UI when bypass on)
-  POST /api/payments/:id/confirm       -> { payment: CAPTURED }
-  Unknown GET                          -> null (not {})
+  POST /api/contact
+  POST /api/auth/login
+  POST /api/bids                       -> accept if bid >= minimumBid
+  POST /api/payments/create-intent
+  POST /api/payments/:id/confirm
 
-Mock places include allowedDaysOfWeek + maxInventory (required for bid form).
-"Elite Hotel" (place-4) shows sold-out when ?date= is set (preview inventory test).
-List/detail both use yyyy-MM-dd dates (see dateHelpers.ts).
+place-4 (Elite Hotel) sold out when ?date= is set (inventory test).
 
 --------------------------------------------------------------------------------
 DO NOT enable on Vercel/production
 --------------------------------------------------------------------------------
-Never set VITE_PREVIEW_BYPASS=true in production environment variables.
 
 ================================================================================

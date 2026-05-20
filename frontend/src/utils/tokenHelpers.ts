@@ -1,4 +1,8 @@
 import Cookies from "js-cookie";
+import {
+  PREVIEW_BYPASS,
+  setPreviewBypassLoggedOut,
+} from "../config/previewBypass";
 import { supabase } from "./supabaseClient";
 
 const TOKEN_KEY = "auth_token";
@@ -35,6 +39,12 @@ export const removeAuthToken = (): void => {
     SUPABASE_KEYS.map((key) => localStorage.removeItem(key));
     resetCookies();
   };
+
+  if (PREVIEW_BYPASS) {
+    setPreviewBypassLoggedOut();
+    clearLocal();
+    return;
+  }
 
   supabase.auth.signOut().then(clearLocal).catch(clearLocal);
 };

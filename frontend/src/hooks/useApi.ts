@@ -5,7 +5,9 @@ import {
   UseMutationOptions,
   keepPreviousData,
 } from "@tanstack/react-query";
+import { PREVIEW_BYPASS } from "../config/previewBypass";
 import { apiClient } from "../lib/apiClient";
+import { resolveMockApi } from "../services/mockApiHandlers";
 import { ApiError } from "../types/api.types";
 import { toast } from "sonner";
 
@@ -25,13 +27,13 @@ interface UseApiMutationOptions<TData, TVariables>
 }
 
 export function useApiQuery<TData = unknown>(
-  options: UseApiQueryOptions<TData>
+  options: UseApiQueryOptions<TData>,
 ) {
   const { queryKey, endpoint, params, ...restOptions } = options;
 
   // remove undefined values from params
   const filteredParams = Object.fromEntries(
-    Object.entries(params ?? {}).filter(([_, v]) => v !== undefined)
+    Object.entries(params ?? {}).filter(([_, v]) => v !== undefined),
   );
   const queryString = new URLSearchParams(filteredParams).toString();
 
@@ -39,6 +41,9 @@ export function useApiQuery<TData = unknown>(
     queryKey,
     queryFn: () => {
       const url = queryString ? `${endpoint}?${queryString}` : endpoint;
+      if (PREVIEW_BYPASS) {
+        return resolveMockApi<TData>(url, "GET");
+      }
       return apiClient.get<TData>(url);
     },
     placeholderData: keepPreviousData,
@@ -47,7 +52,7 @@ export function useApiQuery<TData = unknown>(
 }
 
 export function useApiMutation<TData = unknown, TVariables = unknown>(
-  options: UseApiMutationOptions<TData, TVariables>
+  options: UseApiMutationOptions<TData, TVariables>,
 ) {
   const {
     endpoint,
@@ -65,6 +70,10 @@ export function useApiMutation<TData = unknown, TVariables = unknown>(
       const payload = transformVariables
         ? transformVariables(variables)
         : variables;
+
+      if (PREVIEW_BYPASS) {
+        return resolveMockApi<TData>(resolvedEndpoint, method, payload);
+      }
 
       switch (method) {
         case "POST":
@@ -88,7 +97,7 @@ export function useApiMutation<TData = unknown, TVariables = unknown>(
           onError as (
             error: ApiError,
             variables: TVariables,
-            context: unknown
+            context: unknown,
           ) => void
         )(error, variables, context);
       }

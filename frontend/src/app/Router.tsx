@@ -40,6 +40,8 @@ import { TermsPage } from "./pages/legal/TermsPage";
 import { PrivacyPage } from "./pages/legal/PrivacyPage";
 import { AccessibilityPage } from "./pages/legal/AccessibilityPage";
 import { ContactPage } from "./pages/ContactPage";
+import { PREVIEW_BYPASS } from "../config/previewBypass";
+
 // Auth routes (redirect to protected base if already authenticated)
 const authRoutes = [
   { path: ROUTES.LOGIN, element: <LoginPage /> },
@@ -114,7 +116,7 @@ const miscRoutes = [
   {
     path: "/",
     element: (
-      <Navigate to={ROUTES.LOGIN} replace />
+      <Navigate to={PREVIEW_BYPASS ? ROUTES.HOME : ROUTES.LOGIN} replace />
     ),
   },
   { path: "*", element: <NotFoundPage /> },

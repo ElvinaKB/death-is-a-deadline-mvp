@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { SearchBar } from "./SearchBar";
+import { PREVIEW_BYPASS } from "../../../config/previewBypass";
 import { logout } from "../../../store/slices/authSlice";
 import { removeAuthToken } from "../../../utils/tokenHelpers";
 import { HowItWorksModal } from "./HowItWorksModal";
@@ -55,7 +56,7 @@ export function HomeHeader({
   const handleLogout = () => {
     dispatch(logout());
     removeAuthToken();
-    navigate(ROUTES.LOGIN);
+    navigate(PREVIEW_BYPASS ? ROUTES.HOME : ROUTES.LOGIN);
   };
 
   const getInitials = (name: string) => {
