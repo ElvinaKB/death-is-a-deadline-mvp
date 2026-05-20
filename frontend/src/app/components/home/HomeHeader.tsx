@@ -1,4 +1,4 @@
-import { LogOut } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logoImg from "../../../assets/logo.png";
 import { ROUTES } from "../../../config/routes.config";
@@ -87,16 +87,20 @@ export function HomeHeader({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="relative h-10 w-10 rounded-full"
+              <button
+                type="button"
+                className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-glass transition-colors"
               >
-                <Avatar>
-                  <AvatarFallback className="bg-brand/20 text-brand">
+                <Avatar className="h-9 w-9">
+                  <AvatarFallback className="bg-gold/25 text-gold text-xs font-semibold">
                     {user?.name ? getInitials(user.name) : "S"}
                   </AvatarFallback>
                 </Avatar>
-              </Button>
+                <span className="hidden sm:inline text-sm font-medium text-fg max-w-[120px] truncate">
+                  {user?.name?.split(" ")[0] ?? "Account"}
+                </span>
+                <ChevronDown className="h-4 w-4 text-muted shrink-0" />
+              </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               className="w-56 bg-bg md:bg-glass-2 border-line"
@@ -133,7 +137,7 @@ export function HomeHeader({
           </Link>
           <Link
             to={ROUTES.SIGNUP}
-            className="text-sm font-medium text-muted hover:text-fg transition-colors"
+            className="text-sm font-medium px-4 py-2 rounded-lg border border-gold/60 text-gold hover:bg-gold/10 transition-colors"
           >
             Sign Up
           </Link>
@@ -147,15 +151,24 @@ export function HomeHeader({
       <div className="flex flex-col md:flex-row md:items-center justify-between px-4 py-3">
         {/* Logo */}
         <div className="flex items-center gap-4 w-full md:w-fit justify-between">
-          <Link to={ROUTES.HOME} className="flex items-center gap-2 shrink-0">
-            <div className="">
-              <h1 className="text-lg font-bold text-fg leading-tight">
-                DEATH IS A DEADLINE
-              </h1>
-              <p className="text-xs text-muted -mt-0.5">
-                LIFE'S SHORT. TRAVEL NOW.
-              </p>
-            </div>
+          <Link
+            to={ROUTES.HOME}
+            className={cn(
+              "shrink-0",
+              showSearchBar ? "flex flex-col gap-0.5" : "header-logo-row",
+            )}
+          >
+            <span className="font-serif text-xl md:text-2xl tracking-[0.2em] text-gold leading-none">
+              DEADLINE
+            </span>
+            <p
+              className={cn(
+                "text-muted tracking-wide",
+                showSearchBar ? "text-xs" : "tagline",
+              )}
+            >
+              LIFE&apos;S SHORT. TRAVEL NOW.
+            </p>
           </Link>
           <AuthLinks className="flex md:hidden" />
         </div>

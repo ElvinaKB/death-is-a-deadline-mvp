@@ -1,37 +1,40 @@
 import {
   AlertTriangle,
-  Building2,
-  CheckCircle,
-  CreditCard,
-  DollarSign,
-  GraduationCap,
-  Home,
-  Lock,
+  BarChart3,
+  Bed,
+  Info,
   MapPin,
-  RefreshCw,
-  XCircle,
-  Zap,
+  Star,
+  Utensils,
+  Waves,
+  Wifi,
 } from "lucide-react";
+import { differenceInDays, format } from "date-fns";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useState } from "react";
 import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
-import { useNavigate, useParams } from "react-router-dom";
-import placeDetailBackgroundImage from "../../../assets/place-details.jpeg";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ENDPOINTS } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
 import { ROUTES, getRoute } from "../../../config/routes.config";
 import { useApiQuery } from "../../../hooks/useApi";
 import { usePublicPlace } from "../../../hooks/usePlaces";
+import { useAppSelector } from "../../../store/hooks";
+import { toApiDateOnly } from "../../../utils/dateHelpers";
 import {
   ACCOMMODATION_TYPE_LABELS,
   PlaceImage,
   PlacesResponse,
 } from "../../../types/place.types";
 import { BidForm } from "../../components/bids/BidForm";
+import { formatCurrency } from "../../../utils/currency";
+import { extractAmenities } from "../../../utils/amenities";
 import { ImageGalleryModal } from "../../components/common/ImageGalleryModal";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
-import { HomeHeader } from "../../components/home";
+import { HomeHeader } from "../../components/home/HomeHeader";
 import { Testimonials } from "../../components/places/Testimonials";
+import { StudentBidBadgeIcon } from "../../components/listing/StudentBidBadgeIcon";
+import { PrivateThresholdBadgeIcon } from "../../components/listing/PrivateThresholdBadgeIcon";
 import {
   Accordion,
   AccordionContent,
@@ -40,13 +43,6 @@ import {
 } from "../../components/ui/accordion";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "../../components/ui/carousel";
 import {
   Dialog,
   DialogContent,
@@ -94,10 +90,24 @@ const isPlaceImage = (image: PlaceImage | File): image is PlaceImage => {
 export function PlaceDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [selectedDate, setSelectedDate] = useState<string | undefined>(
-    undefined,
+  const [searchParams] = useSearchParams();
+  const searchDateFromStore = useAppSelector((state) => state.search.selectedDate);
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const initialInventoryDate =
+    toApiDateOnly(searchParams.get("date")) ??
+    toApiDateOnly(searchDateFromStore);
+
+  const [inventoryDate, setInventoryDate] = useState<string | undefined>(
+    initialInventoryDate,
   );
   const [showSoldOutModal, setShowSoldOutModal] = useState(false);
+
+  // Keep inventory date in sync when navigating from list with ?date= or search bar changes
+  useEffect(() => {
+    const fromUrl = toApiDateOnly(searchParams.get("date"));
+    const fromStore = toApiDateOnly(searchDateFromStore);
+    setInventoryDate(fromUrl ?? fromStore);
+  }, [searchParams, searchDateFromStore]);
 
   // Scroll to top when id changes
   useEffect(() => {
@@ -105,19 +115,21 @@ export function PlaceDetailPage() {
   }, [id]);
 
   // Use public endpoint for students - includes inventory status when date is provided
-  const { data, isLoading } = usePublicPlace(id || "", selectedDate);
+  const { data, isLoading } = usePublicPlace(id || "", inventoryDate);
   const place = data?.place;
   const inventoryMessage = data?.inventoryMessage;
 
   // Show sold out modal when inventory is exhausted
   useEffect(() => {
-    if (inventoryMessage && selectedDate) {
+    if (inventoryMessage && inventoryDate) {
       setShowSoldOutModal(true);
     }
-  }, [inventoryMessage, selectedDate]);
+  }, [inventoryMessage, inventoryDate]);
 
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
+  const [bookingCheckIn, setBookingCheckIn] = useState<Date | undefined>();
+  const [bookingCheckOut, setBookingCheckOut] = useState<Date | undefined>();
 
   // Fetch similar places in the same city (limit 4, excluding current place)
   const { data: similarData } = useApiQuery<PlacesResponse>({
@@ -141,7 +153,7 @@ export function PlaceDetailPage() {
     return (
       <div className="min-h-screen bg-bg">
         <HomeHeader />
-        <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8">
           <SkeletonLoader className="h-80 mb-6" />
           <SkeletonLoader className="h-64" />
         </div>
@@ -167,330 +179,159 @@ export function PlaceDetailPage() {
 
   // Filter to only PlaceImage types
   const allImages = place.images.filter(isPlaceImage);
+  const amenities = extractAmenities(place.fullDescription);
+  const heroUrl = allImages[0]?.url || "/placeholder-hotel.jpg";
+  const bookingNights =
+    bookingCheckIn && bookingCheckOut
+      ? Math.max(1, differenceInDays(bookingCheckOut, bookingCheckIn))
+      : 0;
+  const displayNights = bookingNights || 3;
+  const retailTotal = place.retailPrice * displayNights;
+  const amenityIcons = [Waves, Wifi, Utensils, BarChart3, Bed, MapPin];
 
   return (
-    <div
-      className="min-h-screen bg-bg relative"
-      style={{
-        backgroundImage: `url(${placeDetailBackgroundImage})`,
-        backgroundPosition: "center",
-        // backgroundSize: "cover",
-        // backgroundRepeat: "no-repeat",
-        backgroundSize: "contain",
-        backgroundRepeat: "repeat",
-      }}
-    >
-      {/* Dark overlay */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          background: "rgba(20, 24, 36, 0.65)",
-          zIndex: 0,
-          pointerEvents: "none",
-        }}
+    <div className="min-h-screen bg-bg">
+      <HomeHeader />
+
+      <ImageGalleryModal
+        images={allImages}
+        initialIndex={galleryInitialIndex}
+        isOpen={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
       />
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <HomeHeader />
 
-        {/* Image Gallery Modal */}
-        <ImageGalleryModal
-          images={allImages}
-          initialIndex={galleryInitialIndex}
-          isOpen={galleryOpen}
-          onClose={() => setGalleryOpen(false)}
-        />
-
-        <div
-          className="max-w-6xl mx-auto px-6 py-8"
-          style={{ position: "relative", zIndex: 1 }}
-        >
-          {/* Hero Section */}
-          <div className="relative rounded-2xl overflow-hidden mb-8 bg-center">
-            {/* Content */}
-            <div className="relative z-10 flex flex-col items-center justify-center text-center py-20 px-6">
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">
-                DEATH IS A DEADLINE
-              </h1>
-              <p className="text-lg text-gray-300 mb-2">
-                Students, faculty — name your price.
-              </p>
-              <p className="text-lg text-gray-300 mb-2">
-                A hotel may let you check in.
-              </p>
-              <p className="text-lg text-gray-300 mb-4">
-                Checkout is never guaranteed.
-              </p>
-              <p className="text-muted italic mb-8">— The Grim Keeper</p>
-
-              <Button
-                onClick={() => {
-                  document
-                    .getElementById("main-content")
-                    ?.scrollIntoView({ behavior: "smooth" });
-                }}
-                variant="outline"
-                className="flex items-center gap-2 px-8 py-3 text-fg bg-transparent border-muted hover:bg-glass"
-              >
-                {" "}
-                ⏳ START BIDDING
-              </Button>
-            </div>
-          </div>
-
-          {/* Hero Image Carousel */}
-          <div
-            id="main-content"
-            className="relative rounded-2xl overflow-hidden mb-8"
-          >
-            <Carousel className="w-full">
-              <CarouselContent>
-                {allImages.length > 0 ? (
-                  allImages.map((image, index) => (
-                    <CarouselItem key={image.id || index}>
-                      <div
-                        className="relative h-80 cursor-pointer"
-                        onClick={() => openGallery(index)}
-                      >
-                        <img
-                          src={image.url}
-                          alt={`${place.name} ${index + 1}`}
-                          className="w-full h-full object-cover rounded-lg hover:opacity-95 transition-opacity"
-                        />
-                        {/* Overlay with Title - only on first slide */}
-                        {index === 0 && (
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-lg pointer-events-none">
-                            <div className="absolute bottom-6 left-6">
-                              <p className="text-muted text-sm mb-1">
-                                Student-Only:
-                              </p>
-                              <h1 className="text-4xl font-bold text-white">
-                                {place.name}
-                              </h1>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </CarouselItem>
-                  ))
-                ) : (
-                  <CarouselItem>
-                    <div
-                      className="relative h-80 cursor-pointer"
-                      onClick={() => openGallery(0)}
-                    >
-                      <img
-                        src="/placeholder-hotel.jpg"
-                        alt={place.name}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-lg pointer-events-none">
-                        <div className="absolute bottom-6 left-6">
-                          <p className="text-muted text-sm mb-1">
-                            Student-Only:
-                          </p>
-                          <h1 className="text-4xl font-bold text-white">
-                            {place.name}
-                          </h1>
-                        </div>
-                      </div>
-                    </div>
-                  </CarouselItem>
-                )}
-              </CarouselContent>
-              {allImages.length > 1 && (
-                <>
-                  <CarouselPrevious className="left-4 bg-glass-2 hover:bg-glass text-fg border-line" />
-                  <CarouselNext className="right-4 bg-glass-2 hover:bg-glass text-fg border-line" />
-                </>
+      <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8 md:py-8">
+        <div className="listing-detail-grid gap-4 lg:gap-8">
+          <div className="listing-detail-hero relative aspect-[16/10] overflow-hidden rounded-xl">
+              <img
+                src={heroUrl}
+                alt={place.name}
+                className="h-full w-full cursor-pointer object-cover"
+                onClick={() => openGallery(0)}
+              />
+              <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-xs backdrop-blur-sm">
+                <Star className="h-3.5 w-3.5 fill-gold text-gold" />
+                <span className="text-fg">4.6</span>
+                <span className="text-muted">(382 reviews)</span>
+              </div>
+              {allImages.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => openGallery(0)}
+                  className="absolute bottom-4 right-4 rounded-lg bg-black/70 px-3 py-1.5 text-xs text-fg backdrop-blur-sm hover:bg-black/80"
+                >
+                  1 / {allImages.length}
+                </button>
               )}
-            </Carousel>
-            {/* Image counter */}
-            {allImages.length > 1 && (
-              <div className="absolute bottom-4 right-4 bg-black/60 text-white text-sm px-3 py-1 rounded-full pointer-events-none">
-                {allImages.length} photos
-              </div>
-            )}
-          </div>
-
-          {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Section - Description & Bid Form */}
-            <div className="h-fit lg:col-span-2 space-y-6">
-              <div className="h-full glass-2 rounded-2xl p-6 border border-line">
-                <div className="flex flex-col sm:flex-row gap-8">
-                  {/* Description */}
-                  <div className="flex flex-1 flex-col gap-5">
-                    <h2 className="text-2xl font-bold text-fg mb-2">
-                      {place.shortDescription ||
-                        `Shared Social Pods in ${place.city}.`}
-                    </h2>
-
-                    {/* Quick Info */}
-                    <div className="flex flex-col gap-4 mb-6">
-                      <div className="flex items-center gap-2 text-muted">
-                        <Building2 className="h-5 w-5 text-muted" />
-                        <span className="text-sm">
-                          {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted">
-                        <MapPin className="h-5 w-5 text-muted" />
-                        <span className="text-sm">
-                          {place.city}, {place.country}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted">
-                        <Home className="h-5 w-5 text-muted" />
-                        <span className="text-sm">{place.address}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted">
-                        <DollarSign className="h-5 w-5 text-muted" />
-                        <span className="text-sm">{place.retailPrice}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted">
-                        <span className="text-sm">{place.fullDescription}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Bid Form */}
-                  <div className="flex-1">
-                    <BidForm
-                      place={place}
-                      placeId={id}
-                      onDateChange={setSelectedDate}
-                      isInventoryExhausted={place.isInventoryExhausted}
-                    />
-                  </div>
-                </div>
+              <div className="listing-hero-overlay pointer-events-none absolute inset-0 flex flex-col justify-end p-6 pt-20">
+                <span className="listing-type-pill w-fit mb-3">
+                  {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
+                </span>
+                <h1 className="font-serif text-3xl text-fg md:text-4xl leading-tight">
+                  {place.name}
+                </h1>
+                <p className="mt-2 flex items-center gap-2 text-sm text-[hsl(0_0%_78%)]">
+                  <MapPin className="h-4 w-4 shrink-0 text-gold" />
+                  {place.address}
+                </p>
               </div>
             </div>
 
-            {/* Right Section - Potential Outcomes */}
-            <div className="h-full lg:col-span-1">
-              <div className="h-full glass-2 rounded-2xl p-6 border border-line">
-                <h3 className="text-lg font-semibold text-fg mb-4 text-center">
-                  Your Outcomes
-                </h3>
+          {amenities.length > 0 && (
+            <div className="listing-detail-amenities flex flex-wrap items-center gap-x-5 gap-y-2">
+                {amenities.slice(0, 6).map((item, i) => {
+                  const Icon = amenityIcons[i % amenityIcons.length];
+                  return (
+                    <span
+                      key={i}
+                      className="listing-amenity-item inline-flex items-center gap-2"
+                    >
+                      <Icon className="text-gold shrink-0" strokeWidth={1.5} />
+                      {item.split(/[,.]/)[0].trim().slice(0, 28)}
+                    </span>
+                  );
+                })}
+            </div>
+          )}
 
-                {/* Accepted Outcome */}
-                <div className="glass rounded-xl p-5 mb-3 border border-line text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-14 h-14 bg-success rounded-full flex items-center justify-center">
-                      <CheckCircle className="w-7 h-7 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-fg text-lg">
-                        Bid Accepted!
-                      </h4>
-                      <p className="text-success text-sm mt-1">
-                        You're booked{" "}
-                        <span className="text-muted">at your price.</span>
-                      </p>
-                    </div>
-                    <div className="border-t border-line w-full pt-3 mt-1">
-                      <div className="flex items-center justify-center gap-2 text-muted text-sm">
-                        <CreditCard className="w-4 h-4" />
-                        <span>Card charged now</span>
-                      </div>
-                      <p className="text-muted text-xs mt-2">
-                        Private rate. Not publicly listed.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+          <aside className="listing-detail-bid self-start lg:sticky lg:top-24">
+            <BidForm
+              variant="listing"
+              place={place}
+              placeId={id}
+              onDateChange={(date) =>
+                setInventoryDate(toApiDateOnly(date))
+              }
+              onBookingDatesChange={(checkIn, checkOut) => {
+                setBookingCheckIn(checkIn);
+                setBookingCheckOut(checkOut);
+              }}
+              isInventoryExhausted={place.isInventoryExhausted}
+            />
+          </aside>
 
-                {/* Rejected Outcome */}
-                <div className="glass rounded-xl p-5 border border-line text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-14 h-14 bg-danger rounded-full flex items-center justify-center">
-                      <XCircle className="w-7 h-7 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-fg text-lg">Too Low</h4>
-                      <p className="text-danger text-sm mt-1">No charge.</p>
-                    </div>
-                    <div className="border-t border-line w-full pt-3 mt-1">
-                      <div className="flex items-center justify-center gap-2 text-warning text-sm">
-                        <RefreshCw className="w-4 h-4" />
-                        <span>Raise your bid</span>
-                      </div>
-                      <p className="text-warning text-sm">or try new dates.</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="listing-detail-retail listing-retail-split">
+              <div>
+                <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] text-muted uppercase">
+                  Retail price
+                  <Info className="h-3.5 w-3.5 text-gold/80" aria-hidden />
+                </p>
+                <p className="text-4xl font-semibold text-fg">
+                  {formatCurrency(place.retailPrice)}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  Total before taxes and fees
+                  {displayNights > 0 && (
+                    <>
+                      {" "}
+                      · {formatCurrency(retailTotal)} for {displayNights} night
+                      {displayNights !== 1 ? "s" : ""}
+                    </>
+                  )}
+                </p>
               </div>
+              {isAuthenticated ? (
+                <div className="listing-edu-panel flex gap-3 items-start">
+                  <PrivateThresholdBadgeIcon className="h-[54px] w-[54px] shrink-0 text-gold" />
+                  <div className="min-w-0 pt-0.5">
+                    <p className="text-sm font-semibold text-fg leading-snug">
+                      Private hotel threshold
+                    </p>
+                    <p className="mt-1.5 text-sm text-[hsl(0_0%_72%)] leading-relaxed">
+                      Hotels set hidden minimum prices for each night. If your bid
+                      meets the hotel&apos;s private threshold, you instantly win the
+                      room.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="listing-edu-panel flex gap-3 items-start">
+                  <StudentBidBadgeIcon className="h-[54px] w-[54px] shrink-0 text-gold" />
+                  <div className="min-w-0 pt-0.5">
+                    <p className="text-sm font-semibold text-fg leading-snug">
+                      .edu or student ID required to bid
+                    </p>
+                    <p className="mt-1.5 text-sm text-[hsl(0_0%_72%)] leading-relaxed">
+                      Deadline is a private bidding marketplace for students
+                      and faculty.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
+
+          <div
+            id="listing-amenities"
+            className="listing-detail-about space-y-3 border-t border-line pt-6"
+          >
+            <h2 className="text-lg font-semibold text-fg">About this stay</h2>
+            <p className="text-sm text-muted leading-relaxed whitespace-pre-line">
+              {place.fullDescription}
+            </p>
           </div>
+        </div>
 
-          {/* Ready Section */}
-          <div className="mt-12">
-            <h2 className="text-2xl font-bold text-fg mb-8 text-center">
-              Ready? <span className="text-muted">→</span> Bid{" "}
-              <span className="text-muted">→</span> Verify{" "}
-              <span className="text-muted">→</span> Pack Your Bag
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Verify Card */}
-              <Card className="glass-2 border-warning/30 p-6 text-center">
-                <div className="flex flex-col items-center">
-                  <GraduationCap className="w-10 h-10 text-warning mb-4" />
-                  <h3 className="font-bold text-fg text-2xl mb-1">Verify</h3>
-                  <p className="text-success text-base mb-4">Students only.</p>
-                  <div className="border-t border-line w-full pt-4">
-                    <p className="text-fg font-semibold text-lg mb-1">
-                      up to 60% off retail
-                    </p>
-                    <p className="text-muted text-base">
-                      .edu unlocks hidden rates.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Bid Card */}
-              <Card className="glass-2 border-warning/30 p-6 text-center">
-                <div className="flex flex-col items-center">
-                  <DollarSign className="w-10 h-10 text-warning mb-4" />
-                  <h3 className="font-bold text-fg text-2xl mb-1">Bid</h3>
-                  <p className="text-muted text-base mb-4">Name your price.</p>
-                  <div className="border-t border-line w-full pt-4">
-                    <div className="inline-flex items-center gap-2 bg-glass px-4 py-2 rounded-full border border-line">
-                      <Lock className="w-5 h-5 text-muted" />
-                      <span className="text-muted text-base">Private</span>
-                    </div>
-                    <p className="text-muted text-base mt-3">
-                      No public discounts.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Win or Walk Card */}
-              <Card className="glass-2 border-warning/30 p-6 text-center">
-                <div className="flex flex-col items-center">
-                  <Zap className="w-10 h-10 text-warning mb-4" />
-                  <h3 className="font-bold text-fg text-2xl mb-1">
-                    Win or Walk
-                  </h3>
-                  <p className="text-muted text-base mb-4">Accepted → Booked</p>
-                  <div className="border-t border-line w-full pt-4">
-                    <div className="flex items-center justify-center gap-2 text-base">
-                      <XCircle className="w-5 h-5 text-danger" />
-                      <span className="text-danger">Too low</span>
-                      <span className="text-muted">→</span>
-                      <span className="text-muted">No charge</span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </div>
-
-          <Testimonials placeId={id || ""} />
+        <Testimonials placeId={id || ""} />
 
           {/* FAQ Accordion */}
           <div className="mt-12">
@@ -502,7 +343,7 @@ export function PlaceDetailPage() {
                 <AccordionItem
                   key={faq.id}
                   value={faq.id}
-                  className="bg-glass-2 border border-line rounded-lg mb-3 px-4"
+                  className="gold-card border-gold/20 rounded-lg mb-3 px-4"
                 >
                   <AccordionTrigger className="text-fg hover:no-underline">
                     "{faq.question}"
@@ -575,7 +416,7 @@ export function PlaceDetailPage() {
                   return (
                     <Card
                       key={listing.id}
-                      className="cursor-pointer group gap-0"
+                      className="cursor-pointer group gap-0 gold-card border-gold/20 hover:border-gold/40 transition-colors"
                       onClick={() =>
                         navigate(
                           getRoute(ROUTES.PUBLIC_PLACE_DETAIL, {
@@ -633,7 +474,6 @@ export function PlaceDetailPage() {
               </div>
             </div>
           )}
-        </div>
       </div>
 
       {/* Sold Out Modal - SweetAlert Style */}

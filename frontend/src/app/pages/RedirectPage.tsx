@@ -7,6 +7,10 @@ import { setAuthToken } from "../../utils/tokenHelpers";
 import { supabase } from "../../utils/supabaseClient";
 import { ROUTES } from "../../config/routes.config";
 import { ApprovalStatus, UserRole } from "../../types/auth.types";
+import {
+  ANALYTICS_EVENTS,
+  trackEvent,
+} from "../../utils/analytics";
 
 function parseHashParams(hash: string) {
   const params: Record<string, string> = {};
@@ -87,6 +91,9 @@ export function RedirectPage() {
           token: access_token,
         })
       );
+      if (user.email?.toLowerCase().endsWith(".edu")) {
+        trackEvent(ANALYTICS_EVENTS.EDU_VERIFICATION_COMPLETED);
+      }
       navigate(ROUTES.HOME);
     });
   }, [dispatch, navigate]);

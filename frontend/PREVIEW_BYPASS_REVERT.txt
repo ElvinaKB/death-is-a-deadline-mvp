@@ -1,0 +1,112 @@
+================================================================================
+PREVIEW BYPASS — local UI only (no Supabase / API required)
+================================================================================
+Created: 2026-05-17
+Re-enabled: 2026-05-19
+Toggle: VITE_PREVIEW_BYPASS=true in frontend/.env.local
+
+--------------------------------------------------------------------------------
+QUICK REVERT (fastest)
+--------------------------------------------------------------------------------
+1. Delete frontend/.env.local  OR set:  VITE_PREVIEW_BYPASS=false
+2. Restart dev server (npm run dev)
+
+That disables bypass without deleting code. For a full cleanup, see FULL REVERT below.
+
+--------------------------------------------------------------------------------
+WHAT IT DOES WHEN ON (VITE_PREVIEW_BYPASS=true)
+--------------------------------------------------------------------------------
+- Amber banner at top (scrolls away; nav stays sticky)
+- "/" redirects to home instead of login
+- Supabase client uses placeholder URL/key so app boots without env
+- API calls use mock data (mockApiHandlers.ts + mockData.ts)
+- Auto sign-in as demo student: student@university.edu / student123
+- Legal, contact, and marketplace routes work without backend
+
+Test accounts (mock login):
+  student@university.edu / student123
+  admin@bidplatform.com / admin123
+  hotel@example.com / hotel123
+
+--------------------------------------------------------------------------------
+FILES ADDED (delete on FULL REVERT)
+--------------------------------------------------------------------------------
+  frontend/src/config/previewBypass.ts
+  frontend/src/services/mockApiHandlers.ts
+  frontend/src/services/mockData.ts
+  frontend/src/app/components/common/PreviewBypassBanner.tsx
+  frontend/src/app/components/common/PreviewBypassBoot.tsx
+  frontend/.env.local
+  frontend/PREVIEW_BYPASS_REVERT.txt  (this file)
+
+--------------------------------------------------------------------------------
+FILES MODIFIED (restore per FULL REVERT section)
+--------------------------------------------------------------------------------
+  frontend/src/utils/supabaseClient.ts
+  frontend/src/utils/tokenHelpers.ts
+  frontend/src/hooks/useApi.ts
+  frontend/src/app/App.tsx
+  frontend/src/app/Router.tsx
+  frontend/.env.sample
+  frontend/src/vite-env.d.ts
+
+NOT part of bypass (keep when reverting bypass):
+  frontend/src/utils/dateHelpers.ts
+  frontend/src/store/slices/searchSlice.ts  (yyyy-MM-dd dates)
+  frontend/src/app/pages/student/PlacesDetailPage.tsx  (?date= sync)
+  frontend/src/app/components/home/PlaceListItem.tsx
+  frontend/src/hooks/usePlaces.ts
+  backend/src/controllers/places.controller.ts  (blackout + inventory date fix)
+
+--------------------------------------------------------------------------------
+FULL REVERT (remove all bypass code from repo)
+--------------------------------------------------------------------------------
+1. Delete FILES ADDED (list above), except you may keep this txt for reference.
+
+2. supabaseClient.ts — restore to:
+   import { createClient } from "@supabase/supabase-js";
+   const supabaseUrl = import.meta.env.VITE_APP_SUPABASE_URL;
+   const supabaseAnonKey = import.meta.env.VITE_APP_SUPABASE_ANON_KEY;
+   export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+3. tokenHelpers.ts — remove PREVIEW_BYPASS import and if-block in removeAuthToken;
+   use only supabase.auth.signOut().then(...).catch(() => {});
+
+4. useApi.ts — remove PREVIEW_BYPASS + resolveMockApi imports and both if (PREVIEW_BYPASS) branches;
+   queryFn: () => apiClient.get<TData>(url)
+
+5. App.tsx — remove PreviewBypassBanner + PreviewBypassBoot imports and JSX
+
+6. Router.tsx — remove PREVIEW_BYPASS import; miscRoutes "/" -> Navigate to ROUTES.LOGIN only
+
+7. .env.sample — remove VITE_PREVIEW_BYPASS lines
+
+8. vite-env.d.ts — remove VITE_PREVIEW_BYPASS line (optional supabase env can stay optional)
+
+9. Restart dev server.
+
+--------------------------------------------------------------------------------
+PREVIEW MOCKS (2026-05-19)
+--------------------------------------------------------------------------------
+  GET  /api/places/public              -> LIVE places; respects ?date=yyyy-MM-dd
+  GET  /api/places/public/:id          -> place + inventory; ?date= for sold-out msg
+  GET  /api/bids/place/:placeId        -> { bid: null }
+  GET  /api/testimonials               -> []
+  GET  /api/testimonials/review-platforms -> []
+  POST /api/contact                    -> { success: true } (not emailed)
+  POST /api/auth/login                 -> mock users (see banner)
+  POST /api/bids                       -> ACCEPTED if bidPerNight >= place.minimumBid, else REJECTED
+  POST /api/payments/create-intent     -> preview client secret (Stripe skipped in UI when bypass on)
+  POST /api/payments/:id/confirm       -> { payment: CAPTURED }
+  Unknown GET                          -> null (not {})
+
+Mock places include allowedDaysOfWeek + maxInventory (required for bid form).
+"Elite Hotel" (place-4) shows sold-out when ?date= is set (preview inventory test).
+List/detail both use yyyy-MM-dd dates (see dateHelpers.ts).
+
+--------------------------------------------------------------------------------
+DO NOT enable on Vercel/production
+--------------------------------------------------------------------------------
+Never set VITE_PREVIEW_BYPASS=true in production environment variables.
+
+================================================================================

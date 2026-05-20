@@ -8,7 +8,6 @@ import { Place } from "../../../types/place.types";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_APP_MAPBOX;
 
-// Custom BID marker component
 function BidMarker({
   isSelected,
   onClick,
@@ -17,29 +16,13 @@ function BidMarker({
   onClick: () => void;
 }) {
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
-      style={{
-        background: isSelected
-          ? "#ffffff"
-          : "linear-gradient(180deg, #283B66, #1E2A44)",
-        color: isSelected ? "#1E2A44" : "#F5F3EE",
-        border: `1px solid ${isSelected ? "#1E2A44" : "#93A4C9"}`,
-        padding: "6px 12px",
-        borderRadius: "12px",
-        fontWeight: 600,
-        fontSize: "12px",
-        boxShadow: isSelected
-          ? "0 0 20px rgba(140, 160, 255, 0.6)"
-          : "0 0 14px rgba(140, 160, 255, 0.45)",
-        cursor: "pointer",
-        whiteSpace: "nowrap",
-        transform: isSelected ? "scale(1.1)" : "scale(1)",
-        transition: "all 0.2s ease",
-      }}
+      className={`map-bid-pin ${isSelected ? "map-bid-pin--selected" : ""}`}
     >
       BID
-    </div>
+    </button>
   );
 }
 
