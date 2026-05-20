@@ -16,13 +16,13 @@ export function PlacesSidebar({
   isLoading,
   selectedPlaceId,
   onPlaceHover,
-  title = "Bid wisely. You only check in once.",
+  title,
 }: PlacesSidebarProps) {
   if (isLoading) {
     return (
       <div className="space-y-3">
         {[1, 2, 3, 4, 5].map((i) => (
-          <SkeletonLoader key={i} className="h-28 rounded-xl bg-glass" />
+          <SkeletonLoader key={i} className="h-[7.7rem] rounded-xl bg-glass" />
         ))}
       </div>
     );
@@ -40,6 +40,9 @@ export function PlacesSidebar({
 
   return (
     <div className="space-y-3">
+      {title ? (
+        <h2 className="sr-only">{title}</h2>
+      ) : null}
       {places.map((place) => (
         <PlaceListItem
           key={place.id}

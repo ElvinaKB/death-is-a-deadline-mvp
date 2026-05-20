@@ -15,10 +15,15 @@ interface TestimonialsProps {
 }
 
 export function Testimonials({ placeId }: TestimonialsProps) {
-  const { data: testimonials = [], isLoading: loadingTestimonials } =
+  const { data: testimonialsData, isLoading: loadingTestimonials } =
     useTestimonials(placeId);
-  const { data: reviewPlatforms = [], isLoading: loadingReviews } =
+  const { data: reviewPlatformsData, isLoading: loadingReviews } =
     useReviewPlatforms(placeId);
+
+  const testimonials = Array.isArray(testimonialsData) ? testimonialsData : [];
+  const reviewPlatforms = Array.isArray(reviewPlatformsData)
+    ? reviewPlatformsData
+    : [];
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);

@@ -1,6 +1,7 @@
 import { useFormik } from "formik";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAppDispatch } from "../../store/hooks";
+import { clearPreviewBypassLoggedOut } from "../../config/previewBypass";
 import { setCredentials } from "../../store/slices/authSlice";
 import { setAuthToken } from "../../utils/tokenHelpers";
 import { loginSchema } from "../../utils/validationSchemas";
@@ -67,6 +68,7 @@ export function LoginPage() {
         return;
       }
 
+      clearPreviewBypassLoggedOut();
       dispatch(
         setCredentials({ user: data.user, token: data.token.access_token }),
       );

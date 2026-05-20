@@ -5,6 +5,7 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import { signupSchema } from "../../utils/validationSchemas";
 import { getFieldError } from "../../utils/formikHelpers";
 import { isAcademicEmail } from "../../utils/emailValidator";
+import { ANALYTICS_EVENTS, trackEvent } from "../../utils/analytics";
 import { useApiMutation } from "../../hooks/useApi";
 import { ENDPOINTS } from "../../config/endpoints.config";
 import { ROUTES } from "../../config/routes.config";
@@ -70,6 +71,7 @@ export function SignupPage() {
         "Account created successfully! Verify your email to continue." +
           (isNotApproved ? notApproved : ""),
       );
+      trackEvent(ANALYTICS_EVENTS.SIGNUP_COMPLETED);
     },
   });
 

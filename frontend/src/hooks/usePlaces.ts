@@ -11,6 +11,7 @@ import {
   UpdatePlaceRequest,
 } from "../types/place.types";
 import { apiClient } from "../lib/apiClient";
+import { toApiDateOnly } from "../utils/dateHelpers";
 
 // Transform frontend request to backend format (File[] -> {url, order}[])
 type CreatePlaceInput = CreatePlaceRequest & { imageUrls?: string[] };
@@ -28,12 +29,13 @@ export const usePlace = (id: string) => {
 
 // Public hook - get place by ID with optional date for inventory status
 export const usePublicPlace = (id: string, date?: string) => {
-  const endpoint = date
-    ? `${ENDPOINTS.PLACE_PUBLIC_DETAIL.replace(":id", id)}?date=${date}`
+  const apiDate = toApiDateOnly(date);
+  const endpoint = apiDate
+    ? `${ENDPOINTS.PLACE_PUBLIC_DETAIL.replace(":id", id)}?date=${encodeURIComponent(apiDate)}`
     : ENDPOINTS.PLACE_PUBLIC_DETAIL.replace(":id", id);
 
   return useApiQuery<PlaceResponse>({
-    queryKey: [...QUERY_KEYS.PLACE(id), "public", date],
+    queryKey: [...QUERY_KEYS.PLACE(id), "public", apiDate],
     endpoint,
     enabled: !!id,
   });

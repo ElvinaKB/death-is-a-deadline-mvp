@@ -16,6 +16,7 @@ import { router as placesRouter } from "./routers/places.router";
 import { router as bidsRouter } from "./routers/bids.router";
 import { router as paymentsRouter } from "./routers/payments.router";
 import { router as testimonialsRouter } from "./routers/testimonials.router";
+import { router as contactRouter } from "./routers/contact.router";
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use("/api/places", placesRouter);
 app.use("/api/bids", bidsRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/testimonials", testimonialsRouter);
+app.use("/api/contact", contactRouter);
 
 // Dev-only routes
 // if (process.env.NODE_ENV === "development") {
