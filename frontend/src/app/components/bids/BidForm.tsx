@@ -23,10 +23,13 @@ import {
   Clock,
   CreditCard,
   LogIn,
+  ArrowRight,
   XCircle,
   AlertCircle,
   DollarSign,
   RefreshCw,
+  Lock,
+  Moon,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import type { StripeCardElement } from "@stripe/stripe-js";
@@ -41,6 +44,12 @@ import { useAppSelector } from "../../../store/hooks";
 import { Bid, BidStatus, CreateBidRequest } from "../../../types/bid.types";
 import { Place } from "../../../types/place.types";
 import { PaymentStatus } from "../../../types/payment.types";
+import {
+  isLowBidRejection,
+  isStripeActionRequired,
+  shouldShowConfirmedOutcome,
+  shouldShowRejectedOutcome,
+} from "../../../utils/bidOutcome";
 import { bidValidationSchema } from "../../../utils/validationSchemas";
 import { SkeletonLoader } from "../common/SkeletonLoader";
 import { Button } from "../ui/button";
@@ -50,7 +59,22 @@ import { Label } from "../ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
 import { Badge } from "../ui/badge";
+import { Checkbox } from "../ui/checkbox";
 import { toast } from "sonner";
+import {
+  BidCountdown,
+  getSecondsUntilMidnight,
+  ListingBidPanelHeader,
+} from "./BidCountdown";
+import { BidLockInModal } from "./BidLockInModal";
+import { BidOutcomePanel } from "./BidOutcomePanel";
+import { BidStepIndicator, type BidStep, STEPS } from "./BidStepIndicator";
+import { formatCurrency } from "../../../utils/currency";
+import {
+  ANALYTICS_EVENTS,
+  trackEvent,
+} from "../../../utils/analytics";
+import { PREVIEW_BYPASS } from "../../../config/previewBypass";
 
 // LocalStorage key for persisting bid form state
 const BID_FORM_STORAGE_KEY = "pendingBidForm";
@@ -119,15 +143,20 @@ interface BidFormProps {
   place: Place;
   placeId: string;
   onDateChange?: (date: string | undefined) => void;
+  onBookingDatesChange?: (checkIn?: Date, checkOut?: Date) => void;
   isInventoryExhausted?: boolean;
+  variant?: "default" | "listing";
 }
 
 interface BidResultState {
-  status: BidStatus;
+  /** From API: ACCEPTED | REJECTED (preview) — use BidStatus, not a separate outcome enum */
+  bidStatus: BidStatus;
   message?: string;
   totalAmount?: number;
   totalNights?: number;
   bidId?: string;
+  /** Set after Stripe confirm succeeds in this session */
+  paymentComplete?: boolean;
 }
 
 // Inner form component that has access to Stripe context
@@ -135,7 +164,9 @@ function BidFormInner({
   place,
   placeId,
   onDateChange,
+  onBookingDatesChange,
   isInventoryExhausted,
+  variant = "default",
 }: BidFormProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -150,11 +181,19 @@ function BidFormInner({
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [isCardComplete, setIsCardComplete] = useState(false);
+  const [isChangingCard, setIsChangingCard] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const [bidStep, setBidStep] = useState<BidStep>("dates");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [lockInOpen, setLockInOpen] = useState(false);
+  const [isRebidding, setIsRebidding] = useState(false);
+  const [auctionSeconds, setAuctionSeconds] = useState(() =>
+    getSecondsUntilMidnight(),
+  );
   const cardElementRef = useRef<StripeCardElement | null>(null);
+  const isListing = variant === "listing";
 
   // Load saved form state from localStorage
   const savedFormState = loadBidFormFromStorage(placeId);
@@ -162,7 +201,7 @@ function BidFormInner({
   // Disable the query while processing to prevent unmounting the CardElement
   const { data: existingBidData, isLoading: isLoadingExistingBid } =
     useBidForPlace(placeId, {
-      enabled: isAuthenticated && !isProcessing && !paymentSuccess,
+      enabled: isAuthenticated && !isProcessing && !bidResult,
     });
 
   // Date restrictions: today to 30 days from today
@@ -202,7 +241,18 @@ function BidFormInner({
     );
 
     if (error) {
-      // Card was declined or other error
+      if (
+        error.code === "authentication_required" ||
+        error.decline_code === "authentication_required"
+      ) {
+        return {
+          success: false,
+          error:
+            error.message ||
+            "Additional authentication required. Please complete verification.",
+          requiresAction: true,
+        };
+      }
       if (error.type === "card_error" || error.type === "validation_error") {
         return { success: false, error: error.message || "Card declined" };
       }
@@ -254,15 +304,26 @@ function BidFormInner({
     initialValues: {
       checkInDate: savedFormState?.checkInDate,
       checkOutDate: savedFormState?.checkOutDate,
-      bidPerNight: savedFormState?.bidPerNight || "",
+      bidPerNight: savedFormState?.bidPerNight ?? "",
     },
     validationSchema: bidValidationSchema,
     onSubmit: async (values) => {
       setPaymentError(null);
+
+      if (isAuthenticated && !acceptedTerms) {
+        setPaymentError(
+          "Please agree to the Terms of Use, Privacy Policy, and cancellation terms.",
+        );
+        return;
+      }
+
       setIsProcessing(true);
 
-      // Validate card is ready
-      if (!isCardComplete || !stripe || !elements) {
+      if (
+        !PREVIEW_BYPASS &&
+        isAuthenticated &&
+        (!isCardComplete || !stripe || !elements)
+      ) {
         setPaymentError("Please enter valid card details");
         setIsProcessing(false);
         return;
@@ -280,8 +341,34 @@ function BidFormInner({
         const result = await createBid.mutateAsync(request);
 
         // Step 2: If bid is accepted, create payment intent and complete payment
-        if (result.status === BidStatus.ACCEPTED) {
-          // Create payment intent
+        const totalNightsForResult =
+          result.bid?.totalNights ??
+          Math.max(
+            1,
+            differenceInDays(values.checkOutDate!, values.checkInDate!),
+          );
+        const bidPerNightForResult =
+          result.bid?.bidPerNight ?? Number(values.bidPerNight);
+        const buildBidResult = (
+          bidStatus: BidStatus,
+          extras?: Partial<BidResultState>,
+        ): BidResultState => ({
+          bidStatus,
+          message: result.message,
+          totalAmount:
+            result.bid?.totalAmount ?? bidPerNightForResult * totalNightsForResult,
+          totalNights: totalNightsForResult,
+          bidId: result.bid?.id,
+          ...extras,
+        });
+
+        if (result.status === BidStatus.ACCEPTED && result.bid) {
+          if (PREVIEW_BYPASS) {
+            setBidResult(
+              buildBidResult(BidStatus.ACCEPTED, { paymentComplete: true }),
+            );
+            setIsProcessing(false);
+          } else {
           const paymentResult = await createPaymentIntent.mutateAsync({
             bidId: result.bid.id,
           });
@@ -289,11 +376,10 @@ function BidFormInner({
           if (paymentResult.clientSecret) {
             setPaymentId(paymentResult.payment.id);
 
-            // Step 3: Confirm payment with card for pre-authorization
             const confirmResult = await confirmPaymentWithCard(
               paymentResult.clientSecret,
             );
-            // queryClient.invalidateQueries({ queryKey: ["bids"] });
+
             if (confirmResult.success) {
               // Step 4: Update our backend about the confirmation
               try {
@@ -331,11 +417,16 @@ function BidFormInner({
                   ),
                   { duration: 5000 },
                 );
-                setPaymentSuccess(true);
+                setBidResult(
+                  buildBidResult(BidStatus.ACCEPTED, { paymentComplete: true }),
+                );
               } catch (err) {
                 // Payment succeeded with Stripe but backend update failed
                 // This is OK - the webhook will update the status
                 // Still show success since the card WAS charged
+                setBidResult(
+                  buildBidResult(BidStatus.ACCEPTED, { paymentComplete: true }),
+                );
                 toast.custom(
                   () => (
                     <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
@@ -362,8 +453,12 @@ function BidFormInner({
                   ),
                   { duration: 5000 },
                 );
-                setPaymentSuccess(true);
               }
+            } else if (isStripeActionRequired(confirmResult)) {
+              setPaymentError(
+                confirmResult.error ||
+                  "Additional authentication is required. Please complete verification and try again.",
+              );
             } else {
               setPaymentError(confirmResult.error || "Payment failed");
             }
@@ -400,7 +495,9 @@ function BidFormInner({
             );
           }
           setIsProcessing(false);
+          }
         } else if (result.status === BidStatus.REJECTED) {
+          setBidResult(buildBidResult(BidStatus.REJECTED));
           toast.custom(
             () => (
               <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
@@ -427,21 +524,38 @@ function BidFormInner({
           );
           setIsProcessing(false);
         } else {
-          // PENDING status
+          // PENDING status — no terminal outcome panel
           toast.info("Bid submitted! Awaiting review.");
           setIsProcessing(false);
         }
 
-        setBidResult({
+        trackEvent(ANALYTICS_EVENTS.BID_SUBMITTED, {
+          place_id: placeId,
           status: result.status,
-          message: result.message,
-          totalAmount: result.bid.totalAmount,
-          totalNights: result.bid.totalNights,
-          bidId: result.bid.id,
         });
+        if (result.status === BidStatus.ACCEPTED) {
+          trackEvent(ANALYTICS_EVENTS.ACCEPTED_BID, { place_id: placeId });
+        } else if (result.status === BidStatus.REJECTED) {
+          trackEvent(ANALYTICS_EVENTS.REJECTED_BID, { place_id: placeId });
+        }
       } catch (error: any) {
         console.error("Bid submission error:", error);
-        setPaymentError(error.message || "Failed to submit bid");
+        if (isLowBidRejection(error)) {
+          const nights = Math.max(
+            1,
+            differenceInDays(values.checkOutDate!, values.checkInDate!),
+          );
+          const perNight = Number(values.bidPerNight);
+          setBidResult({
+            bidStatus: BidStatus.REJECTED,
+            message: error.message,
+            totalAmount: perNight * nights,
+            totalNights: nights,
+          });
+          trackEvent(ANALYTICS_EVENTS.REJECTED_BID, { place_id: placeId });
+        } else {
+          setPaymentError(error.message || "Failed to submit bid");
+        }
         setIsProcessing(false);
       }
     },
@@ -449,18 +563,40 @@ function BidFormInner({
 
   // Notify parent of restored check-in date on mount (for inventory check)
   useEffect(() => {
-    if (savedFormState?.checkInDate && onDateChange) {
-      onDateChange(savedFormState.checkInDate.toISOString().split("T")[0]);
+    const checkIn = savedFormState?.checkInDate;
+    const checkOut = savedFormState?.checkOutDate;
+    if (checkIn && onDateChange) {
+      onDateChange(checkIn.toISOString().split("T")[0]);
+    }
+    if (onBookingDatesChange && checkIn && checkOut) {
+      onBookingDatesChange(checkIn, checkOut);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only on mount
 
+  useEffect(() => {
+    if (!onBookingDatesChange) return;
+    onBookingDatesChange(
+      formik.values.checkInDate,
+      formik.values.checkOutDate,
+    );
+  }, [formik.values.checkInDate, formik.values.checkOutDate, onBookingDatesChange]);
+
+  useEffect(() => {
+    if (!isListing) return;
+    const id = setInterval(
+      () => setAuctionSeconds(getSecondsUntilMidnight()),
+      1000,
+    );
+    return () => clearInterval(id);
+  }, [isListing]);
+
   // Clear localStorage when bid is successfully submitted
   useEffect(() => {
-    if (paymentSuccess || bidResult) {
+    if (bidResult) {
       clearBidFormStorage();
     }
-  }, [paymentSuccess, bidResult]);
+  }, [bidResult]);
 
   // Clear localStorage when user becomes authenticated and has existing bid
   useEffect(() => {
@@ -564,9 +700,117 @@ function BidFormInner({
     setBidResult(null);
     setPaymentError(null);
     setPaymentId(null);
-    setPaymentSuccess(false);
+    setAcceptedTerms(false);
+    setLockInOpen(false);
+    setBidStep("dates");
     formik.resetForm();
   };
+
+  const handleReviewBindingBid = () => {
+    setPaymentError(null);
+    if (!canProceedFromDates) {
+      setPaymentError("Select valid check-in and check-out dates.");
+      return;
+    }
+    if (!canProceedFromAmount) {
+      setPaymentError("Enter your bid amount.");
+      return;
+    }
+    if (!isAuthenticated) {
+      saveBidFormToStorage(placeId, formik.values);
+      navigate(ROUTES.SIGNUP, {
+        state: { returnUrl: location.pathname },
+      });
+      return;
+    }
+    if (
+      !PREVIEW_BYPASS &&
+      (!isCardComplete || !stripe || !elements)
+    ) {
+      setPaymentError("Please enter valid card details.");
+      return;
+    }
+    if (!acceptedTerms) {
+      setPaymentError(
+        "Please agree to the Terms of Use, Privacy Policy, and cancellation terms.",
+      );
+      return;
+    }
+    setLockInOpen(true);
+  };
+
+  const handleLockInConfirm = () => {
+    setLockInOpen(false);
+    formik.submitForm();
+  };
+
+  const handleLoggedOutListingSubmit = () => {
+    setPaymentError(null);
+    if (!canProceedFromDates) {
+      setPaymentError("Select valid check-in and check-out dates.");
+      return;
+    }
+    if (!canProceedFromAmount) {
+      setPaymentError("Enter your bid amount.");
+      return;
+    }
+    saveBidFormToStorage(placeId, formik.values);
+    navigate(ROUTES.SIGNUP, {
+      state: { returnUrl: location.pathname },
+    });
+  };
+
+  const handleRebid = async (newBidPerNight: number) => {
+    setIsRebidding(true);
+    try {
+      await formik.setFieldValue("bidPerNight", String(newBidPerNight));
+      setBidResult(null);
+      await formik.submitForm();
+    } finally {
+      setIsRebidding(false);
+    }
+  };
+
+  const stepIndex = STEPS.indexOf(bidStep);
+
+  const canProceedFromDates =
+    formik.values.checkInDate &&
+    formik.values.checkOutDate &&
+    blockedDatesInRange.length === 0 &&
+    !isInventoryExhausted;
+
+  const canProceedFromAmount =
+    formik.values.bidPerNight && Number(formik.values.bidPerNight) > 0;
+
+  const goNext = () => {
+    if (bidStep === "dates" && canProceedFromDates) setBidStep("amount");
+    else if (bidStep === "amount" && canProceedFromAmount) setBidStep("review");
+    else if (bidStep === "review") {
+      if (!isAuthenticated) {
+        saveBidFormToStorage(placeId, formik.values);
+        navigate(ROUTES.SIGNUP, {
+          state: { returnUrl: location.pathname },
+        });
+      } else {
+        setBidStep("payment");
+      }
+    }
+  };
+
+  const goBack = () => {
+    const i = STEPS.indexOf(bidStep);
+    if (i > 0) setBidStep(STEPS[i - 1]);
+  };
+
+  const savingsPercent =
+    place.retailPrice && Number(formik.values.bidPerNight) > 0
+      ? Math.max(
+          0,
+          Math.round(
+            (1 - Number(formik.values.bidPerNight) / place.retailPrice) * 100,
+          ),
+        )
+      : 0;
 
   // Loading state
   if (isLoadingExistingBid) {
@@ -579,83 +823,358 @@ function BidFormInner({
     );
   }
 
-  // Show payment success first (before checking existing bid)
-  if (paymentSuccess && bidResult) {
+  const showOutcomePanel =
+    bidResult &&
+    formik.values.checkInDate &&
+    formik.values.checkOutDate &&
+    (shouldShowRejectedOutcome(bidResult.bidStatus) ||
+      shouldShowConfirmedOutcome(
+        bidResult.bidStatus,
+        undefined,
+        bidResult.paymentComplete,
+      ));
+
+  if (showOutcomePanel) {
+    const panelStatus = shouldShowRejectedOutcome(bidResult!.bidStatus)
+      ? BidStatus.REJECTED
+      : BidStatus.ACCEPTED;
     return (
-      <div className="space-y-4">
-        <div className="text-center py-6">
-          <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="h-10 w-10 text-success" />
-          </div>
-          <h3 className="text-xl font-bold text-success mb-2">
-            Booking Confirmed!
-          </h3>
-          <p className="text-sm text-muted mb-4">
-            Your payment has been captured and your booking is confirmed.
-          </p>
-        </div>
-
-        <div className="glass rounded-lg p-4 space-y-2 text-sm border border-line">
-          <div className="flex justify-between">
-            <span className="text-muted">Total Amount:</span>
-            <span className="font-bold text-fg">
-              ${bidResult.totalAmount?.toFixed(2)}
-            </span>
-          </div>
-        </div>
-
-        <Button
-          variant="outline"
-          className="w-full border-line text-fg hover:bg-glass"
-          onClick={() => navigate(ROUTES.STUDENT_MY_BIDS)}
-        >
-          View My Bids
-        </Button>
-      </div>
+      <BidOutcomePanel
+        status={panelStatus}
+        place={place}
+        checkIn={formik.values.checkInDate!}
+        checkOut={formik.values.checkOutDate!}
+        bidPerNight={Number(formik.values.bidPerNight)}
+        totalAmount={bidResult!.totalAmount ?? calculateTotalAmount()}
+        onTryAgain={handleTryAgain}
+        onTryNewDates={handleTryAgain}
+        onRebid={isAuthenticated ? handleRebid : undefined}
+        isRebidding={isRebidding}
+      />
     );
   }
 
-  // If user has existing bid for this place (only check when not processing)
+  // If user has existing bid for this place (only when no active session outcome)
   const existingBid = existingBidData?.bid;
   const isPastBid =
     existingBid && new Date(existingBid.checkOutDate) < today;
 
-  if (existingBid && !isProcessing && !isPastBid) {
+  if (existingBid && !isProcessing && !isPastBid && !bidResult) {
+    if (
+      shouldShowConfirmedOutcome(
+        existingBid.status,
+        existingBid.payment?.status,
+      )
+    ) {
+      return (
+        <BidOutcomePanel
+          status={BidStatus.ACCEPTED}
+          place={place}
+          checkIn={new Date(existingBid.checkInDate)}
+          checkOut={new Date(existingBid.checkOutDate)}
+          bidPerNight={existingBid.bidPerNight}
+          totalAmount={existingBid.totalAmount}
+          onTryAgain={handleTryAgain}
+          onTryNewDates={handleTryAgain}
+          onRebid={isAuthenticated ? handleRebid : undefined}
+          isRebidding={isRebidding}
+        />
+      );
+    }
+    if (shouldShowRejectedOutcome(existingBid.status)) {
+      return (
+        <BidOutcomePanel
+          status={BidStatus.REJECTED}
+          place={place}
+          checkIn={new Date(existingBid.checkInDate)}
+          checkOut={new Date(existingBid.checkOutDate)}
+          bidPerNight={existingBid.bidPerNight}
+          totalAmount={existingBid.totalAmount}
+          onTryAgain={handleTryAgain}
+          onTryNewDates={handleTryAgain}
+          onRebid={isAuthenticated ? handleRebid : undefined}
+          isRebidding={isRebidding}
+        />
+      );
+    }
     return <ExistingBidCard bid={existingBid} place={place} />;
   }
 
-  // Show rejection result
-  if (bidResult && bidResult.status === BidStatus.REJECTED) {
+  if (isListing) {
+    const nights = calculateTotalNights();
+    const totalAmount = calculateTotalAmount();
+
     return (
-      <div className="space-y-4">
-        <div className="text-center py-4">
-          <div className="w-16 h-16 bg-danger/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <XCircle className="h-10 w-10 text-danger" />
-          </div>
-          <h3 className="text-xl font-bold text-danger mb-2">
-            Bid Not Accepted
-          </h3>
-          <p className="text-sm text-muted mb-4">{bidResult.message}</p>
+      <>
+        <BidLockInModal
+          open={lockInOpen}
+          onOpenChange={setLockInOpen}
+          place={place}
+          checkIn={formik.values.checkInDate}
+          checkOut={formik.values.checkOutDate}
+          bidPerNight={Number(formik.values.bidPerNight) || 0}
+          totalAmount={totalAmount}
+          auctionSeconds={auctionSeconds}
+          onConfirm={handleLockInConfirm}
+          onGoBack={() => setLockInOpen(false)}
+          isSubmitting={isProcessing}
+        />
+        <div className="listing-bid-sidebar space-y-4 lg:sticky lg:top-24">
+          <ListingBidPanelHeader />
+          <form onSubmit={formik.handleSubmit} className="space-y-4">
+            <div className="listing-dates-box">
+              <div className="listing-dates-box__col">
+                <Label className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase mb-1.5 block">
+                  Check-in
+                </Label>
+                <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "listing-date-field w-full justify-between text-left font-normal text-fg",
+                        !formik.values.checkInDate && "text-muted",
+                      )}
+                    >
+                      {formik.values.checkInDate
+                        ? format(formik.values.checkInDate, "EEE, MMM d, yyyy")
+                        : "Select date"}
+                      <CalendarIcon className="h-4 w-4 text-fg shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-bg border-line" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formik.values.checkInDate}
+                      onSelect={(date) => {
+                        formik.setFieldValue("checkInDate", date);
+                        setCheckInOpen(false);
+                        if (date && onDateChange) {
+                          onDateChange(date.toISOString().split("T")[0]);
+                        }
+                      }}
+                      disabled={isDateBlocked("checkInDate")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="listing-dates-box__col">
+                <Label className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase mb-1.5 block">
+                  Check-out
+                </Label>
+                <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "listing-date-field w-full justify-between text-left font-normal text-fg",
+                        !formik.values.checkOutDate && "text-muted",
+                      )}
+                    >
+                      {formik.values.checkOutDate
+                        ? format(formik.values.checkOutDate, "EEE, MMM d, yyyy")
+                        : "Select date"}
+                      <CalendarIcon className="h-4 w-4 text-fg shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-bg border-line" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formik.values.checkOutDate}
+                      onSelect={(date) => {
+                        formik.setFieldValue("checkOutDate", date);
+                        setCheckOutOpen(false);
+                      }}
+                      disabled={isDateBlocked("checkOutDate")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <div>
+              <Label className="listing-bid-amount-label mb-2 block">
+                <span className="text-fg">Your bid </span>
+                <span className="text-muted">(USD)</span>
+              </Label>
+              <div className="listing-bid-amount-box relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gold text-2xl font-medium pointer-events-none">
+                  $
+                </span>
+                <Input
+                  id="bidPerNightListing"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="0"
+                  className="w-full"
+                  {...formik.getFieldProps("bidPerNight")}
+                />
+              </div>
+              {!isAuthenticated && (
+                <div className="listing-budget-copy mt-3 space-y-1">
+                  <p className="text-sm font-medium text-fg">Enter your Budget</p>
+                  <p className="listing-budget-hint text-muted leading-relaxed">
+                    If that amount meets the hotel&apos;s base price for this date,
+                    you win the room!
+                  </p>
+                </div>
+              )}
+            </div>
+            {isAuthenticated ? (
+            <>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase">
+                Pay with
+              </Label>
+              {(isCardComplete || PREVIEW_BYPASS) && !isChangingCard ? (
+                <div className="listing-pay-card flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-fg">
+                    <CreditCard className="h-4 w-4 text-muted" />
+                    <span>Visa •••• 4242</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-xs text-gold hover:underline"
+                    onClick={() => {
+                      setIsChangingCard(true);
+                      setIsCardComplete(false);
+                      setPaymentError(null);
+                    }}
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <div className="border border-line rounded-lg p-3 bg-bg">
+                  <CardElement
+                  options={{
+                    style: {
+                      base: {
+                        fontSize: "16px",
+                        color: "#f8fafc",
+                        fontFamily: "Inter, system-ui, sans-serif",
+                        "::placeholder": { color: "#64748b" },
+                      },
+                      invalid: { color: "#ef4444", iconColor: "#ef4444" },
+                    },
+                  }}
+                  onReady={(element) => {
+                    cardElementRef.current = element;
+                  }}
+                  onChange={(e) => {
+                    setIsCardComplete(e.complete);
+                    setPaymentError(e.error?.message ?? null);
+                    if (e.complete) {
+                      setIsChangingCard(false);
+                    }
+                  }}
+                />
+              </div>
+              )}
+            </div>
+            {nights > 0 && formik.values.checkInDate && formik.values.checkOutDate && (
+              <div className="rounded-lg border border-line bg-bg/50 px-3 py-2 text-sm text-muted">
+                <p className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-gold" />
+                  {format(formik.values.checkInDate, "MMM d")} →{" "}
+                  {format(formik.values.checkOutDate, "MMM d, yyyy")}
+                </p>
+                <p className="flex items-center gap-2 mt-1">
+                  <Moon className="h-4 w-4 text-gold" />
+                  {nights} night{nights !== 1 ? "s" : ""}
+                </p>
+              </div>
+            )}
+            <label className="flex items-start gap-3 cursor-pointer">
+              <Checkbox
+                checked={acceptedTerms}
+                onCheckedChange={(v) => setAcceptedTerms(v === true)}
+                className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
+              />
+              <span className="text-xs text-muted leading-relaxed">
+                I agree to the{" "}
+                <Link to={ROUTES.TERMS} className="text-gold underline" target="_blank">
+                  Terms of Use
+                </Link>{" "}
+                and{" "}
+                <Link to={ROUTES.PRIVACY} className="text-gold underline" target="_blank">
+                  Privacy Policy
+                </Link>
+                .
+              </span>
+            </label>
+            {paymentError && <p className="text-xs text-urgent">{paymentError}</p>}
+            {isInventoryExhausted && formik.values.checkInDate && (
+              <p className="text-xs text-urgent">
+                No availability for selected date. Try different dates.
+              </p>
+            )}
+            <Button
+              type="button"
+              className="w-full listing-cta-gradient h-12 text-base uppercase tracking-wider"
+              onClick={handleReviewBindingBid}
+              disabled={isProcessing || isInventoryExhausted}
+            >
+              <ArrowRight className="mr-2 h-4 w-4" />
+              LOCK IN BID
+            </Button>
+            <div className="listing-lock-hint">
+              <p className="flex items-start gap-2 text-xs text-muted leading-relaxed text-left">
+                <Lock className="h-3.5 w-3.5 shrink-0 mt-0.5 text-fg" />
+                Once you click LOCK IN, you can still go back until the timer hits
+                zero.
+              </p>
+            </div>
+            </>
+            ) : (
+              <>
+                {paymentError && <p className="text-xs text-urgent">{paymentError}</p>}
+                {isInventoryExhausted && formik.values.checkInDate && (
+                  <p className="text-xs text-urgent">
+                    No availability for selected date. Try different dates.
+                  </p>
+                )}
+                <Button
+                  type="button"
+                  className="w-full listing-cta-gradient h-12 text-base uppercase tracking-wider"
+                  onClick={handleLoggedOutListingSubmit}
+                  disabled={isInventoryExhausted}
+                >
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Verify .edu &amp; Submit Bid
+                </Button>
+                <p className="flex items-start gap-2 text-xs text-muted leading-relaxed">
+                  <Lock className="h-3.5 w-3.5 shrink-0 mt-0.5 text-fg" />
+                  Once you place your bid, you will need to verify your student
+                  status, and enter your credit card details. Your card will not
+                  be charged at this time.
+                </p>
+              </>
+            )}
+          </form>
         </div>
-
-        <div className="glass rounded-lg p-4 text-left border border-line">
-          <p className="font-medium text-sm text-fg mb-2">Suggestions:</p>
-          <ul className="text-sm text-muted space-y-1">
-            <li>• Increase your bid amount </li>
-            <li>• Try different dates</li>
-          </ul>
-        </div>
-
-        <Button className="w-full btn-bid" onClick={handleTryAgain}>
-          Try Again
-        </Button>
-      </div>
+      </>
     );
   }
 
   // Bid form
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 gold-card p-4 md:p-5">
+      <div className="flex flex-col gap-3">
+        <BidCountdown className="w-full justify-center" />
+        <BidStepIndicator current={bidStep} />
+      </div>
+
+      <div className="rounded-lg border border-gold/25 bg-gold/5 px-3 py-2 text-center">
+        <p className="text-xs text-muted uppercase tracking-wider mb-0.5">
+          Retail rate
+        </p>
+        <p className="retail-anchor-value">{formatCurrency(place.retailPrice)}</p>
+        <p className="text-xs text-muted">/ night · anchor price</p>
+      </div>
+
       {isPastBid && existingBid && (
         <div className="glass rounded-lg p-3 border border-line text-sm">
           <p className="text-muted">
@@ -673,7 +1192,7 @@ function BidFormInner({
         </div>
       )}
       <form onSubmit={formik.handleSubmit} className="space-y-4">
-        {/* Check-in and Check-out in one row */}
+        {bidStep === "dates" && (
         <div className="grid grid-cols-2 gap-3">
           {/* Check-in Date */}
           <div>
@@ -764,46 +1283,118 @@ function BidFormInner({
             )}
           </div>
         </div>
+        )}
 
-        {/* Bid Per Night */}
-        <div>
-          <Label className="text-sm text-muted mb-1.5 block">
-            Your Bid Per Night
-          </Label>
-          <div className="relative">
-            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
-            <Input
-              id="bidPerNight"
-              type="number"
-              min="1"
-              step="0.01"
-              className="pl-9 h-11 bg-glass border-line text-fg placeholder:text-muted"
-              {...formik.getFieldProps("bidPerNight")}
-            />
-          </div>
-          {formik.touched.bidPerNight && formik.errors.bidPerNight && (
-            <p className="text-xs text-danger mt-1">
-              {formik.errors.bidPerNight}
-            </p>
-          )}
-        </div>
-
-        {/* Summary */}
-        {calculateTotalNights() > 0 && formik.values.bidPerNight && (
-          <div className="glass rounded-lg p-3 space-y-1.5 text-sm border border-line">
-            <div className="flex justify-between">
-              <span className="text-muted">
-                {calculateTotalNights()} nights × ${formik.values.bidPerNight}
-              </span>
-              <span className="font-semibold text-fg">
-                ${calculateTotalAmount().toFixed(2)}
-              </span>
+        {bidStep === "amount" && (
+          <div className="space-y-3">
+            <Label className="text-sm text-muted mb-1.5 block">
+              Your bid per night
+            </Label>
+            <div className="relative">
+              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gold" />
+              <Input
+                id="bidPerNight"
+                type="number"
+                min="1"
+                step="0.01"
+                className="pl-9 h-11 bg-glass border-gold/30 text-fg placeholder:text-muted"
+                {...formik.getFieldProps("bidPerNight")}
+              />
             </div>
+            {formik.touched.bidPerNight && formik.errors.bidPerNight && (
+              <p className="text-xs text-danger mt-1">
+                {formik.errors.bidPerNight}
+              </p>
+            )}
+            {savingsPercent > 0 && (
+              <p className="text-sm text-success">
+                {savingsPercent}% below retail · binding if accepted
+              </p>
+            )}
           </div>
         )}
 
-        {/* Blocked Date Warning */}
-        {blockedDatesInRange.length > 0 && (
+        {bidStep === "review" && (
+          <div className="gold-border rounded-lg p-4 space-y-3 text-sm">
+            <h4 className="font-semibold text-gold-light">Review your bid</h4>
+            <div className="flex justify-between text-muted">
+              <span>Dates</span>
+              <span className="text-fg font-medium">
+                {formik.values.checkInDate &&
+                  format(formik.values.checkInDate, "MMM d")}{" "}
+                –{" "}
+                {formik.values.checkOutDate &&
+                  format(formik.values.checkOutDate, "MMM d, yyyy")}
+              </span>
+            </div>
+            <div className="flex justify-between text-muted">
+              <span>Retail rate</span>
+              <span className="retail-anchor">
+                {formatCurrency(place.retailPrice)}/night
+              </span>
+            </div>
+            <div className="flex justify-between text-muted">
+              <span>Your bid</span>
+              <span className="text-gold font-semibold">
+                {formatCurrency(Number(formik.values.bidPerNight))}/night
+              </span>
+            </div>
+            <div className="flex justify-between border-t border-line pt-2">
+              <span className="text-fg font-medium">Total if accepted</span>
+              <span className="text-fg font-bold text-lg">
+                {formatCurrency(calculateTotalAmount())}
+              </span>
+            </div>
+            <p className="text-xs text-warning border border-warning/30 rounded-md p-2 bg-warning/5">
+              Binding bid: if accepted, your card is charged immediately for the
+              full amount. Rejected bids are not charged.
+            </p>
+          </div>
+        )}
+
+        {bidStep === "payment" && isAuthenticated && (
+          <>
+            <div className="space-y-2">
+              <Label className="text-sm text-muted mb-1.5 block">Card details</Label>
+              <div className="border border-gold/30 rounded-lg p-3 bg-glass">
+                <CardElement
+                  options={{
+                    style: {
+                      base: {
+                        fontSize: "16px",
+                        color: "#f8fafc",
+                        fontFamily: "system-ui, -apple-system, sans-serif",
+                        "::placeholder": { color: "#64748b" },
+                      },
+                      invalid: { color: "#ef4444", iconColor: "#ef4444" },
+                    },
+                  }}
+                  onReady={(element) => { cardElementRef.current = element; }}
+                  onChange={(e) => {
+                    setIsCardComplete(e.complete);
+                    setPaymentError(e.error?.message ?? null);
+                  }}
+                />
+              </div>
+            </div>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <Checkbox
+                checked={acceptedTerms}
+                onCheckedChange={(v) => setAcceptedTerms(v === true)}
+                className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
+              />
+              <span className="text-xs text-muted leading-relaxed">
+                I agree to the{" "}
+                <Link to={ROUTES.TERMS} className="text-gold underline" target="_blank">Terms of Use</Link>
+                ,{" "}
+                <Link to={ROUTES.PRIVACY} className="text-gold underline" target="_blank">Privacy Policy</Link>
+                , and cancellation terms. If my bid is accepted, my card will be charged immediately.
+              </span>
+            </label>
+          </>
+        )}
+
+        {blockedDatesInRange.length > 0 && bidStep === "dates" && (
           <div className="glass rounded-lg p-3 border border-warning/50">
             <div className="flex gap-2">
               <AlertCircle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
@@ -819,50 +1410,6 @@ function BidFormInner({
                 </p>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Inline Card Input - Only for authenticated users */}
-        {isAuthenticated && (
-          <div className="space-y-2">
-            <Label className="text-sm text-muted mb-1.5 block">
-              Card Details
-            </Label>
-            <div className="border border-line rounded-lg p-3 bg-glass">
-              <CardElement
-                options={{
-                  style: {
-                    base: {
-                      fontSize: "16px",
-                      color: "#f8fafc",
-                      fontFamily: "system-ui, -apple-system, sans-serif",
-                      "::placeholder": {
-                        color: "#64748b",
-                      },
-                    },
-                    invalid: {
-                      color: "#ef4444",
-                      iconColor: "#ef4444",
-                    },
-                  },
-                }}
-                onReady={(element) => {
-                  cardElementRef.current = element;
-                }}
-                onChange={(e) => {
-                  setIsCardComplete(e.complete);
-                  if (e.error) {
-                    setPaymentError(e.error.message);
-                  } else {
-                    setPaymentError(null);
-                  }
-                }}
-              />
-            </div>
-            <p className="text-xs text-muted flex items-center gap-1">
-              <CreditCard className="h-3 w-3" />
-              Your card will only be charged if your bid is accepted
-            </p>
           </div>
         )}
 
@@ -888,40 +1435,55 @@ function BidFormInner({
           </div>
         )}
 
-        {/* Submit Button - Different for authenticated vs unauthenticated */}
-        {isAuthenticated ? (
+        {bidStep !== "payment" ? (
+          <div className="flex gap-2">
+            {stepIndex > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 border-line"
+                onClick={goBack}
+              >
+                Back
+              </Button>
+            )}
+            <Button
+              type="button"
+              className="flex-1 btn-bid-premium"
+              onClick={goNext}
+              disabled={
+                (bidStep === "dates" && !canProceedFromDates) ||
+                (bidStep === "amount" && !canProceedFromAmount)
+              }
+            >
+              {bidStep === "review"
+                ? isAuthenticated
+                  ? "Continue to payment"
+                  : "Verify .edu to bid"
+                : "Continue"}
+            </Button>
+          </div>
+        ) : isAuthenticated ? (
           <Button
             type="submit"
-            className="w-full btn-bid h-12 text-base font-medium"
+            className="w-full btn-bid-premium h-12 text-base uppercase tracking-wider"
             disabled={
               isProcessing ||
               createBid.isPending ||
-              blockedDatesInRange.length > 0 ||
               !stripe ||
               !elements ||
               !isCardComplete ||
-              !formik.values.checkInDate ||
-              !formik.values.checkOutDate ||
-              !formik.values.bidPerNight ||
-              Number(formik.values.bidPerNight) <= 0 ||
+              !acceptedTerms ||
               isInventoryExhausted
             }
           >
-            {isProcessing ? (
-              <>Processing...</>
-            ) : (
-              <>
-                <CreditCard className="w-4 h-4 mr-2" />
-                Place Bid
-              </>
-            )}
+            {isProcessing ? "Processing…" : "Place binding bid"}
           </Button>
         ) : (
           <Button
             type="button"
-            className="w-full btn-bid h-12 text-base font-medium"
+            className="w-full btn-bid-premium h-12 text-base uppercase tracking-wider"
             onClick={() => {
-              // Save form state to localStorage before navigating to auth
               saveBidFormToStorage(placeId, formik.values);
               navigate(ROUTES.SIGNUP, {
                 state: { returnUrl: location.pathname },
@@ -929,23 +1491,14 @@ function BidFormInner({
             }}
           >
             <LogIn className="w-4 h-4 mr-2" />
-            Verify .edu & Submit Bid
+            Verify .edu to continue
           </Button>
         )}
 
-        {/* Info Text */}
         <p className="text-xs text-center text-muted">
-          {isAuthenticated ? (
-            <>
-              Secure Stripe Checkout. Card is only charged if bid is accepted.
-            </>
-          ) : (
-            <>
-              Student verification required. Verify your .edu email or upload
-              <br />
-              your student ID to unlock student-only pricing.
-            </>
-          )}
+          {bidStep === "payment" && isAuthenticated
+            ? "Secure checkout via Stripe. Charged immediately if your bid is accepted."
+            : "Student verification required to place a bid."}
         </p>
       </form>
     </div>
@@ -957,7 +1510,9 @@ export function BidForm({
   place,
   placeId,
   onDateChange,
+  onBookingDatesChange,
   isInventoryExhausted,
+  variant = "default",
 }: BidFormProps) {
   if (!stripePromise) {
     return (
@@ -973,17 +1528,20 @@ export function BidForm({
         place={place}
         placeId={placeId}
         onDateChange={onDateChange}
+        onBookingDatesChange={onBookingDatesChange}
         isInventoryExhausted={isInventoryExhausted}
+        variant={variant}
       />
     </Elements>
   );
 }
 
-// Component for displaying existing bid
+// Existing bid: PENDING review, ACCEPTED awaiting payment, or REQUIRES_ACTION (not confirmed panel)
 function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
   const navigate = useNavigate();
   const payment = bid.payment;
   const paymentStatus = payment?.status;
+  const isConfirmed = shouldShowConfirmedOutcome(bid.status, paymentStatus);
 
   // Payment status configuration
   const paymentStatusConfig: Record<
@@ -1030,8 +1588,10 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
   // Determine checkout eligibility
   const canCheckout =
     bid.status === BidStatus.ACCEPTED &&
+    !isConfirmed &&
     (!payment ||
       paymentStatus === PaymentStatus.PENDING ||
+      paymentStatus === PaymentStatus.REQUIRES_ACTION ||
       paymentStatus === PaymentStatus.FAILED ||
       paymentStatus === PaymentStatus.EXPIRED);
   const isPaymentCaptured = paymentStatus === PaymentStatus.CAPTURED;
@@ -1054,7 +1614,12 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
       borderColor: "border-success/50",
       title: "Bid Accepted!",
       titleColor: "text-success",
-      description: "Congratulations! Your bid was accepted.",
+      description: isStripeActionRequired(
+        undefined,
+        paymentStatus,
+      )
+        ? "Complete card verification to secure your reservation."
+        : "Complete payment to secure your reservation.",
     },
     [BidStatus.REJECTED]: {
       icon: CircleX,

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Search, Calendar, DollarSign, ChevronDown } from "lucide-react";
-import { format } from "date-fns";
+import { addDays, format } from "date-fns";
+import { parseApiDate, toApiDateOnly } from "../../../utils/dateHelpers";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar as CalendarComponent } from "../ui/calendar";
@@ -38,13 +39,11 @@ export function SearchBar({ onSearch }: SearchBarProps) {
   ) => {
     dispatch(setDateOption(option));
     if (option === "tonight") {
-      dispatch(setSelectedDate(new Date().toISOString()));
+      dispatch(setSelectedDate(format(new Date(), "yyyy-MM-dd")));
       setIsDateOpen(false);
       setShowCalendar(false);
     } else if (option === "tomorrow") {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      dispatch(setSelectedDate(tomorrow.toISOString()));
+      dispatch(setSelectedDate(format(addDays(new Date(), 1), "yyyy-MM-dd")));
       setIsDateOpen(false);
       setShowCalendar(false);
     } else {
@@ -53,7 +52,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
   };
 
   const handleCustomDateSelect = (date: Date | undefined) => {
-    dispatch(setSelectedDate(date ? date.toISOString() : null));
+    dispatch(setSelectedDate(date ? format(date, "yyyy-MM-dd") : null));
     if (date) {
       setIsDateOpen(false);
       setShowCalendar(false);
@@ -68,10 +67,10 @@ export function SearchBar({ onSearch }: SearchBarProps) {
   };
 
   return (
-    <div className="flex items-center bg-glass-2 rounded-full shadow-glass border border-line">
+    <div className="marketplace-search-bar flex items-center">
       {/* Location Search */}
       <div className="flex items-center gap-2 px-4 py-3 flex-1 min-w-0 relative">
-        <Search className="h-4 w-4 text-muted shrink-0" />
+        <Search className="h-4 w-4 text-gold shrink-0" />
         <input
           type="text"
           placeholder="Los Angeles"
@@ -101,7 +100,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
       <Popover open={isDateOpen} onOpenChange={setIsDateOpen}>
         <PopoverTrigger asChild>
           <button className="flex items-center gap-2 px-4 py-3 min-w-[120px] hover:bg-glass transition-colors rounded-lg">
-            <Calendar className="h-4 w-4 text-muted shrink-0" />
+            <Calendar className="h-4 w-4 text-gold shrink-0" />
             <span className="text-sm text-fg whitespace-nowrap">
               {getDateLabel()}
             </span>
@@ -166,10 +165,10 @@ export function SearchBar({ onSearch }: SearchBarProps) {
       {/* Search Button */}
       <Button
         size="icon"
-        className="rounded-full btn-bid h-10 w-10 shrink-0 mr-1"
+        className="marketplace-search-btn rounded-full h-10 w-10 shrink-0 mr-1.5"
         onClick={onSearch}
       >
-        <Search className="h-4 w-4" />
+        <Search className="h-4 w-4 text-gold" />
       </Button>
     </div>
   );

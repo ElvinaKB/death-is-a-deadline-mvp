@@ -32,6 +32,12 @@ export const ROUTES = {
   ADMIN_PLACES_TESTIMONIALS: "/admin/places/:id/testimonials",
   ADMIN_BIDS: "/admin/bids",
 
+  // Legal
+  TERMS: "/terms",
+  PRIVACY: "/privacy",
+  ACCESSIBILITY: "/accessibility",
+  CONTACT: "/contact",
+
   // Utility
   NOT_FOUND: "/404",
   UNAUTHORIZED: "/unauthorized",

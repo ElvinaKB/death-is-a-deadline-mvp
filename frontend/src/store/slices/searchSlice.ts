@@ -1,16 +1,18 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { format } from "date-fns";
 
 interface SearchState {
   searchQuery: string;
   maxBid: string;
-  selectedDate: string | null; // ISO string for serialization
+  /** yyyy-MM-dd — matches backend public places `date` query */
+  selectedDate: string | null;
   dateOption: "tonight" | "tomorrow" | "custom";
 }
 
 const initialState: SearchState = {
   searchQuery: "",
   maxBid: "",
-  selectedDate: new Date().toISOString(),
+  selectedDate: format(new Date(), "yyyy-MM-dd"),
   dateOption: "tonight",
 };
 
@@ -29,14 +31,14 @@ const searchSlice = createSlice({
     },
     setDateOption: (
       state,
-      action: PayloadAction<"tonight" | "tomorrow" | "custom">
+      action: PayloadAction<"tonight" | "tomorrow" | "custom">,
     ) => {
       state.dateOption = action.payload;
     },
     resetSearch: (state) => {
       state.searchQuery = "";
       state.maxBid = "";
-      state.selectedDate = new Date().toISOString();
+      state.selectedDate = format(new Date(), "yyyy-MM-dd");
       state.dateOption = "tonight";
     },
   },

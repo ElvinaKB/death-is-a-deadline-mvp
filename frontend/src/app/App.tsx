@@ -12,6 +12,10 @@ import { Loader2 } from "lucide-react";
 
 // Components
 import { AppRouter } from "./Router";
+import { AnalyticsProvider } from "./components/common/AnalyticsProvider";
+import { CookieConsentBanner } from "./components/common/CookieConsentBanner";
+import { PreviewBypassBanner } from "./components/common/PreviewBypassBanner";
+import { PreviewBypassBoot } from "./components/common/PreviewBypassBoot";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,7 +41,12 @@ export default function App() {
       <PersistGate loading={<AppLoader />} persistor={persistor}>
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
-            <AppRouter />
+            <AnalyticsProvider>
+              <PreviewBypassBoot />
+              <PreviewBypassBanner />
+              <AppRouter />
+              <CookieConsentBanner />
+            </AnalyticsProvider>
             <Toaster position="top-right" richColors />
           </BrowserRouter>
         </QueryClientProvider>

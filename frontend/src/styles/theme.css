@@ -6,31 +6,45 @@
 :root {
   --font-size: 16px;
 
-  /* Core Background & Foreground */
-  --bg: 222 24% 8%;                    /* near-black #0B0E11 */
-  --fg: 210 40% 98%;                   /* off-white #F5F3EE */
-  --muted-color: 220 14% 60%;          /* muted text #64748B */
-  --line: 220 12% 20%;                 /* subtle border #E1E3E8 in light, dark for dark */
+  /* Core — mockup: pure black + warm gold */
+  --bg: 0 0% 0%;                       /* pure black per mockup */
+  --fg: 0 0% 98%;                      /* white */
+  --muted-color: 0 0% 62%;             /* grey labels */
+  --line: 0 0% 18%;                    /* subtle dividers */
 
-  /* Surfaces (Glass) */
-  --glass: 220 20% 10% / 0.55;         /* frosted dark overlay */
-  --glass-2: 220 18% 14% / 0.72;       /* deeper glass */
+  /* Surfaces */
+  --glass: 0 0% 8% / 0.9;
+  --glass-2: 0 0% 10% / 0.95;
+  --surface-elevated: 0 0% 12%;        /* cards #1f1f1f */
 
-  /* Brand Colors */
-  --brand: 260 95% 55%;                /* purple accent */
-  --brand-2: 266 90% 62%;              /* lighter purple */
-  --danger: 0 84% 60%;                 /* red */
-  --success: 142 71% 45%;              /* green */
+  /* Gold — Drive mockups (saturated) */
+  --gold: 40 78% 52%;                  /* warmer, richer gold */
+  --gold-light: 42 82% 58%;           /* highlights */
+  --gold-dark: 38 65% 42%;
+  --gold-muted: 40 35% 55%;
+  --cream: 40 33% 95%;
+  --champagne: 38 45% 88%;
 
-  /* Button Tokens (Place a Bid style) */
-  --btn-bg: 213 47% 19%;               /* Midnight Blue #1E2A44 */
-  --btn-hover: 213 42% 28%;            /* Omen Blue #283B66 */
-  --btn-border: 210 18% 62%;           /* Pale Steel #93A4C9 */
-  --btn-text: 40 33% 95%;              /* Bone White #F5F3EE */
-  --btn-glow: 220 100% 77% / 0.45;     /* Ghost Blue glow */
+  /* Urgency / rejected — mockup red */
+  --urgent: 0 78% 51%;                 /* ~#E51E1E */
+  --urgent-muted: 0 60% 45%;
+
+  --brand: 40 78% 52%;
+  --brand-2: 42 82% 58%;
+  --danger: 0 78% 51%;
+  --success: 142 76% 36%;              /* accepted panel green */
+  --success-border: 142 70% 45%;
+
+  /* Buttons — brushed gold / luxury travel */
+  --btn-bg: 38 42% 38%;
+  --btn-hover: 40 48% 44%;
+  --btn-border: 35 38% 28%;
+  --btn-text: 0 0% 98%;
+  --btn-glow: 43 55% 42% / 0.35;
+  --btn-shine: 43 75% 72% / 0.22;
 
   /* Special Effects */
-  --glow: 260 95% 60% / 0.28;          /* purple glow */
+  --glow: 43 90% 55% / 0.28;           /* gold glow */
   --shadow-soft: 0 12px 36px rgba(0,0,0,.40);
   --shadow-glass: 0 18px 60px rgba(0,0,0,.55);
 
@@ -42,13 +56,13 @@
   --radius: 0.625rem;
 
   /* Listing Card Colors */
-  --card-bg: #FFFFFF;                  /* Ghost White */
-  --card-border: #E1E3E8;              /* Ash Gray */
+  --card-bg: #141414;
+  --card-border: rgba(201, 162, 39, 0.35);
   --card-shadow: rgba(0,0,0,0.06);
   --property-name: #0F172A;            /* Dark text */
   --location-text: #64748B;            /* Muted */
-  --tag-bg: #EEF2FF;                   /* Light purple/blue */
-  --tag-text: #3B4CCA;                 /* Tag text color */
+  --tag-bg: rgba(212, 175, 55, 0.15);  /* gold tint */
+  --tag-text: #B8860B;                 /* dark goldenrod */
 
   /* Map overlay */
   --map-overlay: #0B0E11;              /* Black Fog */
@@ -102,6 +116,15 @@
   --color-fg: hsl(var(--fg));
   --color-muted: hsl(var(--muted-color));
   --color-line: hsl(var(--line));
+
+  /* Gold */
+  --color-gold: hsl(var(--gold));
+  --color-gold-light: hsl(var(--gold-light));
+  --color-gold-dark: hsl(var(--gold-dark));
+  --color-gold-muted: hsl(var(--gold-muted));
+  --color-urgent: hsl(var(--urgent));
+  --color-cream: hsl(var(--cream));
+  --color-champagne: hsl(var(--champagne));
 
   /* Brand Colors */
   --color-brand: hsl(var(--brand));
@@ -184,7 +207,8 @@
   --color-sidebar-ring: var(--sidebar-ring);
 
   /* Font Family */
-  --font-sans: ui-sans-serif, system-ui, Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
 }
 
 @layer base {
@@ -193,7 +217,11 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  .font-serif {
+    font-family: var(--font-serif);
   }
 
   /**
@@ -252,21 +280,246 @@
    DEATH IS A DEADLINE – COMPONENT STYLES
    ========================= */
 
+/* Rotating highlight on premium bid CTAs only */
+@property --btn-bid-premium-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes btn-bid-premium-border-spin {
+  to {
+    --btn-bid-premium-angle: 360deg;
+  }
+}
+
 @layer components {
-  /* Bid Button - Place a Bid style */
+  /* Standard gold CTA (login, search, listings, etc.) */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
   .btn-bid {
-    background: linear-gradient(180deg, hsl(var(--btn-hover)), hsl(var(--btn-bg)));
-    color: hsl(var(--btn-text));
-    border: 1px solid hsl(var(--btn-border));
-    box-shadow: 0 0 14px hsl(var(--btn-glow));
+    background: linear-gradient(
+      165deg,
+      hsl(43 58% 54%) 0%,
+      hsl(40 48% 44%) 100%
+    ) !important;
+    color: hsl(0 0% 98%) !important;
+    border: 1px solid hsl(var(--btn-border) / 0.9) !important;
     border-radius: var(--r-md);
     font-weight: 600;
+    box-shadow: 0 4px 16px hsl(var(--btn-glow));
+    transition:
+      background 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .btn-bid:hover:not(:disabled) {
+    background: linear-gradient(
+      165deg,
+      hsl(43 62% 56%) 0%,
+      hsl(40 48% 46%) 100%
+    ) !important;
+    box-shadow: 0 6px 24px hsl(43 55% 42% / 0.55);
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+  }
+
+  .btn-bid:focus-visible:not(:disabled) {
+    outline: 2px solid hsl(var(--gold-light));
+    outline-offset: 2px;
+  }
+
+  .btn-bid:active:not(:disabled) {
+    transform: translateY(1px) scale(0.99);
+    filter: brightness(0.9);
+    background: linear-gradient(
+      165deg,
+      hsl(40 42% 38%) 0%,
+      hsl(38 36% 30%) 100%
+    ) !important;
+    box-shadow: 0 2px 10px hsl(0 0% 0% / 0.45);
+  }
+
+  /* Override shadcn Button disabled:opacity-50 — keep readable muted gold, not ghosted */
+  .btn-bid:disabled {
+    opacity: 1 !important;
+    cursor: not-allowed;
+    pointer-events: none;
+    background: linear-gradient(
+      165deg,
+      hsl(43 22% 28%) 0%,
+      hsl(40 18% 22%) 100%
+    ) !important;
+    color: hsl(0 0% 58%) !important;
+    border-color: hsl(var(--line)) !important;
+    box-shadow: none;
+    filter: none;
+    transform: none;
+  }
+
+  /* Luxury bid flow only: review / confirm / place binding bid */
+  .btn-bid-premium {
+    cursor: pointer;
+    position: relative;
+    isolation: isolate;
+    overflow: visible;
+    background: linear-gradient(
+      165deg,
+      hsl(40 38% 52%) 0%,
+      hsl(43 46% 44%) 18%,
+      hsl(35 36% 28%) 48%,
+      hsl(43 50% 46%) 78%,
+      hsl(38 40% 34%) 100%
+    ) !important;
+    color: hsl(0 0% 98%) !important;
+    border: none !important;
+    border-radius: var(--r-lg);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-shadow: 0 1px 2px hsl(0 0% 0% / 0.45);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--btn-shine)),
+      inset 0 -2px 4px hsl(30 25% 12% / 0.35),
+      0 4px 14px hsl(0 0% 0% / 0.4),
+      0 0 32px hsl(var(--btn-glow));
+    transition:
+      transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+      filter 0.3s ease;
+  }
+
+  .btn-bid-premium::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    z-index: -1;
+    border-radius: calc(var(--r-lg) + 4px);
+    padding: 2px;
+    background: conic-gradient(
+      from var(--btn-bid-premium-angle),
+      hsl(38 38% 30%) 0deg,
+      hsl(38 38% 30%) 235deg,
+      hsl(43 72% 58% / 0.85) 252deg,
+      hsl(43 92% 82%) 270deg,
+      hsl(43 98% 94%) 280deg,
+      hsl(43 92% 82%) 290deg,
+      hsl(43 72% 58% / 0.85) 308deg,
+      hsl(38 38% 30%) 325deg,
+      hsl(38 38% 30%) 360deg
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    filter: drop-shadow(0 0 10px hsl(43 70% 50% / 0.45));
+    animation: btn-bid-premium-border-spin 3.2s linear infinite;
+    pointer-events: none;
+  }
+
+  .btn-bid-premium::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      105deg,
+      transparent 0%,
+      hsl(43 70% 75% / 0.12) 40%,
+      hsl(43 85% 88% / 0.28) 50%,
+      hsl(43 70% 75% / 0.12) 60%,
+      transparent 100%
+    );
+    opacity: 0.55;
+    pointer-events: none;
+    transition:
+      opacity 0.4s ease,
+      transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .btn-bid-premium > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .btn-bid-premium:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.08) saturate(1.05);
+    box-shadow:
+      inset 0 1px 0 hsl(43 80% 80% / 0.35),
+      inset 0 -2px 4px hsl(30 25% 12% / 0.3),
+      0 8px 28px hsl(0 0% 0% / 0.45),
+      0 0 48px hsl(var(--btn-glow));
+  }
+
+  .btn-bid-premium:hover:not(:disabled)::after {
+    animation-duration: 2.4s;
+    filter: drop-shadow(0 0 14px hsl(43 75% 55% / 0.55));
+  }
+
+  .btn-bid-premium:hover:not(:disabled)::before {
+    opacity: 0.9;
+    transform: translateX(6%);
+  }
+
+  .btn-bid-premium:active:not(:disabled) {
+    transform: translateY(0);
+    filter: brightness(0.98);
+    transition-duration: 0.12s;
+  }
+
+  .btn-bid-premium:disabled {
+    opacity: 0.45;
+    filter: grayscale(0.2);
+    box-shadow: none;
+  }
+
+  .btn-bid-premium:disabled::after {
+    animation: none;
+    opacity: 0.25;
+    filter: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn-bid-premium::after {
+      animation: none;
+      --btn-bid-premium-angle: 45deg;
+      opacity: 0.85;
+    }
+  }
+
+  .btn-outline-gold {
+    cursor: pointer;
+    background: transparent;
+    color: hsl(var(--gold));
+    border: 1px solid hsl(var(--gold) / 0.7);
+    border-radius: var(--r-md);
+    font-weight: 500;
     transition: all 0.2s ease;
   }
 
-  .btn-bid:hover {
-    background: linear-gradient(180deg, hsl(var(--btn-bg)), hsl(var(--btn-hover)));
-    box-shadow: 0 0 20px hsl(var(--btn-glow));
+  .btn-outline-gold:hover {
+    background: hsl(var(--gold) / 0.08);
+  }
+
+  .btn-urgent {
+    background: hsl(var(--urgent));
+    color: hsl(var(--fg));
+    border: none;
+    border-radius: var(--r-md);
+    font-weight: 600;
+  }
+
+  .btn-urgent:hover {
+    background: hsl(var(--urgent-muted));
   }
 
   /* Glass Surface */
@@ -309,9 +562,10 @@
     );
   }
 
-  /* Vignette effect for moody pages */
+  /* Vignette — sits behind content only (was z-index:1 on top, dimming the whole UI) */
   .diad-vignette {
     position: relative;
+    isolation: isolate;
   }
 
   .diad-vignette::before {
@@ -319,10 +573,16 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background:
-      radial-gradient(1200px 600px at 50% 30%, rgba(0,0,0,.15), rgba(0,0,0,.55)),
-      radial-gradient(900px 500px at 70% 20%, rgba(120,60,255,.10), transparent 55%);
-    mix-blend-mode: multiply;
+    background: radial-gradient(
+      1200px 600px at 50% 30%,
+      rgba(0, 0, 0, 0.08),
+      rgba(0, 0, 0, 0.35)
+    );
+    z-index: 0;
+  }
+
+  .diad-vignette > * {
+    position: relative;
     z-index: 1;
   }
 
@@ -338,5 +598,781 @@
 
   .shadow-glass {
     box-shadow: var(--shadow-glass);
+  }
+
+  /* Luxury gold surfaces */
+  .gold-border {
+    border: 1px solid hsl(var(--gold) / 0.45);
+  }
+
+  .gold-card {
+    background: hsl(var(--surface-elevated));
+    border: 1px solid hsl(var(--gold) / 0.35);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+  }
+
+  .pill-gold {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    border: 1px solid hsl(var(--gold) / 0.45);
+    background: hsl(var(--gold) / 0.06);
+    color: hsl(var(--gold));
+    font-size: 0.75rem;
+  }
+
+  .receipt-edge {
+    position: relative;
+    background: hsl(var(--surface-elevated));
+    border: 1px solid hsl(var(--gold) / 0.3);
+    border-radius: 0 0 12px 12px;
+  }
+
+  .receipt-edge::before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: repeating-linear-gradient(
+      -45deg,
+      hsl(var(--surface-elevated)),
+      hsl(var(--surface-elevated)) 4px,
+      hsl(var(--bg)) 4px,
+      hsl(var(--bg)) 8px
+    );
+  }
+
+  .timer-urgent {
+    color: hsl(var(--urgent));
+    font-variant-numeric: tabular-nums;
+  }
+
+  .timer-gold-lg {
+    color: hsl(var(--gold));
+    font-size: 1.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+  }
+
+  .text-gold-gradient {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--gold-light)),
+      hsl(var(--gold))
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .retail-anchor {
+    color: hsl(var(--muted-color));
+    text-decoration: line-through;
+    font-size: 0.875rem;
+  }
+
+  .retail-anchor-value {
+    color: hsl(var(--gold-light));
+    font-weight: 600;
+    font-size: 1.25rem;
+    letter-spacing: 0.02em;
+  }
+
+  .headline-luxury {
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: hsl(var(--gold-light));
+  }
+
+  .bid-step-indicator {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .bid-step-dot {
+    height: 4px;
+    flex: 1;
+    border-radius: 9999px;
+    background: hsl(var(--line));
+    transition: background 0.2s ease;
+  }
+
+  .bid-step-dot.active {
+    background: linear-gradient(90deg, hsl(var(--gold-dark)), hsl(var(--gold)));
+  }
+
+  .bid-step-dot.done {
+    background: hsl(var(--gold) / 0.6);
+  }
+
+  /* Map BID pins — client homepage mockup */
+  .map-bid-pin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 10px;
+    border-radius: 9999px;
+    border: 2px solid hsl(var(--gold));
+    background: radial-gradient(
+      circle at 35% 30%,
+      hsl(43 70% 58%) 0%,
+      hsl(40 45% 38%) 55%,
+      hsl(35 35% 22%) 100%
+    );
+    color: hsl(0 0% 98%);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    box-shadow:
+      0 0 20px hsl(var(--gold) / 0.55),
+      0 0 40px hsl(var(--gold) / 0.25);
+    animation: map-pin-glow 2.4s ease-in-out infinite;
+    transition: transform 0.2s ease;
+  }
+
+  .map-bid-pin--selected {
+    transform: scale(1.15);
+    animation: map-pin-glow 1.2s ease-in-out infinite,
+      map-pin-pulse-scale 1.2s ease-in-out infinite;
+  }
+
+  @keyframes map-pin-glow {
+    0%,
+    100% {
+      box-shadow:
+        0 0 14px hsl(var(--gold) / 0.35),
+        0 0 28px hsl(var(--gold) / 0.15);
+    }
+    50% {
+      box-shadow:
+        0 0 22px hsl(var(--gold) / 0.7),
+        0 0 44px hsl(var(--gold) / 0.35);
+    }
+  }
+
+  @keyframes map-pin-pulse-scale {
+    0%,
+    100% {
+      transform: scale(1.1);
+    }
+    50% {
+      transform: scale(1.2);
+    }
+  }
+
+  /* Lock-in modal + rejected outcome — red heartbeat border (30%–100%) */
+  @keyframes heartbeat-border {
+    0%,
+    100% {
+      border-color: hsl(var(--urgent) / 0.3);
+      box-shadow: 0 0 12px hsl(var(--urgent) / 0.15);
+    }
+    50% {
+      border-color: hsl(var(--urgent) / 1);
+      box-shadow: 0 0 24px hsl(var(--urgent) / 0.55);
+    }
+  }
+
+  .lock-in-timer-pulse {
+    animation: heartbeat-border 1.4s ease-in-out infinite;
+  }
+
+  .outcome-panel--rejected {
+    animation: heartbeat-border 2s ease-in-out infinite;
+  }
+
+  .lock-in-modal {
+    border: 1px solid hsl(var(--urgent) / 0.4) !important;
+  }
+
+  .listing-date-trigger {
+    border-color: hsl(var(--gold) / 0.45) !important;
+  }
+
+  .listing-date-trigger:hover,
+  .listing-date-trigger:focus-visible {
+    border-color: hsl(var(--gold-light)) !important;
+    box-shadow: 0 0 0 2px hsl(var(--gold) / 0.25);
+  }
+
+  .listing-card-bid-btn {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    cursor: pointer;
+    border: 1px solid hsl(var(--gold) / 0.75);
+    background: radial-gradient(
+      circle at 30% 20%,
+      hsl(var(--gold) / 0.14) 0%,
+      transparent 55%
+    );
+    color: hsl(var(--fg));
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    box-shadow: 0 0 14px hsl(var(--gold) / 0.2);
+    animation: listing-bid-glow 2.4s ease-in-out infinite;
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .listing-card-bid-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 35%,
+      hsl(var(--gold) / 0.45) 50%,
+      transparent 65%
+    );
+    transform: translateX(-120%);
+    animation: listing-bid-shine 3.2s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .listing-card-bid-btn:hover {
+    border-color: hsl(var(--gold-light));
+    background: hsl(var(--gold) / 0.18);
+    box-shadow: 0 0 22px hsl(var(--gold) / 0.45);
+    transform: translateY(-1px);
+  }
+
+  @keyframes listing-bid-glow {
+    0%,
+    100% {
+      box-shadow:
+        0 0 10px hsl(var(--gold) / 0.25),
+        0 0 20px hsl(var(--gold) / 0.1);
+    }
+    50% {
+      box-shadow:
+        0 0 18px hsl(var(--gold) / 0.55),
+        0 0 32px hsl(var(--gold) / 0.28);
+    }
+  }
+
+  @keyframes listing-bid-shine {
+    0%,
+    100% {
+      transform: translateX(-120%);
+    }
+    45%,
+    55% {
+      transform: translateX(120%);
+    }
+  }
+
+  .outcome-confetti {
+    pointer-events: none;
+    position: absolute;
+    inset: -8px;
+    opacity: 0.6;
+  }
+
+  .outcome-confetti--gold {
+    background: radial-gradient(
+      circle at 20% 30%,
+      hsl(var(--gold) / 0.4) 0 2px,
+      transparent 3px
+    );
+  }
+
+  .outcome-confetti--red {
+    background: radial-gradient(
+      circle at 70% 20%,
+      hsl(var(--urgent) / 0.5) 0 2px,
+      transparent 3px
+    );
+  }
+
+  /* —— Client mockup: marketplace search —— */
+  .marketplace-search-bar {
+    background: hsl(0 0% 12%);
+    border: 1px solid hsl(var(--line));
+    border-radius: 9999px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+  }
+
+  .marketplace-search-btn {
+    border: 2px solid hsl(var(--gold)) !important;
+    background: transparent !important;
+    color: hsl(var(--gold)) !important;
+    box-shadow: none !important;
+  }
+
+  .marketplace-search-btn:hover:not(:disabled) {
+    background: hsl(var(--gold) / 0.12) !important;
+    box-shadow: 0 0 16px hsl(var(--gold) / 0.35) !important;
+  }
+
+  /* —— Listing cards —— */
+  .listing-place-card {
+    background: hsl(0 0% 11%);
+    border: 1px solid hsl(0 0% 20%);
+    border-radius: 12px;
+  }
+
+  .listing-place-card:hover {
+    border-color: hsl(var(--gold) / 0.35);
+  }
+
+  .listing-type-pill {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: hsl(var(--gold));
+    border: none;
+    padding: 0;
+  }
+
+  .listing-place-tagline {
+    font-size: calc(0.875rem + 2px);
+    line-height: 1.4;
+    color: hsl(0 0% 62%);
+  }
+
+  .listing-amenity-item {
+    font-size: calc(0.75rem + 2px);
+    color: hsl(0 0% 72%);
+  }
+
+  .listing-amenity-item svg {
+    width: calc(1rem + 2px);
+    height: calc(1rem + 2px);
+  }
+
+  /* —— Listing detail hero —— */
+  .listing-hero-overlay {
+    background: linear-gradient(
+      to top,
+      hsl(0 0% 0% / 0.92) 0%,
+      hsl(0 0% 0% / 0.35) 45%,
+      transparent 100%
+    );
+  }
+
+  /* Listing detail — mobile order + desktop column without row stretch gap */
+  .listing-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .listing-detail-bid {
+    order: 3;
+  }
+
+  .listing-detail-hero {
+    order: 1;
+  }
+
+  .listing-detail-amenities {
+    order: 2;
+  }
+
+  .listing-detail-retail {
+    order: 4;
+  }
+
+  .listing-detail-about {
+    order: 5;
+  }
+
+  @media (min-width: 1024px) {
+    .listing-detail-grid {
+      grid-template-columns: minmax(0, 1fr) 380px;
+      grid-template-rows: auto auto auto auto;
+    }
+
+    .listing-detail-hero {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .listing-detail-amenities {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .listing-detail-retail {
+      grid-column: 1;
+      grid-row: 3;
+    }
+
+    .listing-detail-about {
+      grid-column: 1;
+      grid-row: 4;
+    }
+
+    .listing-detail-bid {
+      grid-column: 2;
+      grid-row: 1 / 5;
+      order: unset;
+    }
+  }
+
+  .listing-retail-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid hsl(0 0% 22%);
+    border-radius: 12px;
+    overflow: hidden;
+    background: hsl(0 0% 6%);
+  }
+
+  .listing-retail-split > *:first-child {
+    border-right: 1px solid hsl(0 0% 22%);
+    padding: 1.25rem 1.5rem;
+  }
+
+  .listing-retail-split > *:last-child {
+    padding: 1.25rem 1.5rem;
+  }
+
+  /* —— Listing bid sidebar —— */
+  .listing-bid-sidebar {
+    border: 1px solid hsl(var(--gold) / 0.45);
+    border-radius: 12px;
+    background: hsl(0 0% 0%);
+    padding: 1.25rem 1.5rem;
+  }
+
+  .listing-bid-header {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .listing-bid-panel-title {
+    font-size: calc(0.875rem * 1.2);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    line-height: 1.2;
+  }
+
+  /* Mobile: clock + label + timer on one row; desktop: timer on its own row */
+  .listing-bid-timer-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem 0.5rem;
+    text-align: center;
+  }
+
+  .listing-bid-timer-row__label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    .listing-bid-timer-row {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .listing-bid-panel-timer {
+      width: 100%;
+      text-align: center;
+    }
+  }
+
+  .listing-bid-panel-timer {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: hsl(var(--gold));
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+  }
+
+  .listing-bid-amount-label {
+    font-size: calc(10px * 1.2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .listing-budget-hint {
+    font-size: calc(0.75rem * 1.1);
+    line-height: 1.5;
+  }
+
+  .listing-lock-hint {
+    max-width: 20rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+
+  .listing-dates-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid hsl(0 0% 28%);
+    border-radius: 10px;
+    background: hsl(0 0% 6%);
+    padding: 0.875rem 1rem;
+  }
+
+  .listing-dates-box__col {
+    min-width: 0;
+    padding: 0 0.5rem;
+  }
+
+  .listing-dates-box__col:first-child {
+    border-right: 1px solid hsl(0 0% 24%);
+    padding-left: 0;
+    padding-right: 0.75rem;
+  }
+
+  .listing-dates-box__col:last-child {
+    padding-right: 0;
+    padding-left: 0.75rem;
+  }
+
+  .listing-dates-box .listing-date-field {
+    border: none !important;
+    background: transparent !important;
+    height: auto !important;
+    min-height: 2.25rem !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    font-size: 0.6875rem !important;
+  }
+
+  @media (max-width: 380px) {
+    .listing-dates-box .listing-date-field {
+      font-size: 0.625rem !important;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    .listing-retail-split {
+      grid-template-columns: 1fr;
+    }
+
+    .listing-retail-split > *:first-child {
+      border-right: none;
+      border-bottom: 1px solid hsl(0 0% 22%);
+    }
+  }
+
+  .listing-bid-amount-box {
+    border: 1px solid hsl(var(--gold) / 0.5);
+    border-radius: 8px;
+    background: hsl(0 0% 6%);
+    padding: 0.75rem 1rem;
+    min-height: 4.5rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .listing-bid-amount-box input {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 2.25rem !important;
+    font-weight: 600 !important;
+    color: hsl(var(--gold)) !important;
+    height: auto !important;
+    padding-left: 2rem !important;
+  }
+
+  .listing-date-field {
+    border: 1px solid hsl(0 0% 28%) !important;
+    border-radius: 8px !important;
+    background: hsl(0 0% 8%) !important;
+    height: 2.75rem !important;
+    font-size: 0.8125rem !important;
+  }
+
+  .listing-cta-gradient {
+    background: linear-gradient(
+      90deg,
+      hsl(38 42% 42%) 0%,
+      hsl(43 56% 52%) 50%,
+      hsl(38 42% 38%) 100%
+    ) !important;
+    color: hsl(0 0% 8%) !important;
+    font-weight: 700 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    height: 3rem !important;
+    letter-spacing: 0.04em;
+  }
+
+  .listing-pay-card {
+    border: 1px solid hsl(0 0% 24%);
+    border-radius: 8px;
+    background: hsl(0 0% 8%);
+    padding: 0.75rem 1rem;
+  }
+
+  /* —— Lock-in modal —— */
+  .lock-in-modal-shell {
+    border: 2px solid hsl(var(--urgent) / 0.85) !important;
+    box-shadow: 0 0 40px hsl(var(--urgent) / 0.35);
+    background: hsl(0 0% 8%) !important;
+    border-radius: 16px !important;
+  }
+
+  .lock-in-timer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border: 2px solid hsl(var(--urgent));
+    border-radius: 10px;
+    animation: heartbeat-border 1.4s ease-in-out infinite;
+  }
+
+  .lock-in-timer-digits {
+    font-size: 2rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: hsl(var(--urgent));
+    letter-spacing: 0.05em;
+  }
+
+  /* —— Outcome panels —— */
+  .outcome-panel--accepted {
+    border: 2px solid hsl(var(--success-border)) !important;
+    box-shadow: 0 0 24px hsl(var(--success) / 0.15);
+  }
+
+  .outcome-panel--rejected {
+    border: 2px solid hsl(var(--urgent)) !important;
+    animation: heartbeat-border 2.5s ease-in-out infinite;
+  }
+
+  .outcome-rejected-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: hsl(var(--urgent));
+    text-shadow: 0 0 22px hsl(var(--urgent) / 0.55);
+  }
+
+  .outcome-rejected-subtitle {
+    margin-top: 0.75rem;
+    max-width: 17rem;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: hsl(0 0% 100%);
+  }
+
+  .outcome-rejected-instructions,
+  .outcome-rejected-instructions p {
+    text-align: center !important;
+  }
+
+  .outcome-rejected-hint {
+    color: hsl(0 0% 100%) !important;
+  }
+
+  .outcome-rejected-bid-label,
+  .outcome-rejected-quick-label {
+    margin-bottom: 0.5rem;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-align: left;
+    color: hsl(0 0% 100%) !important;
+  }
+
+  .outcome-rejected-quick-label {
+    margin-bottom: 0.625rem;
+  }
+
+  .outcome-rejected-input {
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.25rem;
+    min-height: 4.75rem;
+    padding: 0.75rem 1rem;
+    border: 2px solid hsl(var(--urgent)) !important;
+    background: hsl(0 0% 6%) !important;
+    border-radius: 8px;
+  }
+
+  .outcome-rejected-currency {
+    font-size: 2.25rem;
+    font-weight: 600;
+    line-height: 1;
+    color: hsl(var(--urgent));
+    pointer-events: none;
+  }
+
+  .outcome-rejected-amount-input,
+  .outcome-rejected-input input {
+    flex: 1;
+    width: 100% !important;
+    min-width: 0;
+    max-width: none;
+    padding: 0 !important;
+    text-align: left;
+    font-size: 2.5rem !important;
+    font-weight: 700 !important;
+    color: hsl(var(--urgent)) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    height: auto !important;
+  }
+
+  .outcome-rejected-input input::-webkit-outer-spin-button,
+  .outcome-rejected-input input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .outcome-rejected-input input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  .outcome-rejected-input.listing-bid-amount-box input {
+    padding-left: 0 !important;
+    color: hsl(var(--urgent)) !important;
+  }
+
+  .header-logo-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .header-logo-row .tagline {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-color));
+    white-space: nowrap;
   }
 }
