@@ -192,7 +192,23 @@ export function resolveMockApi<T>(
       differenceInCalendarDays(checkOut, checkIn),
     );
     const totalAmount = totalNights * req.bidPerNight;
-    const accepted = req.bidPerNight >= place.minimumBid;
+    if (req.bidPerNight < place.minimumBid) {
+      throw {
+        message: "Your bid is very low, try again by increasing it.",
+        statusCode: 400,
+      };
+    }
+
+    let status: BidStatus = BidStatus.PENDING;
+    let message = "Your bid has been submitted and is pending review.";
+    if (
+      place.autoAcceptAboveMinimum &&
+      req.bidPerNight >= place.minimumBid
+    ) {
+      status = BidStatus.ACCEPTED;
+      message = "Congratulations! Your bid has been automatically accepted.";
+    }
+
     const bidId = `preview-bid-${Date.now()}`;
     return {
       bid: {
@@ -210,14 +226,12 @@ export function resolveMockApi<T>(
         isPaidToHotel: false,
         paidToHotelAt: null,
         payoutNotes: null,
-        status: accepted ? BidStatus.ACCEPTED : BidStatus.REJECTED,
+        status,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
-      status: accepted ? BidStatus.ACCEPTED : BidStatus.REJECTED,
-      message: accepted
-        ? "Your bid met the hotel threshold."
-        : "Bid below the hotel's hidden threshold. Try a higher amount.",
+      status,
+      message,
     } as T;
   }
 

@@ -44,6 +44,12 @@ import { useAppSelector } from "../../../store/hooks";
 import { Bid, BidStatus, CreateBidRequest } from "../../../types/bid.types";
 import { Place } from "../../../types/place.types";
 import { PaymentStatus } from "../../../types/payment.types";
+import {
+  isLowBidRejection,
+  isStripeActionRequired,
+  shouldShowConfirmedOutcome,
+  shouldShowRejectedOutcome,
+} from "../../../utils/bidOutcome";
 import { bidValidationSchema } from "../../../utils/validationSchemas";
 import { SkeletonLoader } from "../common/SkeletonLoader";
 import { Button } from "../ui/button";
@@ -143,11 +149,14 @@ interface BidFormProps {
 }
 
 interface BidResultState {
-  status: BidStatus;
+  /** From API: ACCEPTED | REJECTED (preview) — use BidStatus, not a separate outcome enum */
+  bidStatus: BidStatus;
   message?: string;
   totalAmount?: number;
   totalNights?: number;
   bidId?: string;
+  /** Set after Stripe confirm succeeds in this session */
+  paymentComplete?: boolean;
 }
 
 // Inner form component that has access to Stripe context
@@ -172,7 +181,6 @@ function BidFormInner({
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [isCardComplete, setIsCardComplete] = useState(false);
   const [isChangingCard, setIsChangingCard] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
@@ -193,7 +201,7 @@ function BidFormInner({
   // Disable the query while processing to prevent unmounting the CardElement
   const { data: existingBidData, isLoading: isLoadingExistingBid } =
     useBidForPlace(placeId, {
-      enabled: isAuthenticated && !isProcessing && !paymentSuccess,
+      enabled: isAuthenticated && !isProcessing && !bidResult,
     });
 
   // Date restrictions: today to 30 days from today
@@ -233,7 +241,18 @@ function BidFormInner({
     );
 
     if (error) {
-      // Card was declined or other error
+      if (
+        error.code === "authentication_required" ||
+        error.decline_code === "authentication_required"
+      ) {
+        return {
+          success: false,
+          error:
+            error.message ||
+            "Additional authentication required. Please complete verification.",
+          requiresAction: true,
+        };
+      }
       if (error.type === "card_error" || error.type === "validation_error") {
         return { success: false, error: error.message || "Card declined" };
       }
@@ -322,9 +341,32 @@ function BidFormInner({
         const result = await createBid.mutateAsync(request);
 
         // Step 2: If bid is accepted, create payment intent and complete payment
-        if (result.status === BidStatus.ACCEPTED) {
+        const totalNightsForResult =
+          result.bid?.totalNights ??
+          Math.max(
+            1,
+            differenceInDays(values.checkOutDate!, values.checkInDate!),
+          );
+        const bidPerNightForResult =
+          result.bid?.bidPerNight ?? Number(values.bidPerNight);
+        const buildBidResult = (
+          bidStatus: BidStatus,
+          extras?: Partial<BidResultState>,
+        ): BidResultState => ({
+          bidStatus,
+          message: result.message,
+          totalAmount:
+            result.bid?.totalAmount ?? bidPerNightForResult * totalNightsForResult,
+          totalNights: totalNightsForResult,
+          bidId: result.bid?.id,
+          ...extras,
+        });
+
+        if (result.status === BidStatus.ACCEPTED && result.bid) {
           if (PREVIEW_BYPASS) {
-            setPaymentSuccess(true);
+            setBidResult(
+              buildBidResult(BidStatus.ACCEPTED, { paymentComplete: true }),
+            );
             setIsProcessing(false);
           } else {
           const paymentResult = await createPaymentIntent.mutateAsync({
@@ -375,11 +417,16 @@ function BidFormInner({
                   ),
                   { duration: 5000 },
                 );
-                setPaymentSuccess(true);
+                setBidResult(
+                  buildBidResult(BidStatus.ACCEPTED, { paymentComplete: true }),
+                );
               } catch (err) {
                 // Payment succeeded with Stripe but backend update failed
                 // This is OK - the webhook will update the status
                 // Still show success since the card WAS charged
+                setBidResult(
+                  buildBidResult(BidStatus.ACCEPTED, { paymentComplete: true }),
+                );
                 toast.custom(
                   () => (
                     <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
@@ -406,8 +453,12 @@ function BidFormInner({
                   ),
                   { duration: 5000 },
                 );
-                setPaymentSuccess(true);
               }
+            } else if (isStripeActionRequired(confirmResult)) {
+              setPaymentError(
+                confirmResult.error ||
+                  "Additional authentication is required. Please complete verification and try again.",
+              );
             } else {
               setPaymentError(confirmResult.error || "Payment failed");
             }
@@ -446,6 +497,7 @@ function BidFormInner({
           setIsProcessing(false);
           }
         } else if (result.status === BidStatus.REJECTED) {
+          setBidResult(buildBidResult(BidStatus.REJECTED));
           toast.custom(
             () => (
               <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
@@ -472,18 +524,10 @@ function BidFormInner({
           );
           setIsProcessing(false);
         } else {
-          // PENDING status
+          // PENDING status — no terminal outcome panel
           toast.info("Bid submitted! Awaiting review.");
           setIsProcessing(false);
         }
-
-        setBidResult({
-          status: result.status,
-          message: result.message,
-          totalAmount: result.bid.totalAmount,
-          totalNights: result.bid.totalNights,
-          bidId: result.bid.id,
-        });
 
         trackEvent(ANALYTICS_EVENTS.BID_SUBMITTED, {
           place_id: placeId,
@@ -496,7 +540,22 @@ function BidFormInner({
         }
       } catch (error: any) {
         console.error("Bid submission error:", error);
-        setPaymentError(error.message || "Failed to submit bid");
+        if (isLowBidRejection(error)) {
+          const nights = Math.max(
+            1,
+            differenceInDays(values.checkOutDate!, values.checkInDate!),
+          );
+          const perNight = Number(values.bidPerNight);
+          setBidResult({
+            bidStatus: BidStatus.REJECTED,
+            message: error.message,
+            totalAmount: perNight * nights,
+            totalNights: nights,
+          });
+          trackEvent(ANALYTICS_EVENTS.REJECTED_BID, { place_id: placeId });
+        } else {
+          setPaymentError(error.message || "Failed to submit bid");
+        }
         setIsProcessing(false);
       }
     },
@@ -534,10 +593,10 @@ function BidFormInner({
 
   // Clear localStorage when bid is successfully submitted
   useEffect(() => {
-    if (paymentSuccess || bidResult) {
+    if (bidResult) {
       clearBidFormStorage();
     }
-  }, [paymentSuccess, bidResult]);
+  }, [bidResult]);
 
   // Clear localStorage when user becomes authenticated and has existing bid
   useEffect(() => {
@@ -641,7 +700,6 @@ function BidFormInner({
     setBidResult(null);
     setPaymentError(null);
     setPaymentId(null);
-    setPaymentSuccess(false);
     setAcceptedTerms(false);
     setLockInOpen(false);
     setBidStep("dates");
@@ -765,22 +823,24 @@ function BidFormInner({
     );
   }
 
-  const showListingOutcome =
-    isListing &&
+  const showOutcomePanel =
     bidResult &&
     formik.values.checkInDate &&
     formik.values.checkOutDate &&
-    (bidResult.status === BidStatus.REJECTED ||
-      (bidResult.status === BidStatus.ACCEPTED && paymentSuccess));
+    (shouldShowRejectedOutcome(bidResult.bidStatus) ||
+      shouldShowConfirmedOutcome(
+        bidResult.bidStatus,
+        undefined,
+        bidResult.paymentComplete,
+      ));
 
-  if (showListingOutcome) {
+  if (showOutcomePanel) {
+    const panelStatus = shouldShowRejectedOutcome(bidResult!.bidStatus)
+      ? BidStatus.REJECTED
+      : BidStatus.ACCEPTED;
     return (
       <BidOutcomePanel
-        status={
-          bidResult!.status === BidStatus.ACCEPTED
-            ? BidStatus.ACCEPTED
-            : BidStatus.REJECTED
-        }
+        status={panelStatus}
         place={place}
         checkIn={formik.values.checkInDate!}
         checkOut={formik.values.checkOutDate!}
@@ -794,78 +854,50 @@ function BidFormInner({
     );
   }
 
-  // Show payment success first (before checking existing bid)
-  if (!isListing && paymentSuccess && bidResult) {
-    return (
-      <div className="space-y-4">
-        <div className="text-center py-6">
-          <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="h-10 w-10 text-success" />
-          </div>
-          <h3 className="text-xl font-bold text-success mb-2">
-            Booking Confirmed!
-          </h3>
-          <p className="text-sm text-muted mb-4">
-            Your payment has been captured and your booking is confirmed.
-          </p>
-        </div>
-
-        <div className="glass rounded-lg p-4 space-y-2 text-sm border border-line">
-          <div className="flex justify-between">
-            <span className="text-muted">Total Amount:</span>
-            <span className="font-bold text-fg">
-              ${bidResult.totalAmount?.toFixed(2)}
-            </span>
-          </div>
-        </div>
-
-        <Button
-          variant="outline"
-          className="w-full border-line text-fg hover:bg-glass"
-          onClick={() => navigate(ROUTES.STUDENT_MY_BIDS)}
-        >
-          View My Bids
-        </Button>
-      </div>
-    );
-  }
-
-  // If user has existing bid for this place (only check when not processing)
+  // If user has existing bid for this place (only when no active session outcome)
   const existingBid = existingBidData?.bid;
   const isPastBid =
     existingBid && new Date(existingBid.checkOutDate) < today;
 
-  if (existingBid && !isProcessing && !isPastBid) {
+  if (existingBid && !isProcessing && !isPastBid && !bidResult) {
+    if (
+      shouldShowConfirmedOutcome(
+        existingBid.status,
+        existingBid.payment?.status,
+      )
+    ) {
+      return (
+        <BidOutcomePanel
+          status={BidStatus.ACCEPTED}
+          place={place}
+          checkIn={new Date(existingBid.checkInDate)}
+          checkOut={new Date(existingBid.checkOutDate)}
+          bidPerNight={existingBid.bidPerNight}
+          totalAmount={existingBid.totalAmount}
+          onTryAgain={handleTryAgain}
+          onTryNewDates={handleTryAgain}
+          onRebid={isAuthenticated ? handleRebid : undefined}
+          isRebidding={isRebidding}
+        />
+      );
+    }
+    if (shouldShowRejectedOutcome(existingBid.status)) {
+      return (
+        <BidOutcomePanel
+          status={BidStatus.REJECTED}
+          place={place}
+          checkIn={new Date(existingBid.checkInDate)}
+          checkOut={new Date(existingBid.checkOutDate)}
+          bidPerNight={existingBid.bidPerNight}
+          totalAmount={existingBid.totalAmount}
+          onTryAgain={handleTryAgain}
+          onTryNewDates={handleTryAgain}
+          onRebid={isAuthenticated ? handleRebid : undefined}
+          isRebidding={isRebidding}
+        />
+      );
+    }
     return <ExistingBidCard bid={existingBid} place={place} />;
-  }
-
-  // Show rejection result
-  if (!isListing && bidResult && bidResult.status === BidStatus.REJECTED) {
-    return (
-      <div className="space-y-4">
-        <div className="text-center py-4">
-          <div className="w-16 h-16 bg-danger/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <XCircle className="h-10 w-10 text-danger" />
-          </div>
-          <h3 className="text-xl font-bold text-danger mb-2">
-            Bid Not Accepted
-          </h3>
-          <p className="text-sm text-muted mb-4">{bidResult.message}</p>
-        </div>
-
-        <div className="glass rounded-lg p-4 text-left border border-line">
-          <p className="font-medium text-sm text-fg mb-2">Suggestions:</p>
-          <ul className="text-sm text-muted space-y-1">
-            <li>• Increase your bid amount </li>
-            <li>• Try different dates</li>
-          </ul>
-        </div>
-
-        <Button className="w-full btn-bid" onClick={handleTryAgain}>
-          Try Again
-        </Button>
-      </div>
-    );
   }
 
   if (isListing) {
@@ -1504,11 +1536,12 @@ export function BidForm({
   );
 }
 
-// Component for displaying existing bid
+// Existing bid: PENDING review, ACCEPTED awaiting payment, or REQUIRES_ACTION (not confirmed panel)
 function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
   const navigate = useNavigate();
   const payment = bid.payment;
   const paymentStatus = payment?.status;
+  const isConfirmed = shouldShowConfirmedOutcome(bid.status, paymentStatus);
 
   // Payment status configuration
   const paymentStatusConfig: Record<
@@ -1555,8 +1588,10 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
   // Determine checkout eligibility
   const canCheckout =
     bid.status === BidStatus.ACCEPTED &&
+    !isConfirmed &&
     (!payment ||
       paymentStatus === PaymentStatus.PENDING ||
+      paymentStatus === PaymentStatus.REQUIRES_ACTION ||
       paymentStatus === PaymentStatus.FAILED ||
       paymentStatus === PaymentStatus.EXPIRED);
   const isPaymentCaptured = paymentStatus === PaymentStatus.CAPTURED;
@@ -1579,7 +1614,12 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
       borderColor: "border-success/50",
       title: "Bid Accepted!",
       titleColor: "text-success",
-      description: "Congratulations! Your bid was accepted.",
+      description: isStripeActionRequired(
+        undefined,
+        paymentStatus,
+      )
+        ? "Complete card verification to secure your reservation."
+        : "Complete payment to secure your reservation.",
     },
     [BidStatus.REJECTED]: {
       icon: CircleX,
