@@ -4,6 +4,19 @@ export enum BidStatus {
   REJECTED = "REJECTED",
 }
 
+/** Derived server-side booking UX state — use for all screen routing (PR1+) */
+export enum BookingStatus {
+  BID_PENDING = "BID_PENDING",
+  BID_REJECTED = "BID_REJECTED",
+  PAYMENT_REQUIRED = "PAYMENT_REQUIRED",
+  PAYMENT_PENDING = "PAYMENT_PENDING",
+  PAYMENT_ACTION_REQUIRED = "PAYMENT_ACTION_REQUIRED",
+  CONFIRMED = "CONFIRMED",
+  PAYMENT_FAILED = "PAYMENT_FAILED",
+  PAYMENT_CANCELLED = "PAYMENT_CANCELLED",
+  EXPIRED = "EXPIRED",
+}
+
 export interface BidPlace {
   id: string;
   name: string;
@@ -48,6 +61,8 @@ export interface Bid {
   paidToHotelAt: string | null;
   payoutNotes: string | null;
   status: BidStatus;
+  bookingStatus: BookingStatus;
+  bookingStatusLabel: string;
   rejectionReason?: string;
   createdAt: string;
   updatedAt: string;

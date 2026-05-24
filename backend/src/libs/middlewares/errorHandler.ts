@@ -10,8 +10,9 @@ export function errorHandler(
   if (err instanceof CustomError) {
     return res.status(err.statusCode).json({
       message: err.message,
-      data: err.data || null,
       statusCode: err.statusCode,
+      ...(err.code && { code: err.code }),
+      data: err.data ?? null,
     });
   }
   console.error(err);
