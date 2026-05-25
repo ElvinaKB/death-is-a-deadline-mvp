@@ -5,10 +5,12 @@ import { Dialog, DialogContent } from "../ui/dialog";
 
 interface HowItWorksModalProps {
   showOnFirstVisit?: boolean;
+  triggerClassName?: string;
 }
 
 export function HowItWorksModal({
   showOnFirstVisit = false,
+  triggerClassName,
 }: HowItWorksModalProps) {
   const [open, setOpen] = useState(() => {
     if (showOnFirstVisit) {
@@ -28,14 +30,16 @@ export function HowItWorksModal({
 
   return (
     <>
-      <div className="flex items-end justify-end p-2 bg-bg border-b border-line">
-        <button
-          onClick={() => setOpen(true)}
-          className="text-sm font-medium text-muted hover:text-fg transition-colors"
-        >
-          How It Works?
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={
+          triggerClassName ??
+          "text-sm font-medium text-muted hover:text-fg transition-colors"
+        }
+      >
+        How It Works?
+      </button>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           isClose={false}

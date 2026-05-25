@@ -22,6 +22,11 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { HomeHeader } from "../../components/home";
+import {
+  isDbPaymentAwaitingCapture,
+  shouldShowStripeCompletionUI,
+} from "../../../utils/bidOutcome";
+import { PaymentStatus } from "../../../types/payment.types";
 
 const bidStatusColors: Record<string, string> = {
   PENDING: "bg-warning/20 text-warning",
@@ -120,16 +125,16 @@ export function MyBidsPage() {
           {bids.map((bid) => {
             const payment = bid.payment;
             const paymentStatus = payment?.status;
-            const paymentConfig = paymentStatus
-              ? paymentStatusConfig[paymentStatus]
-              : null;
+            const paymentConfig =
+              paymentStatus && !isDbPaymentAwaitingCapture(paymentStatus)
+                ? paymentStatusConfig[paymentStatus]
+                : null;
 
             const canCheckout =
               bid.status === "ACCEPTED" &&
-              (!payment ||
-                paymentStatus === "PENDING" ||
-                paymentStatus === "FAILED" ||
-                paymentStatus === "EXPIRED");
+              (shouldShowStripeCompletionUI(paymentStatus) ||
+                paymentStatus === PaymentStatus.FAILED ||
+                paymentStatus === PaymentStatus.EXPIRED);
             const isPaymentCaptured = paymentStatus === "CAPTURED";
             const isPaymentCancelled = paymentStatus === "CANCELLED";
 

@@ -52,20 +52,34 @@ const formatPlace = (
   }),
 });
 
-// Helper to count accepted bids for a place on a specific date
-// A bid is considered to occupy a date if the date falls within [checkInDate, checkOutDate)
+/** yyyy-MM-dd from query string or ISO datetime */
+function normalizeQueryDate(date: string): string {
+  return date.includes("T") ? date.split("T")[0]! : date;
+}
+
+function startOfUtcDay(dateOnly: string): Date {
+  return new Date(`${dateOnly}T00:00:00.000Z`);
+}
+
+function endOfUtcDay(dateOnly: string): Date {
+  return new Date(`${dateOnly}T23:59:59.999Z`);
+}
+
+// Helper to count accepted bids for a place on a specific calendar night
 async function getAcceptedBidsCountForDate(
   placeId: string,
   date: string,
 ): Promise<number> {
-  const targetDate = new Date(date);
+  const dateOnly = normalizeQueryDate(date);
+  const dayStart = startOfUtcDay(dateOnly);
+  const dayEnd = endOfUtcDay(dateOnly);
 
   const count = await prisma.bid.count({
     where: {
       placeId,
       status: bid_status.ACCEPTED,
-      checkInDate: { lte: targetDate },
-      checkOutDate: { gt: targetDate },
+      checkInDate: { lte: dayEnd },
+      checkOutDate: { gt: dayStart },
     },
   });
 
@@ -77,7 +91,8 @@ async function getInventoryStatus(
   place: { id: string; maxInventory: number },
   date: string,
 ): Promise<{ availableInventory: number; isInventoryExhausted: boolean }> {
-  const acceptedBidsCount = await getAcceptedBidsCountForDate(place.id, date);
+  const dateOnly = normalizeQueryDate(date);
+  const acceptedBidsCount = await getAcceptedBidsCountForDate(place.id, dateOnly);
   const availableInventory = Math.max(
     0,
     place.maxInventory - acceptedBidsCount,
@@ -248,22 +263,24 @@ export async function listPublicPlaces(req: Request, res: Response) {
     prisma.place.count({ where }),
   ]);
 
-  // Filter out places with blackoutDates containing the requested date
+  // Filter out places with blackoutDates containing the requested date (yyyy-MM-dd strings)
   if (date) {
-    const isWithin = (blackout: any) =>
-      blackout.start <= date && blackout.end >= date;
-    places = places.filter((place) =>
-      !Array.isArray(place.blackoutDates)
-        ? true
-        : !place.blackoutDates.some(isWithin),
-    );
+    const dateOnly = normalizeQueryDate(date);
+    places = places.filter((place) => {
+      if (!Array.isArray(place.blackoutDates)) return true;
+      return !place.blackoutDates.some((blackout) => {
+        const blackoutDay = normalizeQueryDate(String(blackout));
+        return blackoutDay === dateOnly;
+      });
+    });
   }
 
   // If date is provided, filter out places with exhausted inventory
   if (date) {
+    const dateOnly = normalizeQueryDate(date);
     const placesWithInventory = await Promise.all(
       places.map(async (place) => {
-        const inventoryStatus = await getInventoryStatus(place, date);
+        const inventoryStatus = await getInventoryStatus(place, dateOnly);
         return { place, inventoryStatus };
       }),
     );
@@ -331,7 +348,7 @@ export async function getPublicPlace(req: Request, res: Response) {
     | undefined;
 
   if (date) {
-    inventoryInfo = await getInventoryStatus(place, date);
+    inventoryInfo = await getInventoryStatus(place, normalizeQueryDate(date));
   }
 
   res.status(200).json({
