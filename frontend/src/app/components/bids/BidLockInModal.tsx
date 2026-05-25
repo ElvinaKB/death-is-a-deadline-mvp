@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
-import { Hourglass, Lock, Shield, X } from "lucide-react";
+import { Hourglass, Loader2, Lock, Shield, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,6 @@ interface BidLockInModalProps {
   place: Place;
   checkIn?: Date;
   checkOut?: Date;
-  bidPerNight: number;
   totalAmount: number;
   auctionSeconds: number;
   onConfirm: () => void;
@@ -71,14 +70,20 @@ export function BidLockInModal({
     !Number.isNaN(checkOut.getTime());
 
   const timerRunning = lockInSeconds > 0;
-  const canConfirm = !timerRunning && !isSubmitting;
+  const canPlaceBid = !timerRunning && !isSubmitting;
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && isSubmitting) return;
+    onOpenChange(nextOpen);
+  };
 
   const handleConfirm = () => {
-    if (!canConfirm) return;
+    if (!canPlaceBid || isSubmitting) return;
     onConfirm();
   };
 
   const handleGoBack = () => {
+    if (isSubmitting) return;
     onGoBack();
     onOpenChange(false);
   };
@@ -89,7 +94,7 @@ export function BidLockInModal({
 
   if (!hasValidDates) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent isClose={false} className="max-w-lg bg-[#0a0a0a] border-line text-fg">
           <p className="text-sm text-muted text-center py-4">
             Select valid check-in and check-out dates before confirming your bid.
@@ -109,19 +114,30 @@ export function BidLockInModal({
   const retailTotal = place.retailPrice * nights;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         isClose={false}
         className="lock-in-modal lock-in-modal-shell max-w-md border-0 p-0 gap-0 overflow-hidden"
+        onPointerDownOutside={(e) => {
+          if (isSubmitting) e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          if (isSubmitting) e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (isSubmitting) e.preventDefault();
+        }}
       >
-        <button
-          type="button"
-          onClick={handleGoBack}
-          className="absolute right-4 top-4 z-10 cursor-pointer rounded-full p-1 text-muted hover:text-fg"
-          aria-label="Close"
-        >
-          <X className="h-5 w-5" />
-        </button>
+        {!isSubmitting && (
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="absolute right-4 top-4 z-10 cursor-pointer rounded-full p-1 text-muted hover:text-fg"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
 
         <div className="p-6 md:p-8 space-y-5">
           <p className="text-center text-xs font-semibold tracking-[0.25em] text-urgent uppercase">
@@ -157,9 +173,11 @@ export function BidLockInModal({
             </p>
           </div>
           <p className="text-xs text-muted text-center">
-            {timerRunning
-              ? "Step away anytime until this hits zero."
-              : "You can place your binding bid now."}
+            {isSubmitting
+              ? "Please wait while we submit your bid and process payment."
+              : timerRunning
+                ? "Step away anytime until this hits zero."
+                : "You can place your binding bid now."}
           </p>
 
           <div className="lock-in-listing-summary space-y-2 text-sm border-t border-line/50 pt-4">
@@ -188,21 +206,32 @@ export function BidLockInModal({
             type="button"
             className="w-full btn-bid-premium h-12 text-base uppercase tracking-wide text-black"
             onClick={handleConfirm}
-            disabled={!canConfirm}
+            disabled={timerRunning || isSubmitting}
           >
-            <Lock className="mr-2 h-4 w-4" />
-            {timerRunning
-              ? `Confirm in ${formatLockInTimer(lockInSeconds)}`
-              : `Place ${formatCurrency(totalAmount)} Bid`}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing your bid…
+              </>
+            ) : (
+              <>
+                <Lock className="mr-2 h-4 w-4" />
+                {timerRunning
+                  ? `Confirm in ${formatLockInTimer(lockInSeconds)}`
+                  : `Place ${formatCurrency(totalAmount)} Bid`}
+              </>
+            )}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full border-fg/30 text-fg hover:bg-white/5 cursor-pointer"
-            onClick={handleGoBack}
-          >
-            Go Back and Adjust
-          </Button>
+          {!isSubmitting && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-fg/30 text-fg hover:bg-white/5 cursor-pointer"
+              onClick={handleGoBack}
+            >
+              Go Back and Adjust
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
