@@ -12,6 +12,11 @@ import {
   CreatePaymentIntentInput,
   ListPaymentsQuery,
 } from "../validations/payments/payments.validation";
+import {
+  deriveBookingStatus,
+  BOOKING_STATUS_LABELS,
+} from "../types/booking.types";
+import { ErrorCode } from "../types/error.codes";
 
 /**
  * Check inventory availability for all dates in a bid's date range
@@ -83,7 +88,12 @@ const formatPayment = (payment: any) => ({
   createdAt: payment.createdAt,
   updatedAt: payment.updatedAt,
   bid: payment.bid
-    ? {
+    ? (() => {
+        const bookingStatus = deriveBookingStatus(
+          payment.bid.status,
+          payment.status,
+        );
+        return {
         id: payment.bid.id,
         placeId: payment.bid.placeId,
         checkInDate: payment.bid.checkInDate,
@@ -92,6 +102,8 @@ const formatPayment = (payment: any) => ({
         totalNights: payment.bid.totalNights,
         totalAmount: Number(payment.bid.totalAmount),
         status: payment.bid.status,
+        bookingStatus,
+        bookingStatusLabel: BOOKING_STATUS_LABELS[bookingStatus],
         place: payment.bid.place
           ? {
               id: payment.bid.place.id,
@@ -101,7 +113,8 @@ const formatPayment = (payment: any) => ({
               images: payment.bid.place.images || [],
             }
           : undefined,
-      }
+      };
+      })()
     : undefined,
 });
 
@@ -123,17 +136,27 @@ export async function createPaymentIntent(req: Request, res: Response) {
   });
 
   if (!bid) {
-    throw new CustomError("Bid not found", 404);
+    throw new CustomError("Bid not found", 404, null, ErrorCode.BID_NOT_FOUND);
   }
 
   // Verify the bid belongs to this student
   if (bid.studentId !== studentId) {
-    throw new CustomError("You can only pay for your own bids", 403);
+    throw new CustomError(
+      "You can only pay for your own bids",
+      403,
+      null,
+      ErrorCode.PAYMENT_FORBIDDEN,
+    );
   }
 
   // Verify the bid is accepted
   if (bid.status !== bid_status.ACCEPTED) {
-    throw new CustomError("Only accepted bids can be paid", 400);
+    throw new CustomError(
+      "Only accepted bids can be paid",
+      400,
+      null,
+      ErrorCode.BID_NOT_ACCEPTED,
+    );
   }
 
   // Check inventory availability before creating payment intent
@@ -158,6 +181,8 @@ export async function createPaymentIntent(req: Request, res: Response) {
     throw new CustomError(
       `Sorry, this place is now fully booked for ${inventoryCheck.overbookedDate}. Your bid has been automatically rejected.`,
       409,
+      null,
+      ErrorCode.INVENTORY_SOLD_OUT,
     );
   }
 
@@ -170,17 +195,29 @@ export async function createPaymentIntent(req: Request, res: Response) {
     ) {
       return res.status(200).json({
         message: "Payment already initiated",
-        payment: formatPayment(bid.payment),
-        clientSecret: bid.payment.stripeClientSecret,
+        data: {
+          payment: formatPayment(bid.payment),
+          clientSecret: bid.payment.stripeClientSecret,
+        },
       });
     }
 
     if (bid.payment.status === payment_status.AUTHORIZED) {
-      throw new CustomError("Payment already authorized", 400);
+      throw new CustomError(
+        "Payment already authorized",
+        400,
+        null,
+        ErrorCode.PAYMENT_ALREADY_AUTHORIZED,
+      );
     }
 
     if (bid.payment.status === payment_status.CAPTURED) {
-      throw new CustomError("Payment already captured", 400);
+      throw new CustomError(
+        "Payment already captured",
+        400,
+        null,
+        ErrorCode.PAYMENT_ALREADY_CAPTURED,
+      );
     }
   }
 
@@ -264,12 +301,17 @@ export async function getPaymentForBid(req: Request, res: Response) {
   });
 
   if (!payment) {
-    return res.status(200).json({ payment: null });
+    return res.status(200).json({ data: { payment: null } });
   }
 
   // Verify ownership
   if (payment.studentId !== studentId) {
-    throw new CustomError("You can only view your own payments", 403);
+    throw new CustomError(
+      "You can only view your own payments",
+      403,
+      null,
+      ErrorCode.PAYMENT_FORBIDDEN,
+    );
   }
 
   res.status(200).json({
@@ -390,15 +432,30 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
   });
 
   if (!payment) {
-    throw new CustomError("Payment not found", 404);
+    throw new CustomError(
+      "Payment not found",
+      404,
+      null,
+      ErrorCode.PAYMENT_NOT_FOUND,
+    );
   }
 
   if (payment.studentId !== studentId) {
-    throw new CustomError("You can only confirm your own payments", 403);
+    throw new CustomError(
+      "You can only confirm your own payments",
+      403,
+      null,
+      ErrorCode.PAYMENT_FORBIDDEN,
+    );
   }
 
   if (!payment.stripePaymentIntentId) {
-    throw new CustomError("No payment intent found", 400);
+    throw new CustomError(
+      "No payment intent found",
+      400,
+      null,
+      ErrorCode.PAYMENT_NO_INTENT,
+    );
   }
 
   // Get latest status from Stripe

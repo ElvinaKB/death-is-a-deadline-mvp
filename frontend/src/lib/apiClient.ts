@@ -42,6 +42,7 @@ export class ApiClient {
         const error: ApiError = {
           message: data.message || "An error occurred",
           statusCode: response.status,
+          code: (data as { code?: string }).code,
           errors: data.error?.errors,
         };
         throw error;

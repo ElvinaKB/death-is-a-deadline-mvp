@@ -12,9 +12,20 @@ import {
 import { UserRole } from "../types/auth.types";
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
+import {
+  deriveBookingStatus,
+  BOOKING_STATUS_LABELS,
+} from "../types/booking.types";
+import { ErrorCode } from "../types/error.codes";
 
 // Helper to format bid response
-const formatBid = (bid: any) => ({
+const formatBid = (bid: any) => {
+  const bookingStatus = deriveBookingStatus(
+    bid.status,
+    bid.payment?.status ?? null,
+  );
+
+  return {
   id: bid.id,
   placeId: bid.placeId,
   studentId: bid.studentId,
@@ -32,6 +43,8 @@ const formatBid = (bid: any) => ({
   paidToHotelAt: bid.paidToHotelAt,
   payoutNotes: bid.payoutNotes,
   status: bid.status,
+  bookingStatus,
+  bookingStatusLabel: BOOKING_STATUS_LABELS[bookingStatus],
   rejectionReason: bid.rejectionReason,
   createdAt: bid.createdAt,
   updatedAt: bid.updatedAt,
@@ -63,10 +76,11 @@ const formatBid = (bid: any) => ({
         cancelledAt: bid.payment.cancelledAt,
         failedAt: bid.payment.failedAt,
         expiresAt: bid.payment.expiresAt,
-        stripePaymentIntentId: bid.payment.stripePaymentIntentId, // Added this line
+        stripePaymentIntentId: bid.payment.stripePaymentIntentId,
       }
     : undefined,
-});
+  };
+};
 
 // Create a new bid (student only)
 export async function createBid(req: Request, res: Response) {
@@ -79,12 +93,17 @@ export async function createBid(req: Request, res: Response) {
   });
 
   if (!place) {
-    throw new CustomError("Place not found", 404);
+    throw new CustomError("Place not found", 404, null, ErrorCode.PLACE_NOT_FOUND);
   }
 
   // Check if place is LIVE
   if (place.status !== PlaceStatus.LIVE) {
-    throw new CustomError("This place is not available for bidding", 400);
+    throw new CustomError(
+      "This place is not available for bidding",
+      400,
+      null,
+      ErrorCode.PLACE_NOT_AVAILABLE,
+    );
   }
 
   // Parse dates
@@ -99,6 +118,8 @@ export async function createBid(req: Request, res: Response) {
       throw new CustomError(
         `The place is not available on ${blackoutDate}. Please choose different dates.`,
         400,
+        null,
+        ErrorCode.BID_BLACKOUT_DATE,
       );
     }
   }
@@ -112,6 +133,8 @@ export async function createBid(req: Request, res: Response) {
     throw new CustomError(
       `Your bid is very low, try again by increasing it.`,
       400,
+      null,
+      ErrorCode.BID_TOO_LOW,
     );
   }
 
@@ -135,6 +158,8 @@ export async function createBid(req: Request, res: Response) {
     throw new CustomError(
       "You already have a pending bid for this place with overlapping dates",
       400,
+      null,
+      ErrorCode.BID_OVERLAP_PENDING,
     );
   }
 
@@ -199,7 +224,7 @@ export async function getBidForPlace(req: Request, res: Response) {
   });
 
   if (!bid) {
-    res.status(200).json({ bid: null });
+    res.status(200).json({ data: { bid: null } });
     return;
   }
 
@@ -259,16 +284,22 @@ export async function getBid(req: Request, res: Response) {
       place: {
         include: { images: { orderBy: { order: "asc" } } },
       },
+      payment: true,
     },
   });
 
   if (!bid) {
-    throw new CustomError("Bid not found", 404);
+    throw new CustomError("Bid not found", 404, null, ErrorCode.BID_NOT_FOUND);
   }
 
   // Students can only view their own bids
   if (userRole === UserRole.STUDENT && bid.studentId !== userId) {
-    throw new CustomError("You can only view your own bids", 403);
+    throw new CustomError(
+      "You can only view your own bids",
+      403,
+      null,
+      ErrorCode.BID_FORBIDDEN,
+    );
   }
 
   res.status(200).json({
@@ -344,12 +375,17 @@ export async function updateBidStatus(req: Request, res: Response) {
 
   const existingBid = await prisma.bid.findUnique({ where: { id } });
   if (!existingBid) {
-    throw new CustomError("Bid not found", 404);
+    throw new CustomError("Bid not found", 404, null, ErrorCode.BID_NOT_FOUND);
   }
 
   // Can only update PENDING bids
   if (existingBid.status !== bid_status.PENDING) {
-    throw new CustomError("Can only update pending bids", 400);
+    throw new CustomError(
+      "Can only update pending bids",
+      400,
+      null,
+      ErrorCode.BID_NOT_PENDING,
+    );
   }
 
   const bid = await prisma.bid.update({
