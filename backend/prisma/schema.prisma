@@ -158,6 +158,16 @@ model Payment {
   @@schema("public")
 }
 
+model StripeEvent {
+  id        String   @id @db.VarChar(255)
+  type      String   @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([createdAt(sort: Desc)], map: "idx_stripe_events_created_at")
+  @@map("stripe_events")
+  @@schema("public")
+}
+
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model audit_log_entries {

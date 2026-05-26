@@ -17,6 +17,11 @@ import {
   BOOKING_STATUS_LABELS,
 } from "../types/booking.types";
 import { ErrorCode } from "../types/error.codes";
+import {
+  claimStripeEvent,
+  processStripeWebhookEvent,
+  releaseStripeEvent,
+} from "../services/stripeWebhook.service";
 
 /**
  * Check inventory availability for all dates in a bid's date range
@@ -322,8 +327,7 @@ export async function getPaymentForBid(req: Request, res: Response) {
 }
 
 /**
- * Handle Stripe webhook to update payment status
- * Called when payment is confirmed on frontend
+ * Handle Stripe webhook to update payment status (idempotent per event.id — PR 2).
  */
 export async function handlePaymentWebhook(req: Request, res: Response) {
   const sig = req.headers["stripe-signature"] as string;
@@ -343,67 +347,17 @@ export async function handlePaymentWebhook(req: Request, res: Response) {
     );
   }
 
-  const paymentIntent = event.data.object as any;
+  const isNewEvent = await claimStripeEvent(event);
+  if (!isNewEvent) {
+    return res.status(200).json({ received: true, duplicate: true });
+  }
 
-  switch (event.type) {
-    case "payment_intent.succeeded":
-      // Payment succeeded - funds have been charged
-      const succeededPayment = await prisma.payment.update({
-        where: { stripePaymentIntentId: paymentIntent.id },
-        data: {
-          status: payment_status.CAPTURED,
-          capturedAt: new Date(),
-          stripePaymentMethodId: paymentIntent.payment_method,
-        },
-        include: { bid: true },
-      });
-
-      // Calculate and save commission when payment is captured
-      if (succeededPayment.bid) {
-        const totalAmount = Number(succeededPayment.bid.totalAmount);
-        const platformCommission =
-          Math.round(
-            totalAmount * STRIPE_CONFIG.PLATFORM_COMMISSION_RATE * 100,
-          ) / 100;
-        const payableToHotel =
-          Math.round((totalAmount - platformCommission) * 100) / 100;
-
-        await prisma.bid.update({
-          where: { id: succeededPayment.bidId },
-          data: {
-            platformCommission,
-            payableToHotel,
-          },
-        });
-      }
-      console.log("Payment status updated to: CAPTURED");
-      break;
-
-    case "payment_intent.payment_failed":
-      // Payment failed
-      await prisma.payment.update({
-        where: { stripePaymentIntentId: paymentIntent.id },
-        data: {
-          status: payment_status.FAILED,
-          failedAt: new Date(),
-          failureReason:
-            paymentIntent.last_payment_error?.message || "Payment failed",
-        },
-      });
-      console.log("Payment status updated to: FAILED");
-      break;
-
-    case "payment_intent.canceled":
-      // Payment canceled
-      await prisma.payment.update({
-        where: { stripePaymentIntentId: paymentIntent.id },
-        data: {
-          status: payment_status.CANCELLED,
-          cancelledAt: new Date(),
-        },
-      });
-      console.log("Payment status updated to: CANCELLED");
-      break;
+  try {
+    await processStripeWebhookEvent(event);
+  } catch (err) {
+    await releaseStripeEvent(event.id);
+    console.error(`[stripe-webhook] Processing failed for ${event.id}:`, err);
+    throw new CustomError("Webhook processing failed", 500);
   }
 
   res.status(200).json({ received: true });
