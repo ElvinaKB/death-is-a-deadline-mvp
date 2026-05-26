@@ -14,8 +14,6 @@ import { Loader2 } from "lucide-react";
 import { AppRouter } from "./Router";
 import { AnalyticsProvider } from "./components/common/AnalyticsProvider";
 import { CookieConsentBanner } from "./components/common/CookieConsentBanner";
-import { PreviewBypassBanner } from "./components/common/PreviewBypassBanner";
-import { PreviewBypassBoot } from "./components/common/PreviewBypassBoot";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,8 +40,6 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
             <AnalyticsProvider>
-              <PreviewBypassBoot />
-              <PreviewBypassBanner />
               <AppRouter />
               <CookieConsentBanner />
             </AnalyticsProvider>

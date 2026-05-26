@@ -7,7 +7,6 @@ import {
 } from "@tanstack/react-query";
 import { PREVIEW_BYPASS } from "../config/previewBypass";
 import { apiClient } from "../lib/apiClient";
-import { resolveMockApi } from "../services/mockApiHandlers";
 import { ApiError } from "../types/api.types";
 import { toast } from "sonner";
 
@@ -66,10 +65,6 @@ export function useApiMutation<TData = unknown, TVariables = unknown>(
       const payload = transformVariables
         ? transformVariables(variables)
         : variables;
-
-      if (PREVIEW_BYPASS) {
-        return resolveMockApi<TData>(resolvedEndpoint, method, payload);
-      }
 
       switch (method) {
         case "POST":
