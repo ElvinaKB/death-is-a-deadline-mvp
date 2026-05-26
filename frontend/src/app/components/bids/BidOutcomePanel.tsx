@@ -124,10 +124,10 @@ export function BidOutcomePanel({
         <div className="flex items-center justify-between rounded-lg border border-line/60 bg-bg/50 px-3 py-2 text-sm">
           <div className="flex items-center gap-2 text-muted">
             <CreditCard className="h-4 w-4" />
-            <span>•••• 4242</span>
+            <span className="text-fg">Card charged</span>
           </div>
           <span className="text-xs font-medium text-emerald-400 border border-emerald-500/50 rounded px-2 py-0.5">
-            Authorized
+            Paid
           </span>
         </div>
 
@@ -161,8 +161,8 @@ export function BidOutcomePanel({
   }
 
   return (
-    <div className="outcome-panel outcome-panel--rejected rounded-xl p-5 space-y-5 bg-[hsl(0_0%_4%)]">
-      <div className="outcome-rejected-status text-center pt-2 relative">
+    <div className="outcome-panel outcome-panel--rejected rounded-xl px-4 py-3 space-y-3.5 bg-[hsl(0_0%_4%)]">
+      <div className="outcome-rejected-status text-center relative">
         <div className="outcome-confetti outcome-confetti--red" aria-hidden />
         <div className="outcome-rejected-icon mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-urgent">
           <X className="h-9 w-9 text-white stroke-[3]" aria-hidden />
@@ -175,7 +175,7 @@ export function BidOutcomePanel({
 
       <div className="border-t border-line/40" role="presentation" />
 
-      <div className="outcome-rejected-instructions space-y-1.5 text-center">
+      <div className="outcome-rejected-instructions space-y-1 text-center">
         <p className="text-base font-bold text-white">
           Adjust your bid and try again.
         </p>
@@ -240,10 +240,10 @@ export function BidOutcomePanel({
         <div className="listing-pay-card flex items-center justify-between text-xs">
           <span className="flex items-center gap-2 text-muted">
             <CreditCard className="h-3.5 w-3.5" />
-            Visa •••• 4242
+            Payment method saved
           </span>
-          <span className="text-emerald-400 border border-emerald-500/40 rounded px-1.5 py-0.5 text-[10px] font-medium">
-            Authorized
+          <span className="text-muted border border-line/60 rounded px-1.5 py-0.5 text-[10px] font-medium">
+            Not charged
           </span>
         </div>
       )}

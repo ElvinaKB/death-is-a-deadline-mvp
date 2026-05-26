@@ -24,7 +24,7 @@ export function shouldShowConfirmedOutcome(
   return paymentStatus === PaymentStatus.CAPTURED;
 }
 
-/** Not Accepted panel — explicit REJECTED bid (preview mock only; prod uses 400 for low bids). */
+/** Not Accepted panel — explicit REJECTED bid (prod low bids use HTTP 400). */
 export function shouldShowRejectedOutcome(bidStatus: BidStatus): boolean {
   return bidStatus === BidStatus.REJECTED;
 }
@@ -53,42 +53,3 @@ export function isDbPaymentAwaitingCapture(
   return paymentStatus === PaymentStatus.PENDING;
 }
 
-export type BidLockInPreviewKind =
-  | "below_minimum"
-  | "instant_accept"
-  | "hotel_review";
-
-/** Client-side preview while lock-in timer runs (matches production bid rules). */
-export function getBidLockInPreview(
-  place: { minimumBid: number; autoAcceptAboveMinimum: boolean },
-  bidPerNight: number,
-): { kind: BidLockInPreviewKind; title: string; detail: string } {
-  if (!Number.isFinite(bidPerNight) || bidPerNight <= 0) {
-    return {
-      kind: "hotel_review",
-      title: "Review your bid",
-      detail: "Enter a valid bid amount to see if it qualifies.",
-    };
-  }
-  if (bidPerNight < place.minimumBid) {
-    return {
-      kind: "below_minimum",
-      title: "Bid below minimum",
-      detail: `This listing requires at least $${place.minimumBid}/night. If you confirm, the bid will not be accepted and your card will not be charged.`,
-    };
-  }
-  if (place.autoAcceptAboveMinimum) {
-    return {
-      kind: "instant_accept",
-      title: "Instant accept expected",
-      detail:
-        "At this amount your bid should be accepted when you confirm. Your card on file will be charged immediately.",
-    };
-  }
-  return {
-    kind: "hotel_review",
-    title: "Awaiting hotel review",
-    detail:
-      "Your bid meets the minimum but needs hotel approval. You will not be charged until it is accepted.",
-  };
-}

@@ -82,7 +82,6 @@ import {
   ANALYTICS_EVENTS,
   trackEvent,
 } from "../../../utils/analytics";
-import { PREVIEW_BYPASS } from "../../../config/previewBypass";
 
 // LocalStorage key for persisting bid form state
 const BID_FORM_STORAGE_KEY = "pendingBidForm";
@@ -405,7 +404,6 @@ function BidFormInner({
       setIsProcessing(true);
 
       if (
-        !PREVIEW_BYPASS &&
         isAuthenticated &&
         (!isCardComplete || !paymentMethodId || !stripe || !elements)
       ) {
@@ -449,48 +447,40 @@ function BidFormInner({
         });
 
         if (result.status === BidStatus.ACCEPTED && result.bid) {
-          if (PREVIEW_BYPASS) {
-            setBidResult(
-              buildBidResult(BidStatus.ACCEPTED, { paymentComplete: true }),
+          const paymentResult = await createPaymentIntent.mutateAsync({
+            bidId: result.bid.id,
+          });
+
+          if (paymentResult.clientSecret) {
+            setPaymentId(paymentResult.payment.id);
+            const confirmResult = await confirmPaymentWithCard(
+              paymentResult.clientSecret,
             );
-            setIsProcessing(false);
-          } else {
-            const paymentResult = await createPaymentIntent.mutateAsync({
-              bidId: result.bid.id,
-            });
 
-            if (paymentResult.clientSecret) {
-              setPaymentId(paymentResult.payment.id);
-              const confirmResult = await confirmPaymentWithCard(
-                paymentResult.clientSecret,
+            if (confirmResult.success) {
+              await finalizeAcceptedPayment(
+                paymentResult.payment.id,
+                buildBidResult,
               );
-
-              if (confirmResult.success) {
-                await finalizeAcceptedPayment(
-                  paymentResult.payment.id,
-                  buildBidResult,
-                );
-              } else if (isStripeActionRequired(confirmResult)) {
-                setStripeCompletion({
-                  clientSecret: paymentResult.clientSecret,
-                  paymentId: paymentResult.payment.id,
-                  totalAmount:
-                    result.bid.totalAmount ??
-                    bidPerNightForResult * totalNightsForResult,
-                  bidId: result.bid.id,
-                });
-              } else {
-                setPaymentError(confirmResult.error || "Payment failed");
-                await queryClient.invalidateQueries({
-                  queryKey: ["bids", "place", placeId],
-                });
-              }
+            } else if (isStripeActionRequired(confirmResult)) {
+              setStripeCompletion({
+                clientSecret: paymentResult.clientSecret,
+                paymentId: paymentResult.payment.id,
+                totalAmount:
+                  result.bid.totalAmount ??
+                  bidPerNightForResult * totalNightsForResult,
+                bidId: result.bid.id,
+              });
             } else {
-              setPaymentError(
-                "Something went wrong with payment processing. Please contact support.",
-              );
+              setPaymentError(confirmResult.error || "Payment failed");
+              await queryClient.invalidateQueries({
+                queryKey: ["bids", "place", placeId],
+              });
             }
-            setIsProcessing(false);
+          } else {
+            setPaymentError(
+              "Something went wrong with payment processing. Please contact support.",
+            );
           }
         } else if (result.status === BidStatus.REJECTED) {
           setBidResult(buildBidResult(BidStatus.REJECTED));
@@ -729,10 +719,7 @@ function BidFormInner({
       );
       return;
     }
-    if (
-      !PREVIEW_BYPASS &&
-      (!isCardComplete || !paymentMethodId || !stripe || !elements)
-    ) {
+    if (!isCardComplete || !paymentMethodId || !stripe || !elements) {
       setPaymentError("Please enter valid card details.");
       return;
     }
@@ -1071,7 +1058,7 @@ function BidFormInner({
               <Label className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase">
                 Pay with
               </Label>
-              {(isCardComplete || PREVIEW_BYPASS) && !isChangingCard && (
+              {isCardComplete && !isChangingCard && (
                 <div className="listing-pay-card flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm text-fg">
                     <CreditCard className="h-4 w-4 text-muted" />
@@ -1094,13 +1081,11 @@ function BidFormInner({
               <div
                 className={cn(
                   "border border-line rounded-lg p-3 bg-bg",
-                  (isCardComplete || PREVIEW_BYPASS) &&
+                  isCardComplete &&
                     !isChangingCard &&
                     "sr-only h-px overflow-hidden opacity-0 pointer-events-none p-0 border-0",
                 )}
-                aria-hidden={
-                  (isCardComplete || PREVIEW_BYPASS) && !isChangingCard
-                }
+                aria-hidden={isCardComplete && !isChangingCard}
               >
                 <CardElement
                   options={{

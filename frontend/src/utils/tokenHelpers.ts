@@ -40,11 +40,5 @@ export const removeAuthToken = (): void => {
     resetCookies();
   };
 
-  if (PREVIEW_BYPASS) {
-    setPreviewBypassLoggedOut();
-    clearLocal();
-    return;
-  }
-
   supabase.auth.signOut().then(clearLocal).catch(clearLocal);
 };

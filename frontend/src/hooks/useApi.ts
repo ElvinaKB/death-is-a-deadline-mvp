@@ -31,7 +31,6 @@ export function useApiQuery<TData = unknown>(
 ) {
   const { queryKey, endpoint, params, ...restOptions } = options;
 
-  // remove undefined values from params
   const filteredParams = Object.fromEntries(
     Object.entries(params ?? {}).filter(([_, v]) => v !== undefined),
   );
@@ -41,9 +40,6 @@ export function useApiQuery<TData = unknown>(
     queryKey,
     queryFn: () => {
       const url = queryString ? `${endpoint}?${queryString}` : endpoint;
-      if (PREVIEW_BYPASS) {
-        return resolveMockApi<TData>(url, "GET");
-      }
       return apiClient.get<TData>(url);
     },
     placeholderData: keepPreviousData,
