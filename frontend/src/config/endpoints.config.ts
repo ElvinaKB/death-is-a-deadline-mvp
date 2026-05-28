@@ -43,6 +43,7 @@ export const ENDPOINTS = {
 
   // Payments
   PAYMENT_CREATE_INTENT: "/api/payments/create-intent",
+  PAYMENT_SAVED_METHODS: "/api/payments/saved-methods",
   PAYMENT_FOR_BID: "/api/payments/bid/:bidId",
   PAYMENT_CONFIRM: "/api/payments/:id/confirm",
   PAYMENTS_LIST: "/api/payments",

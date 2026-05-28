@@ -2,6 +2,7 @@ import { payment_status, Prisma } from "@prisma/client";
 import Stripe from "stripe";
 import { prisma } from "../libs/config/prisma";
 import { STRIPE_CONFIG } from "../libs/config/stripe";
+import { sendBookingConfirmationEmails } from "./bookingConfirmationEmail.service";
 
 const HANDLED_EVENT_TYPES = new Set([
   "payment_intent.succeeded",
@@ -9,7 +10,6 @@ const HANDLED_EVENT_TYPES = new Set([
   "payment_intent.canceled",
 ]);
 
-/** Returns true if this event was newly claimed; false if already processed. */
 export async function claimStripeEvent(event: Stripe.Event): Promise<boolean> {
   const { count } = await prisma.stripeEvent.createMany({
     data: [{ id: event.id, type: event.type }],
@@ -18,7 +18,6 @@ export async function claimStripeEvent(event: Stripe.Event): Promise<boolean> {
   return count > 0;
 }
 
-/** Remove claim so Stripe retry can re-attempt after a transient failure. */
 export async function releaseStripeEvent(eventId: string): Promise<void> {
   await prisma.stripeEvent
     .deleteMany({ where: { id: eventId } })
@@ -40,6 +39,22 @@ function getPaymentIntent(event: Stripe.Event): Stripe.PaymentIntent | null {
   return null;
 }
 
+function resolvePaymentMethodId(
+  paymentIntent: Stripe.PaymentIntent,
+  existing: string | null,
+): string | null {
+  if (typeof paymentIntent.payment_method === "string") {
+    return paymentIntent.payment_method;
+  }
+  if (
+    paymentIntent.payment_method &&
+    typeof paymentIntent.payment_method === "object"
+  ) {
+    return paymentIntent.payment_method.id;
+  }
+  return existing;
+}
+
 async function applyBidCommission(
   bidId: string,
   totalAmount: number,
@@ -59,7 +74,7 @@ async function applyBidCommission(
 async function handlePaymentIntentSucceeded(
   paymentIntent: Stripe.PaymentIntent,
   tx: Prisma.TransactionClient,
-): Promise<void> {
+): Promise<string | null> {
   const payment = await tx.payment.findFirst({
     where: { stripePaymentIntentId: paymentIntent.id },
     include: { bid: true },
@@ -69,11 +84,11 @@ async function handlePaymentIntentSucceeded(
     console.warn(
       `[stripe-webhook] No payment row for succeeded intent ${paymentIntent.id}`,
     );
-    return;
+    return null;
   }
 
   if (payment.status === payment_status.CAPTURED) {
-    return;
+    return null;
   }
 
   const succeededPayment = await tx.payment.update({
@@ -81,10 +96,14 @@ async function handlePaymentIntentSucceeded(
     data: {
       status: payment_status.CAPTURED,
       capturedAt: new Date(),
-      stripePaymentMethodId:
-        typeof paymentIntent.payment_method === "string"
-          ? paymentIntent.payment_method
-          : paymentIntent.payment_method?.toString() ?? payment.stripePaymentMethodId,
+      stripePaymentMethodId: resolvePaymentMethodId(
+        paymentIntent,
+        payment.stripePaymentMethodId,
+      ),
+      stripeCustomerId:
+        typeof paymentIntent.customer === "string"
+          ? paymentIntent.customer
+          : paymentIntent.customer?.toString() ?? payment.stripeCustomerId,
     },
     include: { bid: true },
   });
@@ -96,6 +115,8 @@ async function handlePaymentIntentSucceeded(
       tx,
     );
   }
+
+  return succeededPayment.id;
 }
 
 async function handlePaymentIntentFailed(
@@ -156,9 +177,7 @@ async function handlePaymentIntentCanceled(
   });
 }
 
-/**
- * Process a claimed Stripe event (same side effects as before PR 2, idempotent per payment row).
- */
+/** Sole writer for payment status, commission, and booking emails (PR 3). */
 export async function processStripeWebhookEvent(event: Stripe.Event): Promise<void> {
   if (!HANDLED_EVENT_TYPES.has(event.type)) {
     console.log(`[stripe-webhook] Ignoring unhandled event type: ${event.type}`);
@@ -175,26 +194,26 @@ export async function processStripeWebhookEvent(event: Stripe.Event): Promise<vo
     return;
   }
 
+  const intent =
+    paymentIntent ?? ({ id: paymentIntentId } as Stripe.PaymentIntent);
+
+  let emailPaymentId: string | null = null;
+
   await prisma.$transaction(async (tx) => {
     switch (event.type) {
       case "payment_intent.succeeded":
-        await handlePaymentIntentSucceeded(
-          paymentIntent ?? ({ id: paymentIntentId } as Stripe.PaymentIntent),
-          tx,
-        );
+        emailPaymentId = await handlePaymentIntentSucceeded(intent, tx);
         break;
       case "payment_intent.payment_failed":
-        await handlePaymentIntentFailed(
-          paymentIntent ?? ({ id: paymentIntentId } as Stripe.PaymentIntent),
-          tx,
-        );
+        await handlePaymentIntentFailed(intent, tx);
         break;
       case "payment_intent.canceled":
-        await handlePaymentIntentCanceled(
-          paymentIntent ?? ({ id: paymentIntentId } as Stripe.PaymentIntent),
-          tx,
-        );
+        await handlePaymentIntentCanceled(intent, tx);
         break;
     }
   });
+
+  if (emailPaymentId) {
+    await sendBookingConfirmationEmails(emailPaymentId);
+  }
 }

@@ -1,8 +1,6 @@
 import { bid_status, payment_status, Prisma } from "@prisma/client";
 import { format, eachDayOfInterval } from "date-fns";
 import { Request, Response } from "express";
-import { sendEmail } from "../email/sendEmail";
-import { EmailType } from "../email/emailTypes";
 import { prisma } from "../libs/config/prisma";
 import { stripe, STRIPE_CONFIG } from "../libs/config/stripe";
 import { CustomError } from "../libs/utils/CustomError";
@@ -22,6 +20,10 @@ import {
   processStripeWebhookEvent,
   releaseStripeEvent,
 } from "../services/stripeWebhook.service";
+import {
+  findStripeCustomerIdForStudent,
+  getOrCreateStripeCustomerForStudent,
+} from "../services/stripeCustomer.service";
 
 /**
  * Check inventory availability for all dates in a bid's date range
@@ -228,12 +230,14 @@ export async function createPaymentIntent(req: Request, res: Response) {
 
   // Convert Decimal to number for Stripe (amount in cents)
   const amountInCents = Math.round(Number(bid.totalAmount) * 100);
+  const stripeCustomerId = await getOrCreateStripeCustomerForStudent(studentId);
 
-  // Create Stripe PaymentIntent with automatic capture (immediate charge)
   const paymentIntent = await stripe.paymentIntents.create({
     amount: amountInCents,
     currency: STRIPE_CONFIG.CURRENCY,
-    capture_method: "automatic", // Charge immediately when payment is confirmed
+    customer: stripeCustomerId,
+    setup_future_usage: "off_session",
+    capture_method: "automatic",
     metadata: {
       [STRIPE_CONFIG.METADATA_KEYS.BID_ID]: bid.id,
       [STRIPE_CONFIG.METADATA_KEYS.STUDENT_ID]: studentId,
@@ -256,11 +260,13 @@ export async function createPaymentIntent(req: Request, res: Response) {
       currency: STRIPE_CONFIG.CURRENCY,
       stripePaymentIntentId: paymentIntent.id,
       stripeClientSecret: paymentIntent.client_secret,
+      stripeCustomerId,
       status: payment_status.PENDING,
     },
     update: {
       stripePaymentIntentId: paymentIntent.id,
       stripeClientSecret: paymentIntent.client_secret,
+      stripeCustomerId,
       status: payment_status.PENDING,
       failureReason: null,
       failedAt: null,
@@ -364,8 +370,7 @@ export async function handlePaymentWebhook(req: Request, res: Response) {
 }
 
 /**
- * Update payment status after frontend confirmation
- * Called by frontend after confirmCardPayment succeeds
+ * Read-only sync after Stripe.js (PR 3 — webhook writes status, commission, emails).
  */
 export async function confirmPaymentStatus(req: Request, res: Response) {
   const { id } = req.params;
@@ -374,7 +379,6 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
   const payment = await prisma.payment.findUnique({
     where: { id },
     include: {
-      student: true,
       bid: {
         include: {
           place: {
@@ -412,57 +416,13 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
     );
   }
 
-  // Get latest status from Stripe
   const paymentIntent = await stripe.paymentIntents.retrieve(
     payment.stripePaymentIntentId,
   );
 
-  let newStatus: payment_status = payment.status;
-  const updateData: Prisma.PaymentUpdateInput = {
-    stripePaymentMethodId: paymentIntent.payment_method as string,
-  };
-
-  if (paymentIntent.status === "succeeded") {
-    // Payment succeeded - funds have been charged
-    newStatus = payment_status.CAPTURED;
-    updateData.status = payment_status.CAPTURED;
-    updateData.capturedAt = new Date();
-
-    // Calculate and save commission when payment is captured
-    const totalAmount = Number(payment.bid.totalAmount);
-    const platformCommission =
-      Math.round(totalAmount * STRIPE_CONFIG.PLATFORM_COMMISSION_RATE * 100) /
-      100;
-    const payableToHotel =
-      Math.round((totalAmount - platformCommission) * 100) / 100;
-
-    // Update bid with commission fields
-    await prisma.bid.update({
-      where: { id: payment.bidId },
-      data: {
-        platformCommission,
-        payableToHotel,
-      },
-    });
-  } else if (paymentIntent.status === "requires_action") {
-    newStatus = payment_status.REQUIRES_ACTION;
-    updateData.status = payment_status.REQUIRES_ACTION;
-  } else if (paymentIntent.status === "requires_payment_method") {
-    newStatus = payment_status.FAILED;
-    updateData.status = payment_status.FAILED;
-    updateData.failedAt = new Date();
-    updateData.failureReason = "Payment method required";
-  } else if (paymentIntent.status === "canceled") {
-    newStatus = payment_status.CANCELLED;
-    updateData.status = payment_status.CANCELLED;
-    updateData.cancelledAt = new Date();
-  }
-
-  const updatedPayment = await prisma.payment.update({
+  const currentPayment = await prisma.payment.findUnique({
     where: { id },
-    data: updateData,
     include: {
-      student: true,
       bid: {
         include: {
           place: {
@@ -473,63 +433,65 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
     },
   });
 
-  // Send confirmation emails if payment was captured
-  if (newStatus === payment_status.CAPTURED && updatedPayment.bid) {
-    const bid = updatedPayment.bid;
-    const place = bid.place as typeof bid.place & { email?: string | null };
-    const student = updatedPayment.student;
+  if (!currentPayment) {
+    throw new CustomError(
+      "Payment not found",
+      404,
+      null,
+      ErrorCode.PAYMENT_NOT_FOUND,
+    );
+  }
 
-    const emailVariables = {
-      studentName:
-        (student.raw_user_meta_data as any)?.name || student.email || "Student",
-      studentEmail: student.email || "",
-      placeName: place.name,
-      placeCity: place.city,
-      placeCountry: place.country,
-      checkInDate: format(new Date(bid.checkInDate), "MMMM d, yyyy"),
-      checkOutDate: format(new Date(bid.checkOutDate), "MMMM d, yyyy"),
-      totalNights: bid.totalNights,
-      bidPerNight: Number(bid.bidPerNight).toFixed(2),
-      totalAmount: Number(bid.totalAmount).toFixed(2),
-      appName: process.env.EMAIL_NAME || "Education Bidding",
-      dashboardUrl: `${process.env.CLIENT_URL}/student/my-bids`,
-    };
+  const pendingWebhook =
+    paymentIntent.status === "succeeded" &&
+    currentPayment.status !== payment_status.CAPTURED;
 
-    // Send email to student
-    if (student.email) {
-      try {
-        await sendEmail({
-          type: EmailType.BOOKING_CONFIRMED_STUDENT,
-          to: student.email,
-          subject: `Booking Confirmed - ${place.name}`,
-          variables: emailVariables,
-        });
-      } catch (error) {
-        console.error("Failed to send student confirmation email:", error);
-      }
-    }
-
-    // Send email to place if email is configured
-    if (place.email) {
-      try {
-        await sendEmail({
-          type: EmailType.BOOKING_CONFIRMED_PLACE,
-          to: place.email,
-          subject: `New Booking - ${place.name}`,
-          variables: emailVariables,
-        });
-      } catch (error) {
-        console.error("Failed to send place confirmation email:", error);
-      }
-    }
+  let message: string;
+  if (currentPayment.status === payment_status.CAPTURED) {
+    message = "Payment successful. Your booking is confirmed.";
+  } else if (pendingWebhook) {
+    message =
+      "Payment received. Your booking is being confirmed — this usually takes a few seconds.";
+  } else if (paymentIntent.status === "requires_action") {
+    message = "Additional authentication is required to complete payment.";
+  } else {
+    message = `Payment status: ${currentPayment.status}`;
   }
 
   res.status(200).json({
-    message:
-      newStatus === payment_status.CAPTURED
-        ? "Payment successful. Your booking is confirmed."
-        : `Payment status: ${newStatus}`,
-    data: { payment: formatPayment(updatedPayment) },
+    message,
+    data: {
+      payment: formatPayment(currentPayment),
+      stripeStatus: paymentIntent.status,
+      pendingWebhook,
+    },
+  });
+}
+
+/** Saved card payment methods for the logged-in student. */
+export async function getSavedPaymentMethods(req: Request, res: Response) {
+  const studentId = req.user!.id;
+  const customerId = await findStripeCustomerIdForStudent(studentId);
+
+  if (!customerId) {
+    return res.status(200).json({ data: { paymentMethods: [] } });
+  }
+
+  const { data } = await stripe.paymentMethods.list({
+    customer: customerId,
+    type: "card",
+  });
+
+  res.status(200).json({
+    data: {
+      paymentMethods: data.map((pm) => ({
+        id: pm.id,
+        brand: pm.card?.brand ?? "card",
+        last4: pm.card?.last4 ?? "****",
+        expMonth: pm.card?.exp_month,
+        expYear: pm.card?.exp_year,
+      })),
+    },
   });
 }
 

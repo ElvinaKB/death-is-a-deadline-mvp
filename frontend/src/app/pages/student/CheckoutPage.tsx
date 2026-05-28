@@ -10,8 +10,8 @@ import { stripePromise } from "../../../lib/stripe";
 import {
   usePaymentForBid,
   useCreatePaymentIntent,
-  useConfirmPayment,
 } from "../../../hooks/usePayments";
+import { pollPaymentUntilCaptured } from "../../../utils/pollPaymentConfirmation";
 import { useBid } from "../../../hooks/useBids";
 import { PaymentStatus } from "../../../types/payment.types";
 import { Button } from "../../components/ui/button";
@@ -49,8 +49,6 @@ function CheckoutForm({
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const confirmPayment = useConfirmPayment();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -76,14 +74,34 @@ function CheckoutForm({
       return;
     }
 
-    if (paymentIntent && paymentIntent.status === "requires_capture") {
-      // Payment authorized successfully - update our backend
+    if (
+      paymentIntent &&
+      (paymentIntent.status === "succeeded" ||
+        paymentIntent.status === "processing")
+    ) {
       try {
-        await confirmPayment.mutateAsync({ id: paymentId });
-        toast.success("Payment authorized! Your funds are held.");
-        onSuccess();
-      } catch (err) {
-        setErrorMessage("Payment authorized but failed to update status");
+        const sync = await pollPaymentUntilCaptured(paymentId);
+        const paymentOk =
+          sync.payment.status === PaymentStatus.CAPTURED ||
+          sync.stripeStatus === "succeeded" ||
+          sync.stripeStatus === "processing";
+
+        if (paymentOk) {
+          toast.success(
+            sync.payment.status === PaymentStatus.CAPTURED
+              ? "Payment complete! Your booking is confirmed."
+              : "Payment received. Your booking will update shortly.",
+          );
+          onSuccess();
+        } else {
+          setErrorMessage(
+            "Payment could not be confirmed. Please check My Bids.",
+          );
+        }
+      } catch {
+        setErrorMessage(
+          "Payment may have succeeded. Please check My Bids for status.",
+        );
       }
     }
 
@@ -114,14 +132,13 @@ function CheckoutForm({
         ) : (
           <>
             <CreditCard className="mr-2 h-5 w-5" />
-            Authorize Payment
+            Pay Now
           </>
         )}
       </Button>
 
       <p className="text-sm text-muted text-center">
-        Your card will be authorized but not charged until your stay is
-        confirmed.
+        Your card will be charged when you complete payment.
       </p>
     </form>
   );
