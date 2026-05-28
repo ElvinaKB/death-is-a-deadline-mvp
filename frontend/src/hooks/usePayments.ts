@@ -7,6 +7,8 @@ import {
   PaymentResponse,
   PaymentsListResponse,
   PaymentForBidResponse,
+  SavedPaymentMethodsResponse,
+  ConfirmPaymentData,
   CreatePaymentIntentRequest,
   CapturePaymentRequest,
   CancelPaymentRequest,
@@ -22,9 +24,17 @@ export const useCreatePaymentIntent = () => {
     endpoint: ENDPOINTS.PAYMENT_CREATE_INTENT,
     method: "POST",
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      // Do not invalidate ["payments"] — that refetches saved-methods mid-checkout
       queryClient.invalidateQueries({ queryKey: ["bids"] });
     },
+  });
+};
+
+export const useSavedPaymentMethods = (enabled = true) => {
+  return useApiQuery<SavedPaymentMethodsResponse>({
+    queryKey: ["payments", "saved-methods"],
+    endpoint: ENDPOINTS.PAYMENT_SAVED_METHODS,
+    enabled,
   });
 };
 
@@ -37,11 +47,11 @@ export const usePaymentForBid = (bidId: string) => {
   });
 };
 
-// Confirm payment status after card confirmation
+// Read-only sync after Stripe.js (webhook is source of truth)
 export const useConfirmPayment = () => {
   const queryClient = useQueryClient();
 
-  return useApiMutation<PaymentResponse, { id: string }>({
+  return useApiMutation<ConfirmPaymentData, { id: string }>({
     endpoint: (vars) => getEndpoint(ENDPOINTS.PAYMENT_CONFIRM, { id: vars.id }),
     method: "POST",
     transformVariables: () => ({}),

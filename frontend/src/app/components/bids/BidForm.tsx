@@ -29,18 +29,23 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { StripeCardElement } from "@stripe/stripe-js";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useBidForPlace, useCreateBid } from "../../../hooks/useBids";
 import {
   useCreatePaymentIntent,
-  useConfirmPayment,
+  useSavedPaymentMethods,
 } from "../../../hooks/usePayments";
+import { pollPaymentUntilCaptured } from "../../../utils/pollPaymentConfirmation";
 import { useAppSelector } from "../../../store/hooks";
 import { Bid, BidStatus, CreateBidRequest } from "../../../types/bid.types";
 import { Place } from "../../../types/place.types";
-import { PaymentStatus } from "../../../types/payment.types";
+import {
+  PaymentStatus,
+  SavedPaymentMethod,
+} from "../../../types/payment.types";
 import { bidValidationSchema } from "../../../utils/validationSchemas";
 import { SkeletonLoader } from "../common/SkeletonLoader";
 import { Button } from "../ui/button";
@@ -142,9 +147,20 @@ function BidFormInner({
   const stripe = useStripe();
   const elements = useElements();
   const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const queryClient = useQueryClient();
   const createBid = useCreateBid();
   const createPaymentIntent = useCreatePaymentIntent();
-  const confirmPayment = useConfirmPayment();
+  const { data: savedMethodsData } = useSavedPaymentMethods(isAuthenticated);
+
+  const [displayedSavedMethods, setDisplayedSavedMethods] = useState<
+    SavedPaymentMethod[]
+  >([]);
+  const [frozenSavedMethods, setFrozenSavedMethods] = useState<
+    SavedPaymentMethod[]
+  >([]);
+  const [frozenPayWithSaved, setFrozenPayWithSaved] = useState(false);
+  const payingWithSavedRef = useRef(false);
+  const payingPaymentMethodIdRef = useRef<string | undefined>(undefined);
 
   const [bidResult, setBidResult] = useState<BidResultState | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
@@ -152,9 +168,29 @@ function BidFormInner({
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [isCardComplete, setIsCardComplete] = useState(false);
+  const [payWithSavedCard, setPayWithSavedCard] = useState(false);
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<
+    string | null
+  >(null);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   const cardElementRef = useRef<StripeCardElement | null>(null);
+
+  useEffect(() => {
+    if (isProcessing || paymentSuccess) return;
+    setDisplayedSavedMethods(savedMethodsData?.paymentMethods ?? []);
+  }, [savedMethodsData, isProcessing, paymentSuccess]);
+
+  useEffect(() => {
+    if (isProcessing || paymentSuccess) return;
+    if (displayedSavedMethods.length > 0 && selectedPaymentMethodId === null) {
+      setPayWithSavedCard(true);
+      setSelectedPaymentMethodId(displayedSavedMethods[0].id);
+    }
+  }, [displayedSavedMethods, selectedPaymentMethodId, isProcessing, paymentSuccess]);
+
+  const uiSavedMethods = isProcessing ? frozenSavedMethods : displayedSavedMethods;
+  const uiPayWithSaved = isProcessing ? frozenPayWithSaved : payWithSavedCard;
 
   // Load saved form state from localStorage
   const savedFormState = loadBidFormFromStorage(placeId);
@@ -173,6 +209,7 @@ function BidFormInner({
   // Helper function to confirm payment with card
   const confirmPaymentWithCard = async (
     clientSecret: string,
+    paymentMethodId?: string,
   ): Promise<{
     success: boolean;
     error?: string;
@@ -182,23 +219,28 @@ function BidFormInner({
       return { success: false, error: "Payment system not ready" };
     }
 
-    // Try to get card element from ref first, then from elements
-    const cardElement =
-      cardElementRef.current || elements?.getElement(CardElement);
-    if (!cardElement) {
-      return {
-        success: false,
-        error: "Card input not found. Please re-enter your card details.",
-      };
+    let confirmParams: Parameters<typeof stripe.confirmCardPayment>[1];
+
+    if (paymentMethodId) {
+      confirmParams = { payment_method: paymentMethodId };
+    } else {
+      if (!elements) {
+        return { success: false, error: "Payment system not ready" };
+      }
+      const cardElement =
+        cardElementRef.current || elements.getElement(CardElement);
+      if (!cardElement) {
+        return {
+          success: false,
+          error: "Card input not found. Please re-enter your card details.",
+        };
+      }
+      confirmParams = { payment_method: { card: cardElement } };
     }
 
     const { error, paymentIntent } = await stripe.confirmCardPayment(
       clientSecret,
-      {
-        payment_method: {
-          card: cardElement,
-        },
-      },
+      confirmParams,
     );
 
     if (error) {
@@ -259,14 +301,27 @@ function BidFormInner({
     validationSchema: bidValidationSchema,
     onSubmit: async (values) => {
       setPaymentError(null);
-      setIsProcessing(true);
 
-      // Validate card is ready
-      if (!isCardComplete || !stripe || !elements) {
-        setPaymentError("Please enter valid card details");
-        setIsProcessing(false);
+      if (!stripe) {
+        setPaymentError("Payment system not ready");
         return;
       }
+
+      if (payWithSavedCard) {
+        if (!selectedPaymentMethodId) {
+          setPaymentError("Please select a saved card");
+          return;
+        }
+      } else if (!isCardComplete || !elements) {
+        setPaymentError("Please enter valid card details");
+        return;
+      }
+
+      payingWithSavedRef.current = payWithSavedCard;
+      payingPaymentMethodIdRef.current = selectedPaymentMethodId ?? undefined;
+      setFrozenSavedMethods([...displayedSavedMethods]);
+      setFrozenPayWithSaved(payWithSavedCard);
+      setIsProcessing(true);
 
       const request: CreateBidRequest = {
         placeId,
@@ -292,14 +347,28 @@ function BidFormInner({
             // Step 3: Confirm payment with card for pre-authorization
             const confirmResult = await confirmPaymentWithCard(
               paymentResult.clientSecret,
+              payingWithSavedRef.current
+                ? payingPaymentMethodIdRef.current
+                : undefined,
             );
-            // queryClient.invalidateQueries({ queryKey: ["bids"] });
             if (confirmResult.success) {
-              // Step 4: Update our backend about the confirmation
               try {
-                await confirmPayment.mutateAsync({
-                  id: paymentResult.payment.id,
-                });
+                const sync = await pollPaymentUntilCaptured(
+                  paymentResult.payment.id,
+                );
+                const paymentOk =
+                  sync.payment.status === PaymentStatus.CAPTURED ||
+                  sync.stripeStatus === "succeeded" ||
+                  sync.stripeStatus === "processing";
+
+                if (!paymentOk) {
+                  setPaymentError(
+                    "Payment could not be confirmed. Please check My Bids.",
+                  );
+                  setIsProcessing(false);
+                  return;
+                }
+
                 toast.custom(
                   () => (
                     <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
@@ -332,37 +401,13 @@ function BidFormInner({
                   { duration: 5000 },
                 );
                 setPaymentSuccess(true);
-              } catch (err) {
-                // Payment succeeded with Stripe but backend update failed
-                // This is OK - the webhook will update the status
-                // Still show success since the card WAS charged
-                toast.custom(
-                  () => (
-                    <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-12 h-12 rounded-full border-2 border-success flex items-center justify-center">
-                          <CheckCircle className="w-7 h-7 text-success" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-fg text-lg">
-                            Payment Complete!
-                          </h3>
-                          <p className="text-success text-sm">
-                            Your card has been charged.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="border-t border-line pt-3">
-                        <p className="text-muted text-sm">
-                          Your booking is being confirmed. Check My Bids for
-                          status.
-                        </p>
-                      </div>
-                    </div>
-                  ),
-                  { duration: 5000 },
+                queryClient.invalidateQueries({
+                  queryKey: ["payments", "saved-methods"],
+                });
+              } catch {
+                setPaymentError(
+                  "Payment may have gone through. Please check My Bids.",
                 );
-                setPaymentSuccess(true);
               }
             } else {
               setPaymentError(confirmResult.error || "Payment failed");
@@ -822,46 +867,139 @@ function BidFormInner({
           </div>
         )}
 
-        {/* Inline Card Input - Only for authenticated users */}
         {isAuthenticated && (
           <div className="space-y-2">
             <Label className="text-sm text-muted mb-1.5 block">
-              Card Details
+              Payment
             </Label>
-            <div className="border border-line rounded-lg p-3 bg-glass">
-              <CardElement
-                options={{
-                  style: {
-                    base: {
-                      fontSize: "16px",
-                      color: "#f8fafc",
-                      fontFamily: "system-ui, -apple-system, sans-serif",
-                      "::placeholder": {
-                        color: "#64748b",
+
+            {uiSavedMethods.length > 0 && uiPayWithSaved ? (
+              <div className="space-y-2">
+                {uiSavedMethods.map((pm) => {
+                  const isSelected = selectedPaymentMethodId === pm.id;
+                  return (
+                    <button
+                      key={pm.id}
+                      type="button"
+                      disabled={isProcessing}
+                      onClick={() => {
+                        setPayWithSavedCard(true);
+                        setSelectedPaymentMethodId(pm.id);
+                        setPaymentError(null);
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors",
+                        isSelected
+                          ? "border-brand bg-brand/10"
+                          : "border-line bg-glass hover:border-brand/40",
+                        isProcessing
+                          ? "cursor-default opacity-80"
+                          : "cursor-pointer",
+                      )}
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-line bg-glass">
+                        <CreditCard className="h-4 w-4 text-muted" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-fg capitalize">
+                          {pm.brand} •••• {pm.last4}
+                        </p>
+                        {pm.expMonth != null && pm.expYear != null && (
+                          <p className="text-xs text-muted">
+                            Expires{" "}
+                            {String(pm.expMonth).padStart(2, "0")}/
+                            {String(pm.expYear).slice(-2)}
+                          </p>
+                        )}
+                      </div>
+                      {isSelected && (
+                        <CheckCircle className="h-5 w-5 shrink-0 text-brand" />
+                      )}
+                    </button>
+                  );
+                })}
+                {!isProcessing && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPayWithSavedCard(false);
+                      setPaymentError(null);
+                    }}
+                    className="text-sm text-brand hover:underline px-0.5"
+                  >
+                    Use a different card
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {uiSavedMethods.length > 0 && !isProcessing && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPayWithSavedCard(true);
+                      const fallback =
+                        selectedPaymentMethodId ??
+                        displayedSavedMethods[0]?.id ??
+                        uiSavedMethods[0]?.id;
+                      if (fallback) setSelectedPaymentMethodId(fallback);
+                      setPaymentError(null);
+                    }}
+                    className="w-full flex items-center gap-3 rounded-lg border border-line bg-glass p-3 text-left transition-colors hover:border-brand/40"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-line bg-glass">
+                      <CreditCard className="h-4 w-4 text-muted" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-fg">
+                        Pay with saved card
+                      </p>
+                      <p className="text-xs text-muted capitalize">
+                        {uiSavedMethods[0].brand} •••• {uiSavedMethods[0].last4}
+                        {uiSavedMethods.length > 1
+                          ? ` (+${uiSavedMethods.length - 1} more)`
+                          : ""}
+                      </p>
+                    </div>
+                  </button>
+                )}
+                <div className="rounded-lg border border-line bg-glass p-3">
+                  <CardElement
+                    options={{
+                      style: {
+                        base: {
+                          fontSize: "16px",
+                          color: "#f8fafc",
+                          fontFamily: "system-ui, -apple-system, sans-serif",
+                          "::placeholder": {
+                            color: "#64748b",
+                          },
+                        },
+                        invalid: {
+                          color: "#ef4444",
+                          iconColor: "#ef4444",
+                        },
                       },
-                    },
-                    invalid: {
-                      color: "#ef4444",
-                      iconColor: "#ef4444",
-                    },
-                  },
-                }}
-                onReady={(element) => {
-                  cardElementRef.current = element;
-                }}
-                onChange={(e) => {
-                  setIsCardComplete(e.complete);
-                  if (e.error) {
-                    setPaymentError(e.error.message);
-                  } else {
-                    setPaymentError(null);
-                  }
-                }}
-              />
-            </div>
+                    }}
+                    onReady={(element) => {
+                      cardElementRef.current = element;
+                    }}
+                    onChange={(e) => {
+                      setIsCardComplete(e.complete);
+                      if (e.error) {
+                        setPaymentError(e.error.message);
+                      } else {
+                        setPaymentError(null);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
             <p className="text-xs text-muted flex items-center gap-1">
               <CreditCard className="h-3 w-3" />
-              Your card will only be charged if your bid is accepted
+              Your card is only charged if your bid is accepted
             </p>
           </div>
         )}
@@ -898,8 +1036,9 @@ function BidFormInner({
               createBid.isPending ||
               blockedDatesInRange.length > 0 ||
               !stripe ||
-              !elements ||
-              !isCardComplete ||
+              (uiPayWithSaved
+                ? !selectedPaymentMethodId
+                : !elements || !isCardComplete) ||
               !formik.values.checkInDate ||
               !formik.values.checkOutDate ||
               !formik.values.bidPerNight ||

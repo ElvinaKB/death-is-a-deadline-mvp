@@ -13,6 +13,7 @@ import {
 import {
   createPaymentIntent,
   getPaymentForBid,
+  getSavedPaymentMethods,
   confirmPaymentStatus,
   handlePaymentWebhook,
   listPayments,
@@ -37,6 +38,12 @@ router.post(
   createPaymentIntent
 );
 
+router.get(
+  "/saved-methods",
+  authenticate(UserRole.STUDENT),
+  getSavedPaymentMethods,
+);
+
 // Get payment status for a bid
 router.get(
   "/bid/:bidId",
@@ -45,7 +52,7 @@ router.get(
   getPaymentForBid
 );
 
-// Confirm payment status after frontend card confirmation
+// Read-only payment sync after Stripe.js (webhook writes status)
 router.post(
   "/:id/confirm",
   authenticate(UserRole.STUDENT),
