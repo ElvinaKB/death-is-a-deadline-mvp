@@ -52,6 +52,16 @@ const formatPlace = (
   }),
 });
 
+/** Student marketplace — retail anchor only; hidden minimum stays server-side */
+const formatPublicPlace = (
+  place: Parameters<typeof formatPlace>[0],
+  inventoryInfo?: Parameters<typeof formatPlace>[1],
+) => {
+  const { minimumBid: _minimumBid, autoAcceptAboveMinimum: _auto, ...rest } =
+    formatPlace(place, inventoryInfo);
+  return rest;
+};
+
 // Helper to count accepted bids for a place on a specific date
 // A bid is considered to occupy a date if the date falls within [checkInDate, checkOutDate)
 async function getAcceptedBidsCountForDate(
@@ -280,7 +290,7 @@ export async function listPublicPlaces(req: Request, res: Response) {
 
   res.status(200).json({
     data: {
-      places: places.map((p) => formatPlace(p)),
+      places: places.map((p) => formatPublicPlace(p)),
       total,
       page,
       limit,
@@ -336,7 +346,7 @@ export async function getPublicPlace(req: Request, res: Response) {
 
   res.status(200).json({
     data: {
-      place: formatPlace(place, inventoryInfo),
+      place: formatPublicPlace(place, inventoryInfo),
       // Include a clear message if inventory is exhausted
       ...(inventoryInfo?.isInventoryExhausted && {
         inventoryMessage:
@@ -492,6 +502,7 @@ export async function updatePlace(req: Request, res: Response) {
       }),
       ...(data.retailPrice !== undefined && { retailPrice: data.retailPrice }),
       ...(data.minimumBid !== undefined && { minimumBid: data.minimumBid }),
+      autoAcceptAboveMinimum: true,
       ...(data.blackoutDates && { blackoutDates: data.blackoutDates }),
       ...(data.allowedDaysOfWeek && {
         allowedDaysOfWeek: data.allowedDaysOfWeek,

@@ -13,7 +13,7 @@ export enum BookingStatus {
 }
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
-  [BookingStatus.BID_PENDING]: "Bid pending review",
+  [BookingStatus.BID_PENDING]: "Legacy bid — contact support",
   [BookingStatus.BID_REJECTED]: "Bid rejected",
   [BookingStatus.PAYMENT_REQUIRED]: "Payment required",
   [BookingStatus.PAYMENT_PENDING]: "Payment processing",

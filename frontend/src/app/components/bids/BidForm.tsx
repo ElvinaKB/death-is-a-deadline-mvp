@@ -472,8 +472,9 @@ function BidFormInner({
           );
           setIsProcessing(false);
         } else {
-          // PENDING status
-          toast.info("Bid submitted! Awaiting review.");
+          setPaymentError(
+            "Unexpected bid status. Please refresh and try again, or contact support.",
+          );
           setIsProcessing(false);
         }
 
@@ -1182,9 +1183,10 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
       bgColor: "bg-warning/20",
       iconColor: "text-warning",
       borderColor: "border-warning/50",
-      title: "Bid Pending",
+      title: "Action needed",
       titleColor: "text-warning",
-      description: "Your bid is awaiting review",
+      description:
+        "This bid is from an older flow. Complete payment or contact support.",
     },
     [BidStatus.ACCEPTED]: {
       icon: CircleCheck,
