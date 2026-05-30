@@ -24,8 +24,10 @@ export interface Place {
   images: PlaceImage[] | File[];
   accommodationType: AccommodationType;
   retailPrice: number;
-  minimumBid: number;
-  autoAcceptAboveMinimum: boolean;
+  /** Admin/hotel only — omitted from student marketplace API */
+  minimumBid?: number;
+  /** Admin/hotel only */
+  autoAcceptAboveMinimum?: boolean;
   blackoutDates: string[]; // Array of ISO date strings
   allowedDaysOfWeek: number[]; // 0=Sunday, 1=Monday, ..., 6=Saturday
   maxInventory: number; // Maximum rooms/beds available per date
