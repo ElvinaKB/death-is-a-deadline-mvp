@@ -834,15 +834,17 @@ function BidFormInner({
 
   const handleRebid = async (newBidPerNight: number) => {
     setIsRebidding(true);
+    setPaymentError(null);
     try {
       await formik.setFieldValue("bidPerNight", String(newBidPerNight));
-      setBidResult(null);
       setPaymentId(null);
       await formik.submitForm();
     } finally {
       setIsRebidding(false);
     }
   };
+
+  const isRebidProcessing = isRebidding || isProcessing;
 
   const stepIndex = STEPS.indexOf(bidStep);
 
@@ -922,7 +924,7 @@ function BidFormInner({
         onTryAgain={handleTryAgain}
         onTryNewDates={handleTryAgain}
         onRebid={isAuthenticated ? handleRebid : undefined}
-        isRebidding={isRebidding}
+        isRebidding={isRebidProcessing}
       />
     );
   }

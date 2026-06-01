@@ -6,6 +6,7 @@ import {
   Calendar,
   CheckCircle,
   CreditCard,
+  Loader2,
   Lock,
   Mail,
   Search,
@@ -195,7 +196,7 @@ export function BidOutcomePanel({
             min={1}
             step={1}
             value={newBidInput}
-            disabled={!adjustBid}
+            disabled={!adjustBid || isRebidding}
             onChange={(e) => setNewBidInput(e.target.value)}
             className="outcome-rejected-amount-input border-0 bg-transparent shadow-none disabled:opacity-60"
             aria-label="Bid amount per night in US dollars"
@@ -206,6 +207,7 @@ export function BidOutcomePanel({
       <label className="outcome-rejected-checkbox flex items-center gap-3 cursor-pointer">
         <Checkbox
           checked={adjustBid}
+          disabled={isRebidding}
           onCheckedChange={(v) => setAdjustBid(v === true)}
           className="border-urgent data-[state=checked]:bg-urgent data-[state=checked]:border-urgent"
         />
@@ -222,8 +224,9 @@ export function BidOutcomePanel({
               <button
                 key={inc}
                 type="button"
+                disabled={isRebidding}
                 onClick={() => applyQuickIncrement(inc)}
-                className={`cursor-pointer rounded-lg border py-2.5 text-sm font-semibold transition-all ${
+                className={`cursor-pointer rounded-lg border py-2.5 text-sm font-semibold transition-all disabled:opacity-50 disabled:pointer-events-none ${
                   selectedIncrement === inc
                     ? "border-gold bg-gold/15 text-gold shadow-[0_0_16px_hsl(var(--gold)/0.35)]"
                     : "border-urgent/40 text-fg hover:border-urgent/70"
@@ -252,11 +255,19 @@ export function BidOutcomePanel({
         className="w-full btn-bid-premium h-12 uppercase tracking-wide"
         disabled={!adjustBid || isRebidding || newBidPerNight <= 0}
         onClick={() => onRebid?.(newBidPerNight)}
+        aria-busy={isRebidding}
       >
-        <Lock className="mr-2 h-4 w-4" />
-        {isRebidding
-          ? "Placing bid…"
-          : `Place ${formatCurrency(newTotal)} Bid`}
+        {isRebidding ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+            Processing your bid…
+          </>
+        ) : (
+          <>
+            <Lock className="mr-2 h-4 w-4" aria-hidden />
+            {`Place ${formatCurrency(newTotal)} Bid`}
+          </>
+        )}
       </Button>
       <p className="text-xs text-center text-muted">
         <span className="inline-flex items-center gap-1">
@@ -269,6 +280,7 @@ export function BidOutcomePanel({
         type="button"
         variant="outline"
         className="w-full btn-outline-gold"
+        disabled={isRebidding}
         onClick={() => navigate(ROUTES.HOME)}
       >
         Return to Marketplace
