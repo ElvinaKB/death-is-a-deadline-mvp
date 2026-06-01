@@ -61,6 +61,9 @@ export const ENDPOINTS = {
   TESTIMONIAL_UPDATE: "/api/testimonials/:id",
   TESTIMONIAL_DELETE: "/api/testimonials/:id",
 
+  // Contact
+  CONTACT: "/api/contact",
+
   // Review Platforms
   REVIEW_PLATFORMS_LIST: "/api/testimonials/review-platforms",
   REVIEW_PLATFORM_CREATE: "/api/testimonials/review-platforms",

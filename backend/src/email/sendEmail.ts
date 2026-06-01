@@ -80,3 +80,37 @@ export async function sendEmail({
     throw error;
   }
 }
+
+export async function sendPlainEmail({
+  to,
+  subject,
+  html,
+  text,
+  replyTo,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+  replyTo?: string;
+}): Promise<nodemailer.SentMessageInfo> {
+  const mailOptions = {
+    from: EMAIL_MAIL,
+    to,
+    subject,
+    html,
+    text,
+    replyTo,
+  };
+
+  return new Promise((resolve, reject) => {
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("Error sending email:", error);
+        reject(error);
+      }
+      console.log("Email sent successfully:", info.messageId);
+      resolve(info);
+    });
+  });
+}

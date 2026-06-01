@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Elements,
@@ -10,10 +10,11 @@ import { stripePromise } from "../../../lib/stripe";
 import {
   usePaymentForBid,
   useCreatePaymentIntent,
+  useConfirmPayment,
 } from "../../../hooks/usePayments";
 import { pollPaymentUntilCaptured } from "../../../utils/pollPaymentConfirmation";
 import { useBid } from "../../../hooks/useBids";
-import { PaymentStatus } from "../../../types/payment.types";
+import { Payment, PaymentStatus } from "../../../types/payment.types";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -40,10 +41,14 @@ import { HomeHeader } from "../../components/home";
 // Checkout form component (inside Elements provider)
 function CheckoutForm({
   paymentId,
+  bidId,
+  amount,
   onSuccess,
 }: {
   paymentId: string;
-  onSuccess: () => void;
+  bidId: string;
+  amount: number;
+  onSuccess: (payment: Payment) => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -103,6 +108,14 @@ function CheckoutForm({
           "Payment may have succeeded. Please check My Bids for status.",
         );
       }
+      setIsProcessing(false);
+      return;
+    }
+
+    if (paymentIntent) {
+      setErrorMessage(
+        `Payment could not be completed (status: ${paymentIntent.status}). Please try again.`,
+      );
     }
 
     setIsProcessing(false);
@@ -273,12 +286,22 @@ export function CheckoutPage() {
     refetch: refetchPayment,
   } = usePaymentForBid(bidId || "");
   const createPaymentIntent = useCreatePaymentIntent();
+  const confirmPaymentMutation = useConfirmPayment();
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [confirmedPayment, setConfirmedPayment] = useState<Payment | null>(
+    null,
+  );
 
   const bid = bidData?.bid;
   const existingPayment = paymentData?.payment;
+
+  const isPaymentComplete = (status: PaymentStatus) =>
+    [
+      PaymentStatus.CAPTURED,
+      PaymentStatus.AUTHORIZED,
+    ].includes(status);
 
   // Initialize payment intent if needed
   useEffect(() => {
@@ -311,9 +334,47 @@ export function CheckoutPage() {
     }
   }, [bidId, bid, existingPayment]);
 
-  const handlePaymentSuccess = () => {
-    refetchPayment();
+  // After 3DS redirect back to checkout with ?redirect_status=succeeded
+  const redirectConfirmStarted = useRef(false);
+  useEffect(() => {
+    if (confirmedPayment || redirectConfirmStarted.current) return;
+
+    const redirectStatus = searchParams.get("redirect_status");
+    if (redirectStatus !== "succeeded") return;
+
+    const id = paymentId ?? existingPayment?.id;
+    if (!id) return;
+
+    redirectConfirmStarted.current = true;
+    confirmPaymentMutation
+      .mutateAsync({ id })
+      .then((data) => {
+        setConfirmedPayment(data.payment);
+        setClientSecret(null);
+      })
+      .catch(() => {
+        void refetchPayment();
+      });
+  }, [
+    searchParams,
+    paymentId,
+    existingPayment?.id,
+    confirmedPayment,
+    confirmPaymentMutation,
+    refetchPayment,
+  ]);
+
+  const handlePaymentSuccess = (payment: Payment) => {
+    setConfirmedPayment(payment);
+    setClientSecret(null);
+    void refetchPayment();
   };
+
+  const displayPayment =
+    confirmedPayment ??
+    (existingPayment && isPaymentComplete(existingPayment.status)
+      ? existingPayment
+      : null);
 
   // Loading state
   if (bidLoading || paymentLoading) {
@@ -381,22 +442,15 @@ export function CheckoutPage() {
     );
   }
 
-  // Show payment status if already processed
-  if (
-    existingPayment &&
-    ![
-      PaymentStatus.PENDING,
-      PaymentStatus.REQUIRES_ACTION,
-      PaymentStatus.FAILED,
-    ].includes(existingPayment.status)
-  ) {
+  // Payment complete — show success immediately (no refresh)
+  if (displayPayment) {
     return (
       <div className="min-h-screen bg-bg">
         <HomeHeader />
         <div className="max-w-2xl mx-auto px-6 py-12">
           <PaymentStatusCard
-            status={existingPayment.status}
-            payment={existingPayment}
+            status={displayPayment.status}
+            payment={displayPayment}
           />
         </div>
       </div>
@@ -470,8 +524,7 @@ export function CheckoutPage() {
               <div className="glass rounded-lg p-4 border border-brand/30">
                 <p className="text-sm text-muted">
                   <strong className="text-fg">Note:</strong> Your card will be
-                  authorized for ${bid.totalAmount} but won't be charged until
-                  after your stay.
+                  charged ${bid.totalAmount} when you complete payment.
                 </p>
               </div>
             </CardContent>
@@ -516,6 +569,8 @@ export function CheckoutPage() {
                 >
                   <CheckoutForm
                     paymentId={paymentId!}
+                    bidId={bidId!}
+                    amount={Number(bid.totalAmount)}
                     onSuccess={handlePaymentSuccess}
                   />
                 </Elements>

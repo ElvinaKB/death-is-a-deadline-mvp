@@ -1,0 +1,125 @@
+================================================================================
+PREVIEW BYPASS — local UI only (no Supabase / API required)
+================================================================================
+Created: 2026-05-17
+Re-enabled: 2026-05-19 (initial), 2026-05-20 (this session)
+Toggle: VITE_PREVIEW_BYPASS=true in frontend/.env.local
+
+--------------------------------------------------------------------------------
+QUICK REVERT (fastest — no code changes)
+--------------------------------------------------------------------------------
+1. Delete frontend/.env.local  OR set:  VITE_PREVIEW_BYPASS=false
+2. Restart dev server (npm run dev)
+
+--------------------------------------------------------------------------------
+FULL REVERT (remove all bypass code from repo)
+--------------------------------------------------------------------------------
+Follow sections FILES ADDED (delete) and FILES MODIFIED (restore) below.
+See also BYPASS-ONLY PATCHES for feature files that reference PREVIEW_BYPASS.
+
+--------------------------------------------------------------------------------
+CHANGELOG — 2026-05-20 re-enable (this session)
+--------------------------------------------------------------------------------
+Re-applied full bypass after 2026-05-19 removal. Record for easy revert.
+
+FILES ADDED (delete on full revert):
+  frontend/src/config/previewBypass.ts
+  frontend/src/services/mockApiHandlers.ts
+  frontend/src/services/mockData.ts
+  frontend/src/app/components/common/PreviewBypassBanner.tsx
+  frontend/src/app/components/common/PreviewBypassBoot.tsx
+  frontend/.env.local                    (VITE_PREVIEW_BYPASS=true)
+  frontend/PREVIEW_BYPASS_REVERT.txt     (keep for reference)
+
+FILES MODIFIED — core wiring (restore per snippets below):
+  frontend/src/utils/supabaseClient.ts   — placeholder Supabase URL/key when bypass on
+  frontend/src/utils/tokenHelpers.ts     — skip supabase signOut; set logout session flag
+  frontend/src/hooks/useApi.ts           — route GET/POST through resolveMockApi
+  frontend/src/app/App.tsx               — mount PreviewBypassBoot + PreviewBypassBanner
+  frontend/src/app/Router.tsx            — "/" -> HOME when bypass on
+  frontend/.env.sample                   — VITE_PREVIEW_BYPASS=false documented
+  frontend/src/vite-env.d.ts             — VITE_PREVIEW_BYPASS type
+
+BYPASS-ONLY PATCHES (remove PREVIEW_BYPASS branches only; keep real UI):
+  frontend/src/app/components/bids/BidForm.tsx
+    - import PREVIEW_BYPASS
+    - onSubmit: skip card validation when PREVIEW_BYPASS
+    - onSubmit: skip Stripe on ACCEPTED when PREVIEW_BYPASS (set paymentSuccess)
+    - handleReviewBindingBid: skip card check when PREVIEW_BYPASS
+  frontend/src/app/components/bids/BidOutcomePanel.tsx
+    - import PREVIEW_BYPASS
+    - rejected panel: mock "•••• 4242 Authorized" block when PREVIEW_BYPASS
+  frontend/src/app/components/home/HomeHeader.tsx
+    - import PREVIEW_BYPASS
+    - logout navigate -> HOME when PREVIEW_BYPASS (else LOGIN)
+  frontend/src/app/pages/LoginPage.tsx
+    - import clearPreviewBypassLoggedOut
+    - onSuccess: clearPreviewBypassLoggedOut()
+
+NOT part of bypass (never revert with bypass):
+  frontend/src/utils/dateHelpers.ts
+  frontend/src/store/slices/searchSlice.ts
+  frontend/src/app/pages/student/PlacesDetailPage.tsx
+  frontend/src/app/components/home/* (hero, cards, map pins, etc.)
+  frontend/src/app/components/bids/BidLockInModal.tsx (timer logic)
+  frontend/src/app/components/layout/DeadlineHeader.tsx (unused if HomeHeader on detail)
+  backend/**
+
+--------------------------------------------------------------------------------
+WHAT IT DOES WHEN ON
+--------------------------------------------------------------------------------
+- Amber banner + auto-login as student@university.edu / student123
+- "/" -> marketplace (not login)
+- Mock API (no backend): places, login, contact, bids, payments
+- Logout sets session flag so auto-login does not return until manual login
+- Bid accept if bidPerNight >= place.minimumBid; else reject
+- Stripe skipped in UI on accept when bypass on
+
+Test accounts:
+  student@university.edu / student123
+  admin@bidplatform.com / admin123
+  hotel@example.com / hotel123
+
+--------------------------------------------------------------------------------
+RESTORE SNIPPETS (full revert)
+--------------------------------------------------------------------------------
+
+supabaseClient.ts:
+  import { createClient } from "@supabase/supabase-js";
+  const supabaseUrl = import.meta.env.VITE_APP_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_APP_SUPABASE_ANON_KEY;
+  export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+tokenHelpers.ts removePreviewBypass — use only:
+  supabase.auth.signOut().then(clearLocal).catch(clearLocal);
+
+useApi.ts — remove PREVIEW_BYPASS + resolveMockApi; always apiClient.
+
+App.tsx — remove PreviewBypassBoot + PreviewBypassBanner.
+
+Router.tsx — "/" -> Navigate to ROUTES.LOGIN only.
+
+.env.sample — remove VITE_PREVIEW_BYPASS lines.
+vite-env.d.ts — remove VITE_PREVIEW_BYPASS line.
+
+--------------------------------------------------------------------------------
+MOCK API ENDPOINTS
+--------------------------------------------------------------------------------
+  GET  /api/places/public
+  GET  /api/places/public/:id
+  GET  /api/bids/place/:placeId        -> { bid: null }
+  GET  /api/testimonials               -> []
+  GET  /api/testimonials/review-platforms -> []
+  POST /api/contact
+  POST /api/auth/login
+  POST /api/bids                       -> accept if bid >= minimumBid
+  POST /api/payments/create-intent
+  POST /api/payments/:id/confirm
+
+place-4 (Elite Hotel) sold out when ?date= is set (inventory test).
+
+--------------------------------------------------------------------------------
+DO NOT enable on Vercel/production
+--------------------------------------------------------------------------------
+
+================================================================================
