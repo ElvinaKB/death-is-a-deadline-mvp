@@ -44,6 +44,11 @@ export async function sendEmail({
   subject: string;
   variables: Record<string, any>;
 }): Promise<nodemailer.SentMessageInfo> {
+  if (process.env.SKIP_EMAIL === "true") {
+    console.log(`[SKIP_EMAIL] Skipped ${type} to ${to}`);
+    return { messageId: "skipped" } as nodemailer.SentMessageInfo;
+  }
+
   console.log(
     `Preparing to send email of type ${type} to ${to} with subject "${subject}" and variables:${JSON.stringify(variables)}`,
   );
@@ -66,16 +71,14 @@ export async function sendEmail({
     html,
   };
 
-  return new Promise((resolve, reject) => {
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error("Error sending email:", error);
-        reject(error);
-      }
-      console.log("Email sent successfully:", info.messageId);
-      resolve(info);
-    });
-  });
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully:", info.messageId);
+    return info;
+  } catch (error) {
+    console.error("Error sending email:", error);
+    throw error;
+  }
 }
 
 export async function sendPlainEmail({

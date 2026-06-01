@@ -10,8 +10,8 @@ import { stripePromise } from "../../../lib/stripe";
 import {
   usePaymentForBid,
   useCreatePaymentIntent,
-  useConfirmPayment,
 } from "../../../hooks/usePayments";
+import { pollPaymentUntilCaptured } from "../../../utils/pollPaymentConfirmation";
 import { useBid } from "../../../hooks/useBids";
 import { Payment, PaymentStatus } from "../../../types/payment.types";
 import { Button } from "../../components/ui/button";
@@ -53,8 +53,6 @@ function CheckoutForm({
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const confirmPayment = useConfirmPayment();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -80,34 +78,34 @@ function CheckoutForm({
       return;
     }
 
-    const stripeSucceeded =
+    if (
       paymentIntent &&
       (paymentIntent.status === "succeeded" ||
-        paymentIntent.status === "processing" ||
-        paymentIntent.status === "requires_capture");
-
-    if (stripeSucceeded) {
+        paymentIntent.status === "processing")
+    ) {
       try {
-        const result = await confirmPayment.mutateAsync({ id: paymentId });
-        toast.success(
-          paymentIntent.status === "requires_capture"
-            ? "Payment authorized! Your funds are held."
-            : "Payment complete! Your booking is confirmed.",
-        );
-        onSuccess(result.payment);
+        const sync = await pollPaymentUntilCaptured(paymentId);
+        const paymentOk =
+          sync.payment.status === PaymentStatus.CAPTURED ||
+          sync.stripeStatus === "succeeded" ||
+          sync.stripeStatus === "processing";
+
+        if (paymentOk) {
+          toast.success(
+            sync.payment.status === PaymentStatus.CAPTURED
+              ? "Payment complete! Your booking is confirmed."
+              : "Payment received. Your booking will update shortly.",
+          );
+          onSuccess();
+        } else {
+          setErrorMessage(
+            "Payment could not be confirmed. Please check My Bids.",
+          );
+        }
       } catch {
-        // Stripe charged but backend confirm failed — webhook may catch up; still show success UI
-        onSuccess({
-          id: paymentId,
-          bidId,
-          studentId: "",
-          amount: paymentIntent.amount / 100 || amount,
-          currency: paymentIntent.currency,
-          status: PaymentStatus.CAPTURED,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-        toast.info("Payment received. Your confirmation is being finalized.");
+        setErrorMessage(
+          "Payment may have succeeded. Please check My Bids for status.",
+        );
       }
       setIsProcessing(false);
       return;
@@ -146,7 +144,7 @@ function CheckoutForm({
         ) : (
           <>
             <CreditCard className="mr-2 h-5 w-5" />
-            Complete Payment
+            Pay Now
           </>
         )}
       </Button>

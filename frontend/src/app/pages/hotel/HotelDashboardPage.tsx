@@ -390,31 +390,6 @@ export function HotelDashboardPage() {
         </div>
       </section>
 
-      {/* ── PENDING BIDS CTA ── */}
-      {(stats?.totalPendingBids ?? 0) > 0 && (
-        <section>
-          <div className="bg-warning/10 border border-warning/20 rounded-xl px-5 py-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 text-warning shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-fg">
-                  {stats!.totalPendingBids} pending bid
-                  {stats!.totalPendingBids !== 1 ? "s" : ""} awaiting action
-                </p>
-                <p className="text-xs text-muted">
-                  Review and respond to keep your acceptance rate healthy
-                </p>
-              </div>
-            </div>
-            <Link
-              to={ROUTES.HOTEL_BIDS}
-              className="text-xs font-semibold text-warning border border-warning/30 px-3 py-1.5 rounded-md hover:bg-warning/10 transition-colors shrink-0"
-            >
-              View Bids →
-            </Link>
-          </div>
-        </section>
-      )}
     </div>
   );
 }

@@ -5,16 +5,26 @@ import { PlaceStatus, Prisma, bid_status } from "@prisma/client";
 import { differenceInDays, parseISO, format } from "date-fns";
 import {
   CreateBidInput,
-  UpdateBidStatusInput,
   ListBidsQuery,
   MyBidsQuery,
 } from "../validations/bids/bids.validation";
 import { UserRole } from "../types/auth.types";
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
+import {
+  deriveBookingStatus,
+  BOOKING_STATUS_LABELS,
+} from "../types/booking.types";
+import { ErrorCode } from "../types/error.codes";
 
 // Helper to format bid response
-const formatBid = (bid: any) => ({
+const formatBid = (bid: any) => {
+  const bookingStatus = deriveBookingStatus(
+    bid.status,
+    bid.payment?.status ?? null,
+  );
+
+  return {
   id: bid.id,
   placeId: bid.placeId,
   studentId: bid.studentId,
@@ -32,6 +42,8 @@ const formatBid = (bid: any) => ({
   paidToHotelAt: bid.paidToHotelAt,
   payoutNotes: bid.payoutNotes,
   status: bid.status,
+  bookingStatus,
+  bookingStatusLabel: BOOKING_STATUS_LABELS[bookingStatus],
   rejectionReason: bid.rejectionReason,
   createdAt: bid.createdAt,
   updatedAt: bid.updatedAt,
@@ -63,10 +75,11 @@ const formatBid = (bid: any) => ({
         cancelledAt: bid.payment.cancelledAt,
         failedAt: bid.payment.failedAt,
         expiresAt: bid.payment.expiresAt,
-        stripePaymentIntentId: bid.payment.stripePaymentIntentId, // Added this line
+        stripePaymentIntentId: bid.payment.stripePaymentIntentId,
       }
     : undefined,
-});
+  };
+};
 
 // Create a new bid (student only)
 export async function createBid(req: Request, res: Response) {
@@ -79,12 +92,17 @@ export async function createBid(req: Request, res: Response) {
   });
 
   if (!place) {
-    throw new CustomError("Place not found", 404);
+    throw new CustomError("Place not found", 404, null, ErrorCode.PLACE_NOT_FOUND);
   }
 
   // Check if place is LIVE
   if (place.status !== PlaceStatus.LIVE) {
-    throw new CustomError("This place is not available for bidding", 400);
+    throw new CustomError(
+      "This place is not available for bidding",
+      400,
+      null,
+      ErrorCode.PLACE_NOT_AVAILABLE,
+    );
   }
 
   // Parse dates
@@ -99,6 +117,8 @@ export async function createBid(req: Request, res: Response) {
       throw new CustomError(
         `The place is not available on ${blackoutDate}. Please choose different dates.`,
         400,
+        null,
+        ErrorCode.BID_BLACKOUT_DATE,
       );
     }
   }
@@ -112,18 +132,19 @@ export async function createBid(req: Request, res: Response) {
     throw new CustomError(
       `Your bid is very low, try again by increasing it.`,
       400,
+      null,
+      ErrorCode.BID_TOO_LOW,
     );
   }
 
-  // Check for existing pending bid with overlapping dates
+  // Block overlapping active bids (accepted or legacy pending)
   const existingBid = await prisma.bid.findFirst({
     where: {
       placeId: data.placeId,
       studentId,
-      status: bid_status.PENDING,
+      status: { in: [bid_status.ACCEPTED, bid_status.PENDING] },
       OR: [
         {
-          // New dates overlap with existing dates
           checkInDate: { lte: checkOutDate },
           checkOutDate: { gte: checkInDate },
         },
@@ -133,19 +154,25 @@ export async function createBid(req: Request, res: Response) {
 
   if (existingBid) {
     throw new CustomError(
-      "You already have a pending bid for this place with overlapping dates",
+      "You already have an active bid for this place with overlapping dates",
       400,
+      null,
+      ErrorCode.BID_OVERLAP_PENDING,
     );
   }
 
-  // Determine initial status based on auto-accept rules
-  let status: bid_status = bid_status.PENDING;
-  let message = "Your bid has been submitted and is pending review.";
-
-  if (place.autoAcceptAboveMinimum && data.bidPerNight >= place.minimumBid) {
-    status = bid_status.ACCEPTED;
-    message = "Congratulations! Your bid has been automatically accepted.";
+  if (!place.autoAcceptAboveMinimum) {
+    throw new CustomError(
+      "This listing is not available for instant booking. Please try another place.",
+      400,
+      null,
+      ErrorCode.PLACE_NOT_AVAILABLE,
+    );
   }
+
+  // At/above hidden minimum → instant accept (no manual review)
+  const status = bid_status.ACCEPTED;
+  const message = "Congratulations! Your bid has been automatically accepted.";
 
   // Create the bid
   const bid = await prisma.bid.create({
@@ -199,7 +226,7 @@ export async function getBidForPlace(req: Request, res: Response) {
   });
 
   if (!bid) {
-    res.status(200).json({ bid: null });
+    res.status(200).json({ data: { bid: null } });
     return;
   }
 
@@ -259,16 +286,22 @@ export async function getBid(req: Request, res: Response) {
       place: {
         include: { images: { orderBy: { order: "asc" } } },
       },
+      payment: true,
     },
   });
 
   if (!bid) {
-    throw new CustomError("Bid not found", 404);
+    throw new CustomError("Bid not found", 404, null, ErrorCode.BID_NOT_FOUND);
   }
 
   // Students can only view their own bids
   if (userRole === UserRole.STUDENT && bid.studentId !== userId) {
-    throw new CustomError("You can only view your own bids", 403);
+    throw new CustomError(
+      "You can only view your own bids",
+      403,
+      null,
+      ErrorCode.BID_FORBIDDEN,
+    );
   }
 
   res.status(200).json({
@@ -337,40 +370,14 @@ export async function listBids(req: Request, res: Response) {
   });
 }
 
-// Update bid status (admin only)
-export async function updateBidStatus(req: Request, res: Response) {
-  const { id } = req.params;
-  const { status, rejectionReason } = req.body as UpdateBidStatusInput;
-
-  const existingBid = await prisma.bid.findUnique({ where: { id } });
-  if (!existingBid) {
-    throw new CustomError("Bid not found", 404);
-  }
-
-  // Can only update PENDING bids
-  if (existingBid.status !== bid_status.PENDING) {
-    throw new CustomError("Can only update pending bids", 400);
-  }
-
-  const bid = await prisma.bid.update({
-    where: { id },
-    data: {
-      status,
-      ...(status === "REJECTED" && rejectionReason && { rejectionReason }),
-    },
-    include: {
-      place: {
-        include: { images: { orderBy: { order: "asc" }, take: 1 } },
-      },
-    },
-  });
-
-  res.status(200).json({
-    data: {
-      message: `Bid ${status.toLowerCase()} successfully`,
-      bid: formatBid(bid),
-    },
-  });
+// Update bid status (admin only) — disabled; bids are instant accept/reject only
+export async function updateBidStatus(_req: Request, _res: Response) {
+  throw new CustomError(
+    "Manual bid approval is disabled. Bids are accepted or rejected instantly at submission.",
+    400,
+    null,
+    ErrorCode.BID_NOT_PENDING,
+  );
 }
 
 // Update payout status (admin only)

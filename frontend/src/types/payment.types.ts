@@ -62,3 +62,21 @@ export interface PaymentsListResponse {
 export interface PaymentForBidResponse {
   payment: Payment | null;
 }
+
+export interface SavedPaymentMethod {
+  id: string;
+  brand: string;
+  last4: string;
+  expMonth?: number;
+  expYear?: number;
+}
+
+export interface SavedPaymentMethodsResponse {
+  paymentMethods: SavedPaymentMethod[];
+}
+
+export interface ConfirmPaymentData {
+  payment: Payment;
+  stripeStatus: string;
+  pendingWebhook: boolean;
+}

@@ -1,6 +1,7 @@
 export interface ApiError {
   message: string;
   statusCode?: number;
+  code?: string;
   errors?: Record<string, string[]>;
 }
 
