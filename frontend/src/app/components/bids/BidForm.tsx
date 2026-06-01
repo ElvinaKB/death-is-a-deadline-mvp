@@ -176,7 +176,6 @@ function BidFormInner({
 }: BidFormProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const stripe = useStripe();
   const elements = useElements();
   const { isAuthenticated } = useAppSelector((state) => state.auth);
