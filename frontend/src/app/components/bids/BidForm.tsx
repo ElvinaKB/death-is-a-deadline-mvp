@@ -14,7 +14,10 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
-import type { StripeCardElement } from "@stripe/stripe-js";
+import type {
+  StripeCardElement,
+  StripeCardElementChangeEvent,
+} from "@stripe/stripe-js";
 import { stripePromise } from "../../../lib/stripe";
 import {
   Calendar as CalendarIcon,
@@ -32,17 +35,29 @@ import {
   Lock,
   Moon,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { StripeCardElement } from "@stripe/stripe-js";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useBidForPlace, useCreateBid } from "../../../hooks/useBids";
 import {
+  useConfirmPayment,
   useCreatePaymentIntent,
   useSavedPaymentMethods,
 } from "../../../hooks/usePayments";
 import { pollPaymentUntilCaptured } from "../../../utils/pollPaymentConfirmation";
+import {
+  isDbPaymentAwaitingCapture,
+  isLowBidRejection,
+  isStripeActionRequired,
+  shouldShowConfirmedOutcome,
+  shouldShowRejectedOutcome,
+  shouldShowStripeCompletionUI,
+} from "../../../utils/bidOutcome";
+import {
+  BidPaymentElement,
+  ExistingBidPaymentSection,
+} from "./BidPaymentElement";
 import { useAppSelector } from "../../../store/hooks";
 import { Bid, BidStatus, CreateBidRequest } from "../../../types/bid.types";
 import { Place } from "../../../types/place.types";
@@ -182,6 +197,7 @@ function BidFormInner({
   const queryClient = useQueryClient();
   const createBid = useCreateBid();
   const createPaymentIntent = useCreatePaymentIntent();
+  const confirmPayment = useConfirmPayment();
   const { data: savedMethodsData } = useSavedPaymentMethods(isAuthenticated);
 
   const [displayedSavedMethods, setDisplayedSavedMethods] = useState<
@@ -199,6 +215,10 @@ function BidFormInner({
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCardComplete, setIsCardComplete] = useState(false);
+  const [isChangingCard, setIsChangingCard] = useState(false);
+  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+  const [stripeCompletion, setStripeCompletion] =
+    useState<StripeCompletionState | null>(null);
   const [payWithSavedCard, setPayWithSavedCard] = useState(false);
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<
     string | null
@@ -216,17 +236,17 @@ function BidFormInner({
   const isListing = variant === "listing";
 
   useEffect(() => {
-    if (isProcessing || paymentSuccess) return;
+    if (isProcessing || bidResult) return;
     setDisplayedSavedMethods(savedMethodsData?.paymentMethods ?? []);
-  }, [savedMethodsData, isProcessing, paymentSuccess]);
+  }, [savedMethodsData, isProcessing, bidResult]);
 
   useEffect(() => {
-    if (isProcessing || paymentSuccess) return;
+    if (isProcessing || bidResult) return;
     if (displayedSavedMethods.length > 0 && selectedPaymentMethodId === null) {
       setPayWithSavedCard(true);
       setSelectedPaymentMethodId(displayedSavedMethods[0].id);
     }
-  }, [displayedSavedMethods, selectedPaymentMethodId, isProcessing, paymentSuccess]);
+  }, [displayedSavedMethods, selectedPaymentMethodId, isProcessing, bidResult]);
 
   const uiSavedMethods = isProcessing ? frozenSavedMethods : displayedSavedMethods;
   const uiPayWithSaved = isProcessing ? frozenPayWithSaved : payWithSavedCard;
@@ -386,6 +406,9 @@ function BidFormInner({
     );
     setStripeCompletion(null);
     await queryClient.invalidateQueries({ queryKey: ["bids", "place", placeId] });
+    await queryClient.invalidateQueries({
+      queryKey: ["payments", "saved-methods"],
+    });
     toast.custom(
       () => (
         <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
@@ -415,6 +438,13 @@ function BidFormInner({
     validationSchema: bidValidationSchema,
     onSubmit: async (values) => {
       setPaymentError(null);
+
+      if (isAuthenticated && !acceptedTerms) {
+        setPaymentError(
+          "Please agree to the Terms of Use, Privacy Policy, and cancellation terms.",
+        );
+        return;
+      }
 
       if (!stripe) {
         setPaymentError("Payment system not ready");
@@ -501,56 +531,41 @@ function BidFormInner({
                   return;
                 }
 
-                toast.custom(
-                  () => (
-                    <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-12 h-12 rounded-full border-2 border-success flex items-center justify-center">
-                          <CheckCircle className="w-7 h-7 text-success" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-fg text-lg">
-                            Bid Accepted!
-                          </h3>
-                          <p className="text-success text-sm">
-                            You're booked at your price.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="border-t border-line pt-3">
-                        <div className="flex items-center gap-2 text-muted">
-                          <CreditCard className="w-4 h-4" />
-                          <div>
-                            <p className="text-fg text-sm">Card charged now</p>
-                            <p className="text-muted text-xs">
-                              Private rate. Not publicly listed.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ),
-                  { duration: 5000 },
+                await finalizeAcceptedPayment(
+                  paymentResult.payment.id,
+                  buildBidResult,
                 );
-                setPaymentSuccess(true);
-                queryClient.invalidateQueries({
-                  queryKey: ["payments", "saved-methods"],
-                });
               } catch {
+                setBidResult(
+                  buildBidResult(BidStatus.ACCEPTED, { paymentComplete: true }),
+                );
                 setPaymentError(
                   "Payment may have gone through. Please check My Bids.",
                 );
               }
+              setIsProcessing(false);
+            } else if (isStripeActionRequired(confirmResult)) {
+              setStripeCompletion({
+                clientSecret: paymentResult.clientSecret,
+                paymentId: paymentResult.payment.id,
+                totalAmount:
+                  result.bid.totalAmount ??
+                  bidPerNightForResult * totalNightsForResult,
+                bidId: result.bid.id,
+              });
+              setIsProcessing(false);
             } else {
               setPaymentError(confirmResult.error || "Payment failed");
               await queryClient.invalidateQueries({
                 queryKey: ["bids", "place", placeId],
               });
+              setIsProcessing(false);
             }
           } else {
             setPaymentError(
               "Something went wrong with payment processing. Please contact support.",
             );
+            setIsProcessing(false);
           }
         } else if (result.status === BidStatus.REJECTED) {
           setBidResult(buildBidResult(BidStatus.REJECTED));
@@ -580,9 +595,7 @@ function BidFormInner({
           );
           setIsProcessing(false);
         } else {
-          setPaymentError(
-            "Unexpected bid status. Please refresh and try again, or contact support.",
-          );
+          toast.info("Bid submitted! Awaiting review.");
           setIsProcessing(false);
         }
 
@@ -761,6 +774,8 @@ function BidFormInner({
     setPaymentId(null);
     setPaymentMethodId(null);
     setStripeCompletion(null);
+    setPayWithSavedCard(false);
+    setSelectedPaymentMethodId(null);
     setAcceptedTerms(false);
     setLockInOpen(false);
     setBidStep("dates");
@@ -1636,14 +1651,7 @@ function BidFormInner({
                     onReady={(element) => {
                       cardElementRef.current = element;
                     }}
-                    onChange={(e) => {
-                      setIsCardComplete(e.complete);
-                      if (e.error) {
-                        setPaymentError(e.error.message);
-                      } else {
-                        setPaymentError(null);
-                      }
-                    }}
+                    onChange={handleCardChange}
                   />
                 </div>
               </div>
@@ -1796,7 +1804,6 @@ function OrphanBidPaymentRetry({
   const stripe = useStripe();
   const elements = useElements();
   const createPaymentIntent = useCreatePaymentIntent();
-  const confirmPayment = useConfirmPayment();
   const [isRetrying, setIsRetrying] = useState(false);
   const cardRef = useRef<StripeCardElement | null>(null);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
@@ -1828,7 +1835,14 @@ function OrphanBidPaymentRetry({
       ) {
         throw new Error("Payment was not completed.");
       }
-      await confirmPayment.mutateAsync({ id: paymentResult.payment.id });
+      const sync = await pollPaymentUntilCaptured(paymentResult.payment.id);
+      const paymentOk =
+        sync.payment.status === PaymentStatus.CAPTURED ||
+        sync.stripeStatus === "succeeded" ||
+        sync.stripeStatus === "processing";
+      if (!paymentOk) {
+        throw new Error("Payment could not be confirmed.");
+      }
       onSuccess();
     } catch (err: unknown) {
       const message =

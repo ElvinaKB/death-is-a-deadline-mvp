@@ -10,6 +10,7 @@ import { stripePromise } from "../../../lib/stripe";
 import {
   usePaymentForBid,
   useCreatePaymentIntent,
+  useConfirmPayment,
 } from "../../../hooks/usePayments";
 import { pollPaymentUntilCaptured } from "../../../utils/pollPaymentConfirmation";
 import { useBid } from "../../../hooks/useBids";
