@@ -18,6 +18,7 @@ interface BidLockInModalProps {
   place: Place;
   checkIn?: Date;
   checkOut?: Date;
+  bidPerNight: number;
   totalAmount: number;
   auctionSeconds: number;
   onConfirm: () => void;
@@ -42,6 +43,7 @@ export function BidLockInModal({
   place,
   checkIn,
   checkOut,
+  bidPerNight,
   totalAmount,
   onConfirm,
   onGoBack,
@@ -180,25 +182,55 @@ export function BidLockInModal({
                 : "You can place your binding bid now."}
           </p>
 
-          <div className="lock-in-listing-summary space-y-2 text-sm border-t border-line/50 pt-4">
+          <div className="lock-in-listing-summary space-y-2.5 text-sm border-t border-line/50 pt-4">
             <p className="text-xs tracking-wider text-fg uppercase text-center">
               Listing summary
             </p>
-            <div className="flex justify-between items-center gap-4 text-fg">
+            <div className="flex justify-between items-start gap-4 text-fg">
               <span>
                 {format(checkIn, "MMM d")} → {format(checkOut, "MMM d")}
               </span>
-              <span className="shrink-0">
+              <span className="shrink-0 text-right">
                 {nights} night{nights !== 1 ? "s" : ""}
               </span>
             </div>
-            <div className="flex justify-between text-fg">
+            {bidPerNight > 0 && (
+              <div className="flex justify-between items-start gap-4 text-fg">
+                <span className="font-medium">
+                  {formatCurrency(bidPerNight)}/night
+                </span>
+                <span className="shrink-0 text-right text-xs text-muted leading-snug">
+                  {formatCurrency(bidPerNight)} × {nights}{" "}
+                  {nights === 1 ? "night" : "nights"} ={" "}
+                  <span className="font-medium text-fg">
+                    {formatCurrency(totalAmount)}
+                  </span>
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between items-start gap-4 text-fg">
               <span>Retail reference</span>
-              <span>{formatCurrency(retailTotal)}</span>
+              <span className="shrink-0 text-right text-xs text-muted leading-snug">
+                {place.retailPrice > 0 ? (
+                  <>
+                    {formatCurrency(place.retailPrice)} × {nights}{" "}
+                    {nights === 1 ? "night" : "nights"} ={" "}
+                    <span className="font-medium text-fg">
+                      {formatCurrency(retailTotal)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="font-medium text-fg">
+                    {formatCurrency(retailTotal)}
+                  </span>
+                )}
+              </span>
             </div>
-            <div className="flex justify-between font-medium text-fg">
+            <div className="flex justify-between items-center gap-4 font-medium text-fg">
               <span>Your bid</span>
-              <span className="text-urgent">{formatCurrency(totalAmount)}</span>
+              <span className="shrink-0 text-right text-urgent">
+                {formatCurrency(totalAmount)}
+              </span>
             </div>
           </div>
 
