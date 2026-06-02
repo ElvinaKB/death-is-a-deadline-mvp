@@ -8,6 +8,7 @@ import {
 import { Button } from "../ui/button";
 import { formatCurrency } from "../../../utils/currency";
 import { Place } from "../../../types/place.types";
+import { BidPriceBreakdown } from "./BidPriceBreakdown";
 
 /** Seconds user must wait before confirming (review window). */
 export const LOCK_IN_DURATION_SECONDS = 10;
@@ -18,6 +19,7 @@ interface BidLockInModalProps {
   place: Place;
   checkIn?: Date;
   checkOut?: Date;
+  bidPerNight: number;
   totalAmount: number;
   auctionSeconds: number;
   onConfirm: () => void;
@@ -42,6 +44,7 @@ export function BidLockInModal({
   place,
   checkIn,
   checkOut,
+  bidPerNight,
   totalAmount,
   onConfirm,
   onGoBack,
@@ -149,6 +152,16 @@ export function BidLockInModal({
               {formatCurrency(totalAmount)}
             </p>
             <p className="text-sm text-muted mt-2">{place.name}</p>
+            {bidPerNight > 0 && (
+              <BidPriceBreakdown
+                className="mt-3"
+                surface="compact"
+                bidPerNight={bidPerNight}
+                nights={nights}
+                totalAmount={totalAmount}
+                showTotalLabel={false}
+              />
+            )}
           </div>
 
           <div className="flex flex-col items-center gap-2 rounded-lg border border-urgent/50 bg-urgent/5 px-4 py-3 text-sm text-fg text-center">
@@ -196,10 +209,15 @@ export function BidLockInModal({
               <span>Retail reference</span>
               <span>{formatCurrency(retailTotal)}</span>
             </div>
-            <div className="flex justify-between font-medium text-fg">
-              <span>Your bid</span>
-              <span className="text-urgent">{formatCurrency(totalAmount)}</span>
-            </div>
+            {bidPerNight > 0 && (
+              <BidPriceBreakdown
+                surface="rows"
+                bidPerNight={bidPerNight}
+                nights={nights}
+                totalAmount={totalAmount}
+                showTotalLabel={false}
+              />
+            )}
           </div>
 
           <Button
