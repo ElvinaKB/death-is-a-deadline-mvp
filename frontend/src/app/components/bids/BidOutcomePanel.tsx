@@ -9,7 +9,6 @@ import {
   Loader2,
   Lock,
   Mail,
-  Moon,
   Search,
   X,
 } from "lucide-react";
@@ -35,8 +34,6 @@ interface BidOutcomePanelProps {
   onTryNewDates?: () => void;
   onRebid?: (newBidPerNight: number) => void;
   isRebidding?: boolean;
-  /** Server message when rejection came from API (e.g. low bid 400). */
-  rejectionMessage?: string;
 }
 
 export function BidOutcomePanel({
@@ -50,7 +47,6 @@ export function BidOutcomePanel({
   onTryNewDates: _onTryNewDates,
   onRebid,
   isRebidding,
-  rejectionMessage,
 }: BidOutcomePanelProps) {
   const navigate = useNavigate();
   const user = useAppSelector((s) => s.auth.user);
@@ -166,7 +162,7 @@ export function BidOutcomePanel({
   }
 
   return (
-    <div className="outcome-panel outcome-panel--rejected rounded-xl px-4 py-3 space-y-3 bg-[hsl(0_0%_4%)]">
+    <div className="outcome-panel outcome-panel--rejected rounded-xl px-4 py-3 space-y-3.5 bg-[hsl(0_0%_4%)]">
       <div className="outcome-rejected-status text-center relative">
         <div className="outcome-confetti outcome-confetti--red" aria-hidden />
         <div className="outcome-rejected-icon mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-urgent">
@@ -174,8 +170,7 @@ export function BidOutcomePanel({
         </div>
         <h2 className="outcome-rejected-title">NOT ACCEPTED</h2>
         <p className="outcome-rejected-subtitle">
-          {rejectionMessage?.trim() ||
-            "This bid didn't meet the hotel's hidden threshold."}
+          This bid didn&apos;t meet the hotel&apos;s hidden threshold.
         </p>
       </div>
 
@@ -185,7 +180,7 @@ export function BidOutcomePanel({
         <p className="text-base font-bold text-white">
           Adjust your bid and try again.
         </p>
-        <p className="outcome-rejected-hint text-xs leading-relaxed">
+        <p className="outcome-rejected-hint text-sm leading-relaxed">
           Try another amount or use Quick Bid options below.
         </p>
       </div>
@@ -222,7 +217,7 @@ export function BidOutcomePanel({
       </label>
 
       {adjustBid && (
-        <div className="outcome-rejected-quick-bids space-y-1.5">
+        <div className="outcome-rejected-quick-bids space-y-2">
           <p className="outcome-rejected-quick-label">Quick bid options</p>
           <div className="grid grid-cols-3 gap-2">
             {QUICK_BID_INCREMENTS.map((inc) => (
@@ -240,37 +235,6 @@ export function BidOutcomePanel({
                 + ${inc}
               </button>
             ))}
-          </div>
-        </div>
-      )}
-
-      <div className="rounded-lg border border-line/60 bg-bg/40 px-3 py-2 text-sm text-muted">
-        <p className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-gold shrink-0" />
-          {format(checkIn, "MMM d")} → {format(checkOut, "MMM d, yyyy")}
-        </p>
-        <p className="flex items-center gap-2 mt-1">
-          <Moon className="h-4 w-4 text-gold shrink-0" />
-          {nights} night{nights !== 1 ? "s" : ""}
-        </p>
-      </div>
-
-      {newBidPerNight > 0 && (
-        <div className="rounded-lg border border-line/60 bg-bg/40 px-3 py-2.5">
-          <p className="text-[12px] font-semibold tracking-[0.12em] text-muted uppercase mb-2">
-            Bid total
-          </p>
-          <div className="flex justify-between items-start gap-3 text-[12px] text-fg">
-            <span className="font-medium">
-              {formatCurrency(newBidPerNight)}/night
-            </span>
-            <span className="shrink-0 text-right text-sm text-muted leading-snug">
-              {formatCurrency(newBidPerNight)} × {nights}{" "}
-              {nights === 1 ? "night" : "nights"} ={" "}
-              <span className="font-bold text-gold">
-                {formatCurrency(newTotal)}
-              </span>
-            </span>
           </div>
         </div>
       )}
