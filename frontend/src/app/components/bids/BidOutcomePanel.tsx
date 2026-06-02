@@ -34,6 +34,8 @@ interface BidOutcomePanelProps {
   onTryNewDates?: () => void;
   onRebid?: (newBidPerNight: number) => void;
   isRebidding?: boolean;
+  /** Server message when rejection came from API (e.g. low bid 400). */
+  rejectionMessage?: string;
 }
 
 export function BidOutcomePanel({
@@ -47,6 +49,7 @@ export function BidOutcomePanel({
   onTryNewDates: _onTryNewDates,
   onRebid,
   isRebidding,
+  rejectionMessage,
 }: BidOutcomePanelProps) {
   const navigate = useNavigate();
   const user = useAppSelector((s) => s.auth.user);
@@ -170,7 +173,8 @@ export function BidOutcomePanel({
         </div>
         <h2 className="outcome-rejected-title">NOT ACCEPTED</h2>
         <p className="outcome-rejected-subtitle">
-          This bid didn&apos;t meet the hotel&apos;s hidden threshold.
+          {rejectionMessage?.trim() ||
+            "This bid didn't meet the hotel's hidden threshold."}
         </p>
       </div>
 

@@ -47,12 +47,15 @@ import {
 } from "../../../hooks/usePayments";
 import { pollPaymentUntilCaptured } from "../../../utils/pollPaymentConfirmation";
 import {
+  isBidOverlapRejection,
   isDbPaymentAwaitingCapture,
+  getApiErrorMessage,
   isLowBidRejection,
   isStripeActionRequired,
   shouldShowConfirmedOutcome,
   shouldShowRejectedOutcome,
   shouldShowStripeCompletionUI,
+  showBidAlertToast,
 } from "../../../utils/bidOutcome";
 import {
   BidPaymentElement,
@@ -569,29 +572,12 @@ function BidFormInner({
           }
         } else if (result.status === BidStatus.REJECTED) {
           setBidResult(buildBidResult(BidStatus.REJECTED));
-          toast.custom(
-            () => (
-              <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full border-2 border-danger flex items-center justify-center">
-                    <XCircle className="w-7 h-7 text-danger" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-fg text-lg">Too Low</h3>
-                    <p className="text-danger text-sm">No charge.</p>
-                  </div>
-                </div>
-                <div className="border-t border-line pt-3">
-                  <div className="flex items-center gap-2 text-warning">
-                    <RefreshCw className="w-4 h-4" />
-                    <p className="text-muted text-sm">
-                      Raise your bid or try new dates.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ),
-            { duration: 5000 },
+          showBidAlertToast(
+            result.message?.trim() || "Your bid was not accepted.",
+            {
+              hint: "Raise your bid or try new dates.",
+              variant: "rejected",
+            },
           );
           setIsProcessing(false);
         } else {
@@ -608,9 +594,20 @@ function BidFormInner({
         } else if (result.status === BidStatus.REJECTED) {
           trackEvent(ANALYTICS_EVENTS.REJECTED_BID, { place_id: placeId });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Bid submission error:", error);
-        if (isLowBidRejection(error)) {
+        const apiMessage = getApiErrorMessage(error, "Failed to submit bid");
+
+        if (isBidOverlapRejection(error)) {
+          showBidAlertToast(apiMessage, {
+            variant: "overlap",
+            hint: "Open My Bids to manage your existing bid, or choose different dates.",
+          });
+          setPaymentError(apiMessage);
+          await queryClient.invalidateQueries({
+            queryKey: ["bids", "place", placeId],
+          });
+        } else if (isLowBidRejection(error)) {
           const nights = Math.max(
             1,
             differenceInDays(values.checkOutDate!, values.checkInDate!),
@@ -618,13 +615,17 @@ function BidFormInner({
           const perNight = Number(values.bidPerNight);
           setBidResult({
             bidStatus: BidStatus.REJECTED,
-            message: error.message,
+            message: apiMessage,
             totalAmount: perNight * nights,
             totalNights: nights,
           });
+          showBidAlertToast(apiMessage, {
+            variant: "rejected",
+            hint: "Raise your bid or try new dates.",
+          });
           trackEvent(ANALYTICS_EVENTS.REJECTED_BID, { place_id: placeId });
         } else {
-          setPaymentError(error.message || "Failed to submit bid");
+          setPaymentError(apiMessage);
         }
         setIsProcessing(false);
       } finally {
@@ -925,6 +926,7 @@ function BidFormInner({
         onTryNewDates={handleTryAgain}
         onRebid={isAuthenticated ? handleRebid : undefined}
         isRebidding={isRebidProcessing}
+        rejectionMessage={bidResult!.message}
       />
     );
   }
@@ -1031,6 +1033,7 @@ function BidFormInner({
           place={place}
           checkIn={formik.values.checkInDate}
           checkOut={formik.values.checkOutDate}
+          bidPerNight={Number(formik.values.bidPerNight) || 0}
           totalAmount={totalAmount}
           auctionSeconds={auctionSeconds}
           onConfirm={handleLockInConfirm}
@@ -1209,6 +1212,19 @@ function BidFormInner({
                   <Moon className="h-4 w-4 text-gold" />
                   {nights} night{nights !== 1 ? "s" : ""}
                 </p>
+                {Number(formik.values.bidPerNight) > 0 && (
+                  <p className="flex items-center gap-2 mt-1 text-fg">
+                    <DollarSign className="h-4 w-4 text-gold shrink-0" />
+                    <span className="text-sm">
+                      {formatCurrency(Number(formik.values.bidPerNight))}/night
+                      {" × "}
+                      {nights} {nights === 1 ? "night" : "nights"} ={" "}
+                      <span className="font-medium text-gold">
+                        {formatCurrency(totalAmount)}
+                      </span>
+                    </span>
+                  </p>
+                )}
               </div>
             )}
             <label className="flex items-start gap-3 cursor-pointer">
