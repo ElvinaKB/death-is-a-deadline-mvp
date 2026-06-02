@@ -1143,6 +1143,43 @@ function BidFormInner({
                 </div>
               )}
             </div>
+            {nights > 0 &&
+              formik.values.checkInDate &&
+              formik.values.checkOutDate && (
+                <div className="rounded-lg border border-line bg-bg/50 px-3 py-2 text-sm text-muted">
+                  <p className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4 text-gold" />
+                    {format(formik.values.checkInDate, "MMM d")} →{" "}
+                    {format(formik.values.checkOutDate, "MMM d, yyyy")}
+                  </p>
+                  <p className="flex items-center gap-2 mt-1">
+                    <Moon className="h-4 w-4 text-gold" />
+                    {nights} night{nights !== 1 ? "s" : ""}
+                  </p>
+                </div>
+              )}
+            {Number(formik.values.bidPerNight) > 0 &&
+              nights > 0 &&
+              formik.values.checkInDate &&
+              formik.values.checkOutDate && (
+                <div className="rounded-lg border border-line/60 bg-bg/40 px-3 py-2.5">
+                  <p className="text-[12px] font-semibold tracking-[0.12em] text-muted uppercase mb-2">
+                    Bid total
+                  </p>
+                  <div className="flex justify-between items-start gap-3 text-[14px] text-fg">
+                    <span className="font-medium">
+                      {formatCurrency(Number(formik.values.bidPerNight))}/night
+                    </span>
+                    <span className="shrink-0 text-right text-sm text-muted leading-snug">
+                      {formatCurrency(Number(formik.values.bidPerNight))} ×{" "}
+                      {nights} {nights === 1 ? "night" : "nights"} ={" "}
+                      <span className="font-bold text-gold">
+                        {formatCurrency(totalAmount)}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              )}
             {isAuthenticated ? (
             <>
             <div className="space-y-2">
@@ -1201,32 +1238,6 @@ function BidFormInner({
                 lock-in timer.
               </p>
             </div>
-            {nights > 0 && formik.values.checkInDate && formik.values.checkOutDate && (
-              <div className="rounded-lg border border-line bg-bg/50 px-3 py-2 text-sm text-muted">
-                <p className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4 text-gold" />
-                  {format(formik.values.checkInDate, "MMM d")} →{" "}
-                  {format(formik.values.checkOutDate, "MMM d, yyyy")}
-                </p>
-                <p className="flex items-center gap-2 mt-1">
-                  <Moon className="h-4 w-4 text-gold" />
-                  {nights} night{nights !== 1 ? "s" : ""}
-                </p>
-                {Number(formik.values.bidPerNight) > 0 && (
-                  <p className="flex items-center gap-2 mt-1 text-fg">
-                    <DollarSign className="h-4 w-4 text-gold shrink-0" />
-                    <span className="text-sm">
-                      {formatCurrency(Number(formik.values.bidPerNight))}/night
-                      {" × "}
-                      {nights} {nights === 1 ? "night" : "nights"} ={" "}
-                      <span className="font-medium text-gold">
-                        {formatCurrency(totalAmount)}
-                      </span>
-                    </span>
-                  </p>
-                )}
-              </div>
-            )}
             <label className="flex items-start gap-3 cursor-pointer">
               <Checkbox
                 checked={acceptedTerms}
