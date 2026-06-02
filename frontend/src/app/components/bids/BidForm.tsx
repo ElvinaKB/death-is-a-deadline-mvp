@@ -33,7 +33,6 @@ import {
   DollarSign,
   RefreshCw,
   Lock,
-  Moon,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -83,6 +82,7 @@ import {
 } from "./BidCountdown";
 import { BidLockInModal } from "./BidLockInModal";
 import { BidOutcomePanel } from "./BidOutcomePanel";
+import { BidPriceBreakdown } from "./BidPriceBreakdown";
 import { BidStepIndicator, type BidStep, STEPS } from "./BidStepIndicator";
 import { formatCurrency } from "../../../utils/currency";
 import {
@@ -395,11 +395,14 @@ function BidFormInner({
       bidStatus: BidStatus,
       extras?: Partial<BidResultState>,
     ) => BidResultState,
+    options?: { skipServerConfirm?: boolean },
   ) => {
-    try {
-      await confirmPayment.mutateAsync({ id: paymentId });
-    } catch {
-      /* Stripe succeeded; webhook may finalize */
+    if (!options?.skipServerConfirm) {
+      try {
+        await confirmPayment.mutateAsync({ id: paymentId });
+      } catch {
+        /* Stripe succeeded; webhook may finalize */
+      }
     }
     setBidResult(
       buildBidResult(BidStatus.ACCEPTED, { paymentComplete: true }),
@@ -456,9 +459,12 @@ function BidFormInner({
           setPaymentError("Please select a saved card");
           return;
         }
-      } else if (!isCardComplete || !elements) {
-        setPaymentError("Please enter valid card details");
-        return;
+      } else {
+        const hasReusablePaymentMethod = !!paymentMethodId;
+        if (!hasReusablePaymentMethod && (!isCardComplete || !elements)) {
+          setPaymentError("Please enter valid card details");
+          return;
+        }
       }
 
       payingWithSavedRef.current = payWithSavedCard;
@@ -511,7 +517,7 @@ function BidFormInner({
               paymentResult.clientSecret,
               payingWithSavedRef.current
                 ? payingPaymentMethodIdRef.current
-                : undefined,
+                : (paymentMethodId ?? undefined),
             );
             if (confirmResult.success) {
               try {
@@ -534,6 +540,7 @@ function BidFormInner({
                 await finalizeAcceptedPayment(
                   paymentResult.payment.id,
                   buildBidResult,
+                  { skipServerConfirm: true },
                 );
               } catch {
                 setBidResult(
@@ -595,7 +602,9 @@ function BidFormInner({
           );
           setIsProcessing(false);
         } else {
-          toast.info("Bid submitted! Awaiting review.");
+          setPaymentError(
+            "Unexpected bid status. Please refresh and try again, or contact support.",
+          );
           setIsProcessing(false);
         }
 
@@ -805,9 +814,17 @@ function BidFormInner({
       );
       return;
     }
-    if (!isCardComplete || !paymentMethodId || !stripe || !elements) {
-      setPaymentError("Please enter valid card details.");
-      return;
+    if (payWithSavedCard) {
+      if (!selectedPaymentMethodId) {
+        setPaymentError("Please select a saved card.");
+        return;
+      }
+    } else {
+      const hasReusablePaymentMethod = !!paymentMethodId;
+      if (!hasReusablePaymentMethod && (!isCardComplete || !stripe || !elements)) {
+        setPaymentError("Please enter valid card details.");
+        return;
+      }
     }
     setLockInOpen(true);
   };
@@ -833,11 +850,39 @@ function BidFormInner({
   };
 
   const handleRebid = async (newBidPerNight: number) => {
-    setIsRebidding(true);
     setPaymentError(null);
+    await formik.setFieldValue("bidPerNight", String(newBidPerNight));
+    await formik.setFieldTouched("bidPerNight", true, false);
+
+    if (!isAuthenticated) {
+      setBidResult(null);
+      setBidStep("review");
+      setPaymentError("Continue to verify and place your updated bid.");
+      return;
+    }
+
+    const canUseSavedCardNow = payWithSavedCard && !!selectedPaymentMethodId;
+    // Reuse paymentMethodId from the first card entry — no need to remount CardElement
+    const canUseFreshCardNow = !!paymentMethodId;
+    const canSubmitImmediately =
+      acceptedTerms && (canUseSavedCardNow || canUseFreshCardNow);
+
+    if (!canSubmitImmediately) {
+      if (!acceptedTerms) {
+        toast.error(
+          "Please agree to the terms before placing your updated bid.",
+        );
+      } else {
+        toast.error(
+          "Use a saved card below, or tap Try again to re-enter payment details.",
+        );
+      }
+      return;
+    }
+
+    setIsRebidding(true);
     try {
-      await formik.setFieldValue("bidPerNight", String(newBidPerNight));
-      setPaymentId(null);
+      // Stay on NOT ACCEPTED panel while processing (do not clear bidResult)
       await formik.submitForm();
     } finally {
       setIsRebidding(false);
@@ -925,6 +970,7 @@ function BidFormInner({
         onTryNewDates={handleTryAgain}
         onRebid={isAuthenticated ? handleRebid : undefined}
         isRebidding={isRebidProcessing}
+        isProcessingBid={isProcessing}
       />
     );
   }
@@ -1031,6 +1077,7 @@ function BidFormInner({
           place={place}
           checkIn={formik.values.checkInDate}
           checkOut={formik.values.checkOutDate}
+          bidPerNight={Number(formik.values.bidPerNight) || 0}
           totalAmount={totalAmount}
           auctionSeconds={auctionSeconds}
           onConfirm={handleLockInConfirm}
@@ -1113,7 +1160,7 @@ function BidFormInner({
             </div>
             <div>
               <Label className="listing-bid-amount-label mb-2 block">
-                <span className="text-fg">Your bid </span>
+                <span className="text-fg">Your bid per night </span>
                 <span className="text-muted">(USD)</span>
               </Label>
               <div className="listing-bid-amount-box relative">
@@ -1130,6 +1177,20 @@ function BidFormInner({
                   {...formik.getFieldProps("bidPerNight")}
                 />
               </div>
+              {nights > 0 &&
+                Number(formik.values.bidPerNight) > 0 &&
+                formik.values.checkInDate &&
+                formik.values.checkOutDate && (
+                  <BidPriceBreakdown
+                    className="mt-3"
+                    surface="listing"
+                    checkIn={formik.values.checkInDate}
+                    checkOut={formik.values.checkOutDate}
+                    bidPerNight={Number(formik.values.bidPerNight)}
+                    nights={nights}
+                    totalAmount={totalAmount}
+                  />
+                )}
               {!isAuthenticated && (
                 <div className="listing-budget-copy mt-3 space-y-1">
                   <p className="text-sm font-medium text-fg">Enter your Budget</p>
@@ -1146,71 +1207,122 @@ function BidFormInner({
               <Label className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase">
                 Pay with
               </Label>
-              {isCardComplete && !isChangingCard && (
-                <div className="listing-pay-card flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-fg">
-                    <CreditCard className="h-4 w-4 text-muted" />
-                    <span>Payment method saved</span>
+              {uiSavedMethods.length > 0 && uiPayWithSaved ? (
+                <div className="space-y-2">
+                  {uiSavedMethods.map((pm) => {
+                    const isSelected = selectedPaymentMethodId === pm.id;
+                    return (
+                      <button
+                        key={pm.id}
+                        type="button"
+                        disabled={isProcessing}
+                        onClick={() => {
+                          setPayWithSavedCard(true);
+                          setSelectedPaymentMethodId(pm.id);
+                          setPaymentError(null);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-colors",
+                          isSelected
+                            ? "border-brand bg-brand/10 shadow-[0_0_0_1px_hsl(var(--brand)/0.25)]"
+                            : "border-line bg-glass hover:border-brand/40 hover:bg-bg/70",
+                          isProcessing
+                            ? "cursor-default opacity-80"
+                            : "cursor-pointer",
+                        )}
+                      >
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-line bg-glass">
+                          <CreditCard className="h-4 w-4 text-muted" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-fg capitalize">
+                            {pm.brand} •••• {pm.last4}
+                          </p>
+                          {pm.expMonth != null && pm.expYear != null && (
+                            <p className="text-xs text-muted">
+                              Expires {String(pm.expMonth).padStart(2, "0")}/
+                              {String(pm.expYear).slice(-2)}
+                            </p>
+                          )}
+                        </div>
+                        {isSelected && (
+                          <div className="inline-flex items-center gap-1 rounded-full border border-brand/40 bg-brand/10 px-2 py-0.5">
+                            <CheckCircle className="h-3.5 w-3.5 shrink-0 text-brand" />
+                            <span className="text-[11px] font-medium text-brand">Selected</span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {!isProcessing && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPayWithSavedCard(false);
+                        setPaymentError(null);
+                      }}
+                      className="text-sm text-gold hover:underline px-0.5"
+                    >
+                      Use a different card
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {uiSavedMethods.length > 0 && !isProcessing && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPayWithSavedCard(true);
+                        const fallback =
+                          selectedPaymentMethodId ??
+                          displayedSavedMethods[0]?.id ??
+                          uiSavedMethods[0]?.id;
+                        if (fallback) setSelectedPaymentMethodId(fallback);
+                        setPaymentError(null);
+                      }}
+                      className="w-full flex items-center gap-3 rounded-lg border border-line bg-glass p-3 text-left transition-colors hover:border-brand/40"
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-line bg-glass">
+                        <CreditCard className="h-4 w-4 text-muted" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-fg">Pay with saved card</p>
+                        <p className="text-xs text-muted capitalize">
+                          {uiSavedMethods[0].brand} •••• {uiSavedMethods[0].last4}
+                          {uiSavedMethods.length > 1
+                            ? ` (+${uiSavedMethods.length - 1} more)`
+                            : ""}
+                        </p>
+                      </div>
+                    </button>
+                  )}
+                  <div className="border border-line rounded-lg p-3 bg-bg">
+                    <CardElement
+                      options={{
+                        style: {
+                          base: {
+                            fontSize: "16px",
+                            color: "#f8fafc",
+                            fontFamily: "Inter, system-ui, sans-serif",
+                            "::placeholder": { color: "#64748b" },
+                          },
+                          invalid: { color: "#ef4444", iconColor: "#ef4444" },
+                        },
+                      }}
+                      onReady={(element) => {
+                        cardElementRef.current = element;
+                      }}
+                      onChange={handleCardChange}
+                    />
                   </div>
-                  <button
-                    type="button"
-                    className="text-xs text-gold hover:underline"
-                    onClick={() => {
-                      setIsChangingCard(true);
-                      setIsCardComplete(false);
-                      setPaymentMethodId(null);
-                      setPaymentError(null);
-                    }}
-                  >
-                    Update card
-                  </button>
                 </div>
               )}
-              <div
-                className={cn(
-                  "border border-line rounded-lg p-3 bg-bg",
-                  isCardComplete &&
-                    !isChangingCard &&
-                    "sr-only h-px overflow-hidden opacity-0 pointer-events-none p-0 border-0",
-                )}
-                aria-hidden={isCardComplete && !isChangingCard}
-              >
-                <CardElement
-                  options={{
-                    style: {
-                      base: {
-                        fontSize: "16px",
-                        color: "#f8fafc",
-                        fontFamily: "Inter, system-ui, sans-serif",
-                        "::placeholder": { color: "#64748b" },
-                      },
-                      invalid: { color: "#ef4444", iconColor: "#ef4444" },
-                    },
-                  }}
-                  onReady={(element) => {
-                    cardElementRef.current = element;
-                  }}
-                  onChange={handleCardChange}
-                />
-              </div>
               <p className="text-xs text-muted leading-relaxed">
                 Charged only if your bid is accepted when you confirm after the
                 lock-in timer.
               </p>
             </div>
-            {nights > 0 && formik.values.checkInDate && formik.values.checkOutDate && (
-              <div className="rounded-lg border border-line bg-bg/50 px-3 py-2 text-sm text-muted">
-                <p className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4 text-gold" />
-                  {format(formik.values.checkInDate, "MMM d")} →{" "}
-                  {format(formik.values.checkOutDate, "MMM d, yyyy")}
-                </p>
-                <p className="flex items-center gap-2 mt-1">
-                  <Moon className="h-4 w-4 text-gold" />
-                  {nights} night{nights !== 1 ? "s" : ""}
-                </p>
-              </div>
-            )}
             <label className="flex items-start gap-3 cursor-pointer">
               <Checkbox
                 checked={acceptedTerms}
@@ -1242,7 +1354,7 @@ function BidFormInner({
               disabled={isProcessing || isInventoryExhausted}
             >
               <ArrowRight className="mr-2 h-4 w-4" />
-              LOCK IN BID
+              {isProcessing ? "PROCESSING YOUR BID..." : "LOCK IN BID"}
             </Button>
             <div className="listing-lock-hint">
               <p className="flex items-start gap-2 text-xs text-muted leading-relaxed text-left">
@@ -1435,6 +1547,15 @@ function BidFormInner({
                 {savingsPercent}% below retail · binding if accepted
               </p>
             )}
+            {calculateTotalNights() > 0 &&
+              Number(formik.values.bidPerNight) > 0 && (
+                <BidPriceBreakdown
+                  surface="listing"
+                  bidPerNight={Number(formik.values.bidPerNight)}
+                  nights={calculateTotalNights()}
+                  totalAmount={calculateTotalAmount()}
+                />
+              )}
           </div>
         )}
 
@@ -1457,18 +1578,15 @@ function BidFormInner({
                 {formatCurrency(place.retailPrice)}/night
               </span>
             </div>
-            <div className="flex justify-between text-muted">
-              <span>Your bid</span>
-              <span className="text-gold font-semibold">
-                {formatCurrency(Number(formik.values.bidPerNight))}/night
-              </span>
-            </div>
-            <div className="flex justify-between border-t border-line pt-2">
-              <span className="text-fg font-medium">Total if accepted</span>
-              <span className="text-fg font-bold text-lg">
-                {formatCurrency(calculateTotalAmount())}
-              </span>
-            </div>
+            {calculateTotalNights() > 0 &&
+              Number(formik.values.bidPerNight) > 0 && (
+                <BidPriceBreakdown
+                  surface="rows"
+                  bidPerNight={Number(formik.values.bidPerNight)}
+                  nights={calculateTotalNights()}
+                  totalAmount={calculateTotalAmount()}
+                />
+              )}
             <p className="text-xs text-warning border border-warning/30 rounded-md p-2 bg-warning/5">
               Binding bid: if accepted, your card is charged immediately for the
               full amount. Rejected bids are not charged.

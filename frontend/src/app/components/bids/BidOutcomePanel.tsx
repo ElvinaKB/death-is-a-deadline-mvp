@@ -16,6 +16,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Checkbox } from "../ui/checkbox";
 import { formatCurrency } from "../../../utils/currency";
+import { BidPriceBreakdown } from "./BidPriceBreakdown";
 import { Place } from "../../../types/place.types";
 import { BidStatus } from "../../../types/bid.types";
 import { ROUTES } from "../../../config/routes.config";
@@ -34,6 +35,7 @@ interface BidOutcomePanelProps {
   onTryNewDates?: () => void;
   onRebid?: (newBidPerNight: number) => void;
   isRebidding?: boolean;
+  isProcessingBid?: boolean;
 }
 
 export function BidOutcomePanel({
@@ -47,7 +49,9 @@ export function BidOutcomePanel({
   onTryNewDates: _onTryNewDates,
   onRebid,
   isRebidding,
+  isProcessingBid,
 }: BidOutcomePanelProps) {
+  const isBusy = isRebidding || isProcessingBid;
   const navigate = useNavigate();
   const user = useAppSelector((s) => s.auth.user);
   const [adjustBid, setAdjustBid] = useState(true);
@@ -186,7 +190,7 @@ export function BidOutcomePanel({
       </div>
 
       <div className="outcome-rejected-bid-field">
-        <p className="outcome-rejected-bid-label">Your previous bid (USD)</p>
+        <p className="outcome-rejected-bid-label">Your bid per night (USD)</p>
         <div className="outcome-rejected-input listing-bid-amount-box">
           <span className="outcome-rejected-currency" aria-hidden>
             $
@@ -196,7 +200,7 @@ export function BidOutcomePanel({
             min={1}
             step={1}
             value={newBidInput}
-            disabled={!adjustBid || isRebidding}
+            disabled={!adjustBid || isBusy}
             onChange={(e) => setNewBidInput(e.target.value)}
             className="outcome-rejected-amount-input border-0 bg-transparent shadow-none disabled:opacity-60"
             aria-label="Bid amount per night in US dollars"
@@ -204,10 +208,19 @@ export function BidOutcomePanel({
         </div>
       </div>
 
+      {adjustBid && newBidPerNight > 0 && nights > 0 && (
+        <BidPriceBreakdown
+          surface="rejected"
+          bidPerNight={newBidPerNight}
+          nights={nights}
+          totalAmount={newTotal}
+        />
+      )}
+
       <label className="outcome-rejected-checkbox flex items-center gap-3 cursor-pointer">
         <Checkbox
           checked={adjustBid}
-          disabled={isRebidding}
+          disabled={isBusy}
           onCheckedChange={(v) => setAdjustBid(v === true)}
           className="border-urgent data-[state=checked]:bg-urgent data-[state=checked]:border-urgent"
         />
@@ -224,7 +237,7 @@ export function BidOutcomePanel({
               <button
                 key={inc}
                 type="button"
-                disabled={isRebidding}
+                disabled={isBusy}
                 onClick={() => applyQuickIncrement(inc)}
                 className={`cursor-pointer rounded-lg border py-2.5 text-sm font-semibold transition-all disabled:opacity-50 disabled:pointer-events-none ${
                   selectedIncrement === inc
@@ -253,11 +266,11 @@ export function BidOutcomePanel({
 
       <Button
         className="w-full btn-bid-premium h-12 uppercase tracking-wide"
-        disabled={!adjustBid || isRebidding || newBidPerNight <= 0}
+        disabled={!adjustBid || isBusy || newBidPerNight <= 0}
         onClick={() => onRebid?.(newBidPerNight)}
-        aria-busy={isRebidding}
+        aria-busy={isBusy}
       >
-        {isRebidding ? (
+        {isBusy ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
             Processing your bid…
@@ -280,7 +293,7 @@ export function BidOutcomePanel({
         type="button"
         variant="outline"
         className="w-full btn-outline-gold"
-        disabled={isRebidding}
+        disabled={isBusy}
         onClick={() => navigate(ROUTES.HOME)}
       >
         Return to Marketplace
