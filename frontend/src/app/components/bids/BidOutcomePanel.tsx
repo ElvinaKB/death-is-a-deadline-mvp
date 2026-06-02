@@ -240,6 +240,25 @@ export function BidOutcomePanel({
               </button>
             ))}
           </div>
+          {newBidPerNight > 0 && (
+            <div className="rounded-lg border border-line/60 bg-bg/40 px-3 py-2.5">
+              <p className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase mb-2">
+                Bid total
+              </p>
+              <div className="flex justify-between items-start gap-3 text-sm text-fg">
+                <span className="font-medium">
+                  {formatCurrency(newBidPerNight)}/night
+                </span>
+                <span className="shrink-0 text-right text-xs text-muted leading-snug">
+                  {formatCurrency(newBidPerNight)} × {nights}{" "}
+                  {nights === 1 ? "night" : "nights"} ={" "}
+                  <span className="font-medium text-gold">
+                    {formatCurrency(newTotal)}
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
