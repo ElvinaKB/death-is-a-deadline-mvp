@@ -1,6 +1,5 @@
 import { BidStatus } from "../types/bid.types";
 import { PaymentStatus } from "../types/payment.types";
-import { BidSubmitErrorCode, isBidErrorCode } from "./bidSubmitFeedback";
 
 const LOW_BID_PHRASE = "very low";
 
@@ -8,16 +7,11 @@ const LOW_BID_PHRASE = "very low";
 export function isLowBidRejection(error: {
   statusCode?: number;
   message?: string;
-  code?: string;
 }): boolean {
-  if (isBidErrorCode(error, BidSubmitErrorCode.BID_TOO_LOW)) return true;
   if (error.statusCode !== 400) return false;
   const msg = error.message?.toLowerCase() ?? "";
   return msg.includes(LOW_BID_PHRASE);
 }
-
-export { isBidOverlapRejection } from "./bidSubmitFeedback";
-export { getApiErrorMessage, showBidAlertToast } from "./bidSubmitFeedback";
 
 /** Reservation Confirmed panel — bid ACCEPTED and payment captured (or just succeeded in-session). */
 export function shouldShowConfirmedOutcome(
