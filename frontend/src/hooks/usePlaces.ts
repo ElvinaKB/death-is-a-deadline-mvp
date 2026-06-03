@@ -66,6 +66,7 @@ export const useCreatePlace = () => {
         blackoutDates: data.blackoutDates,
         allowedDaysOfWeek: data.allowedDaysOfWeek,
         status: data.status,
+        keywords: data.keywords ?? [],
         images: (data.imageUrls || []).map((url, index) => ({
           url,
           order: index,

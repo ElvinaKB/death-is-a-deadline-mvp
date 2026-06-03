@@ -1,6 +1,5 @@
 import { ChevronDown, LogOut } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import logoImg from "../../../assets/logo.png";
 import { ROUTES } from "../../../config/routes.config";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { UserRole } from "../../../types/auth.types";
@@ -129,16 +128,16 @@ export function HomeHeader({
           </DropdownMenu>
         </div>
       ) : (
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <Link
             to={ROUTES.LOGIN}
-            className="text-sm font-medium text-muted hover:text-fg transition-colors"
+            className="text-xs sm:text-sm font-medium text-muted hover:text-fg transition-colors whitespace-nowrap"
           >
             Sign In
           </Link>
           <Link
             to={ROUTES.SIGNUP}
-            className="text-sm font-medium px-4 py-2 rounded-lg border border-gold/60 text-gold hover:bg-gold/10 transition-colors"
+            className="text-xs sm:text-sm font-medium px-2.5 sm:px-4 py-1.5 rounded-lg border border-gold/60 text-gold hover:bg-gold/10 transition-colors whitespace-nowrap"
           >
             Sign Up
           </Link>
@@ -149,47 +148,50 @@ export function HomeHeader({
 
   return (
     <header className="bg-bg border-b border-line sticky top-0 z-50">
-      <div className="flex flex-col md:flex-row md:items-center justify-between px-4 py-3">
-        {/* Logo */}
-        <div className="flex items-center gap-4 w-full md:w-fit justify-between">
-          <Link
-            to={ROUTES.HOME}
-            className={cn(
-              "shrink-0",
-              showSearchBar ? "flex flex-col gap-0.5" : "header-logo-row",
-            )}
-          >
-            <span className="font-serif text-xl md:text-2xl tracking-[0.2em] text-gold leading-none">
-              DEADLINE
-            </span>
+      <div className="flex flex-col md:flex-row md:items-center justify-between px-3 sm:px-4 py-2 sm:py-3 gap-1 sm:gap-0">
+        <div
+          className={cn(
+            "w-full min-w-0",
+            showSearchBar
+              ? "md:flex md:flex-col md:gap-0.5 md:shrink-0"
+              : "md:flex md:items-center md:gap-3 md:w-auto",
+          )}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <Link to={ROUTES.HOME} className="shrink-0">
+              <span className="font-serif text-lg sm:text-xl md:text-2xl tracking-[0.14em] sm:tracking-[0.2em] text-gold leading-none">
+                DEADLINE
+              </span>
+            </Link>
+            <AuthLinks className="flex md:hidden shrink-0" />
+          </div>
+          <Link to={ROUTES.HOME} className="mt-0.5 block md:mt-0">
             <p
               className={cn(
-                "text-muted tracking-wide",
-                showSearchBar ? "text-xs" : "tagline",
+                "text-[9px] sm:text-[10px] text-muted uppercase leading-snug",
+                "tracking-[0.12em] sm:tracking-[0.14em]",
+                !showSearchBar && "md:text-[10px]",
               )}
             >
               LIFE&apos;S SHORT. TRAVEL NOW.
             </p>
           </Link>
-          <AuthLinks className="flex md:hidden" />
         </div>
 
         <div
           className={cn(
-            "flex flex-1 items-center justify-between md:px-4 py-3",
+            "flex flex-1 flex-col sm:flex-row items-stretch sm:items-center justify-between w-full min-w-0 md:px-4 pt-1 sm:pt-2 md:py-0 gap-2 sm:gap-0",
             !isHome && "hidden md:flex",
           )}
         >
-          {/* Search Bar - Centered */}
           {showSearchBar && (
-            <div className="flex-1 flex justify-center md:px-4">
-              <div className="w-full max-w-2xl">
+            <div className="flex-1 flex justify-center md:px-4 w-full min-w-0">
+              <div className="w-full max-w-2xl min-w-0">
                 <SearchBar onSearch={onSearch} />
               </div>
             </div>
           )}
 
-          {/* Auth Links */}
           <AuthLinks
             className={cn("hidden md:flex", !isHome && "w-full justify-end")}
           />

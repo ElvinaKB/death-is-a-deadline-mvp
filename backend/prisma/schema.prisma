@@ -19,6 +19,7 @@ model Place {
   country                String
   address                String
   email                  String?
+  keywords               String[]          @default([])
   latitude               Float?
   longitude              Float?
   accommodationType      AccommodationType

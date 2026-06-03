@@ -6,6 +6,7 @@ export const contactSchema = z.object({
   topic: z.enum(["general", "hotel"]),
   subject: z.string().max(200).optional(),
   message: z.string().min(10, "Message must be at least 10 characters").max(5000),
+  turnstileToken: z.string().min(1, "Security verification is required").optional(),
 });
 
 export type ContactRequest = z.infer<typeof contactSchema>;

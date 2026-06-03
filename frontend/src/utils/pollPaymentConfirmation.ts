@@ -7,9 +7,20 @@ import {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// PAYMENT_FLOW_V2 (active) — see frontend/docs/payment-flow-toggle.md
+export function isStripeChargeComplete(stripeStatus: string): boolean {
+  return (
+    stripeStatus === "succeeded" ||
+    stripeStatus === "processing" ||
+    stripeStatus === "requires_capture"
+  );
+}
+
+/* PAYMENT_FLOW_V1 START — uncomment and comment V2 block above to restore legacy
 function isStripeChargeComplete(stripeStatus: string): boolean {
   return stripeStatus === "succeeded" || stripeStatus === "processing";
 }
+PAYMENT_FLOW_V1 END */
 
 function isTerminalPaymentStatus(status: PaymentStatus): boolean {
   return (

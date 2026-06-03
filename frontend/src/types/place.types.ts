@@ -19,6 +19,7 @@ export interface Place {
   country: string;
   address: string;
   email?: string | null;
+  keywords?: string[];
   latitude?: number;
   longitude?: number;
   images: PlaceImage[] | File[];
@@ -48,7 +49,7 @@ export interface PlaceImage {
 
 export interface CreatePlaceRequest {
   name: string;
-  shortDescription: string;
+  shortDescription?: string;
   fullDescription: string;
   city: string;
   country: string;
@@ -65,6 +66,7 @@ export interface CreatePlaceRequest {
   allowedDaysOfWeek: number[];
   maxInventory: number;
   status: PlaceStatus;
+  keywords?: string[];
 }
 
 export interface UpdatePlaceRequest extends Partial<CreatePlaceRequest> {
@@ -108,6 +110,7 @@ export interface CreatePlacePayload {
   allowedDaysOfWeek: number[];
   maxInventory: number;
   status: PlaceStatus;
+  keywords?: string[];
 }
 
 export interface Testimonial {

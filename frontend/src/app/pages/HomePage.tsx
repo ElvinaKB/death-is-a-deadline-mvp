@@ -48,16 +48,16 @@ export function HomePage() {
   }, []);
 
   return (
-    <div className="flex-1 min-h-0 bg-bg flex flex-col overflow-hidden">
+    <div className="flex-1 min-h-0 bg-bg flex flex-col overflow-hidden min-w-0">
       {/* Header with Search Bar */}
       <HomeHeader showSearchBar onSearch={handleSearch} />
 
       {/* Main Content */}
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0 min-w-0">
         {/* Left Sidebar - Places List */}
-        <div className="w-full md:w-1/2 bg-bg flex flex-col min-h-0">
+        <div className="w-full md:w-1/2 bg-bg flex flex-col min-h-0 min-w-0">
           {/* Places List */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-4">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 sm:p-4">
             <MarketplaceHero />
             <PlacesSidebar
               places={places}

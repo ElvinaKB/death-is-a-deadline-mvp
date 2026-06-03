@@ -70,10 +70,6 @@ export const placeValidationSchema = yup.object({
     .string()
     .required("Place name is required")
     .min(3, "Name must be at least 3 characters"),
-  shortDescription: yup
-    .string()
-    .required("Short description is required")
-    .max(100, "Must be 100 characters or less"),
   fullDescription: yup
     .string()
     .required("Full description is required")

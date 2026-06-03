@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PLACE_KEYWORD_IDS } from "../constants/placeKeywords";
 
 // Enum schemas
 export const accommodationTypeSchema = z.enum([
@@ -8,6 +9,8 @@ export const accommodationTypeSchema = z.enum([
 ]);
 
 export const placeStatusSchema = z.enum(["DRAFT", "LIVE", "PAUSED"]);
+
+export const placeKeywordSchema = z.enum(PLACE_KEYWORD_IDS);
 
 // Image schema (URL from Supabase storage)
 export const placeImageSchema = z.object({
@@ -47,6 +50,7 @@ export const createPlaceSchema = z.object({
     .min(1, "Max inventory must be at least 1")
     .optional()
     .default(1),
+  keywords: z.array(placeKeywordSchema).optional().default([]),
   status: placeStatusSchema.optional().default("DRAFT"),
 });
 
@@ -69,6 +73,7 @@ export const updatePlaceSchema = z.object({
   blackoutDates: z.array(z.string()).optional(),
   allowedDaysOfWeek: z.array(z.number().int().min(0).max(6)).optional(),
   maxInventory: z.number().int().min(1).optional(),
+  keywords: z.array(placeKeywordSchema).optional(),
   status: placeStatusSchema.optional(),
 });
 
