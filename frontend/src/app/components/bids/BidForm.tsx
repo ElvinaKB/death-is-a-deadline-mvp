@@ -34,6 +34,11 @@ import {
   RefreshCw,
   Lock,
 } from "lucide-react";
+/**
+ * Bid + Stripe checkout: V2 active. Legacy V1 preserved in PAYMENT_FLOW_V1 comments.
+ * Toggle guide: frontend/docs/payment-flow-toggle.md
+ * Search: PAYMENT_FLOW_V1 | PAYMENT_FLOW_V2
+ */
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -44,7 +49,10 @@ import {
   useCreatePaymentIntent,
   useSavedPaymentMethods,
 } from "../../../hooks/usePayments";
-import { pollPaymentUntilCaptured } from "../../../utils/pollPaymentConfirmation";
+import {
+  isStripeChargeComplete,
+  pollPaymentUntilCaptured,
+} from "../../../utils/pollPaymentConfirmation";
 import {
   isDbPaymentAwaitingCapture,
   isLowBidRejection,
@@ -209,6 +217,9 @@ function BidFormInner({
   const [frozenPayWithSaved, setFrozenPayWithSaved] = useState(false);
   const payingWithSavedRef = useRef(false);
   const payingPaymentMethodIdRef = useRef<string | undefined>(undefined);
+  // PAYMENT_FLOW_V2: duplicate-submit guard (see frontend/docs/payment-flow-toggle.md)
+  const submitInFlightRef = useRef(false);
+  /* PAYMENT_FLOW_V1: omit submitInFlightRef — no duplicate-submit guard */
 
   const [bidResult, setBidResult] = useState<BidResultState | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
@@ -341,6 +352,15 @@ function BidFormInner({
     );
 
     if (error) {
+      // PAYMENT_FLOW_V2: PI already succeeded on retry
+      if (
+        error.code === "payment_intent_unexpected_state" &&
+        error.payment_intent?.status &&
+        isStripeChargeComplete(error.payment_intent.status)
+      ) {
+        return { success: true };
+      }
+      /* PAYMENT_FLOW_V1: no already-paid handling — go straight to auth/card errors */
       if (
         error.code === "authentication_required" ||
         error.decline_code === "authentication_required" ||
@@ -367,7 +387,10 @@ function BidFormInner({
     switch (paymentIntent.status) {
       case "succeeded":
       case "processing":
+      // PAYMENT_FLOW_V2
+      case "requires_capture":
         return { success: true };
+      /* PAYMENT_FLOW_V1: only succeeded + processing (remove requires_capture case above) */
       case "requires_action":
         return {
           success: false,
@@ -440,6 +463,37 @@ function BidFormInner({
     },
     validationSchema: bidValidationSchema,
     onSubmit: async (values) => {
+      // PAYMENT_FLOW_V2 START — onSubmit entry + validation guards
+      if (submitInFlightRef.current) return;
+      submitInFlightRef.current = true;
+      setPaymentError(null);
+
+      if (isAuthenticated && !acceptedTerms) {
+        setPaymentError(
+          "Please agree to the Terms of Use, Privacy Policy, and cancellation terms.",
+        );
+        submitInFlightRef.current = false;
+        return;
+      }
+
+      if (!stripe) {
+        setPaymentError("Payment system not ready");
+        submitInFlightRef.current = false;
+        return;
+      }
+
+      if (payWithSavedCard) {
+        if (!selectedPaymentMethodId) {
+          setPaymentError("Please select a saved card");
+          submitInFlightRef.current = false;
+          return;
+        }
+      } else if (!isCardComplete || !elements) {
+        setPaymentError("Please enter valid card details");
+        submitInFlightRef.current = false;
+        return;
+      }
+      /* PAYMENT_FLOW_V1 START — uncomment for legacy; comment V2 block above
       setPaymentError(null);
 
       if (isAuthenticated && !acceptedTerms) {
@@ -466,6 +520,7 @@ function BidFormInner({
           return;
         }
       }
+      PAYMENT_FLOW_V1 END */
 
       payingWithSavedRef.current = payWithSavedCard;
       payingPaymentMethodIdRef.current = selectedPaymentMethodId ?? undefined;
@@ -481,8 +536,24 @@ function BidFormInner({
       };
 
       try {
-        // Step 1: Create the bid
+        // PAYMENT_FLOW_V2 START — Step 1: bid create or resume pending payment
+        const existingActive = existingBidData?.bid;
+        const resumeAwaitingPayment =
+          existingActive?.status === BidStatus.ACCEPTED &&
+          existingActive.placeId === placeId &&
+          isDbPaymentAwaitingCapture(existingActive.payment?.status);
+
+        const result = resumeAwaitingPayment
+          ? {
+              bid: existingActive,
+              status: BidStatus.ACCEPTED,
+              message: "Resuming payment for your accepted bid.",
+            }
+          : await createBid.mutateAsync(request);
+        /* PAYMENT_FLOW_V1 START — always create bid
         const result = await createBid.mutateAsync(request);
+        PAYMENT_FLOW_V1 END */
+        // PAYMENT_FLOW_V2 END — Step 1
 
         // Step 2: If bid is accepted, create payment intent and complete payment
         const totalNightsForResult =
@@ -520,6 +591,21 @@ function BidFormInner({
                 : (paymentMethodId ?? undefined),
             );
             if (confirmResult.success) {
+              // PAYMENT_FLOW_V2 START — trust Stripe confirm; poll best-effort
+              try {
+                await pollPaymentUntilCaptured(paymentResult.payment.id, {
+                  maxPolls: 6,
+                  intervalMs: 800,
+                });
+              } catch {
+                /* Stripe succeeded; webhook may still be catching up */
+              }
+              await finalizeAcceptedPayment(
+                paymentResult.payment.id,
+                buildBidResult,
+              );
+              setIsProcessing(false);
+              /* PAYMENT_FLOW_V1 START — require DB/poll proof before finalize
               try {
                 const sync = await pollPaymentUntilCaptured(
                   paymentResult.payment.id,
@@ -551,6 +637,8 @@ function BidFormInner({
                 );
               }
               setIsProcessing(false);
+              PAYMENT_FLOW_V1 END */
+              // PAYMENT_FLOW_V2 END — post-confirm success
             } else if (isStripeActionRequired(confirmResult)) {
               setStripeCompletion({
                 clientSecret: paymentResult.clientSecret,
@@ -637,6 +725,9 @@ function BidFormInner({
         }
         setIsProcessing(false);
       } finally {
+        // PAYMENT_FLOW_V2
+        submitInFlightRef.current = false;
+        /* PAYMENT_FLOW_V1: omit submitInFlightRef reset in finally */
         setLockInOpen(false);
       }
     },
@@ -830,7 +921,12 @@ function BidFormInner({
   };
 
   const handleLockInConfirm = () => {
+    // PAYMENT_FLOW_V2
+    if (submitInFlightRef.current || isProcessing) return;
     formik.submitForm();
+    /* PAYMENT_FLOW_V1 START
+    formik.submitForm();
+    PAYMENT_FLOW_V1 END */
   };
 
   const handleLoggedOutListingSubmit = () => {
@@ -1945,6 +2041,29 @@ function OrphanBidPaymentRetry({
         paymentResult.clientSecret,
         { payment_method: paymentMethodId },
       );
+      // PAYMENT_FLOW_V2 START — OrphanBidPaymentRetry
+      if (error) {
+        const alreadyPaid =
+          error.code === "payment_intent_unexpected_state" &&
+          error.payment_intent?.status === "succeeded";
+        if (!alreadyPaid) {
+          throw new Error(error.message || "Payment failed");
+        }
+      }
+      const stripeStatus = paymentIntent?.status ?? error?.payment_intent?.status;
+      if (stripeStatus && !isStripeChargeComplete(stripeStatus)) {
+        throw new Error("Payment was not completed.");
+      }
+      try {
+        await pollPaymentUntilCaptured(paymentResult.payment.id, {
+          maxPolls: 6,
+          intervalMs: 800,
+        });
+      } catch {
+        /* Stripe charge ok; webhook may lag */
+      }
+      onSuccess();
+      /* PAYMENT_FLOW_V1 START — OrphanBidPaymentRetry
       if (error) {
         throw new Error(error.message || "Payment failed");
       }
@@ -1964,6 +2083,8 @@ function OrphanBidPaymentRetry({
         throw new Error("Payment could not be confirmed.");
       }
       onSuccess();
+      PAYMENT_FLOW_V1 END */
+      // PAYMENT_FLOW_V2 END — OrphanBidPaymentRetry
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Payment failed. Try again.";

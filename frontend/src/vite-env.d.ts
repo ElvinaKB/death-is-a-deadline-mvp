@@ -9,6 +9,9 @@ interface ImportMetaEnv {
   readonly VITE_GA4_MEASUREMENT_ID?: string;
   readonly VITE_CLARITY_PROJECT_ID?: string;
   readonly VITE_META_PIXEL_ID?: string;
+  readonly VITE_TURNSTILE_SITE_KEY?: string;
+  readonly VITE_TURNSTILE_DEMO?: string;
+  readonly VITE_CONTACT_DEMO_MODE?: string;
 }
 
 interface ImportMeta {

@@ -1,13 +1,8 @@
 import {
   AlertTriangle,
-  BarChart3,
-  Bed,
   Info,
   MapPin,
   Star,
-  Utensils,
-  Waves,
-  Wifi,
 } from "lucide-react";
 import { differenceInDays, format } from "date-fns";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -28,13 +23,15 @@ import {
 } from "../../../types/place.types";
 import { BidForm } from "../../components/bids/BidForm";
 import { formatCurrency } from "../../../utils/currency";
-import { extractAmenities } from "../../../utils/amenities";
+import { resolvePlaceKeywords } from "../../../utils/amenities";
 import { ImageGalleryModal } from "../../components/common/ImageGalleryModal";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
 import { HomeHeader } from "../../components/home/HomeHeader";
-import { Testimonials } from "../../components/places/Testimonials";
+import { useReviewPlatforms } from "../../../hooks/useTestimonials";
+import { pickPreferredReviewPlatform } from "../../../utils/reviewPlatform";
 import { StudentBidBadgeIcon } from "../../components/listing/StudentBidBadgeIcon";
 import { PrivateThresholdBadgeIcon } from "../../components/listing/PrivateThresholdBadgeIcon";
+import { Testimonials } from "../../components/places/Testimonials";
 import {
   Accordion,
   AccordionContent,
@@ -132,6 +129,12 @@ export function PlaceDetailPage() {
   const [bookingCheckOut, setBookingCheckOut] = useState<Date | undefined>();
 
   // Fetch similar places in the same city (limit 4, excluding current place)
+  const { data: reviewPlatformsData } = useReviewPlatforms(id || "");
+  const reviewPlatforms = Array.isArray(reviewPlatformsData)
+    ? reviewPlatformsData
+    : [];
+  const heroReview = pickPreferredReviewPlatform(reviewPlatforms);
+
   const { data: similarData } = useApiQuery<PlacesResponse>({
     queryKey: [QUERY_KEYS.PLACES, "similar", id, place?.city],
     endpoint: ENDPOINTS.PLACES_PUBLIC,
@@ -179,7 +182,7 @@ export function PlaceDetailPage() {
 
   // Filter to only PlaceImage types
   const allImages = place.images.filter(isPlaceImage);
-  const amenities = extractAmenities(place.fullDescription);
+  const amenities = resolvePlaceKeywords(place.keywords);
   const heroUrl = allImages[0]?.url || "/placeholder-hotel.jpg";
   const bookingNights =
     bookingCheckIn && bookingCheckOut
@@ -187,7 +190,14 @@ export function PlaceDetailPage() {
       : 0;
   const displayNights = bookingNights || 3;
   const retailTotal = place.retailPrice * displayNights;
-  const amenityIcons = [Waves, Wifi, Utensils, BarChart3, Bed, MapPin];
+
+  const heroRatingBadgeClass =
+    "absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-xs backdrop-blur-sm transition-colors hover:bg-black/85 cursor-pointer";
+
+  const handleHeroRatingClick = () => {
+    if (!heroReview?.url) return;
+    window.open(heroReview.url, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <div className="min-h-screen bg-bg">
@@ -200,7 +210,7 @@ export function PlaceDetailPage() {
         onClose={() => setGalleryOpen(false)}
       />
 
-      <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8 md:py-8">
+      <div className="mx-auto max-w-[1400px] px-4 py-4 sm:py-6 md:px-8 md:py-8 min-w-0">
         <div className="listing-detail-grid gap-4 lg:gap-8">
           <div className="listing-detail-hero relative aspect-[16/10] overflow-hidden rounded-xl">
               <img
@@ -209,11 +219,22 @@ export function PlaceDetailPage() {
                 className="h-full w-full cursor-pointer object-cover"
                 onClick={() => openGallery(0)}
               />
-              <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-xs backdrop-blur-sm">
-                <Star className="h-3.5 w-3.5 fill-gold text-gold" />
-                <span className="text-fg">4.6</span>
-                <span className="text-muted">(382 reviews)</span>
-              </div>
+              {heroReview && (
+                <button
+                  type="button"
+                  onClick={handleHeroRatingClick}
+                  className={heroRatingBadgeClass}
+                  aria-label={`${Number(heroReview.rating).toFixed(1)} stars on ${heroReview.source === "google" ? "Google" : "Yelp"}, ${heroReview.reviewCount} reviews`}
+                >
+                  <Star className="h-3.5 w-3.5 fill-gold text-gold" />
+                  <span className="text-fg">
+                    {Number(heroReview.rating).toFixed(1)}
+                  </span>
+                  <span className="text-muted">
+                    ({heroReview.reviewCount} reviews)
+                  </span>
+                </button>
+              )}
               {allImages.length > 0 && (
                 <button
                   type="button"
@@ -227,7 +248,7 @@ export function PlaceDetailPage() {
                 <span className="listing-type-pill w-fit mb-3">
                   {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
                 </span>
-                <h1 className="font-serif text-3xl text-fg md:text-4xl leading-tight">
+                <h1 className="font-serif text-2xl sm:text-3xl text-fg md:text-4xl leading-tight">
                   {place.name}
                 </h1>
                 <p className="mt-2 flex items-center gap-2 text-sm text-[hsl(0_0%_78%)]">
@@ -239,18 +260,15 @@ export function PlaceDetailPage() {
 
           {amenities.length > 0 && (
             <div className="listing-detail-amenities flex flex-wrap items-center gap-x-5 gap-y-2">
-                {amenities.slice(0, 6).map((item, i) => {
-                  const Icon = amenityIcons[i % amenityIcons.length];
-                  return (
-                    <span
-                      key={i}
-                      className="listing-amenity-item inline-flex items-center gap-2"
-                    >
-                      <Icon className="text-gold shrink-0" strokeWidth={1.5} />
-                      {item.split(/[,.]/)[0].trim().slice(0, 28)}
-                    </span>
-                  );
-                })}
+              {amenities.map(({ id, label, icon: Icon }) => (
+                <span
+                  key={id}
+                  className="listing-amenity-item inline-flex items-center gap-2"
+                >
+                  <Icon className="text-gold shrink-0" strokeWidth={1.5} />
+                  {label}
+                </span>
+              ))}
             </div>
           )}
 
@@ -331,11 +349,11 @@ export function PlaceDetailPage() {
           </div>
         </div>
 
-        <Testimonials placeId={id || ""} />
+          <Testimonials placeId={id} />
 
           {/* FAQ Accordion */}
-          <div className="mt-12">
-            <h2 className="text-2xl font-bold text-fg mb-6">
+          <div className="mt-8 sm:mt-12">
+            <h2 className="text-xl sm:text-2xl font-bold text-fg mb-4 sm:mb-6">
               Frequently Asked Questions
             </h2>
             <Accordion type="single" collapsible className="w-full">
@@ -365,7 +383,7 @@ export function PlaceDetailPage() {
                 <h3 className="text-lg font-semibold text-fg">Location</h3>
               </div>
               <p className="text-muted mb-4">{place.address}</p>
-              <div className="relative w-full h-80 rounded-lg overflow-hidden">
+              <div className="relative w-full h-56 sm:h-72 md:h-80 rounded-lg overflow-hidden">
                 <Map
                   initialViewState={{
                     latitude: place.latitude,
@@ -404,8 +422,8 @@ export function PlaceDetailPage() {
 
           {/* Similar Listings */}
           {similarPlaces.length > 0 && (
-            <div className="mt-12">
-              <h2 className="text-2xl font-bold text-fg mb-6">
+            <div className="mt-8 sm:mt-12">
+              <h2 className="text-xl sm:text-2xl font-bold text-fg mb-4 sm:mb-6">
                 {place.city} Listings
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

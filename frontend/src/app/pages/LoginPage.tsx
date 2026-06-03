@@ -124,10 +124,10 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen bg-bg diad-vignette">
-      {/* Full-screen explainer layout */}
-      <div className="flex flex-col-reverse lg:flex-row min-h-screen">
-        {/* Left Side - Explainer Content */}
-        <div className="lg:w-1/2 flex flex-col justify-center px-8 lg:px-16 py-12 lg:py-0">
+      {/* Mobile: form first; desktop: explainer left, form right */}
+      <div className="flex flex-col lg:flex-row min-h-screen">
+        {/* Explainer — below form on mobile */}
+        <div className="order-2 lg:order-1 lg:w-1/2 flex flex-col justify-center px-4 sm:px-8 lg:px-16 py-10 lg:py-0">
           <div className="max-w-lg mx-auto lg:mx-0">
             {/* Logo/Brand */}
             <div className="flex items-center gap-2 mb-8">
@@ -215,8 +215,8 @@ export function LoginPage() {
           </div>
         </div>
 
-        {/* Right Side - Login Form */}
-        <div className="lg:w-1/2 flex items-center justify-center px-4 py-12 lg:py-0 bg-glass/30">
+        {/* Login form — first on mobile */}
+        <div className="order-1 lg:order-2 lg:w-1/2 flex items-center justify-center px-4 py-8 sm:py-10 lg:py-0 bg-glass/30">
           <Card className="w-full max-w-md bg-glass-2 border-line shadow-glass relative z-10">
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl font-bold text-center text-fg">

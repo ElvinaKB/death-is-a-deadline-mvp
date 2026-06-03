@@ -15,6 +15,7 @@ import {
 } from "../types/payment.types";
 
 // ============ STUDENT HOOKS ============
+// create-intent invalidation toggle: frontend/docs/payment-flow-toggle.md (PAYMENT_FLOW_V1/V2)
 
 // Create payment intent for a bid
 export const useCreatePaymentIntent = () => {
@@ -23,10 +24,13 @@ export const useCreatePaymentIntent = () => {
   return useApiMutation<PaymentResponse, CreatePaymentIntentRequest>({
     endpoint: ENDPOINTS.PAYMENT_CREATE_INTENT,
     method: "POST",
+    // PAYMENT_FLOW_V2: no invalidation here (see frontend/docs/payment-flow-toggle.md)
+    /* PAYMENT_FLOW_V1 START
     onSuccess: () => {
       // Do not invalidate ["payments"] — that refetches saved-methods mid-checkout
       queryClient.invalidateQueries({ queryKey: ["bids"] });
     },
+    PAYMENT_FLOW_V1 END */
   });
 };
 

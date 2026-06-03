@@ -29,6 +29,7 @@ const formatPlace = (
   email: place.email,
   shortDescription: place.shortDescription,
   fullDescription: place.fullDescription,
+  keywords: place.keywords || [],
   city: place.city,
   country: place.country,
   address: place.address,
@@ -401,6 +402,7 @@ export async function createPlace(req: Request, res: Response) {
       blackoutDates: data.blackoutDates ?? [],
       allowedDaysOfWeek: data.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
       maxInventory: data.maxInventory ?? 1,
+      keywords: data.keywords ?? [],
       status: data.status ?? "DRAFT",
       images: {
         create: data.images.map((img, index) => ({
@@ -529,6 +531,7 @@ export async function updatePlace(req: Request, res: Response) {
       ...(data.maxInventory !== undefined && {
         maxInventory: data.maxInventory,
       }),
+      ...(data.keywords !== undefined && { keywords: data.keywords }),
       ...(data.status && { status: data.status }),
       ...(data.images &&
         data.images.length > 0 && {

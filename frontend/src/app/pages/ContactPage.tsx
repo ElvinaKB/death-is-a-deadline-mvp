@@ -21,6 +21,15 @@ import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import { getFieldError } from "../../utils/formikHelpers";
 import { toast } from "sonner";
+import {
+  isContactDemoMode,
+  isTurnstileDemoMode,
+  isTurnstileEnabled,
+} from "../../config/turnstile.config";
+import {
+  TurnstileWidget,
+  type TurnstileWidgetHandle,
+} from "../components/common/TurnstileWidget";
 
 export type ContactTopic = "general" | "hotel";
 
@@ -30,6 +39,7 @@ export interface ContactFormRequest {
   topic: ContactTopic;
   subject?: string;
   message: string;
+  turnstileToken?: string;
 }
 
 const contactSchema = Yup.object({
@@ -55,7 +65,12 @@ const hotelBenefits = [
 
 export function ContactPage() {
   const formRef = useRef<HTMLDivElement>(null);
+  const turnstileRef = useRef<TurnstileWidgetHandle | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRequired = isTurnstileEnabled();
+  const contactDemoMode = isContactDemoMode();
+  const turnstileDemoMode = isTurnstileDemoMode();
 
   const contactMutation = useApiMutation<
     { success: boolean; message: string },
@@ -67,6 +82,8 @@ export function ContactPage() {
       setSubmitted(true);
       toast.success("Message sent — we'll get back to you soon.");
       formik.resetForm();
+      setTurnstileToken(null);
+      turnstileRef.current?.reset();
     },
   });
 
@@ -80,9 +97,26 @@ export function ContactPage() {
     },
     validationSchema: contactSchema,
     onSubmit: (values) => {
+      if (turnstileRequired && !turnstileToken) {
+        toast.error("Please complete the security check below.");
+        return;
+      }
+
+      if (contactDemoMode) {
+        setSubmitted(true);
+        toast.success(
+          "Demo: security check passed. Connect the backend to send real email.",
+        );
+        formik.resetForm();
+        setTurnstileToken(null);
+        turnstileRef.current?.reset();
+        return;
+      }
+
       contactMutation.mutate({
         ...values,
         subject: values.subject?.trim() || undefined,
+        turnstileToken: turnstileToken ?? undefined,
       });
     },
   });
@@ -110,90 +144,39 @@ export function ContactPage() {
   const ctaButtonClassName =
     "w-full btn-bid h-11 text-[0.9375rem] font-semibold tracking-wide text-white disabled:!opacity-100";
 
-  const cardClassName = "gold-card rounded-2xl p-6 md:p-8";
+  const cardClassName = "gold-card rounded-2xl p-4 sm:p-6 md:p-8";
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
       <HomeHeader variant="dark" />
-      <main className="flex-1 max-w-6xl mx-auto px-6 py-10 w-full">
+      <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 w-full min-w-0">
         <Link
           to={ROUTES.HOME}
-          className="text-sm text-gold hover:text-gold-light mb-6 inline-block"
+          className="text-sm text-gold hover:text-gold-light mb-4 sm:mb-6 inline-block"
         >
           ← Back to marketplace
         </Link>
 
-        <div className="mb-10 text-center md:text-left">
+        <div className="mb-6 sm:mb-10 text-center md:text-left">
           <p className="text-xs font-medium tracking-[0.25em] text-gold uppercase mb-2">
             Get in touch
           </p>
-          <h1 className="text-3xl md:text-4xl font-bold text-gold-light mb-3">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gold-light mb-3">
             Contact Us
           </h1>
-          <p className="text-[hsl(0_0%_78%)] text-sm md:text-base max-w-2xl leading-relaxed">
+          <p className="text-[hsl(0_0%_78%)] text-sm md:text-base max-w-2xl leading-relaxed mx-auto md:mx-0">
             Questions, feedback, or partnership ideas — send us a message. Hotels
             interested in listing on Deadline can use the form or the dedicated
             section below.
           </p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-5 lg:gap-10">
-          {/* Hotel CTA */}
-          <section
-            className={`lg:col-span-2 ${cardClassName} flex flex-col`}
-            aria-labelledby="hotel-cta-heading"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gold/10 border border-gold/30 mb-5">
-              <Building2 className="h-6 w-6 text-gold" aria-hidden />
-            </div>
-            <h2
-              id="hotel-cta-heading"
-              className="text-xl font-semibold text-fg mb-2"
-            >
-              List Your Hotel
-            </h2>
-            <p className="text-sm text-[hsl(0_0%_78%)] mb-6 leading-relaxed">
-              Join Deadline Travel&apos;s verified student marketplace. Tell us
-              about your property and our team will reach out about onboarding.
-            </p>
-            <ul className="space-y-3 mb-8 flex-1">
-              {hotelBenefits.map((item) => (
-                <li
-                  key={item}
-                  className="flex gap-2.5 text-sm text-[hsl(0_0%_82%)] leading-snug"
-                >
-                  <Sparkles
-                    className="h-4 w-4 shrink-0 text-gold mt-0.5"
-                    aria-hidden
-                  />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-            <Button
-              type="button"
-              className={`${ctaButtonClassName} mb-3`}
-              onClick={focusHotelInquiry}
-            >
-              <Users className="h-4 w-4" />
-              Inquire about listing
-            </Button>
-            <p className="text-xs text-[hsl(0_0%_70%)] text-center">
-              Already have an invite?{" "}
-              <Link
-                to={ROUTES.HOTEL_SIGNUP}
-                className="text-gold hover:text-gold-light underline underline-offset-2"
-              >
-                Complete hotel signup
-              </Link>
-            </p>
-          </section>
-
-          {/* Contact form */}
+        <div className="grid gap-6 sm:gap-8 lg:grid-cols-5 lg:gap-10">
+          {/* Contact form — first on mobile */}
           <section
             ref={formRef}
             id="contact-form"
-            className={`lg:col-span-3 ${cardClassName}`}
+            className={`order-1 lg:order-2 lg:col-span-3 ${cardClassName} min-w-0`}
             aria-labelledby="contact-form-heading"
           >
             <div className="flex items-center gap-3 mb-6">
@@ -332,10 +315,36 @@ export function ContactPage() {
                 )}
               </div>
 
+              {turnstileRequired && (
+                <div className="space-y-2">
+                  <Label className={labelClassName}>Security check</Label>
+                  {turnstileDemoMode && (
+                    <p className="text-xs text-muted leading-relaxed">
+                      Demo mode: Cloudflare test widget (auto-passes on localhost).
+                      Complete the check, then send — no backend required.
+                    </p>
+                  )}
+                  <TurnstileWidget
+                    widgetRef={turnstileRef}
+                    onToken={setTurnstileToken}
+                    onExpire={() => setTurnstileToken(null)}
+                    onError={() => {
+                      setTurnstileToken(null);
+                      toast.error("Security check failed. Please try again.");
+                    }}
+                    className="min-h-[65px] flex justify-start"
+                    size="normal"
+                  />
+                </div>
+              )}
+
               <Button
                 type="submit"
                 className={ctaButtonClassName}
-                disabled={contactMutation.isPending}
+                disabled={
+                  contactMutation.isPending ||
+                  (turnstileRequired && !turnstileToken)
+                }
               >
                 <Send className="h-4 w-4" />
                 {contactMutation.isPending ? "Sending…" : "Send message"}
@@ -351,6 +360,57 @@ export function ContactPage() {
               >
                 {CONTACT_EMAIL}
               </a>
+            </p>
+          </section>
+
+          {/* Hotel CTA — below form on mobile */}
+          <section
+            className={`order-2 lg:order-1 lg:col-span-2 ${cardClassName} flex flex-col min-w-0`}
+            aria-labelledby="hotel-cta-heading"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gold/10 border border-gold/30 mb-5">
+              <Building2 className="h-6 w-6 text-gold" aria-hidden />
+            </div>
+            <h2
+              id="hotel-cta-heading"
+              className="text-xl font-semibold text-fg mb-2"
+            >
+              List Your Hotel
+            </h2>
+            <p className="text-sm text-[hsl(0_0%_78%)] mb-6 leading-relaxed">
+              Join Deadline Travel&apos;s verified student marketplace. Tell us
+              about your property and our team will reach out about onboarding.
+            </p>
+            <ul className="space-y-3 mb-8 flex-1">
+              {hotelBenefits.map((item) => (
+                <li
+                  key={item}
+                  className="flex gap-2.5 text-sm text-[hsl(0_0%_82%)] leading-snug"
+                >
+                  <Sparkles
+                    className="h-4 w-4 shrink-0 text-gold mt-0.5"
+                    aria-hidden
+                  />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <Button
+              type="button"
+              className={`${ctaButtonClassName} mb-3`}
+              onClick={focusHotelInquiry}
+            >
+              <Users className="h-4 w-4" />
+              Inquire about listing
+            </Button>
+            <p className="text-xs text-[hsl(0_0%_70%)] text-center">
+              Already have an invite?{" "}
+              <Link
+                to={ROUTES.HOTEL_SIGNUP}
+                className="text-gold hover:text-gold-light underline underline-offset-2"
+              >
+                Complete hotel signup
+              </Link>
             </p>
           </section>
         </div>

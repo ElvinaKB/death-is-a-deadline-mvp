@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { sendPlainEmail } from "../email/sendEmail";
+import { verifyTurnstileToken } from "../services/turnstile.service";
 import { ContactRequest } from "../validations/contact/contact.validation";
 
 const CONTACT_INBOX =
@@ -19,7 +20,15 @@ function escapeHtml(text: string): string {
 }
 
 export async function submitContact(req: Request, res: Response) {
-  const { name, email, topic, subject, message } = req.body as ContactRequest;
+  const { name, email, topic, subject, message, turnstileToken } =
+    req.body as ContactRequest;
+
+  const remoteIp =
+    (typeof req.headers["x-forwarded-for"] === "string"
+      ? req.headers["x-forwarded-for"].split(",")[0]?.trim()
+      : undefined) || req.socket.remoteAddress;
+
+  await verifyTurnstileToken(turnstileToken, remoteIp);
   const topicLabel = topicLabels[topic];
   const emailSubject =
     subject?.trim() ||

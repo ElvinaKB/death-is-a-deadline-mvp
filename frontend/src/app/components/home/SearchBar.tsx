@@ -67,9 +67,9 @@ export function SearchBar({ onSearch }: SearchBarProps) {
   };
 
   return (
-    <div className="marketplace-search-bar flex items-center">
+    <div className="marketplace-search-bar flex flex-col sm:flex-row items-stretch sm:items-center w-full min-w-0">
       {/* Location Search */}
-      <div className="flex items-center gap-2 px-4 py-3 flex-1 min-w-0 relative">
+      <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 flex-1 min-w-0 relative">
         <Search className="h-4 w-4 text-gold shrink-0" />
         <input
           type="text"
@@ -99,7 +99,10 @@ export function SearchBar({ onSearch }: SearchBarProps) {
       {/* Date Picker */}
       <Popover open={isDateOpen} onOpenChange={setIsDateOpen}>
         <PopoverTrigger asChild>
-          <button className="flex items-center gap-2 px-4 py-3 min-w-[120px] hover:bg-glass transition-colors rounded-lg">
+          <button
+            type="button"
+            className="flex items-center justify-between sm:justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 w-full sm:w-auto sm:min-w-[120px] hover:bg-glass transition-colors rounded-lg"
+          >
             <Calendar className="h-4 w-4 text-gold shrink-0" />
             <span className="text-sm text-fg whitespace-nowrap">
               {getDateLabel()}

@@ -55,6 +55,16 @@ import { supabase } from "../../../utils/supabaseClient";
 import { toast } from "sonner";
 import { SUPABASE_BUCKET } from "../../../lib/constants";
 import { LocationPicker } from "../../components/common/LocationPicker";
+import {
+  PLACE_KEYWORD_OPTIONS,
+  type PlaceKeywordId,
+} from "../../../constants/placeKeywords";
+
+const deriveShortDescription = (fullDescription: string, name: string) => {
+  const trimmed = fullDescription.replace(/\s+/g, " ").trim();
+  if (trimmed.length > 0) return trimmed.slice(0, 100);
+  return name.slice(0, 100);
+};
 
 // Upload images to Supabase and return URLs
 const uploadImagesToSupabase = async (files: File[]): Promise<string[]> => {
@@ -119,12 +129,12 @@ export function PlaceFormPage() {
   const formik = useFormik({
     initialValues: {
       name: existingPlace?.name || "",
-      shortDescription: existingPlace?.shortDescription || "",
       fullDescription: existingPlace?.fullDescription || "",
       city: existingPlace?.city || "",
       country: existingPlace?.country || "",
       address: existingPlace?.address || "",
       email: existingPlace?.email || "",
+      keywords: (existingPlace?.keywords ?? []) as PlaceKeywordId[],
       latitude: existingPlace?.latitude ?? null,
       longitude: existingPlace?.longitude ?? null,
       images: [] as File[],
@@ -160,6 +170,10 @@ export function PlaceFormPage() {
 
         const data = {
           ...values,
+          shortDescription: deriveShortDescription(
+            values.fullDescription,
+            values.name,
+          ),
           blackoutDates: blackoutDates.map(
             (d) => d.toISOString().split("T")[0],
           ),
@@ -196,6 +210,19 @@ export function PlaceFormPage() {
       );
     }
   }, [existingPlace, isEditMode]);
+
+  const toggleKeyword = (keywordId: PlaceKeywordId, checked: boolean) => {
+    const current = formik.values.keywords;
+    if (checked) {
+      if (current.includes(keywordId)) return;
+      formik.setFieldValue("keywords", [...current, keywordId]);
+      return;
+    }
+    formik.setFieldValue(
+      "keywords",
+      current.filter((id) => id !== keywordId),
+    );
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -304,31 +331,13 @@ export function PlaceFormPage() {
             </div>
 
             <div>
-              <Label htmlFor="shortDescription" className="text-fg">
-                Short Description *
-              </Label>
-              <Input
-                id="shortDescription"
-                {...formik.getFieldProps("shortDescription")}
-                placeholder="Brief tagline (max 100 characters)"
-                maxLength={100}
-              />
-              {formik.touched.shortDescription &&
-                formik.errors.shortDescription && (
-                  <p className="text-sm text-error mt-1">
-                    {formik.errors.shortDescription}
-                  </p>
-                )}
-            </div>
-
-            <div>
               <Label htmlFor="fullDescription" className="text-fg">
                 Full Description *
               </Label>
               <Textarea
                 id="fullDescription"
                 {...formik.getFieldProps("fullDescription")}
-                placeholder="Detailed description of the place and its amenities"
+                placeholder="Detailed description of the place"
                 rows={6}
               />
               {formik.touched.fullDescription &&
@@ -339,22 +348,52 @@ export function PlaceFormPage() {
                 )}
             </div>
 
-            <div>
-              <Label htmlFor="email" className="text-fg">
-                Place Email (for notifications)
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                {...formik.getFieldProps("email")}
-                placeholder="e.g., contact@place.com"
-              />
-              {formik.touched.email && formik.errors.email && (
-                <p className="text-sm text-error mt-1">{formik.errors.email}</p>
-              )}
-              <p className="text-sm text-muted mt-1">
-                Booking confirmations will be sent to this email
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="email" className="text-fg">
+                  Place Email (for notifications)
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  {...formik.getFieldProps("email")}
+                  placeholder="e.g., contact@place.com"
+                />
+                {formik.touched.email && formik.errors.email && (
+                  <p className="text-sm text-error mt-1">
+                    {formik.errors.email}
+                  </p>
+                )}
+                <p className="text-sm text-muted mt-1">
+                  Booking confirmations will be sent to this email
+                </p>
+              </div>
+
+              <div>
+                <Label className="text-fg">Amenities (optional)</Label>
+                <p className="text-sm text-muted mt-1 mb-3">
+                  Shown on the listing detail page below the hero image
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
+                  {PLACE_KEYWORD_OPTIONS.map((option) => {
+                    const checked = formik.values.keywords.includes(option.id);
+                    return (
+                      <label
+                        key={option.id}
+                        className="flex items-center gap-2 rounded-md border border-line/60 px-2 py-1.5 cursor-pointer hover:bg-white/5"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(value) =>
+                            toggleKeyword(option.id, value === true)
+                          }
+                        />
+                        <span className="text-sm text-fg">{option.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
