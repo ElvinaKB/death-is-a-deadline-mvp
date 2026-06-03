@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PLACE_KEYWORD_IDS } from "../constants/placeKeywords";
+import { PLACE_KEYWORD_IDS } from "../../constants/placeKeywords";
 
 // Enum schemas
 export const accommodationTypeSchema = z.enum([
