@@ -1,9 +1,7 @@
 import { getAuthToken, removeAuthToken } from "../utils/tokenHelpers";
 import { ApiResponse, ApiError } from "../types/api.types";
 import { logout } from "../store/slices/authSlice";
-import { useAppDispatch } from "../store/hooks";
-import { useNavigate } from "react-router-dom";
-import { ROUTES } from "../config/routes.config";
+import { store } from "../store";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
@@ -39,8 +37,12 @@ export class ApiClient {
       const data: ApiResponse<T> = await response.json();
 
       if (!response.ok) {
+        const rawMessage = data.message || "An error occurred";
         const error: ApiError = {
-          message: data.message || "An error occurred",
+          message:
+            response.status === 401
+              ? "Your session has expired. Please log in again."
+              : rawMessage,
           statusCode: response.status,
           code: (data as { code?: string }).code,
           errors: data.error?.errors,
@@ -53,8 +55,8 @@ export class ApiClient {
       console.log(error);
       if ("statusCode" in error) {
         if (error.statusCode === 401) {
-          // logout user
           removeAuthToken();
+          store.dispatch(logout());
         }
         throw error;
       }

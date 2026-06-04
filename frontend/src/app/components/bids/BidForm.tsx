@@ -4,7 +4,6 @@ import {
   format,
   isAfter,
   isBefore,
-  eachDayOfInterval,
   isSameDay,
 } from "date-fns";
 import { useFormik } from "formik";
@@ -91,10 +90,20 @@ import {
 import { BidLockInModal } from "./BidLockInModal";
 import { BidOutcomePanel } from "./BidOutcomePanel";
 import { BidPriceBreakdown } from "./BidPriceBreakdown";
+import { StayDatesAvailabilityAlert } from "./StayDatesAvailabilityAlert";
 import { BidStepIndicator, type BidStep, STEPS } from "./BidStepIndicator";
 import { PriorStayBanner } from "./PriorStayBanner";
 import { formatCurrency } from "../../../utils/currency";
-import { toApiDateOnly } from "../../../utils/dateHelpers";
+import {
+  isDateInBlackout,
+  isDayOfWeekAllowed,
+  parseApiDate,
+  toApiDateOnly,
+} from "../../../utils/dateHelpers";
+import {
+  buildStayDatesProceedError,
+  getStayNightIssues,
+} from "../../../utils/stayDateValidation";
 import {
   ANALYTICS_EVENTS,
   trackEvent,
@@ -125,9 +134,9 @@ const saveBidFormToStorage = (
 ) => {
   const state: StoredBidFormState = {
     placeId,
-    checkInDate: values.checkInDate ? values.checkInDate.toISOString() : null,
+    checkInDate: values.checkInDate ? toApiDateOnly(values.checkInDate) ?? null : null,
     checkOutDate: values.checkOutDate
-      ? values.checkOutDate.toISOString()
+      ? toApiDateOnly(values.checkOutDate) ?? null
       : null,
     bidPerNight: values.bidPerNight,
     timestamp: Date.now(),
@@ -153,10 +162,8 @@ const loadBidFormFromStorage = (
     }
 
     return {
-      checkInDate: state.checkInDate ? new Date(state.checkInDate) : undefined,
-      checkOutDate: state.checkOutDate
-        ? new Date(state.checkOutDate)
-        : undefined,
+      checkInDate: parseApiDate(state.checkInDate),
+      checkOutDate: parseApiDate(state.checkOutDate),
       bidPerNight: state.bidPerNight,
     };
   } catch {
@@ -933,7 +940,7 @@ function BidFormInner({
     const checkIn = savedFormState?.checkInDate;
     const checkOut = savedFormState?.checkOutDate;
     if (checkIn && onDateChange) {
-      onDateChange(checkIn.toISOString().split("T")[0]);
+      onDateChange(toApiDateOnly(checkIn));
     }
     if (onBookingDatesChange && checkIn && checkOut) {
       onBookingDatesChange(checkIn, checkOut);
@@ -998,54 +1005,54 @@ function BidFormInner({
         }
       }
 
-      // Check if day of week is allowed
-      const dayOfWeek = date.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
-      if (
-        place?.allowedDaysOfWeek &&
-        !place.allowedDaysOfWeek.includes(dayOfWeek)
-      ) {
-        return true;
-      }
-
-      if (place?.blackoutDates) {
-        const dateStr = format(date, "yyyy-MM-dd");
-        return place.blackoutDates.includes(dateStr);
-      }
-      return false;
-    };
-
-  // Check if any date in the selected range is blocked (blackout or not allowed day)
-  const getBlockedDatesInRange = () => {
-    if (!formik.values.checkInDate || !formik.values.checkOutDate) {
-      return [];
-    }
-
-    const datesInRange = eachDayOfInterval({
-      start: formik.values.checkInDate,
-      end: formik.values.checkOutDate,
-    });
-
-    return datesInRange.filter((date) => {
-      // Check blackout dates
-      if (place?.blackoutDates) {
-        const dateStr = format(date, "yyyy-MM-dd");
-        if (place.blackoutDates.includes(dateStr)) {
+      // Occupied-night rules: check-in day must be allowed; checkout day is departure only
+      if (field === "checkInDate") {
+        if (!isDayOfWeekAllowed(date, place?.allowedDaysOfWeek)) {
+          return true;
+        }
+        if (isDateInBlackout(date, place?.blackoutDates)) {
           return true;
         }
       }
-      // Check allowed days of week
-      const dayOfWeek = date.getDay();
-      if (
-        place?.allowedDaysOfWeek &&
-        !place.allowedDaysOfWeek.includes(dayOfWeek)
-      ) {
-        return true;
-      }
-      return false;
-    });
-  };
 
-  const blockedDatesInRange = getBlockedDatesInRange();
+      return false;
+    };
+
+  const stayDateOptions = useMemo(
+    () => ({
+      blackoutDates: place?.blackoutDates,
+      allowedDaysOfWeek: place?.allowedDaysOfWeek,
+    }),
+    [place?.blackoutDates, place?.allowedDaysOfWeek],
+  );
+
+  const stayNightIssues = useMemo(
+    () =>
+      getStayNightIssues(
+        formik.values.checkInDate,
+        formik.values.checkOutDate,
+        stayDateOptions,
+      ),
+    [
+      formik.values.checkInDate,
+      formik.values.checkOutDate,
+      stayDateOptions,
+    ],
+  );
+
+  const datesProceedError = useMemo(
+    () =>
+      buildStayDatesProceedError(
+        formik.values.checkInDate,
+        formik.values.checkOutDate,
+        stayDateOptions,
+      ),
+    [
+      formik.values.checkInDate,
+      formik.values.checkOutDate,
+      stayDateOptions,
+    ],
+  );
 
   const calculateTotalNights = () => {
     if (formik.values.checkInDate && formik.values.checkOutDate) {
@@ -1081,8 +1088,8 @@ function BidFormInner({
 
   const handleReviewBindingBid = () => {
     setPaymentError(null);
-    if (!canProceedFromDates) {
-      setPaymentError("Select valid check-in and check-out dates.");
+    if (datesProceedError) {
+      setPaymentError(datesProceedError);
       return;
     }
     if (!canProceedFromAmount) {
@@ -1129,8 +1136,8 @@ function BidFormInner({
 
   const handleLoggedOutListingSubmit = () => {
     setPaymentError(null);
-    if (!canProceedFromDates) {
-      setPaymentError("Select valid check-in and check-out dates.");
+    if (datesProceedError) {
+      setPaymentError(datesProceedError);
       return;
     }
     if (!canProceedFromAmount) {
@@ -1188,10 +1195,7 @@ function BidFormInner({
   const stepIndex = STEPS.indexOf(bidStep);
 
   const canProceedFromDates =
-    formik.values.checkInDate &&
-    formik.values.checkOutDate &&
-    blockedDatesInRange.length === 0 &&
-    !isInventoryExhausted;
+    !datesProceedError && !isInventoryExhausted;
 
   const canProceedFromAmount =
     formik.values.bidPerNight && Number(formik.values.bidPerNight) > 0;
@@ -1389,6 +1393,7 @@ function BidFormInner({
           bidPerNight={Number(formik.values.bidPerNight) || 0}
           totalAmount={totalAmount}
           auctionSeconds={auctionSeconds}
+          datesErrorMessage={datesProceedError}
           onConfirm={handleLockInConfirm}
           onGoBack={() => setLockInOpen(false)}
           isSubmitting={isProcessing}
@@ -1427,8 +1432,9 @@ function BidFormInner({
                       onSelect={(date) => {
                         formik.setFieldValue("checkInDate", date);
                         setCheckInOpen(false);
+                        setPaymentError(null);
                         if (date && onDateChange) {
-                          onDateChange(date.toISOString().split("T")[0]);
+                          onDateChange(toApiDateOnly(date));
                         }
                       }}
                       disabled={isDateBlocked("checkInDate")}
@@ -1463,6 +1469,7 @@ function BidFormInner({
                       onSelect={(date) => {
                         formik.setFieldValue("checkOutDate", date);
                         setCheckOutOpen(false);
+                        setPaymentError(null);
                       }}
                       disabled={isDateBlocked("checkOutDate")}
                     />
@@ -1470,6 +1477,10 @@ function BidFormInner({
                 </Popover>
               </div>
             </div>
+            <StayDatesAvailabilityAlert
+              issues={stayNightIssues}
+              allowedDaysOfWeek={place?.allowedDaysOfWeek}
+            />
             <div>
               <Label className="listing-bid-amount-label mb-2 block">
                 <span className="text-fg">Your bid per night </span>
@@ -1784,9 +1795,9 @@ function BidFormInner({
                   onSelect={(date) => {
                     formik.setFieldValue("checkInDate", date);
                     setCheckInOpen(false);
-                    // Notify parent of date change for inventory checking
+                    setPaymentError(null);
                     if (date && onDateChange) {
-                      onDateChange(date.toISOString().split("T")[0]);
+                      onDateChange(toApiDateOnly(date));
                     }
                   }}
                   disabled={isDateBlocked("checkInDate")}
@@ -1831,6 +1842,7 @@ function BidFormInner({
                   onSelect={(date) => {
                     formik.setFieldValue("checkOutDate", date);
                     setCheckOutOpen(false);
+                    setPaymentError(null);
                   }}
                   disabled={isDateBlocked("checkOutDate")}
                 />
@@ -1959,23 +1971,11 @@ function BidFormInner({
           </>
         )}
 
-        {blockedDatesInRange.length > 0 && bidStep === "dates" && (
-          <div className="glass rounded-lg p-3 border border-warning/50">
-            <div className="flex gap-2">
-              <AlertCircle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="text-warning font-medium">
-                  Selected dates include unavailable dates
-                </p>
-                <p className="text-muted text-xs mt-1">
-                  The following dates are blocked:{" "}
-                  {blockedDatesInRange
-                    .map((d) => format(d, "MMM d"))
-                    .join(", ")}
-                </p>
-              </div>
-            </div>
-          </div>
+        {stayNightIssues.length > 0 && bidStep === "dates" && (
+          <StayDatesAvailabilityAlert
+            issues={stayNightIssues}
+            allowedDaysOfWeek={place?.allowedDaysOfWeek}
+          />
         )}
 
         {isAuthenticated && (

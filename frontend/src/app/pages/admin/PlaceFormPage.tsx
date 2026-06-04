@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toApiDateOnly } from "../../../utils/dateHelpers";
 import { useNavigate, useParams } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -174,9 +175,7 @@ export function PlaceFormPage() {
             values.fullDescription,
             values.name,
           ),
-          blackoutDates: blackoutDates.map(
-            (d) => d.toISOString().split("T")[0],
-          ),
+          blackoutDates: blackoutDates.map((d) => toApiDateOnly(d)!),
           allowedDaysOfWeek,
           imageUrls: allImageUrls,
         };
@@ -261,17 +260,11 @@ export function PlaceFormPage() {
   const handleDateSelect = (date: Date | undefined) => {
     if (!date) return;
 
-    const dateExists = blackoutDates.some(
-      (d) => d.toISOString().split("T")[0] === date.toISOString().split("T")[0],
-    );
+    const key = toApiDateOnly(date)!;
+    const dateExists = blackoutDates.some((d) => toApiDateOnly(d) === key);
 
     if (dateExists) {
-      setBlackoutDates(
-        blackoutDates.filter(
-          (d) =>
-            d.toISOString().split("T")[0] !== date.toISOString().split("T")[0],
-        ),
-      );
+      setBlackoutDates(blackoutDates.filter((d) => toApiDateOnly(d) !== key));
     } else {
       setBlackoutDates([...blackoutDates, date]);
     }
