@@ -13,6 +13,7 @@ import { Loader2 } from "lucide-react";
 // Components
 import { AppRouter } from "./Router";
 import { AnalyticsProvider } from "./components/common/AnalyticsProvider";
+import { AuthTokenSync } from "./components/common/AuthTokenSync";
 import { CookieConsentBanner } from "./components/common/CookieConsentBanner";
 
 const queryClient = new QueryClient({
@@ -39,6 +40,7 @@ export default function App() {
       <PersistGate loading={<AppLoader />} persistor={persistor}>
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
+            <AuthTokenSync />
             <AnalyticsProvider>
               <AppRouter />
               <CookieConsentBanner />

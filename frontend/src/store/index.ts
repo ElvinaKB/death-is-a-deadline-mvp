@@ -13,6 +13,7 @@ import storage from "redux-persist/lib/storage";
 import authReducer from "./slices/authSlice";
 import searchReducer from "./slices/searchSlice";
 import hotelReducer from "./slices/hotelSlice";
+import { authListenerMiddleware } from "./authListener";
 
 const persistConfig = {
   key: "root",
@@ -36,7 +37,7 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
-    }),
+    }).prepend(authListenerMiddleware.middleware),
 });
 
 export const persistor = persistStore(store);

@@ -20,21 +20,25 @@ export const resetCookies = () => {
   Cookies.remove("expires_in");
 };
 
+/** Read API token from cookie or localStorage (mobile Safari fallback). */
 export const getAuthToken = (): string | undefined => {
-  return Cookies.get(TOKEN_KEY);
+  return Cookies.get(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || undefined;
 };
 
 export const setAuthToken = (token: string): void => {
+  localStorage.setItem(TOKEN_KEY, token);
   Cookies.set(TOKEN_KEY, token, {
     expires: 7,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: import.meta.env.PROD,
+    sameSite: "lax",
+    path: "/",
   });
 };
 
 export const removeAuthToken = (): void => {
   const clearLocal = () => {
-    Cookies.remove(TOKEN_KEY);
+    Cookies.remove(TOKEN_KEY, { path: "/" });
+    localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem("persist:root");
     SUPABASE_KEYS.map((key) => localStorage.removeItem(key));
     resetCookies();

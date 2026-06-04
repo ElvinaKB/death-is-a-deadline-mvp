@@ -22,6 +22,8 @@ interface BidLockInModalProps {
   bidPerNight: number;
   totalAmount: number;
   auctionSeconds: number;
+  /** When set, modal shows this instead of proceeding (e.g. Saturday not allowed). */
+  datesErrorMessage?: string | null;
   onConfirm: () => void;
   onGoBack: () => void;
   isSubmitting?: boolean;
@@ -46,6 +48,7 @@ export function BidLockInModal({
   checkOut,
   bidPerNight,
   totalAmount,
+  datesErrorMessage,
   onConfirm,
   onGoBack,
   isSubmitting,
@@ -95,15 +98,19 @@ export function BidLockInModal({
     return null;
   }
 
-  if (!hasValidDates) {
+  if (!hasValidDates || datesErrorMessage) {
     return (
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent isClose={false} className="max-w-lg bg-[#0a0a0a] border-line text-fg">
-          <p className="text-sm text-muted text-center py-4">
-            Select valid check-in and check-out dates before confirming your bid.
+          <p className="text-sm text-warning font-medium text-center">
+            Dates need a quick fix
+          </p>
+          <p className="text-sm text-muted text-center py-4 leading-relaxed">
+            {datesErrorMessage ??
+              "Select check-in and check-out dates before confirming your bid."}
           </p>
           <Button type="button" className="w-full btn-outline-gold" onClick={handleGoBack}>
-            Go back
+            Go back to dates
           </Button>
         </DialogContent>
       </Dialog>
