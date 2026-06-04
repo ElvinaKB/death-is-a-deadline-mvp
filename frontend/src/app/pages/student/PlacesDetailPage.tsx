@@ -22,6 +22,8 @@ import {
   PlacesResponse,
 } from "../../../types/place.types";
 import { BidForm } from "../../components/bids/BidForm";
+import { PriorStayBanner } from "../../components/bids/PriorStayBanner";
+import { useBidForPlace } from "../../../hooks/useBids";
 import { formatCurrency } from "../../../utils/currency";
 import { resolvePlaceKeywords } from "../../../utils/amenities";
 import { ImageGalleryModal } from "../../components/common/ImageGalleryModal";
@@ -116,6 +118,14 @@ export function PlaceDetailPage() {
   const place = data?.place;
   const inventoryMessage = data?.inventoryMessage;
 
+  const { data: placeBidContext } = useBidForPlace(id || "", {
+    enabled: isAuthenticated && !!id,
+  });
+  const heroPriorStay =
+    placeBidContext?.priorStay && !placeBidContext.bid
+      ? placeBidContext.priorStay
+      : null;
+
   // Show sold out modal when inventory is exhausted
   useEffect(() => {
     if (inventoryMessage && inventoryDate) {
@@ -188,8 +198,8 @@ export function PlaceDetailPage() {
     bookingCheckIn && bookingCheckOut
       ? Math.max(1, differenceInDays(bookingCheckOut, bookingCheckIn))
       : 0;
-  const displayNights = bookingNights || 3;
-  const retailTotal = place.retailPrice * displayNights;
+  const retailTotal =
+    bookingNights > 0 ? place.retailPrice * bookingNights : 0;
 
   const heroRatingBadgeClass =
     "absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-xs backdrop-blur-sm transition-colors hover:bg-black/85 cursor-pointer";
@@ -251,6 +261,13 @@ export function PlaceDetailPage() {
                 <h1 className="font-serif text-2xl sm:text-3xl text-fg md:text-4xl leading-tight">
                   {place.name}
                 </h1>
+                {heroPriorStay && (
+                  <PriorStayBanner
+                    priorStay={heroPriorStay}
+                    variant="pill"
+                    className="mt-3 w-fit"
+                  />
+                )}
                 <p className="mt-2 flex items-center gap-2 text-sm text-[hsl(0_0%_78%)]">
                   <MapPin className="h-4 w-4 shrink-0 text-gold" />
                   {place.address}
@@ -297,16 +314,13 @@ export function PlaceDetailPage() {
                 <p className="text-4xl font-semibold text-fg">
                   {formatCurrency(place.retailPrice)}
                 </p>
-                <p className="mt-1 text-xs text-muted">
-                  Total before taxes and fees
-                  {displayNights > 0 && (
-                    <>
-                      {" "}
-                      · {formatCurrency(retailTotal)} for {displayNights} night
-                      {displayNights !== 1 ? "s" : ""}
-                    </>
-                  )}
-                </p>
+                {bookingNights > 0 && (
+                  <p className="mt-1 text-xs text-muted">
+                    Total before taxes and fees · {formatCurrency(retailTotal)}{" "}
+                    for {bookingNights} night
+                    {bookingNights !== 1 ? "s" : ""}
+                  </p>
+                )}
               </div>
               {isAuthenticated ? (
                 <div className="listing-edu-panel flex gap-3 items-start">

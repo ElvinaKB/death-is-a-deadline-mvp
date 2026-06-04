@@ -8,6 +8,7 @@ import {
   Bid,
   MyBidsResponse,
   BidDetailResponse,
+  BidForPlaceResponse,
   UpdateBidStatusRequest,
   UpdatePayoutRequest,
 } from "../types/bid.types";
@@ -17,7 +18,7 @@ export const useBidForPlace = (
   placeId: string,
   options?: { enabled?: boolean },
 ) => {
-  return useApiQuery<BidDetailResponse | null>({
+  return useApiQuery<BidForPlaceResponse>({
     queryKey: ["bids", "place", placeId],
     endpoint: getEndpoint(ENDPOINTS.BID_FOR_PLACE, { placeId }),
     enabled: !!placeId && options?.enabled !== false,

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PLACE_KEYWORD_IDS } from "../../constants/placeKeywords";
+import { isValidIanaTimezone } from "../../libs/utils/hotelDates";
 
 // Enum schemas
 export const accommodationTypeSchema = z.enum([
@@ -51,6 +52,14 @@ export const createPlaceSchema = z.object({
     .optional()
     .default(1),
   keywords: z.array(placeKeywordSchema).optional().default([]),
+  timezone: z
+    .string()
+    .max(64)
+    .optional()
+    .nullable()
+    .refine((tz) => tz == null || tz === "" || isValidIanaTimezone(tz), {
+      message: "Invalid IANA timezone (e.g. America/Los_Angeles)",
+    }),
   status: placeStatusSchema.optional().default("DRAFT"),
 });
 
@@ -74,6 +83,14 @@ export const updatePlaceSchema = z.object({
   allowedDaysOfWeek: z.array(z.number().int().min(0).max(6)).optional(),
   maxInventory: z.number().int().min(1).optional(),
   keywords: z.array(placeKeywordSchema).optional(),
+  timezone: z
+    .string()
+    .max(64)
+    .optional()
+    .nullable()
+    .refine((tz) => tz == null || tz === "" || isValidIanaTimezone(tz), {
+      message: "Invalid IANA timezone (e.g. America/Los_Angeles)",
+    }),
   status: placeStatusSchema.optional(),
 });
 

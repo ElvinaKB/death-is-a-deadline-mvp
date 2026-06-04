@@ -16,6 +16,15 @@ import {
   BOOKING_STATUS_LABELS,
 } from "../types/booking.types";
 import { ErrorCode } from "../types/error.codes";
+import {
+  bookingDatesOverlap,
+  getHotelToday,
+  hotelTodayAsDate,
+  isStayActiveAtHotel,
+  isStayCompletedAtHotel,
+  parseBookingDateOnly,
+  resolvePlaceTimezone,
+} from "../libs/utils/hotelDates";
 
 // Helper to format bid response
 const formatBid = (bid: any) => {
@@ -105,9 +114,14 @@ export async function createBid(req: Request, res: Response) {
     );
   }
 
-  // Parse dates
-  const checkInDate = parseISO(data.checkInDate);
-  const checkOutDate = parseISO(data.checkOutDate);
+  let checkInDate: Date;
+  let checkOutDate: Date;
+  try {
+    checkInDate = parseBookingDateOnly(data.checkInDate);
+    checkOutDate = parseBookingDateOnly(data.checkOutDate);
+  } catch {
+    throw new CustomError("Invalid booking date", 400);
+  }
 
   // Check for blackout dates
   const blackoutDates = place.blackoutDates || [];
@@ -137,24 +151,30 @@ export async function createBid(req: Request, res: Response) {
     );
   }
 
-  // Block overlapping active bids (accepted or legacy pending)
-  const existingBid = await prisma.bid.findFirst({
+  // Block overlap only with future stays at this hotel (hotel-local "today")
+  const hotelTodayDate = hotelTodayAsDate(place);
+  const blockingBids = await prisma.bid.findMany({
     where: {
       placeId: data.placeId,
       studentId,
       status: { in: [bid_status.ACCEPTED, bid_status.PENDING] },
-      OR: [
-        {
-          checkInDate: { lte: checkOutDate },
-          checkOutDate: { gte: checkInDate },
-        },
-      ],
+      checkOutDate: { gt: hotelTodayDate },
     },
+    select: { checkInDate: true, checkOutDate: true },
   });
 
-  if (existingBid) {
+  const hasOverlap = blockingBids.some((b) =>
+    bookingDatesOverlap(
+      checkInDate,
+      checkOutDate,
+      b.checkInDate,
+      b.checkOutDate,
+    ),
+  );
+
+  if (hasOverlap) {
     throw new CustomError(
-      "You already have an active bid for this place with overlapping dates",
+      "You already have an upcoming booking at this hotel for overlapping dates. Choose different dates or wait until that stay ends.",
       400,
       null,
       ErrorCode.BID_OVERLAP_PENDING,
@@ -202,37 +222,75 @@ export async function createBid(req: Request, res: Response) {
   });
 }
 
-// Get student's existing bid for a specific place
+const formatPriorStay = (bid: {
+  checkInDate: Date;
+  checkOutDate: Date;
+  bidPerNight: Prisma.Decimal;
+}) => ({
+  checkInDate: bid.checkInDate,
+  checkOutDate: bid.checkOutDate,
+  bidPerNight: Number(bid.bidPerNight),
+});
+
+// Get student's existing bid for a specific place (+ last completed stay for rebooking UX)
 export async function getBidForPlace(req: Request, res: Response) {
   const studentId = req.user!.id;
   const { placeId } = req.params;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const bid = await prisma.bid.findFirst({
-    where: {
-      studentId,
-      placeId,
-      checkOutDate: { gte: today },
-    },
-    include: {
-      place: {
-        include: { images: { orderBy: { order: "asc" }, take: 1 } },
+  const [place, recentBids] = await Promise.all([
+    prisma.place.findUnique({
+      where: { id: placeId },
+      select: { timezone: true, city: true, country: true },
+    }),
+    prisma.bid.findMany({
+      where: { studentId, placeId },
+      orderBy: [{ checkOutDate: "desc" }, { createdAt: "desc" }],
+      take: 20,
+      include: {
+        place: {
+          include: { images: { orderBy: { order: "asc" }, take: 1 } },
+        },
+        payment: true,
       },
-      payment: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
+    }),
+  ]);
 
-  if (!bid) {
-    res.status(200).json({ data: { bid: null } });
+  if (!place) {
+    throw new CustomError("Place not found", 404, null, ErrorCode.PLACE_NOT_FOUND);
+  }
+
+  const hotelToday = getHotelToday(place);
+
+  const priorStayBid = recentBids.find(
+    (b) =>
+      b.status === bid_status.ACCEPTED &&
+      isStayCompletedAtHotel(b.checkOutDate, hotelToday),
+  );
+
+  const activeBid =
+    recentBids.find((b) => isStayActiveAtHotel(b.checkOutDate, hotelToday)) ??
+    null;
+
+  const priorStay = priorStayBid ? formatPriorStay(priorStayBid) : null;
+
+  if (!activeBid) {
+    res.status(200).json({
+      data: {
+        bid: null,
+        priorStay,
+        hotelTimezone: resolvePlaceTimezone(place),
+        hotelToday,
+      },
+    });
     return;
   }
 
   res.status(200).json({
     data: {
-      bid: formatBid(bid),
+      bid: formatBid(activeBid),
+      priorStay,
+      hotelTimezone: resolvePlaceTimezone(place),
+      hotelToday,
     },
   });
 }

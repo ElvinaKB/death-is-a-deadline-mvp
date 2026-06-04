@@ -69,6 +69,7 @@ export interface SavedPaymentMethod {
   last4: string;
   expMonth?: number;
   expYear?: number;
+  fingerprint?: string;
 }
 
 export interface SavedPaymentMethodsResponse {
