@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -36,6 +36,8 @@ interface BidOutcomePanelProps {
   onRebid?: (newBidPerNight: number) => void;
   isRebidding?: boolean;
   isProcessingBid?: boolean;
+  /** When set, scrolls the NOT ACCEPTED header into view on change (after submit/rebid rejection). */
+  scrollToHeaderTrigger?: number;
 }
 
 export function BidOutcomePanel({
@@ -50,8 +52,10 @@ export function BidOutcomePanel({
   onRebid,
   isRebidding,
   isProcessingBid,
+  scrollToHeaderTrigger,
 }: BidOutcomePanelProps) {
   const isBusy = isRebidding || isProcessingBid;
+  const rejectedHeaderRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const user = useAppSelector((s) => s.auth.user);
   const [adjustBid, setAdjustBid] = useState(true);
@@ -80,6 +84,19 @@ export function BidOutcomePanel({
   );
   const isAccepted = status === BidStatus.ACCEPTED;
   const userEmail = user?.email ?? "your email";
+
+  useEffect(() => {
+    if (isAccepted || scrollToHeaderTrigger == null) return;
+
+    const timer = window.setTimeout(() => {
+      rejectedHeaderRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [isAccepted, scrollToHeaderTrigger]);
 
   if (isAccepted) {
     return (
@@ -167,7 +184,10 @@ export function BidOutcomePanel({
 
   return (
     <div className="outcome-panel outcome-panel--rejected rounded-xl px-4 py-3 space-y-3.5 bg-[hsl(0_0%_4%)]">
-      <div className="outcome-rejected-status text-center relative">
+      <div
+        ref={rejectedHeaderRef}
+        className="outcome-rejected-status scroll-mt-24 text-center relative"
+      >
         <div className="outcome-confetti outcome-confetti--red" aria-hidden />
         <div className="outcome-rejected-icon mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-urgent">
           <X className="h-9 w-9 text-white stroke-[3]" aria-hidden />

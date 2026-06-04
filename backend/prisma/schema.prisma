@@ -18,6 +18,7 @@ model Place {
   city                   String
   country                String
   address                String
+  timezone               String?           @db.VarChar(64)
   email                  String?
   keywords               String[]          @default([])
   latitude               Float?

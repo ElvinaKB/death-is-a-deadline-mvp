@@ -91,6 +91,22 @@ export interface MyBidsResponse {
   limit: number;
 }
 
+/** Last completed accepted stay at a place (checkout before today) */
+export interface PriorStaySummary {
+  checkInDate: string;
+  checkOutDate: string;
+  bidPerNight: number;
+}
+
+export interface BidForPlaceResponse {
+  bid: Bid | null;
+  priorStay: PriorStaySummary | null;
+  /** IANA timezone used for stay status (e.g. America/Los_Angeles) */
+  hotelTimezone?: string;
+  /** Hotel-local calendar date (yyyy-MM-dd) used for active vs completed stay */
+  hotelToday?: string;
+}
+
 export interface BidDetailResponse {
   bid: Bid;
 }

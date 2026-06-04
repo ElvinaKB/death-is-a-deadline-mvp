@@ -490,6 +490,7 @@ export async function getSavedPaymentMethods(req: Request, res: Response) {
         last4: pm.card?.last4 ?? "****",
         expMonth: pm.card?.exp_month,
         expYear: pm.card?.exp_year,
+        fingerprint: pm.card?.fingerprint ?? undefined,
       })),
     },
   });

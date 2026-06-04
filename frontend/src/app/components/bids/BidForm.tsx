@@ -39,7 +39,7 @@ import {
  * Toggle guide: frontend/docs/payment-flow-toggle.md
  * Search: PAYMENT_FLOW_V1 | PAYMENT_FLOW_V2
  */
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
@@ -92,11 +92,20 @@ import { BidLockInModal } from "./BidLockInModal";
 import { BidOutcomePanel } from "./BidOutcomePanel";
 import { BidPriceBreakdown } from "./BidPriceBreakdown";
 import { BidStepIndicator, type BidStep, STEPS } from "./BidStepIndicator";
+import { PriorStayBanner } from "./PriorStayBanner";
 import { formatCurrency } from "../../../utils/currency";
+import { toApiDateOnly } from "../../../utils/dateHelpers";
 import {
   ANALYTICS_EVENTS,
   trackEvent,
 } from "../../../utils/analytics";
+import {
+  CARD_ADDED_MESSAGE,
+  dedupeSavedPaymentMethods,
+  DUPLICATE_SAVED_CARD_MESSAGE,
+  findMatchingSavedCard,
+  isDuplicateOfSavedCard,
+} from "../../../utils/savedCardUtils";
 
 // LocalStorage key for persisting bid form state
 const BID_FORM_STORAGE_KEY = "pendingBidForm";
@@ -188,6 +197,77 @@ interface StripeCompletionState {
   bidId: string;
 }
 
+function CardPaymentFeedback({
+  error,
+  notice,
+  variant = "default",
+}: {
+  error: string | null;
+  notice: string | null;
+  variant?: "default" | "listing";
+}) {
+  if (!error && !notice) return null;
+
+  if (variant === "listing") {
+    return (
+      <div className="space-y-1">
+        {notice && (
+          <p className="text-xs text-success flex items-center gap-1.5">
+            <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+            {notice}
+          </p>
+        )}
+        {error && <p className="text-xs text-urgent">{error}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {notice && (
+        <div className="glass rounded-lg p-3 border border-success/50">
+          <div className="flex gap-2">
+            <CheckCircle className="h-4 w-4 text-success flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-success">{notice}</p>
+          </div>
+        </div>
+      )}
+      {error && (
+        <div className="glass rounded-lg p-3 border border-danger/50">
+          <div className="flex gap-2">
+            <AlertCircle className="h-4 w-4 text-danger flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-danger">{error}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PaymentMethodSkeleton({
+  variant = "default",
+}: {
+  variant?: "default" | "listing";
+}) {
+  const rounded = variant === "listing" ? "rounded-xl" : "rounded-lg";
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-3 border border-line bg-glass p-3",
+        rounded,
+      )}
+      aria-hidden
+    >
+      <SkeletonLoader type="custom" className="h-9 w-9 shrink-0 rounded-md" />
+      <div className="min-w-0 flex-1 space-y-2">
+        <SkeletonLoader type="custom" className="h-4 w-36" />
+        <SkeletonLoader type="custom" className="h-3 w-24" />
+      </div>
+    </div>
+  );
+}
+
 // Inner form component that has access to Stripe context
 function BidFormInner({
   place,
@@ -206,11 +286,13 @@ function BidFormInner({
   const createBid = useCreateBid();
   const createPaymentIntent = useCreatePaymentIntent();
   const confirmPayment = useConfirmPayment();
-  const { data: savedMethodsData } = useSavedPaymentMethods(isAuthenticated);
+  const { data: savedMethodsData, isLoading: isLoadingSavedMethods } =
+    useSavedPaymentMethods(isAuthenticated);
 
-  const [displayedSavedMethods, setDisplayedSavedMethods] = useState<
-    SavedPaymentMethod[]
-  >([]);
+  const loadedSavedMethods = useMemo(
+    () => dedupeSavedPaymentMethods(savedMethodsData?.paymentMethods ?? []),
+    [savedMethodsData?.paymentMethods],
+  );
   const [frozenSavedMethods, setFrozenSavedMethods] = useState<
     SavedPaymentMethod[]
   >([]);
@@ -222,8 +304,10 @@ function BidFormInner({
   /* PAYMENT_FLOW_V1: omit submitInFlightRef — no duplicate-submit guard */
 
   const [bidResult, setBidResult] = useState<BidResultState | null>(null);
+  const [rejectedScrollTrigger, setRejectedScrollTrigger] = useState(0);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [cardNotice, setCardNotice] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCardComplete, setIsCardComplete] = useState(false);
   const [isChangingCard, setIsChangingCard] = useState(false);
@@ -244,23 +328,36 @@ function BidFormInner({
     getSecondsUntilMidnight(),
   );
   const cardElementRef = useRef<StripeCardElement | null>(null);
+  const pendingCardDetailsRef = useRef<{
+    fingerprint?: string | null;
+    last4?: string | null;
+    brand?: string | null;
+    exp_month?: number;
+    exp_year?: number;
+  } | null>(null);
   const isListing = variant === "listing";
 
   useEffect(() => {
-    if (isProcessing || bidResult) return;
-    setDisplayedSavedMethods(savedMethodsData?.paymentMethods ?? []);
-  }, [savedMethodsData, isProcessing, bidResult]);
-
-  useEffect(() => {
-    if (isProcessing || bidResult) return;
-    if (displayedSavedMethods.length > 0 && selectedPaymentMethodId === null) {
+    if (isProcessing || bidResult || isLoadingSavedMethods) return;
+    if (loadedSavedMethods.length > 0 && selectedPaymentMethodId === null) {
       setPayWithSavedCard(true);
-      setSelectedPaymentMethodId(displayedSavedMethods[0].id);
+      setSelectedPaymentMethodId(loadedSavedMethods[0].id);
     }
-  }, [displayedSavedMethods, selectedPaymentMethodId, isProcessing, bidResult]);
+  }, [
+    loadedSavedMethods,
+    selectedPaymentMethodId,
+    isProcessing,
+    bidResult,
+    isLoadingSavedMethods,
+  ]);
 
-  const uiSavedMethods = isProcessing ? frozenSavedMethods : displayedSavedMethods;
+  const uiSavedMethods = isProcessing ? frozenSavedMethods : loadedSavedMethods;
   const uiPayWithSaved = isProcessing ? frozenPayWithSaved : payWithSavedCard;
+  const showPaymentMethodLoading =
+    isAuthenticated &&
+    isLoadingSavedMethods &&
+    !isProcessing &&
+    !bidResult;
 
   // Load saved form state from localStorage
   const savedFormState = loadBidFormFromStorage(placeId);
@@ -279,16 +376,35 @@ function BidFormInner({
   today.setHours(0, 0, 0, 0);
   const maxDate = addDays(today, 30);
 
-  const persistCardPaymentMethod = useCallback(async () => {
+  const applyDuplicateSavedCard = useCallback(
+    (existing: SavedPaymentMethod) => {
+      setPayWithSavedCard(true);
+      setSelectedPaymentMethodId(existing.id);
+      setPaymentMethodId(null);
+      setPaymentError(DUPLICATE_SAVED_CARD_MESSAGE);
+      setCardNotice(null);
+    },
+    [],
+  );
+
+  const getSavedMethodsForCheck = useCallback(
+    () =>
+      dedupeSavedPaymentMethods(
+        savedMethodsData?.paymentMethods ?? loadedSavedMethods,
+      ),
+    [savedMethodsData?.paymentMethods, loadedSavedMethods],
+  );
+
+  const persistCardPaymentMethod = useCallback(async (): Promise<boolean> => {
     if (!stripe || !elements) {
       setPaymentMethodId(null);
-      return;
+      return false;
     }
     const card =
       cardElementRef.current || elements.getElement(CardElement);
     if (!card) {
       setPaymentMethodId(null);
-      return;
+      return false;
     }
     const { error, paymentMethod } = await stripe.createPaymentMethod({
       type: "card",
@@ -296,24 +412,92 @@ function BidFormInner({
     });
     if (error || !paymentMethod?.id) {
       setPaymentMethodId(null);
-      return;
+      setCardNotice(null);
+      pendingCardDetailsRef.current = null;
+      return false;
     }
+
+    pendingCardDetailsRef.current = paymentMethod.card ?? null;
+
+    const savedForCheck = getSavedMethodsForCheck();
+    const match = findMatchingSavedCard(
+      paymentMethod.card ?? {},
+      savedForCheck,
+    );
+    if (match || isDuplicateOfSavedCard(paymentMethod, savedForCheck)) {
+      pendingCardDetailsRef.current = null;
+      if (match) {
+        applyDuplicateSavedCard(match);
+      } else {
+        setPaymentMethodId(null);
+        setPaymentError(DUPLICATE_SAVED_CARD_MESSAGE);
+        setCardNotice(null);
+      }
+      return false;
+    }
+
     setPaymentMethodId(paymentMethod.id);
-  }, [stripe, elements]);
+    setPaymentError(null);
+    setCardNotice(CARD_ADDED_MESSAGE);
+    return true;
+  }, [
+    stripe,
+    elements,
+    getSavedMethodsForCheck,
+    applyDuplicateSavedCard,
+  ]);
 
   const handleCardChange = useCallback(
     async (e: StripeCardElementChangeEvent) => {
       setIsCardComplete(e.complete);
-      setPaymentError(e.error?.message ?? null);
+      if (e.error?.message) {
+        setCardNotice(null);
+        setPaymentError(e.error.message);
+      } else if (!e.complete) {
+        setCardNotice(null);
+      }
       if (e.complete) {
         setIsChangingCard(false);
         await persistCardPaymentMethod();
       } else {
         setPaymentMethodId(null);
+        pendingCardDetailsRef.current = null;
+        setPaymentError((prev) =>
+          prev === DUPLICATE_SAVED_CARD_MESSAGE ? null : prev,
+        );
       }
     },
     [persistCardPaymentMethod],
   );
+
+  const rejectDuplicateFreshCard = useCallback((): boolean => {
+    if (payWithSavedCard || !paymentMethodId) return false;
+    return paymentError === DUPLICATE_SAVED_CARD_MESSAGE;
+  }, [payWithSavedCard, paymentMethodId, paymentError]);
+
+  // Re-check duplicate when saved methods load after card entry (Stripe.js has no retrievePaymentMethod)
+  useEffect(() => {
+    if (
+      payWithSavedCard ||
+      !paymentMethodId ||
+      !pendingCardDetailsRef.current ||
+      !savedMethodsData?.paymentMethods?.length
+    ) {
+      return;
+    }
+
+    const match = findMatchingSavedCard(
+      pendingCardDetailsRef.current,
+      getSavedMethodsForCheck(),
+    );
+    if (match) applyDuplicateSavedCard(match);
+  }, [
+    payWithSavedCard,
+    paymentMethodId,
+    savedMethodsData?.paymentMethods,
+    getSavedMethodsForCheck,
+    applyDuplicateSavedCard,
+  ]);
 
   const confirmPaymentWithCard = async (
     clientSecret: string,
@@ -465,8 +649,10 @@ function BidFormInner({
     onSubmit: async (values) => {
       // PAYMENT_FLOW_V2 START — onSubmit entry + validation guards
       if (submitInFlightRef.current) return;
+      if (rejectDuplicateFreshCard()) return;
       submitInFlightRef.current = true;
       setPaymentError(null);
+      setCardNotice(null);
 
       if (isAuthenticated && !acceptedTerms) {
         setPaymentError(
@@ -488,10 +674,17 @@ function BidFormInner({
           submitInFlightRef.current = false;
           return;
         }
-      } else if (!isCardComplete || !elements) {
-        setPaymentError("Please enter valid card details");
-        submitInFlightRef.current = false;
-        return;
+      } else {
+        if (rejectDuplicateFreshCard()) {
+          submitInFlightRef.current = false;
+          return;
+        }
+        const hasReusablePaymentMethod = !!paymentMethodId;
+        if (!hasReusablePaymentMethod && (!isCardComplete || !elements)) {
+          setPaymentError("Please enter valid card details");
+          submitInFlightRef.current = false;
+          return;
+        }
       }
       /* PAYMENT_FLOW_V1 START — uncomment for legacy; comment V2 block above
       setPaymentError(null);
@@ -524,14 +717,14 @@ function BidFormInner({
 
       payingWithSavedRef.current = payWithSavedCard;
       payingPaymentMethodIdRef.current = selectedPaymentMethodId ?? undefined;
-      setFrozenSavedMethods([...displayedSavedMethods]);
+      setFrozenSavedMethods([...loadedSavedMethods]);
       setFrozenPayWithSaved(payWithSavedCard);
       setIsProcessing(true);
 
       const request: CreateBidRequest = {
         placeId,
-        checkInDate: values.checkInDate!.toISOString(),
-        checkOutDate: values.checkOutDate!.toISOString(),
+        checkInDate: toApiDateOnly(values.checkInDate!)!,
+        checkOutDate: toApiDateOnly(values.checkOutDate!)!,
         bidPerNight: Number(values.bidPerNight),
       };
 
@@ -664,6 +857,7 @@ function BidFormInner({
           }
         } else if (result.status === BidStatus.REJECTED) {
           setBidResult(buildBidResult(BidStatus.REJECTED));
+          setRejectedScrollTrigger((n) => n + 1);
           toast.custom(
             () => (
               <div className="bg-bg border border-line rounded-xl p-4 shadow-lg min-w-[320px]">
@@ -719,6 +913,7 @@ function BidFormInner({
             totalAmount: perNight * nights,
             totalNights: nights,
           });
+          setRejectedScrollTrigger((n) => n + 1);
           trackEvent(ANALYTICS_EVENTS.REJECTED_BID, { place_id: placeId });
         } else {
           setPaymentError(error.message || "Failed to submit bid");
@@ -871,8 +1066,10 @@ function BidFormInner({
   const handleTryAgain = () => {
     setBidResult(null);
     setPaymentError(null);
+    setCardNotice(null);
     setPaymentId(null);
     setPaymentMethodId(null);
+    pendingCardDetailsRef.current = null;
     setStripeCompletion(null);
     setPayWithSavedCard(false);
     setSelectedPaymentMethodId(null);
@@ -911,6 +1108,7 @@ function BidFormInner({
         return;
       }
     } else {
+      if (rejectDuplicateFreshCard()) return;
       const hasReusablePaymentMethod = !!paymentMethodId;
       if (!hasReusablePaymentMethod && (!isCardComplete || !stripe || !elements)) {
         setPaymentError("Please enter valid card details.");
@@ -1067,14 +1265,29 @@ function BidFormInner({
         onRebid={isAuthenticated ? handleRebid : undefined}
         isRebidding={isRebidProcessing}
         isProcessingBid={isProcessing}
+        scrollToHeaderTrigger={
+          shouldShowRejectedOutcome(bidResult!.bidStatus)
+            ? rejectedScrollTrigger
+            : undefined
+        }
       />
     );
   }
 
   // If user has existing bid for this place (only when no active session outcome)
-  const existingBid = existingBidData?.bid;
+  const existingBid = existingBidData?.bid ?? null;
+  const priorStay = existingBidData?.priorStay ?? null;
   const isPastBid =
     existingBid && new Date(existingBid.checkOutDate) < today;
+  const showPriorStayBanner =
+    !!priorStay &&
+    !(
+      existingBid &&
+      !isPastBid &&
+      !isProcessing &&
+      !bidResult &&
+      !stripeCompletion
+    );
 
   const handleStripeCompletionSuccess = async () => {
     if (!stripeCompletion) return;
@@ -1182,6 +1395,9 @@ function BidFormInner({
         />
         <div className="listing-bid-sidebar space-y-4 lg:sticky lg:top-24">
           <ListingBidPanelHeader />
+          {showPriorStayBanner && priorStay && (
+            <PriorStayBanner priorStay={priorStay} />
+          )}
           <form onSubmit={formik.handleSubmit} className="space-y-4">
             <div className="listing-dates-box">
               <div className="listing-dates-box__col">
@@ -1303,7 +1519,9 @@ function BidFormInner({
               <Label className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase">
                 Pay with
               </Label>
-              {uiSavedMethods.length > 0 && uiPayWithSaved ? (
+              {showPaymentMethodLoading ? (
+                <PaymentMethodSkeleton variant="listing" />
+              ) : uiSavedMethods.length > 0 && uiPayWithSaved ? (
                 <div className="space-y-2">
                   {uiSavedMethods.map((pm) => {
                     const isSelected = selectedPaymentMethodId === pm.id;
@@ -1316,6 +1534,7 @@ function BidFormInner({
                           setPayWithSavedCard(true);
                           setSelectedPaymentMethodId(pm.id);
                           setPaymentError(null);
+                          setCardNotice(null);
                         }}
                         className={cn(
                           "w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-colors",
@@ -1356,6 +1575,7 @@ function BidFormInner({
                       onClick={() => {
                         setPayWithSavedCard(false);
                         setPaymentError(null);
+                        setCardNotice(null);
                       }}
                       className="text-sm text-gold hover:underline px-0.5"
                     >
@@ -1372,10 +1592,11 @@ function BidFormInner({
                         setPayWithSavedCard(true);
                         const fallback =
                           selectedPaymentMethodId ??
-                          displayedSavedMethods[0]?.id ??
+                          loadedSavedMethods[0]?.id ??
                           uiSavedMethods[0]?.id;
                         if (fallback) setSelectedPaymentMethodId(fallback);
                         setPaymentError(null);
+                        setCardNotice(null);
                       }}
                       className="w-full flex items-center gap-3 rounded-lg border border-line bg-glass p-3 text-left transition-colors hover:border-brand/40"
                     >
@@ -1412,6 +1633,17 @@ function BidFormInner({
                       onChange={handleCardChange}
                     />
                   </div>
+                  {!uiPayWithSaved && (
+                    <CardPaymentFeedback
+                      error={
+                        paymentError === DUPLICATE_SAVED_CARD_MESSAGE
+                          ? paymentError
+                          : null
+                      }
+                      notice={cardNotice}
+                      variant="listing"
+                    />
+                  )}
                 </div>
               )}
               <p className="text-xs text-muted leading-relaxed">
@@ -1437,7 +1669,16 @@ function BidFormInner({
                 .
               </span>
             </label>
-            {paymentError && <p className="text-xs text-urgent">{paymentError}</p>}
+            {paymentError &&
+              (paymentError === DUPLICATE_SAVED_CARD_MESSAGE ? (
+                <CardPaymentFeedback
+                  error={paymentError}
+                  notice={null}
+                  variant="listing"
+                />
+              ) : (
+                <p className="text-xs text-urgent">{paymentError}</p>
+              ))}
             {isInventoryExhausted && formik.values.checkInDate && (
               <p className="text-xs text-urgent">
                 No availability for selected date. Try different dates.
@@ -1447,7 +1688,7 @@ function BidFormInner({
               type="button"
               className="w-full listing-cta-gradient h-12 text-base uppercase tracking-wider"
               onClick={handleReviewBindingBid}
-              disabled={isProcessing || isInventoryExhausted}
+              disabled={isProcessing || isInventoryExhausted || showPaymentMethodLoading}
             >
               <ArrowRight className="mr-2 h-4 w-4" />
               {isProcessing ? "PROCESSING YOUR BID..." : "LOCK IN BID"}
@@ -1507,21 +1748,8 @@ function BidFormInner({
         <p className="text-xs text-muted">/ night · anchor price</p>
       </div>
 
-      {isPastBid && existingBid && (
-        <div className="glass rounded-lg p-3 border border-line text-sm">
-          <p className="text-muted">
-            You stayed here{" "}
-            <span className="text-fg font-medium">
-              {format(new Date(existingBid.checkInDate), "MMM d")}–
-              {format(new Date(existingBid.checkOutDate), "MMM d, yyyy")}
-            </span>{" "}
-            for{" "}
-            <span className="text-fg font-medium">
-              ${existingBid.bidPerNight}/night
-            </span>
-            . Bid again for a new stay.
-          </p>
-        </div>
+      {showPriorStayBanner && priorStay && (
+        <PriorStayBanner priorStay={priorStay} />
       )}
       <form onSubmit={formik.handleSubmit} className="space-y-4">
         {bidStep === "dates" && (
@@ -1756,7 +1984,9 @@ function BidFormInner({
               Payment
             </Label>
 
-            {uiSavedMethods.length > 0 && uiPayWithSaved ? (
+            {showPaymentMethodLoading ? (
+              <PaymentMethodSkeleton variant="default" />
+            ) : uiSavedMethods.length > 0 && uiPayWithSaved ? (
               <div className="space-y-2">
                 {uiSavedMethods.map((pm) => {
                   const isSelected = selectedPaymentMethodId === pm.id;
@@ -1769,6 +1999,7 @@ function BidFormInner({
                         setPayWithSavedCard(true);
                         setSelectedPaymentMethodId(pm.id);
                         setPaymentError(null);
+                        setCardNotice(null);
                       }}
                       className={cn(
                         "w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors",
@@ -1807,6 +2038,7 @@ function BidFormInner({
                     onClick={() => {
                       setPayWithSavedCard(false);
                       setPaymentError(null);
+                      setCardNotice(null);
                     }}
                     className="text-sm text-brand hover:underline px-0.5"
                   >
@@ -1823,10 +2055,11 @@ function BidFormInner({
                       setPayWithSavedCard(true);
                       const fallback =
                         selectedPaymentMethodId ??
-                        displayedSavedMethods[0]?.id ??
+                        loadedSavedMethods[0]?.id ??
                         uiSavedMethods[0]?.id;
                       if (fallback) setSelectedPaymentMethodId(fallback);
                       setPaymentError(null);
+                      setCardNotice(null);
                     }}
                     className="w-full flex items-center gap-3 rounded-lg border border-line bg-glass p-3 text-left transition-colors hover:border-brand/40"
                   >
@@ -1870,6 +2103,17 @@ function BidFormInner({
                     onChange={handleCardChange}
                   />
                 </div>
+                {!uiPayWithSaved && (
+                  <CardPaymentFeedback
+                    error={
+                      paymentError === DUPLICATE_SAVED_CARD_MESSAGE
+                        ? paymentError
+                        : null
+                    }
+                    notice={cardNotice}
+                    variant="default"
+                  />
+                )}
               </div>
             )}
 
@@ -1880,15 +2124,15 @@ function BidFormInner({
           </div>
         )}
 
-        {/* Error Message */}
-        {paymentError && (
-          <div className="glass rounded-lg p-3 border border-danger/50">
-            <div className="flex gap-2">
-              <AlertCircle className="h-4 w-4 text-danger flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-danger">{paymentError}</p>
-            </div>
-          </div>
-        )}
+        <CardPaymentFeedback
+          error={
+            paymentError && paymentError !== DUPLICATE_SAVED_CARD_MESSAGE
+              ? paymentError
+              : null
+          }
+          notice={null}
+          variant="default"
+        />
 
         {/* Inventory Exhausted Warning */}
         {isInventoryExhausted && formik.values.checkInDate && (
@@ -1937,6 +2181,7 @@ function BidFormInner({
             disabled={
               isProcessing ||
               createBid.isPending ||
+              showPaymentMethodLoading ||
               !stripe ||
               (uiPayWithSaved
                 ? !selectedPaymentMethodId
@@ -2020,13 +2265,23 @@ function OrphanBidPaymentRetry({
   const stripe = useStripe();
   const elements = useElements();
   const createPaymentIntent = useCreatePaymentIntent();
+  const { data: savedMethodsData } = useSavedPaymentMethods(true);
+  const savedMethods = dedupeSavedPaymentMethods(
+    savedMethodsData?.paymentMethods ?? [],
+  );
   const [isRetrying, setIsRetrying] = useState(false);
   const cardRef = useRef<StripeCardElement | null>(null);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+  const [cardNotice, setCardNotice] = useState<string | null>(null);
+  const [cardError, setCardError] = useState<string | null>(null);
 
   const handleRetry = async () => {
     if (!stripe || !paymentMethodId) {
       onError("Please enter valid card details.");
+      return;
+    }
+    if (cardError === DUPLICATE_SAVED_CARD_MESSAGE) {
+      onError(DUPLICATE_SAVED_CARD_MESSAGE);
       return;
     }
     setIsRetrying(true);
@@ -2112,8 +2367,10 @@ function OrphanBidPaymentRetry({
             cardRef.current = el;
           }}
           onChange={async (e) => {
+            setCardNotice(null);
             if (!e.complete || !stripe) {
               setPaymentMethodId(null);
+              setCardError(null);
               return;
             }
             const card = cardRef.current || elements?.getElement(CardElement);
@@ -2122,17 +2379,36 @@ function OrphanBidPaymentRetry({
               type: "card",
               card,
             });
-            setPaymentMethodId(
-              error || !paymentMethod?.id ? null : paymentMethod.id,
+            if (error || !paymentMethod?.id) {
+              setPaymentMethodId(null);
+              setCardError(error?.message ?? null);
+              return;
+            }
+            const existing = findMatchingSavedCard(
+              paymentMethod.card ?? {},
+              savedMethods,
             );
+            if (existing || isDuplicateOfSavedCard(paymentMethod, savedMethods)) {
+              setPaymentMethodId(null);
+              setCardError(DUPLICATE_SAVED_CARD_MESSAGE);
+              return;
+            }
+            setPaymentMethodId(paymentMethod.id);
+            setCardError(null);
+            setCardNotice(CARD_ADDED_MESSAGE);
           }}
         />
       </div>
+      <CardPaymentFeedback
+        error={cardError}
+        notice={cardNotice}
+        variant="listing"
+      />
       <Button
         type="button"
         className="w-full listing-cta-gradient h-12 text-base uppercase tracking-wider"
         onClick={handleRetry}
-        disabled={isRetrying || !paymentMethodId}
+        disabled={isRetrying || !paymentMethodId || !!cardError}
       >
         {isRetrying ? "Processing…" : "Retry payment"}
       </Button>

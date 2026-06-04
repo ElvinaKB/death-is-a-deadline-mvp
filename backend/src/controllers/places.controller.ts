@@ -13,6 +13,7 @@ import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
 import { createHotelInviteToken } from "../libs/utils/inviteToken";
 import { supabase } from "../libs/config/supabase";
+import { inferTimezoneFromLocation } from "../libs/utils/hotelDates";
 
 const APP_URL = process.env.CLIENT_URL;
 
@@ -46,6 +47,7 @@ const formatPlace = (
   updatedAt: place.updatedAt,
   latitude: place.latitude,
   longitude: place.longitude,
+  timezone: place.timezone ?? inferTimezoneFromLocation(place.city, place.country),
   // Include inventory info if provided
   ...(inventoryInfo && {
     availableInventory: inventoryInfo.availableInventory,
@@ -403,6 +405,9 @@ export async function createPlace(req: Request, res: Response) {
       allowedDaysOfWeek: data.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
       maxInventory: data.maxInventory ?? 1,
       keywords: data.keywords ?? [],
+      timezone:
+        data.timezone?.trim() ||
+        inferTimezoneFromLocation(data.city, data.country),
       status: data.status ?? "DRAFT",
       images: {
         create: data.images.map((img, index) => ({
@@ -532,6 +537,21 @@ export async function updatePlace(req: Request, res: Response) {
         maxInventory: data.maxInventory,
       }),
       ...(data.keywords !== undefined && { keywords: data.keywords }),
+      ...(data.timezone !== undefined && {
+        timezone:
+          data.timezone?.trim() ||
+          inferTimezoneFromLocation(
+            data.city ?? existingPlace.city,
+            data.country ?? existingPlace.country,
+          ),
+      }),
+      ...((data.city || data.country) &&
+        data.timezone === undefined && {
+          timezone: inferTimezoneFromLocation(
+            data.city ?? existingPlace.city,
+            data.country ?? existingPlace.country,
+          ),
+        }),
       ...(data.status && { status: data.status }),
       ...(data.images &&
         data.images.length > 0 && {
