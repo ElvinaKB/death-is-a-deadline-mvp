@@ -11,6 +11,7 @@ import { setCredentials } from "../../../store/slices/authSlice";
 import { setAuthToken } from "../../../utils/tokenHelpers";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { PasswordInput } from "../../components/ui/password-input";
 import { Label } from "../../components/ui/label";
 import {
   Card,
@@ -219,9 +220,8 @@ export function HotelSignupPage() {
                   <Label htmlFor="password" className="text-fg">
                     Password
                   </Label>
-                  <Input
+                  <PasswordInput
                     id="password"
-                    type="password"
                     placeholder="••••••••"
                     {...formik.getFieldProps("password")}
                     className={`bg-glass border-line text-fg placeholder:text-muted ${
@@ -241,9 +241,8 @@ export function HotelSignupPage() {
                   <Label htmlFor="confirmPassword" className="text-fg">
                     Confirm Password
                   </Label>
-                  <Input
+                  <PasswordInput
                     id="confirmPassword"
-                    type="password"
                     placeholder="••••••••"
                     {...formik.getFieldProps("confirmPassword")}
                     className={`bg-glass border-line text-fg placeholder:text-muted ${
