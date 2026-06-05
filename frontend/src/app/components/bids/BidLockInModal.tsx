@@ -216,15 +216,10 @@ export function BidLockInModal({
               <span>Retail reference</span>
               <span>{formatCurrency(retailTotal)}</span>
             </div>
-            {bidPerNight > 0 && (
-              <BidPriceBreakdown
-                surface="rows"
-                bidPerNight={bidPerNight}
-                nights={nights}
-                totalAmount={totalAmount}
-                showTotalLabel={false}
-              />
-            )}
+            <p className="bid-summary-rows__math leading-relaxed">
+              Taxes, resort fees, parking fees, and other hotel-imposed charges may
+              be collected separately by the hotel at check-in.
+            </p>
           </div>
 
           <Button
