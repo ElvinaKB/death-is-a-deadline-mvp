@@ -1,61 +1,50 @@
-import { useMemo, type CSSProperties } from "react";
+import { useEffect } from "react";
+import confetti from "canvas-confetti";
 
-const SPARKLE_COUNT = 22;
+const CELEBRATION_MS = 3_000;
 
-type SparkleVariant = "gold" | "emerald" | "white";
-type SparkleShape = "dot" | "star";
+/** Gold + emerald palette aligned with the accepted outcome panel. */
+const COLORS = ["#d4af37", "#34d399", "#f8deb1", "#10b981", "#ffffff"];
 
-function buildSparkles() {
-  return Array.from({ length: SPARKLE_COUNT }, (_, index) => {
-    const left = 6 + ((index * 37) % 88);
-    const delay = (index * 0.11) % 2.1;
-    const duration = 1.35 + (index % 4) * 0.18;
-    const drift = (index % 2 === 0 ? 1 : -1) * (4 + (index % 5) * 3);
-    const size = index % 5 === 0 ? 4 : index % 3 === 0 ? 3 : 2;
-    const variant: SparkleVariant =
-      index % 3 === 0 ? "gold" : index % 3 === 1 ? "emerald" : "white";
-    const shape: SparkleShape = index % 4 === 0 ? "star" : "dot";
-
-    return {
-      id: index,
-      left: `${left}%`,
-      delay: `${delay.toFixed(2)}s`,
-      duration: `${duration.toFixed(2)}s`,
-      drift: `${drift}px`,
-      size,
-      variant,
-      shape,
-    };
-  });
-}
-
+/** Full-page side-cannon confetti when a bid is accepted (Magic UI pattern). */
 export function AcceptedOutcomeSparkles() {
-  const sparkles = useMemo(buildSparkles, []);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
 
-  return (
-    <div className="outcome-sparkles" aria-hidden>
-      {sparkles.map((sparkle) => (
-        <span
-          key={sparkle.id}
-          className={[
-            "outcome-sparkle",
-            `outcome-sparkle--${sparkle.variant}`,
-            sparkle.shape === "star" ? "outcome-sparkle--star" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          style={
-            {
-              left: sparkle.left,
-              width: `${sparkle.size}px`,
-              height: `${sparkle.size}px`,
-              "--sparkle-delay": sparkle.delay,
-              "--sparkle-duration": sparkle.duration,
-              "--sparkle-drift": sparkle.drift,
-            } as CSSProperties
-          }
-        />
-      ))}
-    </div>
-  );
+    let cancelled = false;
+    const end = Date.now() + CELEBRATION_MS;
+
+    const frame = () => {
+      if (cancelled || Date.now() > end) return;
+
+      confetti({
+        particleCount: 2,
+        angle: 60,
+        spread: 55,
+        startVelocity: 60,
+        origin: { x: 0, y: 0.5 },
+        colors: COLORS,
+      });
+      confetti({
+        particleCount: 2,
+        angle: 120,
+        spread: 55,
+        startVelocity: 60,
+        origin: { x: 1, y: 0.5 },
+        colors: COLORS,
+      });
+
+      requestAnimationFrame(frame);
+    };
+
+    requestAnimationFrame(frame);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return null;
 }

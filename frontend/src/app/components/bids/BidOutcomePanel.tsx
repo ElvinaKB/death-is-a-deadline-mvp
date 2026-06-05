@@ -101,10 +101,10 @@ export function BidOutcomePanel({
 
   if (isAccepted) {
     return (
-      <div className="outcome-panel outcome-panel--accepted rounded-xl p-5 space-y-5 bg-[hsl(0_0%_4%)]">
-        <div className="outcome-accepted-hero">
-          <AcceptedOutcomeSparkles />
-          <div className="text-center pt-2 relative z-[1]">
+      <>
+        <AcceptedOutcomeSparkles />
+        <div className="outcome-panel outcome-panel--accepted rounded-xl p-5 space-y-5 bg-[hsl(0_0%_4%)]">
+          <div className="text-center pt-2">
             <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/20 border-2 border-emerald-500">
               <CheckCircle className="h-8 w-8 text-emerald-400" />
             </div>
@@ -112,16 +112,15 @@ export function BidOutcomePanel({
             <p className="text-sm text-muted mt-1">Your bid was accepted.</p>
           </div>
 
-          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-center relative z-[1]">
+          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-center">
             <p className="text-sm font-semibold text-emerald-400 flex items-center justify-center gap-2">
               <Lock className="h-4 w-4" />
               Reservation Confirmed
             </p>
             <p className="text-xs text-muted mt-1">Your room is secured.</p>
           </div>
-        </div>
 
-        <div className="space-y-2 text-sm border-t border-line/60 pt-4">
+          <div className="space-y-2 text-sm border-t border-line/60 pt-4">
           <div className="flex justify-between text-muted">
             <span>Check-in</span>
             <span className="text-fg">{format(checkIn, "EEE, MMM d, yyyy")}</span>
@@ -182,6 +181,7 @@ export function BidOutcomePanel({
           Keep Exploring
         </Button>
       </div>
+      </>
     );
   }
 
