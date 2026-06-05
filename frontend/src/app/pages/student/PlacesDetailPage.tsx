@@ -32,6 +32,7 @@ import { HomeHeader } from "../../components/home/HomeHeader";
 import { useReviewPlatforms } from "../../../hooks/useTestimonials";
 import { pickPreferredReviewPlatform } from "../../../utils/reviewPlatform";
 import { StudentBidBadgeIcon } from "../../components/listing/StudentBidBadgeIcon";
+import { ListingHeroCarousel } from "../../components/listing/ListingHeroCarousel";
 import { PrivateThresholdBadgeIcon } from "../../components/listing/PrivateThresholdBadgeIcon";
 import { Testimonials } from "../../components/places/Testimonials";
 import {
@@ -100,6 +101,11 @@ export function PlaceDetailPage() {
     initialInventoryDate,
   );
   const [showSoldOutModal, setShowSoldOutModal] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
+  const [heroImageIndex, setHeroImageIndex] = useState(0);
+  const [bookingCheckIn, setBookingCheckIn] = useState<Date | undefined>();
+  const [bookingCheckOut, setBookingCheckOut] = useState<Date | undefined>();
 
   // Keep inventory date in sync when navigating from list with ?date= or search bar changes
   useEffect(() => {
@@ -111,6 +117,7 @@ export function PlaceDetailPage() {
   // Scroll to top when id changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+    setHeroImageIndex(0);
   }, [id]);
 
   // Use public endpoint for students - includes inventory status when date is provided
@@ -132,11 +139,6 @@ export function PlaceDetailPage() {
       setShowSoldOutModal(true);
     }
   }, [inventoryMessage, inventoryDate]);
-
-  const [galleryOpen, setGalleryOpen] = useState(false);
-  const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
-  const [bookingCheckIn, setBookingCheckIn] = useState<Date | undefined>();
-  const [bookingCheckOut, setBookingCheckOut] = useState<Date | undefined>();
 
   // Fetch similar places in the same city (limit 4, excluding current place)
   const { data: reviewPlatformsData } = useReviewPlatforms(id || "");
@@ -193,7 +195,8 @@ export function PlaceDetailPage() {
   // Filter to only PlaceImage types
   const allImages = place.images.filter(isPlaceImage);
   const amenities = resolvePlaceKeywords(place.keywords);
-  const heroUrl = allImages[0]?.url || "/placeholder-hotel.jpg";
+  const heroSlideIndex =
+    allImages.length > 0 ? Math.min(heroImageIndex, allImages.length - 1) : 0;
   const bookingNights =
     bookingCheckIn && bookingCheckOut
       ? Math.max(1, differenceInDays(bookingCheckOut, bookingCheckIn))
@@ -225,11 +228,11 @@ export function PlaceDetailPage() {
           className={`listing-detail-grid gap-3 lg:gap-7${amenities.length === 0 ? " listing-detail-grid--no-amenities" : ""}`}
         >
           <div className="listing-detail-hero relative aspect-[16/9.5] overflow-hidden rounded-xl">
-              <img
-                src={heroUrl}
-                alt={place.name}
-                className="h-full w-full cursor-pointer object-cover"
-                onClick={() => openGallery(0)}
+              <ListingHeroCarousel
+                images={allImages}
+                placeName={place.name}
+                onImageClick={openGallery}
+                onIndexChange={setHeroImageIndex}
               />
               {heroReview && (
                 <button
@@ -250,10 +253,10 @@ export function PlaceDetailPage() {
               {allImages.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => openGallery(0)}
-                  className="absolute bottom-4 right-4 rounded-lg bg-black/70 px-3 py-1.5 text-xs text-fg backdrop-blur-sm hover:bg-black/80"
+                  onClick={() => openGallery(heroSlideIndex)}
+                  className="absolute bottom-4 right-4 z-10 rounded-lg bg-black/70 px-3 py-1.5 text-xs text-fg backdrop-blur-sm hover:bg-black/80"
                 >
-                  1 / {allImages.length}
+                  {heroSlideIndex + 1} / {allImages.length}
                 </button>
               )}
               <div className="listing-hero-overlay pointer-events-none absolute inset-0 flex flex-col justify-end p-4 pt-14 sm:p-5 sm:pt-16 md:p-6 md:pt-20">
