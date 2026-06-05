@@ -220,9 +220,9 @@ export function PlaceDetailPage() {
         onClose={() => setGalleryOpen(false)}
       />
 
-      <div className="mx-auto max-w-[1400px] px-4 py-4 sm:py-6 md:px-8 md:py-8 min-w-0">
-        <div className="listing-detail-grid gap-4 lg:gap-8">
-          <div className="listing-detail-hero relative aspect-[16/10] overflow-hidden rounded-xl">
+      <div className="mx-auto max-w-[1400px] px-4 py-2 sm:py-4 md:px-8 md:py-6 min-w-0">
+        <div className="listing-detail-grid gap-3 lg:gap-7">
+          <div className="listing-detail-hero relative aspect-[16/9.5] overflow-hidden rounded-xl">
               <img
                 src={heroUrl}
                 alt={place.name}
@@ -254,7 +254,7 @@ export function PlaceDetailPage() {
                   1 / {allImages.length}
                 </button>
               )}
-              <div className="listing-hero-overlay pointer-events-none absolute inset-0 flex flex-col justify-end p-6 pt-20">
+              <div className="listing-hero-overlay pointer-events-none absolute inset-0 flex flex-col justify-end p-4 pt-14 sm:p-5 sm:pt-16 md:p-6 md:pt-20">
                 <span className="listing-type-pill w-fit mb-3">
                   {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
                 </span>
@@ -276,7 +276,7 @@ export function PlaceDetailPage() {
             </div>
 
           {amenities.length > 0 && (
-            <div className="listing-detail-amenities flex flex-wrap items-center gap-x-5 gap-y-2">
+            <div className="listing-detail-amenities flex flex-wrap items-center gap-x-5 gap-y-1 py-0.5">
               {amenities.map(({ id, label, icon: Icon }) => (
                 <span
                   key={id}

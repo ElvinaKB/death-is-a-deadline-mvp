@@ -329,6 +329,7 @@ function BidFormInner({
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   const [bidStep, setBidStep] = useState<BidStep>("dates");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedHotelTaxes, setAcceptedHotelTaxes] = useState(false);
   const [lockInOpen, setLockInOpen] = useState(false);
   const [isRebidding, setIsRebidding] = useState(false);
   const [auctionSeconds, setAuctionSeconds] = useState(() =>
@@ -660,6 +661,14 @@ function BidFormInner({
       submitInFlightRef.current = true;
       setPaymentError(null);
       setCardNotice(null);
+
+      if (isAuthenticated && !acceptedHotelTaxes) {
+        setPaymentError(
+          "Please acknowledge that hotel taxes and fees may be collected separately at check-in.",
+        );
+        submitInFlightRef.current = false;
+        return;
+      }
 
       if (isAuthenticated && !acceptedTerms) {
         setPaymentError(
@@ -1101,6 +1110,12 @@ function BidFormInner({
       navigate(ROUTES.SIGNUP, {
         state: { returnUrl: location.pathname },
       });
+      return;
+    }
+    if (!acceptedHotelTaxes) {
+      setPaymentError(
+        "Please acknowledge that hotel taxes and fees may be collected separately at check-in.",
+      );
       return;
     }
     if (!acceptedTerms) {
@@ -1664,6 +1679,17 @@ function BidFormInner({
                 lock-in timer.
               </p>
             </div>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <Checkbox
+                checked={acceptedHotelTaxes}
+                onCheckedChange={(v) => setAcceptedHotelTaxes(v === true)}
+                className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
+              />
+              <span className="text-xs text-muted leading-relaxed">
+                Hotel taxes and government-imposed fees may be collected separately
+                by the hotel at check-in.
+              </span>
+            </label>
             <label className="flex items-start gap-3 cursor-pointer">
               <Checkbox
                 checked={acceptedTerms}

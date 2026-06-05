@@ -174,8 +174,8 @@ export function BidLockInModal({
           <div className="flex flex-col items-center gap-2 rounded-lg border border-urgent/50 bg-urgent/5 px-4 py-3 text-sm text-fg text-center">
             <Shield className="h-5 w-5 shrink-0 text-urgent" />
             <p>
-              If the hotel accepts your bid, your reservation is instantly
-              secured.
+              If your bid meets or exceeds the hotel&apos;s confidential pricing
+              criteria, your reservation will be instantly secured.
             </p>
           </div>
 
@@ -216,15 +216,10 @@ export function BidLockInModal({
               <span>Retail reference</span>
               <span>{formatCurrency(retailTotal)}</span>
             </div>
-            {bidPerNight > 0 && (
-              <BidPriceBreakdown
-                surface="rows"
-                bidPerNight={bidPerNight}
-                nights={nights}
-                totalAmount={totalAmount}
-                showTotalLabel={false}
-              />
-            )}
+            <p className="bid-summary-rows__math leading-relaxed">
+              Taxes, resort fees, parking fees, and other hotel-imposed charges may
+              be collected separately by the hotel at check-in.
+            </p>
           </div>
 
           <Button

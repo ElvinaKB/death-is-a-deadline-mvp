@@ -148,13 +148,14 @@ export function HomeHeader({
 
   return (
     <header className="bg-bg border-b border-line sticky top-0 z-50">
-      <div className="flex flex-col md:flex-row md:items-center justify-between px-3 sm:px-4 py-2 sm:py-3 gap-1 sm:gap-0">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between px-3 sm:px-4 py-2 sm:py-3 gap-2 md:gap-4">
+        {/* Brand — full width on mobile; auto width on desktop so search/auth fit */}
         <div
           className={cn(
-            "w-full min-w-0",
+            "w-full min-w-0 md:w-auto md:shrink-0",
             showSearchBar
-              ? "md:flex md:flex-col md:gap-0.5 md:shrink-0"
-              : "md:flex md:items-center md:gap-3 md:w-auto",
+              ? "md:flex md:flex-col md:gap-0.5"
+              : "md:flex md:items-center md:gap-3",
           )}
         >
           <div className="flex items-center justify-between gap-2">
@@ -178,14 +179,15 @@ export function HomeHeader({
           </Link>
         </div>
 
+        {/* Search + desktop auth — hidden on mobile for non-home pages only */}
         <div
           className={cn(
-            "flex flex-1 flex-col sm:flex-row items-stretch sm:items-center justify-between w-full min-w-0 md:px-4 pt-1 sm:pt-2 md:py-0 gap-2 sm:gap-0",
+            "flex w-full min-w-0 flex-1 flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 md:px-2",
             !isHome && "hidden md:flex",
           )}
         >
           {showSearchBar && (
-            <div className="flex-1 flex justify-center md:px-4 w-full min-w-0">
+            <div className="min-w-0 flex-1 flex justify-center">
               <div className="w-full max-w-2xl min-w-0">
                 <SearchBar onSearch={onSearch} />
               </div>
@@ -193,7 +195,10 @@ export function HomeHeader({
           )}
 
           <AuthLinks
-            className={cn("hidden md:flex", !isHome && "w-full justify-end")}
+            className={cn(
+              "hidden md:flex shrink-0",
+              !showSearchBar && "md:ml-auto",
+            )}
           />
         </div>
       </div>
