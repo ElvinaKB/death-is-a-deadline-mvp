@@ -221,7 +221,9 @@ export function PlaceDetailPage() {
       />
 
       <div className="mx-auto max-w-[1400px] px-4 py-2 sm:py-4 md:px-8 md:py-6 min-w-0">
-        <div className="listing-detail-grid gap-3 lg:gap-7">
+        <div
+          className={`listing-detail-grid gap-3 lg:gap-7${amenities.length === 0 ? " listing-detail-grid--no-amenities" : ""}`}
+        >
           <div className="listing-detail-hero relative aspect-[16/9.5] overflow-hidden rounded-xl">
               <img
                 src={heroUrl}
