@@ -1429,6 +1429,7 @@ function BidFormInner({
                     <Calendar
                       mode="single"
                       selected={formik.values.checkInDate}
+                      highlightToday={false}
                       onSelect={(date) => {
                         formik.setFieldValue("checkInDate", date);
                         setCheckInOpen(false);
@@ -1466,6 +1467,7 @@ function BidFormInner({
                     <Calendar
                       mode="single"
                       selected={formik.values.checkOutDate}
+                      highlightToday={false}
                       onSelect={(date) => {
                         formik.setFieldValue("checkOutDate", date);
                         setCheckOutOpen(false);
@@ -1792,6 +1794,7 @@ function BidFormInner({
                 <Calendar
                   mode="single"
                   selected={formik.values.checkInDate}
+                  highlightToday={false}
                   onSelect={(date) => {
                     formik.setFieldValue("checkInDate", date);
                     setCheckInOpen(false);
@@ -1839,6 +1842,7 @@ function BidFormInner({
                 <Calendar
                   mode="single"
                   selected={formik.values.checkOutDate}
+                  highlightToday={false}
                   onSelect={(date) => {
                     formik.setFieldValue("checkOutDate", date);
                     setCheckOutOpen(false);
