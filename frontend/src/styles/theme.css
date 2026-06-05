@@ -1069,6 +1069,22 @@
       grid-row: 1 / 5;
       order: unset;
     }
+
+    .listing-detail-grid--no-amenities {
+      grid-template-rows: auto auto auto;
+    }
+
+    .listing-detail-grid--no-amenities .listing-detail-retail {
+      grid-row: 2;
+    }
+
+    .listing-detail-grid--no-amenities .listing-detail-about {
+      grid-row: 3;
+    }
+
+    .listing-detail-grid--no-amenities .listing-detail-bid {
+      grid-row: 1 / 4;
+    }
   }
 
   .listing-retail-split {
