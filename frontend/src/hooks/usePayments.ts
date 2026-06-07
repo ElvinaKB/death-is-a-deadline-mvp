@@ -17,6 +17,22 @@ import {
 // ============ STUDENT HOOKS ============
 // create-intent invalidation toggle: frontend/docs/payment-flow-toggle.md (PAYMENT_FLOW_V1/V2)
 
+export const useStripePaymentConfig = () => {
+  return useApiQuery<{ mode: "test" | "live" }>({
+    queryKey: ["payments", "config"],
+    endpoint: ENDPOINTS.PAYMENT_CONFIG,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useValidatePaymentMethod = () => {
+  return useApiMutation<{ valid: boolean; mode: "test" | "live" }, { paymentMethodId: string }>({
+    endpoint: ENDPOINTS.PAYMENT_VALIDATE_METHOD,
+    method: "POST",
+    showErrorToast: false,
+  });
+};
+
 // Create payment intent for a bid
 export const useCreatePaymentIntent = () => {
   const queryClient = useQueryClient();

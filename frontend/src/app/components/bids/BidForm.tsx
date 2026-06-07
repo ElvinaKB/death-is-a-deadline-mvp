@@ -17,7 +17,7 @@ import type {
   StripeCardElement,
   StripeCardElementChangeEvent,
 } from "@stripe/stripe-js";
-import { stripePromise } from "../../../lib/stripe";
+import { getPublishableStripeMode, stripePromise } from "../../../lib/stripe";
 import {
   Calendar as CalendarIcon,
   CheckCircle,
@@ -47,6 +47,8 @@ import {
   useConfirmPayment,
   useCreatePaymentIntent,
   useSavedPaymentMethods,
+  useStripePaymentConfig,
+  useValidatePaymentMethod,
 } from "../../../hooks/usePayments";
 import {
   isStripeChargeComplete,
@@ -115,6 +117,11 @@ import {
   findMatchingSavedCard,
   isDuplicateOfSavedCard,
 } from "../../../utils/savedCardUtils";
+import {
+  formatStripeCardError,
+  STRIPE_KEY_MISMATCH_MESSAGE,
+  stripeModesMismatch,
+} from "../../../utils/stripeCardErrors";
 
 // LocalStorage key for persisting bid form state
 const BID_FORM_STORAGE_KEY = "pendingBidForm";
@@ -293,6 +300,8 @@ function BidFormInner({
   const createBid = useCreateBid();
   const createPaymentIntent = useCreatePaymentIntent();
   const confirmPayment = useConfirmPayment();
+  const validatePaymentMethod = useValidatePaymentMethod();
+  const { data: stripePaymentConfig } = useStripePaymentConfig();
   const { data: savedMethodsData, isLoading: isLoadingSavedMethods } =
     useSavedPaymentMethods(isAuthenticated);
 
@@ -403,16 +412,20 @@ function BidFormInner({
     [savedMethodsData?.paymentMethods, loadedSavedMethods],
   );
 
-  const persistCardPaymentMethod = useCallback(async (): Promise<boolean> => {
+  const persistCardPaymentMethod = useCallback(async (): Promise<{
+    ok: boolean;
+    paymentMethodId?: string;
+    error?: string;
+  }> => {
     if (!stripe || !elements) {
       setPaymentMethodId(null);
-      return false;
+      return { ok: false };
     }
     const card =
       cardElementRef.current || elements.getElement(CardElement);
     if (!card) {
       setPaymentMethodId(null);
-      return false;
+      return { ok: false };
     }
     const { error, paymentMethod } = await stripe.createPaymentMethod({
       type: "card",
@@ -422,7 +435,11 @@ function BidFormInner({
       setPaymentMethodId(null);
       setCardNotice(null);
       pendingCardDetailsRef.current = null;
-      return false;
+      const message = error
+        ? formatStripeCardError(error)
+        : "Please enter valid card details";
+      setPaymentError(message);
+      return { ok: false, error: message };
     }
 
     pendingCardDetailsRef.current = paymentMethod.card ?? null;
@@ -441,13 +458,13 @@ function BidFormInner({
         setPaymentError(DUPLICATE_SAVED_CARD_MESSAGE);
         setCardNotice(null);
       }
-      return false;
+      return { ok: false };
     }
 
     setPaymentMethodId(paymentMethod.id);
     setPaymentError(null);
     setCardNotice(CARD_ADDED_MESSAGE);
-    return true;
+    return { ok: true, paymentMethodId: paymentMethod.id };
   }, [
     stripe,
     elements,
@@ -460,7 +477,7 @@ function BidFormInner({
       setIsCardComplete(e.complete);
       if (e.error?.message) {
         setCardNotice(null);
-        setPaymentError(e.error.message);
+        setPaymentError(formatStripeCardError(e.error));
       } else if (!e.complete) {
         setCardNotice(null);
       }
@@ -470,9 +487,7 @@ function BidFormInner({
       } else {
         setPaymentMethodId(null);
         pendingCardDetailsRef.current = null;
-        setPaymentError((prev) =>
-          prev === DUPLICATE_SAVED_CARD_MESSAGE ? null : prev,
-        );
+        setPaymentError(null);
       }
     },
     [persistCardPaymentMethod],
@@ -482,6 +497,98 @@ function BidFormInner({
     if (payWithSavedCard || !paymentMethodId) return false;
     return paymentError === DUPLICATE_SAVED_CARD_MESSAGE;
   }, [payWithSavedCard, paymentMethodId, paymentError]);
+
+  const ensurePaymentReadyForBid = useCallback(async (): Promise<{
+    ok: boolean;
+    chargePaymentMethodId?: string;
+    error?: string;
+  }> => {
+    if (!stripe) {
+      return { ok: false, error: "Payment system not ready" };
+    }
+
+    let chargePaymentMethodId: string | undefined;
+
+    if (payWithSavedCard) {
+      if (!selectedPaymentMethodId) {
+        return { ok: false, error: "Please select a saved card" };
+      }
+      chargePaymentMethodId = selectedPaymentMethodId;
+    } else {
+      if (rejectDuplicateFreshCard()) {
+        return {
+          ok: false,
+          error: paymentError || DUPLICATE_SAVED_CARD_MESSAGE,
+        };
+      }
+      if (!isCardComplete || !elements) {
+        return { ok: false, error: "Please enter valid card details" };
+      }
+      const pmResult = await persistCardPaymentMethod();
+      if (!pmResult.ok || !pmResult.paymentMethodId) {
+        return {
+          ok: false,
+          error: pmResult.error || "Please enter valid card details",
+        };
+      }
+      chargePaymentMethodId = pmResult.paymentMethodId;
+    }
+
+    if (
+      stripeModesMismatch(
+        getPublishableStripeMode(),
+        stripePaymentConfig?.mode,
+      )
+    ) {
+      return { ok: false, error: STRIPE_KEY_MISMATCH_MESSAGE };
+    }
+
+    try {
+      await validatePaymentMethod.mutateAsync({
+        paymentMethodId: chargePaymentMethodId,
+      });
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === "object" && "message" in err
+          ? String((err as { message: string }).message)
+          : STRIPE_KEY_MISMATCH_MESSAGE;
+      return { ok: false, error: message };
+    }
+
+    return { ok: true, chargePaymentMethodId };
+  }, [
+    stripe,
+    payWithSavedCard,
+    selectedPaymentMethodId,
+    rejectDuplicateFreshCard,
+    paymentError,
+    isCardComplete,
+    elements,
+    persistCardPaymentMethod,
+    stripePaymentConfig?.mode,
+    validatePaymentMethod,
+  ]);
+
+  const canLockInBid = useMemo(() => {
+    if (paymentError) return false;
+    if (
+      stripeModesMismatch(
+        getPublishableStripeMode(),
+        stripePaymentConfig?.mode,
+      )
+    ) {
+      return false;
+    }
+    if (payWithSavedCard) return !!selectedPaymentMethodId;
+    return isCardComplete && !!paymentMethodId;
+  }, [
+    paymentError,
+    stripePaymentConfig?.mode,
+    payWithSavedCard,
+    selectedPaymentMethodId,
+    isCardComplete,
+    paymentMethodId,
+  ]);
 
   // Re-check duplicate when saved methods load after card entry (Stripe.js has no retrievePaymentMethod)
   useEffect(() => {
@@ -566,10 +673,7 @@ function BidFormInner({
           requiresAction: true,
         };
       }
-      if (error.type === "card_error" || error.type === "validation_error") {
-        return { success: false, error: error.message || "Card declined" };
-      }
-      return { success: false, error: error.message || "Payment failed" };
+      return { success: false, error: formatStripeCardError(error) };
     }
 
     if (!paymentIntent) {
@@ -678,30 +782,16 @@ function BidFormInner({
         return;
       }
 
-      if (!stripe) {
-        setPaymentError("Payment system not ready");
+      const paymentReady = await ensurePaymentReadyForBid();
+      if (!paymentReady.ok || !paymentReady.chargePaymentMethodId) {
+        setPaymentError(
+          paymentReady.error || "Please fix payment details before continuing.",
+        );
         submitInFlightRef.current = false;
         return;
       }
+      const chargePaymentMethodId = paymentReady.chargePaymentMethodId;
 
-      if (payWithSavedCard) {
-        if (!selectedPaymentMethodId) {
-          setPaymentError("Please select a saved card");
-          submitInFlightRef.current = false;
-          return;
-        }
-      } else {
-        if (rejectDuplicateFreshCard()) {
-          submitInFlightRef.current = false;
-          return;
-        }
-        const hasReusablePaymentMethod = !!paymentMethodId;
-        if (!hasReusablePaymentMethod && (!isCardComplete || !elements)) {
-          setPaymentError("Please enter valid card details");
-          submitInFlightRef.current = false;
-          return;
-        }
-      }
       /* PAYMENT_FLOW_V1 START — uncomment for legacy; comment V2 block above
       setPaymentError(null);
 
@@ -732,7 +822,7 @@ function BidFormInner({
       PAYMENT_FLOW_V1 END */
 
       payingWithSavedRef.current = payWithSavedCard;
-      payingPaymentMethodIdRef.current = selectedPaymentMethodId ?? undefined;
+      payingPaymentMethodIdRef.current = chargePaymentMethodId;
       setFrozenSavedMethods([...loadedSavedMethods]);
       setFrozenPayWithSaved(payWithSavedCard);
       setIsProcessing(true);
@@ -795,9 +885,7 @@ function BidFormInner({
             setPaymentId(paymentResult.payment.id);
             const confirmResult = await confirmPaymentWithCard(
               paymentResult.clientSecret,
-              payingWithSavedRef.current
-                ? payingPaymentMethodIdRef.current
-                : (paymentMethodId ?? undefined),
+              payingPaymentMethodIdRef.current,
             );
             if (confirmResult.success) {
               // PAYMENT_FLOW_V2 START — trust Stripe confirm; poll best-effort
@@ -1095,8 +1183,7 @@ function BidFormInner({
     formik.resetForm();
   };
 
-  const handleReviewBindingBid = () => {
-    setPaymentError(null);
+  const handleReviewBindingBid = async () => {
     if (datesProceedError) {
       setPaymentError(datesProceedError);
       return;
@@ -1124,19 +1211,15 @@ function BidFormInner({
       );
       return;
     }
-    if (payWithSavedCard) {
-      if (!selectedPaymentMethodId) {
-        setPaymentError("Please select a saved card.");
-        return;
-      }
-    } else {
-      if (rejectDuplicateFreshCard()) return;
-      const hasReusablePaymentMethod = !!paymentMethodId;
-      if (!hasReusablePaymentMethod && (!isCardComplete || !stripe || !elements)) {
-        setPaymentError("Please enter valid card details.");
-        return;
-      }
+
+    const paymentReady = await ensurePaymentReadyForBid();
+    if (!paymentReady.ok) {
+      setPaymentError(
+        paymentReady.error || "Please fix payment details before continuing.",
+      );
+      return;
     }
+
     setLockInOpen(true);
   };
 
@@ -1726,8 +1809,13 @@ function BidFormInner({
             <Button
               type="button"
               className="w-full listing-cta-gradient h-12 text-base uppercase tracking-wider"
-              onClick={handleReviewBindingBid}
-              disabled={isProcessing || isInventoryExhausted || showPaymentMethodLoading}
+              onClick={() => void handleReviewBindingBid()}
+              disabled={
+                isProcessing ||
+                isInventoryExhausted ||
+                showPaymentMethodLoading ||
+                !canLockInBid
+              }
             >
               <ArrowRight className="mr-2 h-4 w-4" />
               {isProcessing ? "PROCESSING YOUR BID..." : "LOCK IN BID"}
@@ -2213,9 +2301,7 @@ function BidFormInner({
               createBid.isPending ||
               showPaymentMethodLoading ||
               !stripe ||
-              (uiPayWithSaved
-                ? !selectedPaymentMethodId
-                : !elements || !isCardComplete) ||
+              !canLockInBid ||
               !formik.values.checkInDate ||
               !formik.values.checkOutDate ||
               !formik.values.bidPerNight ||
@@ -2332,7 +2418,7 @@ function OrphanBidPaymentRetry({
           error.code === "payment_intent_unexpected_state" &&
           error.payment_intent?.status === "succeeded";
         if (!alreadyPaid) {
-          throw new Error(error.message || "Payment failed");
+          throw new Error(formatStripeCardError(error));
         }
       }
       const stripeStatus = paymentIntent?.status ?? error?.payment_intent?.status;
@@ -2411,7 +2497,7 @@ function OrphanBidPaymentRetry({
             });
             if (error || !paymentMethod?.id) {
               setPaymentMethodId(null);
-              setCardError(error?.message ?? null);
+              setCardError(error ? formatStripeCardError(error) : null);
               return;
             }
             const existing = findMatchingSavedCard(

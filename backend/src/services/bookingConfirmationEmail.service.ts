@@ -32,6 +32,7 @@ export async function sendBookingConfirmationEmails(
       student.email ||
       "Student",
     studentEmail: student.email || "",
+    reservationNumber: `BID-${bid.id.split("-")[0].toUpperCase()}`,
     placeName: place.name,
     placeCity: place.city,
     placeCountry: place.country,

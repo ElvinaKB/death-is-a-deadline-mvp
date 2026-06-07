@@ -9,7 +9,9 @@ import {
   CapturePaymentInput,
   CreatePaymentIntentInput,
   ListPaymentsQuery,
+  ValidatePaymentMethodInput,
 } from "../validations/payments/payments.validation";
+import { getBackendStripeMode } from "../libs/utils/stripeMode";
 import {
   deriveBookingStatus,
   BOOKING_STATUS_LABELS,
@@ -124,6 +126,62 @@ const formatPayment = (payment: any) => ({
       })()
     : undefined,
 });
+
+/** Public Stripe mode for frontend key-mismatch checks */
+export async function getPaymentConfig(_req: Request, res: Response) {
+  res.json({
+    data: {
+      mode: getBackendStripeMode(),
+    },
+  });
+}
+
+/**
+ * Pre-flight check before bid submit — catches test cards / key mismatch in live mode
+ */
+export async function validatePaymentMethod(req: Request, res: Response) {
+  const { paymentMethodId } = req.body as ValidatePaymentMethodInput;
+  const studentId = req.user!.id;
+
+  try {
+    const paymentMethod =
+      await stripe.paymentMethods.retrieve(paymentMethodId);
+
+    if (getBackendStripeMode() === "live") {
+      const customerId = await findStripeCustomerIdForStudent(studentId);
+      if (
+        customerId &&
+        paymentMethod.customer &&
+        paymentMethod.customer !== customerId
+      ) {
+        throw new CustomError(
+          "This saved card cannot be used for this payment.",
+          400,
+          null,
+          ErrorCode.PAYMENT_FORBIDDEN,
+        );
+      }
+    }
+
+    res.json({
+      data: {
+        valid: true,
+        mode: getBackendStripeMode(),
+      },
+    });
+  } catch (err: unknown) {
+    const stripeErr = err as { code?: string; type?: string };
+    if (stripeErr.code === "resource_missing") {
+      throw new CustomError(
+        "This card cannot be used with the current payment setup. Test cards are not allowed with live payments, and test/live Stripe keys must match.",
+        400,
+        null,
+        ErrorCode.STRIPE_KEY_MISMATCH,
+      );
+    }
+    throw err;
+  }
+}
 
 /**
  * Create a PaymentIntent for an accepted bid
