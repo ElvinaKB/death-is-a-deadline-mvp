@@ -4,6 +4,7 @@ import { authenticate } from "../libs/middlewares/authenticate";
 import { UserRole } from "../types/auth.types";
 import {
   createPaymentIntentSchema,
+  validatePaymentMethodSchema,
   capturePaymentSchema,
   cancelPaymentSchema,
   paymentIdParamSchema,
@@ -12,6 +13,8 @@ import {
 } from "../validations/payments/payments.validation";
 import {
   createPaymentIntent,
+  getPaymentConfig,
+  validatePaymentMethod,
   getPaymentForBid,
   getSavedPaymentMethods,
   confirmPaymentStatus,
@@ -28,6 +31,8 @@ const router = Router();
 // Raw body parsing is handled in app.ts before express.json()
 router.post("/webhook", handlePaymentWebhook);
 
+router.get("/config", getPaymentConfig);
+
 // ============ STUDENT ROUTES ============
 
 // Create payment intent for a bid (initiates checkout)
@@ -42,6 +47,13 @@ router.get(
   "/saved-methods",
   authenticate(UserRole.STUDENT),
   getSavedPaymentMethods,
+);
+
+router.post(
+  "/validate-method",
+  authenticate(UserRole.STUDENT),
+  validate(validatePaymentMethodSchema, "body"),
+  validatePaymentMethod,
 );
 
 // Get payment status for a bid

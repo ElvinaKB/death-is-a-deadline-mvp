@@ -16,6 +16,10 @@ export const createPaymentIntentSchema = z.object({
   bidId: z.string().uuid({ message: "Invalid bid ID" }),
 });
 
+export const validatePaymentMethodSchema = z.object({
+  paymentMethodId: z.string().min(1, "Payment method ID is required"),
+});
+
 // Confirm payment (after card details entered)
 export const confirmPaymentSchema = z.object({
   paymentId: z.string().uuid({ message: "Invalid payment ID" }),
@@ -52,6 +56,9 @@ export const listPaymentsQuerySchema = z.object({
 // Type exports
 export type CreatePaymentIntentInput = z.infer<
   typeof createPaymentIntentSchema
+>;
+export type ValidatePaymentMethodInput = z.infer<
+  typeof validatePaymentMethodSchema
 >;
 export type ConfirmPaymentInput = z.infer<typeof confirmPaymentSchema>;
 export type CapturePaymentInput = z.infer<typeof capturePaymentSchema>;

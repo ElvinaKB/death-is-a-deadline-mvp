@@ -42,6 +42,8 @@ export const ENDPOINTS = {
   BID_PAYOUT: "/api/bids/:id/payout",
 
   // Payments
+  PAYMENT_CONFIG: "/api/payments/config",
+  PAYMENT_VALIDATE_METHOD: "/api/payments/validate-method",
   PAYMENT_CREATE_INTENT: "/api/payments/create-intent",
   PAYMENT_SAVED_METHODS: "/api/payments/saved-methods",
   PAYMENT_FOR_BID: "/api/payments/bid/:bidId",
