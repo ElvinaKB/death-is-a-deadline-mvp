@@ -37,6 +37,7 @@ interface BidOutcomePanelProps {
   onRebid?: (newBidPerNight: number) => void;
   isRebidding?: boolean;
   isProcessingBid?: boolean;
+  paymentError?: string | null;
   /** When set, scrolls the NOT ACCEPTED header into view on change (after submit/rebid rejection). */
   scrollToHeaderTrigger?: number;
 }
@@ -53,6 +54,7 @@ export function BidOutcomePanel({
   onRebid,
   isRebidding,
   isProcessingBid,
+  paymentError,
   scrollToHeaderTrigger,
 }: BidOutcomePanelProps) {
   const isBusy = isRebidding || isProcessingBid;
@@ -70,7 +72,8 @@ export function BidOutcomePanel({
 
   const applyQuickIncrement = (inc: number) => {
     setSelectedIncrement(inc);
-    setNewBidInput(String(previousBid + inc));
+    const base = Math.max(previousBid, Number(newBidInput) || 0);
+    setNewBidInput(String(base + inc));
   };
 
   const newBidPerNight = Math.max(1, Number(newBidInput) || 0);
@@ -287,8 +290,13 @@ export function BidOutcomePanel({
         </div>
       )}
 
+      {paymentError && (
+        <p className="text-xs text-center text-urgent">{paymentError}</p>
+      )}
+
       <Button
         className="w-full btn-bid-premium h-12 uppercase tracking-wide"
+        type="button"
         disabled={!adjustBid || isBusy || newBidPerNight <= 0}
         onClick={() => onRebid?.(newBidPerNight)}
         aria-busy={isBusy}

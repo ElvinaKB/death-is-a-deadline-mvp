@@ -521,17 +521,23 @@ function BidFormInner({
           error: paymentError || DUPLICATE_SAVED_CARD_MESSAGE,
         };
       }
-      if (!isCardComplete || !elements) {
-        return { ok: false, error: "Please enter valid card details" };
+      const reusablePaymentMethodId =
+        paymentMethodId || payingPaymentMethodIdRef.current;
+      if (reusablePaymentMethodId) {
+        chargePaymentMethodId = reusablePaymentMethodId;
+      } else {
+        if (!isCardComplete || !elements) {
+          return { ok: false, error: "Please enter valid card details" };
+        }
+        const pmResult = await persistCardPaymentMethod();
+        if (!pmResult.ok || !pmResult.paymentMethodId) {
+          return {
+            ok: false,
+            error: pmResult.error || "Please enter valid card details",
+          };
+        }
+        chargePaymentMethodId = pmResult.paymentMethodId;
       }
-      const pmResult = await persistCardPaymentMethod();
-      if (!pmResult.ok || !pmResult.paymentMethodId) {
-        return {
-          ok: false,
-          error: pmResult.error || "Please enter valid card details",
-        };
-      }
-      chargePaymentMethodId = pmResult.paymentMethodId;
     }
 
     if (
@@ -784,9 +790,12 @@ function BidFormInner({
 
       const paymentReady = await ensurePaymentReadyForBid();
       if (!paymentReady.ok || !paymentReady.chargePaymentMethodId) {
-        setPaymentError(
-          paymentReady.error || "Please fix payment details before continuing.",
-        );
+        const paymentMsg =
+          paymentReady.error || "Please fix payment details before continuing.";
+        setPaymentError(paymentMsg);
+        if (bidResult) {
+          toast.error(paymentMsg);
+        }
         submitInFlightRef.current = false;
         return;
       }
@@ -1260,22 +1269,21 @@ function BidFormInner({
       return;
     }
 
-    const canUseSavedCardNow = payWithSavedCard && !!selectedPaymentMethodId;
-    // Reuse paymentMethodId from the first card entry — no need to remount CardElement
-    const canUseFreshCardNow = !!paymentMethodId;
-    const canSubmitImmediately =
-      acceptedTerms && (canUseSavedCardNow || canUseFreshCardNow);
+    const rebidPaymentMethodAvailable =
+      (payWithSavedCard && !!selectedPaymentMethodId) ||
+      !!paymentMethodId ||
+      !!payingPaymentMethodIdRef.current;
 
-    if (!canSubmitImmediately) {
-      if (!acceptedTerms) {
-        toast.error(
-          "Please agree to the terms before placing your updated bid.",
-        );
-      } else {
-        toast.error(
-          "Use a saved card below, or tap Try again to re-enter payment details.",
-        );
-      }
+    if (!acceptedTerms) {
+      toast.error(
+        "Please agree to the terms before placing your updated bid.",
+      );
+      return;
+    }
+    if (!rebidPaymentMethodAvailable) {
+      toast.error(
+        "Use a saved card below, or tap Try again to re-enter payment details.",
+      );
       return;
     }
 
@@ -1367,6 +1375,7 @@ function BidFormInner({
         onRebid={isAuthenticated ? handleRebid : undefined}
         isRebidding={isRebidProcessing}
         isProcessingBid={isProcessing}
+        paymentError={paymentError}
         scrollToHeaderTrigger={
           shouldShowRejectedOutcome(bidResult!.bidStatus)
             ? rejectedScrollTrigger
