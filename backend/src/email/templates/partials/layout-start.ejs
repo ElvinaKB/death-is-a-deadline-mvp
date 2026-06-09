@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="x-apple-disable-message-reformatting" />
+  <meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no" />
+  <title><%= title %></title>
+  <%- include('./email-styles') %>
+</head>
+<body style="margin: 0; padding: 0; width: 100%; background-color: #f4f1ea; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">
+    <%= preheader || heading %>
+  </div>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f4f1ea;">
+    <tr>
+      <td align="center" class="email-outer-padding" style="padding: 32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="email-container" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);">
+          <tr>
+            <td class="email-header" style="background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); padding: 32px 40px; text-align: center;">
+              <p class="email-header-title" style="margin: 0 0 6px; font-size: 22px; font-weight: 700; color: #e5a823; letter-spacing: 0.5px;">
+                <%= appName %>
+              </p>
+              <p style="margin: 0; font-size: 13px; color: #a3a3a3; letter-spacing: 0.3px;">
+                Life is short. Travel now.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td class="email-section" style="padding: 32px 40px 0; text-align: center;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center">
+                <tr>
+                  <td style="background-color: <%= badgeBg %>; color: <%= badgeColor %>; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; padding: 8px 20px; border-radius: 100px;">
+                    <%= badgeText %>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td class="email-section" style="padding: 20px 40px 0; text-align: center;">
+              <h1 class="email-heading" style="margin: 0; font-size: 26px; font-weight: 700; color: #111111; line-height: 1.3;">
+                <%= heading %>
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td class="email-body" style="padding: 24px 40px 0; color: #374151; font-size: 16px; line-height: 1.65;">
