@@ -23,10 +23,22 @@ export async function sendBookingConfirmationEmails(
   }
 
   const bid = payment.bid;
-  const place = bid.place as typeof bid.place & { email?: string | null };
+  const place = bid.place;
   const student = payment.student;
 
-  const emailVariables = {
+  const appName = process.env.EMAIL_NAME || "Death is a Deadline";
+  const clientUrl = process.env.CLIENT_URL || "";
+  const placeFullAddress = [place.address, place.city, place.country]
+    .filter(Boolean)
+    .join(", ");
+  const mapsUrl =
+    place.latitude != null && place.longitude != null
+      ? `https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}`
+      : placeFullAddress
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeFullAddress)}`
+        : null;
+
+  const baseVariables = {
     studentName:
       (student.raw_user_meta_data as { name?: string })?.name ||
       student.email ||
@@ -36,13 +48,16 @@ export async function sendBookingConfirmationEmails(
     placeName: place.name,
     placeCity: place.city,
     placeCountry: place.country,
+    placeFullAddress,
+    placeContactEmail: place.email || null,
+    placeContactPhone: null as string | null,
+    mapsUrl,
     checkInDate: format(new Date(bid.checkInDate), "MMMM d, yyyy"),
     checkOutDate: format(new Date(bid.checkOutDate), "MMMM d, yyyy"),
     totalNights: bid.totalNights,
     bidPerNight: Number(bid.bidPerNight).toFixed(2),
     totalAmount: Number(bid.totalAmount).toFixed(2),
-    appName: process.env.EMAIL_NAME || "Education Bidding",
-    dashboardUrl: `${process.env.CLIENT_URL}/student/my-bids`,
+    appName,
   };
 
   if (student.email) {
@@ -51,7 +66,10 @@ export async function sendBookingConfirmationEmails(
         type: EmailType.BOOKING_CONFIRMED_STUDENT,
         to: student.email,
         subject: `Booking Confirmed - ${place.name}`,
-        variables: emailVariables,
+        variables: {
+          ...baseVariables,
+          dashboardUrl: `${clientUrl}/student/my-bids`,
+        },
       });
     } catch (error) {
       console.error("Failed to send student confirmation email:", error);
@@ -64,7 +82,10 @@ export async function sendBookingConfirmationEmails(
         type: EmailType.BOOKING_CONFIRMED_PLACE,
         to: place.email,
         subject: `New Booking - ${place.name}`,
-        variables: emailVariables,
+        variables: {
+          ...baseVariables,
+          dashboardUrl: `${clientUrl}/hotel/bids`,
+        },
       });
     } catch (error) {
       console.error("Failed to send place confirmation email:", error);
