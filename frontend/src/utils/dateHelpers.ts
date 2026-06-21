@@ -60,6 +60,21 @@ export function isDateInBlackout(
   return dateStr ? blackoutDates.includes(dateStr) : false;
 }
 
+/** Calendar-night overlap: [checkIn, checkOut) intervals share a night. */
+export function bookingDatesOverlap(
+  aCheckIn: Date,
+  aCheckOut: Date,
+  bCheckIn: Date | string,
+  bCheckOut: Date | string,
+): boolean {
+  const aIn = toApiDateOnly(aCheckIn);
+  const aOut = toApiDateOnly(aCheckOut);
+  const bIn = toApiDateOnly(bCheckIn);
+  const bOut = toApiDateOnly(bCheckOut);
+  if (!aIn || !aOut || !bIn || !bOut) return false;
+  return aIn < bOut && aOut > bIn;
+}
+
 export function isDayOfWeekAllowed(
   date: Date,
   allowedDaysOfWeek: number[] | undefined,

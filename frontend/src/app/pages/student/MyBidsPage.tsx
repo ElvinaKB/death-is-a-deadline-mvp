@@ -252,10 +252,10 @@ export function MyBidsPage() {
                       className="border-line text-fg hover:bg-glass h-8 text-xs sm:text-sm ml-auto"
                     >
                       <Link
-                        to={ROUTES.PUBLIC_PLACE_DETAIL.replace(
+                        to={`${ROUTES.PUBLIC_PLACE_DETAIL.replace(
                           ":id",
                           bid.placeId,
-                        )}
+                        )}?bidId=${bid.id}`}
                       >
                         View Place
                       </Link>

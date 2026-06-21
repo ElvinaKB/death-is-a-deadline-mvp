@@ -13,6 +13,18 @@ export function isLowBidRejection(error: {
   return msg.includes(LOW_BID_PHRASE);
 }
 
+const OVERLAP_PHRASE = "overlapping dates";
+
+/** POST /api/bids returns 400 when stay overlaps an active booking at same hotel */
+export function isBidOverlapRejection(error: {
+  statusCode?: number;
+  message?: string;
+}): boolean {
+  if (error.statusCode !== 400) return false;
+  const msg = error.message?.toLowerCase() ?? "";
+  return msg.includes(OVERLAP_PHRASE);
+}
+
 /** Reservation Confirmed panel — bid ACCEPTED and payment captured (or just succeeded in-session). */
 export function shouldShowConfirmedOutcome(
   bidStatus: BidStatus,

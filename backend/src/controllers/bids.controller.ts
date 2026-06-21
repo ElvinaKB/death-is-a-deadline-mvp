@@ -24,6 +24,7 @@ import {
   isStayCompletedAtHotel,
   parseBookingDateOnly,
   resolvePlaceTimezone,
+  toCalendarDateKey,
 } from "../libs/utils/hotelDates";
 
 // Helper to format bid response
@@ -222,7 +223,7 @@ export async function createBid(req: Request, res: Response) {
   });
 }
 
-const formatPriorStay = (bid: {
+const formatStaySummary = (bid: {
   checkInDate: Date;
   checkOutDate: Date;
   bidPerNight: Prisma.Decimal;
@@ -232,10 +233,22 @@ const formatPriorStay = (bid: {
   bidPerNight: Number(bid.bidPerNight),
 });
 
-// Get student's existing bid for a specific place (+ last completed stay for rebooking UX)
+const isActiveBookingBid = (
+  bid: { status: bid_status; checkOutDate: Date },
+  hotelToday: string,
+) =>
+  (bid.status === bid_status.ACCEPTED || bid.status === bid_status.PENDING) &&
+  isStayActiveAtHotel(bid.checkOutDate, hotelToday);
+
+// Get student's bids for a place (+ completed/upcoming stay summaries for rebooking UX)
 export async function getBidForPlace(req: Request, res: Response) {
   const studentId = req.user!.id;
   const { placeId } = req.params;
+  const { bidId, checkIn, checkOut } = req.query as {
+    bidId?: string;
+    checkIn?: string;
+    checkOut?: string;
+  };
 
   const [place, recentBids] = await Promise.all([
     prisma.place.findUnique({
@@ -267,28 +280,68 @@ export async function getBidForPlace(req: Request, res: Response) {
       isStayCompletedAtHotel(b.checkOutDate, hotelToday),
   );
 
-  const activeBid =
-    recentBids.find((b) => isStayActiveAtHotel(b.checkOutDate, hotelToday)) ??
-    null;
+  const activeBids = recentBids
+    .filter((b) => isActiveBookingBid(b, hotelToday))
+    .map(formatBid);
 
-  const priorStay = priorStayBid ? formatPriorStay(priorStayBid) : null;
+  const upcomingAccepted = recentBids
+    .filter(
+      (b) =>
+        b.status === bid_status.ACCEPTED &&
+        isStayActiveAtHotel(b.checkOutDate, hotelToday),
+    )
+    .sort(
+      (a, b) =>
+        toCalendarDateKey(a.checkInDate).localeCompare(
+          toCalendarDateKey(b.checkInDate),
+        ),
+    );
 
-  if (!activeBid) {
-    res.status(200).json({
-      data: {
-        bid: null,
-        priorStay,
-        hotelTimezone: resolvePlaceTimezone(place),
-        hotelToday,
-      },
-    });
-    return;
+  const upcomingStays = upcomingAccepted.map(formatStaySummary);
+
+  const upcomingStay = upcomingStays[0] ?? null;
+
+  const priorStay = priorStayBid ? formatStaySummary(priorStayBid) : null;
+
+  let bid = null;
+  if (bidId) {
+    const match = recentBids.find((b) => b.id === bidId);
+    if (match) {
+      bid = formatBid(match);
+    }
+  }
+
+  let overlappingBid = null;
+  if (checkIn && checkOut) {
+    try {
+      const checkInDate = parseBookingDateOnly(checkIn);
+      const checkOutDate = parseBookingDateOnly(checkOut);
+      const overlapRaw = recentBids.find(
+        (b) =>
+          isActiveBookingBid(b, hotelToday) &&
+          bookingDatesOverlap(
+            checkInDate,
+            checkOutDate,
+            b.checkInDate,
+            b.checkOutDate,
+          ),
+      );
+      if (overlapRaw) {
+        overlappingBid = formatBid(overlapRaw);
+      }
+    } catch {
+      /* ignore invalid date query */
+    }
   }
 
   res.status(200).json({
     data: {
-      bid: formatBid(activeBid),
+      bid,
+      activeBids,
       priorStay,
+      upcomingStay,
+      upcomingStays,
+      overlappingBid,
       hotelTimezone: resolvePlaceTimezone(place),
       hotelToday,
     },

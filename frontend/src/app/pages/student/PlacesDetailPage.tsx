@@ -125,13 +125,22 @@ export function PlaceDetailPage() {
   const place = data?.place;
   const inventoryMessage = data?.inventoryMessage;
 
+  const contextBidId = searchParams.get("bidId");
+
   const { data: placeBidContext } = useBidForPlace(id || "", {
     enabled: isAuthenticated && !!id,
+    bidId: contextBidId,
   });
   const heroPriorStay =
     placeBidContext?.priorStay && !placeBidContext.bid
       ? placeBidContext.priorStay
       : null;
+  const heroUpcomingStays =
+    !contextBidId && placeBidContext?.upcomingStays?.length
+      ? placeBidContext.upcomingStays
+      : !contextBidId && placeBidContext?.upcomingStay
+        ? [placeBidContext.upcomingStay]
+        : [];
 
   // Show sold out modal when inventory is exhausted
   useEffect(() => {
@@ -266,10 +275,19 @@ export function PlaceDetailPage() {
                 <h1 className="font-serif text-2xl sm:text-3xl text-fg md:text-4xl leading-tight">
                   {place.name}
                 </h1>
+                {heroUpcomingStays.length > 0 && (
+                  <PriorStayBanner
+                    upcomingStays={heroUpcomingStays}
+                    variant="pill"
+                    kind="upcoming"
+                    className="mt-3 w-fit"
+                  />
+                )}
                 {heroPriorStay && (
                   <PriorStayBanner
                     priorStay={heroPriorStay}
                     variant="pill"
+                    kind="completed"
                     className="mt-3 w-fit"
                   />
                 )}
@@ -299,6 +317,7 @@ export function PlaceDetailPage() {
               variant="listing"
               place={place}
               placeId={id}
+              contextBidId={contextBidId}
               onDateChange={(date) =>
                 setInventoryDate(toApiDateOnly(date))
               }

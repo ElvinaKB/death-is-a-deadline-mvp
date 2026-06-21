@@ -45,6 +45,18 @@ export const placeIdParamSchema = z.object({
   placeId: z.string().min(1, "Place ID is required"),
 });
 
+export const bidForPlaceQuerySchema = z.object({
+  bidId: z.string().uuid({ message: "Invalid bid ID" }).optional(),
+  checkIn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid check-in date")
+    .optional(),
+  checkOut: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid check-out date")
+    .optional(),
+});
+
 // Query schema for listing bids
 export const listBidsQuerySchema = z.object({
   status: bidStatusSchema.optional(),
@@ -65,3 +77,4 @@ export type CreateBidInput = z.infer<typeof createBidSchema>;
 export type UpdateBidStatusInput = z.infer<typeof updateBidStatusSchema>;
 export type ListBidsQuery = z.infer<typeof listBidsQuerySchema>;
 export type MyBidsQuery = z.infer<typeof myBidsQuerySchema>;
+export type BidForPlaceQuery = z.infer<typeof bidForPlaceQuerySchema>;

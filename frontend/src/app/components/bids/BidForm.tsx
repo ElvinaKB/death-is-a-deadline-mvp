@@ -57,6 +57,7 @@ import {
 import {
   isDbPaymentAwaitingCapture,
   isLowBidRejection,
+  isBidOverlapRejection,
   isStripeActionRequired,
   shouldShowConfirmedOutcome,
   shouldShowRejectedOutcome,
@@ -99,6 +100,7 @@ import { formatCurrency } from "../../../utils/currency";
 import {
   isDateInBlackout,
   isDayOfWeekAllowed,
+  bookingDatesOverlap,
   parseApiDate,
   toApiDateOnly,
 } from "../../../utils/dateHelpers";
@@ -187,6 +189,8 @@ const clearBidFormStorage = () => {
 interface BidFormProps {
   place: Place;
   placeId: string;
+  /** When set (e.g. from My Bids ?bidId=), show receipt for that booking */
+  contextBidId?: string | null;
   onDateChange?: (date: string | undefined) => void;
   onBookingDatesChange?: (checkIn?: Date, checkOut?: Date) => void;
   isInventoryExhausted?: boolean;
@@ -286,6 +290,7 @@ function PaymentMethodSkeleton({
 function BidFormInner({
   place,
   placeId,
+  contextBidId,
   onDateChange,
   onBookingDatesChange,
   isInventoryExhausted,
@@ -386,6 +391,7 @@ function BidFormInner({
         !isProcessing &&
         !bidResult &&
         !stripeCompletion,
+      bidId: contextBidId ?? undefined,
     });
 
   // Date restrictions: today to 30 days from today
@@ -845,15 +851,31 @@ function BidFormInner({
 
       try {
         // PAYMENT_FLOW_V2 START — Step 1: bid create or resume pending payment
-        const existingActive = existingBidData?.bid;
-        const resumeAwaitingPayment =
-          existingActive?.status === BidStatus.ACCEPTED &&
-          existingActive.placeId === placeId &&
-          isDbPaymentAwaitingCapture(existingActive.payment?.status);
+        const activeBids = existingBidData?.activeBids ?? [];
+        const resumeBid =
+          activeBids.find(
+            (b) =>
+              b.status === BidStatus.ACCEPTED &&
+              isDbPaymentAwaitingCapture(b.payment?.status) &&
+              values.checkInDate &&
+              values.checkOutDate &&
+              bookingDatesOverlap(
+                values.checkInDate,
+                values.checkOutDate,
+                b.checkInDate,
+                b.checkOutDate,
+              ),
+          ) ??
+          activeBids.find(
+            (b) =>
+              b.status === BidStatus.ACCEPTED &&
+              isDbPaymentAwaitingCapture(b.payment?.status),
+          );
+        const resumeAwaitingPayment = !!resumeBid;
 
         const result = resumeAwaitingPayment
           ? {
-              bid: existingActive,
+              bid: resumeBid,
               status: BidStatus.ACCEPTED,
               message: "Resuming payment for your accepted bid.",
             }
@@ -1028,6 +1050,11 @@ function BidFormInner({
           });
           setRejectedScrollTrigger((n) => n + 1);
           trackEvent(ANALYTICS_EVENTS.REJECTED_BID, { place_id: placeId });
+        } else if (isBidOverlapRejection(error)) {
+          setPaymentError(
+            error.message ||
+              "You already have a booking at this hotel for overlapping dates.",
+          );
         } else {
           setPaymentError(error.message || "Failed to submit bid");
         }
@@ -1078,12 +1105,12 @@ function BidFormInner({
     }
   }, [bidResult]);
 
-  // Clear localStorage when user becomes authenticated and has existing bid
+  // Clear localStorage when viewing a specific booking receipt
   useEffect(() => {
-    if (isAuthenticated && existingBidData?.bid) {
+    if (isAuthenticated && contextBidId && existingBidData?.bid) {
       clearBidFormStorage();
     }
-  }, [isAuthenticated, existingBidData]);
+  }, [isAuthenticated, contextBidId, existingBidData?.bid]);
 
   const isDateBlocked =
     (field: "checkInDate" | "checkOutDate") => (date: Date) => {
@@ -1298,10 +1325,60 @@ function BidFormInner({
 
   const isRebidProcessing = isRebidding || isProcessing;
 
+  const contextBid = contextBidId ? (existingBidData?.bid ?? null) : null;
+  const activeBids = existingBidData?.activeBids ?? [];
+  const priorStay = existingBidData?.priorStay ?? null;
+  const upcomingStays = existingBidData?.upcomingStays ?? [];
+
+  const overlappingActiveBid = useMemo(() => {
+    if (!formik.values.checkInDate || !formik.values.checkOutDate) return null;
+    return (
+      activeBids.find((b) =>
+        bookingDatesOverlap(
+          formik.values.checkInDate!,
+          formik.values.checkOutDate!,
+          b.checkInDate,
+          b.checkOutDate,
+        ),
+      ) ?? null
+    );
+  }, [
+    activeBids,
+    formik.values.checkInDate,
+    formik.values.checkOutDate,
+  ]);
+
+  const overlapDatesError = useMemo(() => {
+    if (!overlappingActiveBid) return null;
+    const inDate = format(
+      new Date(overlappingActiveBid.checkInDate),
+      "MMM d, yyyy",
+    );
+    const outDate = format(
+      new Date(overlappingActiveBid.checkOutDate),
+      "MMM d, yyyy",
+    );
+    return `You already have a booking here for ${inDate} – ${outDate}. Choose different dates or view that booking from My Bids.`;
+  }, [overlappingActiveBid]);
+
+  const showUpcomingStayBanner =
+    upcomingStays.length > 0 &&
+    !contextBidId &&
+    !bidResult &&
+    !isProcessing &&
+    !stripeCompletion;
+  const showPriorStayBanner =
+    !!priorStay &&
+    upcomingStays.length === 0 &&
+    !contextBidId &&
+    !bidResult &&
+    !isProcessing &&
+    !stripeCompletion;
+
   const stepIndex = STEPS.indexOf(bidStep);
 
   const canProceedFromDates =
-    !datesProceedError && !isInventoryExhausted;
+    !datesProceedError && !isInventoryExhausted && !overlapDatesError;
 
   const canProceedFromAmount =
     formik.values.bidPerNight && Number(formik.values.bidPerNight) > 0;
@@ -1335,6 +1412,42 @@ function BidFormInner({
           ),
         )
       : 0;
+
+  const renderContextBidPanel = (bid: Bid) => {
+    if (shouldShowConfirmedOutcome(bid.status, bid.payment?.status)) {
+      return (
+        <BidOutcomePanel
+          status={BidStatus.ACCEPTED}
+          place={place}
+          checkIn={new Date(bid.checkInDate)}
+          checkOut={new Date(bid.checkOutDate)}
+          bidPerNight={bid.bidPerNight}
+          totalAmount={bid.totalAmount}
+          onTryAgain={handleTryAgain}
+          onTryNewDates={handleTryAgain}
+          onRebid={isAuthenticated ? handleRebid : undefined}
+          isRebidding={isRebidding}
+        />
+      );
+    }
+    if (shouldShowRejectedOutcome(bid.status)) {
+      return (
+        <BidOutcomePanel
+          status={BidStatus.REJECTED}
+          place={place}
+          checkIn={new Date(bid.checkInDate)}
+          checkOut={new Date(bid.checkOutDate)}
+          bidPerNight={bid.bidPerNight}
+          totalAmount={bid.totalAmount}
+          onTryAgain={handleTryAgain}
+          onTryNewDates={handleTryAgain}
+          onRebid={isAuthenticated ? handleRebid : undefined}
+          isRebidding={isRebidding}
+        />
+      );
+    }
+    return <ExistingBidCard bid={bid} place={place} />;
+  };
 
   // Loading state
   if (isLoadingExistingBid) {
@@ -1385,21 +1498,6 @@ function BidFormInner({
     );
   }
 
-  // If user has existing bid for this place (only when no active session outcome)
-  const existingBid = existingBidData?.bid ?? null;
-  const priorStay = existingBidData?.priorStay ?? null;
-  const isPastBid =
-    existingBid && new Date(existingBid.checkOutDate) < today;
-  const showPriorStayBanner =
-    !!priorStay &&
-    !(
-      existingBid &&
-      !isPastBid &&
-      !isProcessing &&
-      !bidResult &&
-      !stripeCompletion
-    );
-
   const handleStripeCompletionSuccess = async () => {
     if (!stripeCompletion) return;
     await finalizeAcceptedPayment(
@@ -1414,45 +1512,8 @@ function BidFormInner({
     );
   };
 
-  if (existingBid && !isProcessing && !isPastBid && !bidResult && !stripeCompletion) {
-    if (
-      shouldShowConfirmedOutcome(
-        existingBid.status,
-        existingBid.payment?.status,
-      )
-    ) {
-      return (
-        <BidOutcomePanel
-          status={BidStatus.ACCEPTED}
-          place={place}
-          checkIn={new Date(existingBid.checkInDate)}
-          checkOut={new Date(existingBid.checkOutDate)}
-          bidPerNight={existingBid.bidPerNight}
-          totalAmount={existingBid.totalAmount}
-          onTryAgain={handleTryAgain}
-          onTryNewDates={handleTryAgain}
-          onRebid={isAuthenticated ? handleRebid : undefined}
-          isRebidding={isRebidding}
-        />
-      );
-    }
-    if (shouldShowRejectedOutcome(existingBid.status)) {
-      return (
-        <BidOutcomePanel
-          status={BidStatus.REJECTED}
-          place={place}
-          checkIn={new Date(existingBid.checkInDate)}
-          checkOut={new Date(existingBid.checkOutDate)}
-          bidPerNight={existingBid.bidPerNight}
-          totalAmount={existingBid.totalAmount}
-          onTryAgain={handleTryAgain}
-          onTryNewDates={handleTryAgain}
-          onRebid={isAuthenticated ? handleRebid : undefined}
-          isRebidding={isRebidding}
-        />
-      );
-    }
-    return <ExistingBidCard bid={existingBid} place={place} />;
+  if (contextBid && !isProcessing && !bidResult && !stripeCompletion) {
+    return renderContextBidPanel(contextBid);
   }
 
   if (isListing) {
@@ -1500,15 +1561,18 @@ function BidFormInner({
           bidPerNight={Number(formik.values.bidPerNight) || 0}
           totalAmount={totalAmount}
           auctionSeconds={auctionSeconds}
-          datesErrorMessage={datesProceedError}
+          datesErrorMessage={datesProceedError || overlapDatesError}
           onConfirm={handleLockInConfirm}
           onGoBack={() => setLockInOpen(false)}
           isSubmitting={isProcessing}
         />
         <div className="listing-bid-sidebar space-y-4 lg:sticky lg:top-24">
           <ListingBidPanelHeader />
+          {showUpcomingStayBanner && (
+            <PriorStayBanner upcomingStays={upcomingStays} kind="upcoming" />
+          )}
           {showPriorStayBanner && priorStay && (
-            <PriorStayBanner priorStay={priorStay} />
+            <PriorStayBanner priorStay={priorStay} kind="completed" />
           )}
           <form onSubmit={formik.handleSubmit} className="space-y-4">
             <div className="listing-dates-box">
@@ -1590,6 +1654,11 @@ function BidFormInner({
               issues={stayNightIssues}
               allowedDaysOfWeek={place?.allowedDaysOfWeek}
             />
+            {overlapDatesError && (
+              <p className="text-xs text-urgent" role="alert">
+                {overlapDatesError}
+              </p>
+            )}
             <div>
               <Label className="listing-bid-amount-label mb-2 block">
                 <span className="text-fg">Your bid per night </span>
@@ -1884,8 +1953,11 @@ function BidFormInner({
         <p className="text-xs text-muted">/ night · anchor price</p>
       </div>
 
+      {showUpcomingStayBanner && (
+        <PriorStayBanner upcomingStays={upcomingStays} kind="upcoming" />
+      )}
       {showPriorStayBanner && priorStay && (
-        <PriorStayBanner priorStay={priorStay} />
+        <PriorStayBanner priorStay={priorStay} kind="completed" />
       )}
       <form onSubmit={formik.handleSubmit} className="space-y-4">
         {bidStep === "dates" && (
@@ -2350,6 +2422,7 @@ function BidFormInner({
 export function BidForm({
   place,
   placeId,
+  contextBidId,
   onDateChange,
   onBookingDatesChange,
   isInventoryExhausted,
@@ -2368,6 +2441,7 @@ export function BidForm({
       <BidFormInner
         place={place}
         placeId={placeId}
+        contextBidId={contextBidId}
         onDateChange={onDateChange}
         onBookingDatesChange={onBookingDatesChange}
         isInventoryExhausted={isInventoryExhausted}

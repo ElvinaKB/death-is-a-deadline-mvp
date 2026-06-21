@@ -16,11 +16,22 @@ import {
 // Check if student has existing bid for a place
 export const useBidForPlace = (
   placeId: string,
-  options?: { enabled?: boolean },
+  options?: {
+    enabled?: boolean;
+    bidId?: string | null;
+    checkIn?: string;
+    checkOut?: string;
+  },
 ) => {
+  const params: Record<string, string> = {};
+  if (options?.bidId) params.bidId = options.bidId;
+  if (options?.checkIn) params.checkIn = options.checkIn;
+  if (options?.checkOut) params.checkOut = options.checkOut;
+
   return useApiQuery<BidForPlaceResponse>({
-    queryKey: ["bids", "place", placeId],
+    queryKey: ["bids", "place", placeId, params],
     endpoint: getEndpoint(ENDPOINTS.BID_FOR_PLACE, { placeId }),
+    params,
     enabled: !!placeId && options?.enabled !== false,
   });
 };
