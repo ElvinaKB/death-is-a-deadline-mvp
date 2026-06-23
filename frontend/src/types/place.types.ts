@@ -41,6 +41,10 @@ export interface Place {
   hasHotelAccount?: boolean;
 }
 
+export interface SoldOutNightsResponse {
+  soldOutNights: string[];
+}
+
 export interface PlaceImage {
   id: string;
   url: string;

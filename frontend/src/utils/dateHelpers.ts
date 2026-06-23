@@ -82,3 +82,16 @@ export function isDayOfWeekAllowed(
   if (!allowedDaysOfWeek?.length) return true;
   return allowedDaysOfWeek.includes(date.getDay());
 }
+
+/** True when any occupied night in [checkIn, checkOut) is sold out. */
+export function stayIncludesSoldOutNight(
+  checkIn: Date,
+  checkOut: Date,
+  soldOutNights: Set<string>,
+): boolean {
+  if (!soldOutNights.size) return false;
+  return getOccupiedNightDates(checkIn, checkOut).some((night) => {
+    const key = toApiDateOnly(night);
+    return key ? soldOutNights.has(key) : false;
+  });
+}

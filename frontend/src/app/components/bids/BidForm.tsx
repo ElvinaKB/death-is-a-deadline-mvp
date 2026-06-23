@@ -43,6 +43,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useBidForPlace, useCreateBid } from "../../../hooks/useBids";
+import { usePlaceSoldOutNights } from "../../../hooks/usePlaces";
 import {
   useConfirmPayment,
   useCreatePaymentIntent,
@@ -102,6 +103,7 @@ import {
   isDayOfWeekAllowed,
   bookingDatesOverlap,
   parseApiDate,
+  stayIncludesSoldOutNight,
   toApiDateOnly,
 } from "../../../utils/dateHelpers";
 import {
@@ -127,6 +129,24 @@ import {
 
 // LocalStorage key for persisting bid form state
 const BID_FORM_STORAGE_KEY = "pendingBidForm";
+
+/** Disabled nights (past, sold-out, blackout) — muted text only, no filled circle. */
+const BID_CALENDAR_CLASS_NAMES = {
+  day_disabled:
+    "text-muted-foreground opacity-40 hover:bg-transparent hover:text-muted-foreground cursor-not-allowed",
+};
+
+const HOTEL_TAXES_ACK_ERROR =
+  "Please acknowledge that hotel taxes and fees may be collected separately at check-in.";
+const TERMS_ACK_ERROR =
+  "Please agree to the Terms of Use, Privacy Policy, and cancellation terms.";
+const BID_AMOUNT_ERROR = "Enter your bid amount.";
+
+/** Only errors that should disable Lock In while payment UI still looks ready. */
+function isBlockingPaymentError(error: string | null): boolean {
+  if (!error) return false;
+  return error === DUPLICATE_SAVED_CARD_MESSAGE;
+}
 
 interface StoredBidFormState {
   placeId: string;
@@ -394,6 +414,12 @@ function BidFormInner({
       bidId: contextBidId ?? undefined,
     });
 
+  const { data: soldOutNightsData } = usePlaceSoldOutNights(placeId);
+  const soldOutNightSet = useMemo(
+    () => new Set(soldOutNightsData?.soldOutNights ?? []),
+    [soldOutNightsData?.soldOutNights],
+  );
+
   // Date restrictions: today to 30 days from today
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -581,8 +607,24 @@ function BidFormInner({
     validatePaymentMethod,
   ]);
 
+  const handleAcceptedHotelTaxesChange = (v: boolean | "indeterminate") => {
+    const checked = v === true;
+    setAcceptedHotelTaxes(checked);
+    if (checked && paymentError === HOTEL_TAXES_ACK_ERROR) {
+      setPaymentError(null);
+    }
+  };
+
+  const handleAcceptedTermsChange = (v: boolean | "indeterminate") => {
+    const checked = v === true;
+    setAcceptedTerms(checked);
+    if (checked && paymentError === TERMS_ACK_ERROR) {
+      setPaymentError(null);
+    }
+  };
+
   const canLockInBid = useMemo(() => {
-    if (paymentError) return false;
+    if (isBlockingPaymentError(paymentError)) return false;
     if (
       stripeModesMismatch(
         getPublishableStripeMode(),
@@ -779,17 +821,13 @@ function BidFormInner({
       setCardNotice(null);
 
       if (isAuthenticated && !acceptedHotelTaxes) {
-        setPaymentError(
-          "Please acknowledge that hotel taxes and fees may be collected separately at check-in.",
-        );
+        setPaymentError(HOTEL_TAXES_ACK_ERROR);
         submitInFlightRef.current = false;
         return;
       }
 
       if (isAuthenticated && !acceptedTerms) {
-        setPaymentError(
-          "Please agree to the Terms of Use, Privacy Policy, and cancellation terms.",
-        );
+        setPaymentError(TERMS_ACK_ERROR);
         submitInFlightRef.current = false;
         return;
       }
@@ -1146,6 +1184,32 @@ function BidFormInner({
         if (isDateInBlackout(date, place?.blackoutDates)) {
           return true;
         }
+        const nightKey = toApiDateOnly(date);
+        if (nightKey && soldOutNightSet.has(nightKey)) {
+          return true;
+        }
+        if (
+          formik.values.checkOutDate &&
+          stayIncludesSoldOutNight(
+            date,
+            formik.values.checkOutDate,
+            soldOutNightSet,
+          )
+        ) {
+          return true;
+        }
+      }
+
+      if (
+        field === "checkOutDate" &&
+        formik.values.checkInDate &&
+        stayIncludesSoldOutNight(
+          formik.values.checkInDate,
+          date,
+          soldOutNightSet,
+        )
+      ) {
+        return true;
       }
 
       return false;
@@ -1155,8 +1219,9 @@ function BidFormInner({
     () => ({
       blackoutDates: place?.blackoutDates,
       allowedDaysOfWeek: place?.allowedDaysOfWeek,
+      soldOutNights: soldOutNightSet,
     }),
-    [place?.blackoutDates, place?.allowedDaysOfWeek],
+    [place?.blackoutDates, place?.allowedDaysOfWeek, soldOutNightSet],
   );
 
   const stayNightIssues = useMemo(
@@ -1225,7 +1290,7 @@ function BidFormInner({
       return;
     }
     if (!canProceedFromAmount) {
-      setPaymentError("Enter your bid amount.");
+      setPaymentError(BID_AMOUNT_ERROR);
       return;
     }
     if (!isAuthenticated) {
@@ -1236,15 +1301,11 @@ function BidFormInner({
       return;
     }
     if (!acceptedHotelTaxes) {
-      setPaymentError(
-        "Please acknowledge that hotel taxes and fees may be collected separately at check-in.",
-      );
+      setPaymentError(HOTEL_TAXES_ACK_ERROR);
       return;
     }
     if (!acceptedTerms) {
-      setPaymentError(
-        "Please agree to the Terms of Use, Privacy Policy, and cancellation terms.",
-      );
+      setPaymentError(TERMS_ACK_ERROR);
       return;
     }
 
@@ -1275,7 +1336,7 @@ function BidFormInner({
       return;
     }
     if (!canProceedFromAmount) {
-      setPaymentError("Enter your bid amount.");
+      setPaymentError(BID_AMOUNT_ERROR);
       return;
     }
     saveBidFormToStorage(placeId, formik.values);
@@ -1382,6 +1443,22 @@ function BidFormInner({
 
   const canProceedFromAmount =
     formik.values.bidPerNight && Number(formik.values.bidPerNight) > 0;
+
+  useEffect(() => {
+    if (!paymentError) return;
+    if (paymentError === HOTEL_TAXES_ACK_ERROR && acceptedHotelTaxes) {
+      setPaymentError(null);
+    } else if (paymentError === TERMS_ACK_ERROR && acceptedTerms) {
+      setPaymentError(null);
+    } else if (paymentError === BID_AMOUNT_ERROR && canProceedFromAmount) {
+      setPaymentError(null);
+    }
+  }, [
+    paymentError,
+    acceptedHotelTaxes,
+    acceptedTerms,
+    canProceedFromAmount,
+  ]);
 
   const goNext = () => {
     if (bidStep === "dates" && canProceedFromDates) setBidStep("amount");
@@ -1601,6 +1678,7 @@ function BidFormInner({
                       mode="single"
                       selected={formik.values.checkInDate}
                       highlightToday={false}
+                      classNames={BID_CALENDAR_CLASS_NAMES}
                       onSelect={(date) => {
                         formik.setFieldValue("checkInDate", date);
                         setCheckInOpen(false);
@@ -1639,6 +1717,7 @@ function BidFormInner({
                       mode="single"
                       selected={formik.values.checkOutDate}
                       highlightToday={false}
+                      classNames={BID_CALENDAR_CLASS_NAMES}
                       onSelect={(date) => {
                         formik.setFieldValue("checkOutDate", date);
                         setCheckOutOpen(false);
@@ -1843,7 +1922,7 @@ function BidFormInner({
             <label className="flex items-start gap-3 cursor-pointer">
               <Checkbox
                 checked={acceptedHotelTaxes}
-                onCheckedChange={(v) => setAcceptedHotelTaxes(v === true)}
+                onCheckedChange={handleAcceptedHotelTaxesChange}
                 className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
               />
               <span className="text-xs text-muted leading-relaxed">
@@ -1854,7 +1933,7 @@ function BidFormInner({
             <label className="flex items-start gap-3 cursor-pointer">
               <Checkbox
                 checked={acceptedTerms}
-                onCheckedChange={(v) => setAcceptedTerms(v === true)}
+                onCheckedChange={handleAcceptedTermsChange}
                 className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
               />
               <span className="text-xs text-muted leading-relaxed">
@@ -1990,6 +2069,7 @@ function BidFormInner({
                   mode="single"
                   selected={formik.values.checkInDate}
                   highlightToday={false}
+                  classNames={BID_CALENDAR_CLASS_NAMES}
                   onSelect={(date) => {
                     formik.setFieldValue("checkInDate", date);
                     setCheckInOpen(false);
@@ -2038,6 +2118,7 @@ function BidFormInner({
                   mode="single"
                   selected={formik.values.checkOutDate}
                   highlightToday={false}
+                  classNames={BID_CALENDAR_CLASS_NAMES}
                   onSelect={(date) => {
                     formik.setFieldValue("checkOutDate", date);
                     setCheckOutOpen(false);
@@ -2156,7 +2237,7 @@ function BidFormInner({
             <label className="flex items-start gap-3 cursor-pointer">
               <Checkbox
                 checked={acceptedTerms}
-                onCheckedChange={(v) => setAcceptedTerms(v === true)}
+                onCheckedChange={handleAcceptedTermsChange}
                 className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
               />
               <span className="text-xs text-muted leading-relaxed">

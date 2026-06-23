@@ -141,6 +141,30 @@ export const resendHotelInviteSchema = z.object({
   placeId: z.string().uuid({ message: "Invalid place id" }),
 });
 
+const calendarDateKeySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be yyyy-MM-dd");
+
+export const unavailableNightsQuerySchema = z
+  .object({
+    from: calendarDateKeySchema,
+    to: calendarDateKeySchema,
+  })
+  .refine((q) => q.from <= q.to, {
+    message: "from must be on or before to",
+    path: ["from"],
+  })
+  .refine(
+    (q) => {
+      const from = new Date(`${q.from}T12:00:00`);
+      const to = new Date(`${q.to}T12:00:00`);
+      const days =
+        Math.round((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+      return days <= 62;
+    },
+    { message: "Date range cannot exceed 62 days", path: ["to"] },
+  );
+
 // Type exports
 export type CreatePlaceInput = z.infer<typeof createPlaceSchema>;
 export type UpdatePlaceInput = z.infer<typeof updatePlaceSchema>;

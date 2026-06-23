@@ -91,15 +91,11 @@ export function PlaceDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const searchDateFromStore = useAppSelector((state) => state.search.selectedDate);
   const { isAuthenticated } = useAppSelector((state) => state.auth);
-  const initialInventoryDate =
-    toApiDateOnly(searchParams.get("date")) ??
-    toApiDateOnly(searchDateFromStore);
 
-  const [inventoryDate, setInventoryDate] = useState<string | undefined>(
-    initialInventoryDate,
-  );
+  /** Check-in date for single-night inventory API — only after user picks in bid form. */
+  const [inventoryDate, setInventoryDate] = useState<string | undefined>();
+  const [userPickedCheckIn, setUserPickedCheckIn] = useState(false);
   const [showSoldOutModal, setShowSoldOutModal] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
@@ -107,17 +103,13 @@ export function PlaceDetailPage() {
   const [bookingCheckIn, setBookingCheckIn] = useState<Date | undefined>();
   const [bookingCheckOut, setBookingCheckOut] = useState<Date | undefined>();
 
-  // Keep inventory date in sync when navigating from list with ?date= or search bar changes
-  useEffect(() => {
-    const fromUrl = toApiDateOnly(searchParams.get("date"));
-    const fromStore = toApiDateOnly(searchDateFromStore);
-    setInventoryDate(fromUrl ?? fromStore);
-  }, [searchParams, searchDateFromStore]);
-
   // Scroll to top when id changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setHeroImageIndex(0);
+    setInventoryDate(undefined);
+    setUserPickedCheckIn(false);
+    setShowSoldOutModal(false);
   }, [id]);
 
   // Use public endpoint for students - includes inventory status when date is provided
@@ -142,12 +134,12 @@ export function PlaceDetailPage() {
         ? [placeBidContext.upcomingStay]
         : [];
 
-  // Show sold out modal when inventory is exhausted
+  // Sold-out modal only after the user picks a check-in date (not from ?date= on load)
   useEffect(() => {
-    if (inventoryMessage && inventoryDate) {
+    if (inventoryMessage && userPickedCheckIn && inventoryDate) {
       setShowSoldOutModal(true);
     }
-  }, [inventoryMessage, inventoryDate]);
+  }, [inventoryMessage, inventoryDate, userPickedCheckIn]);
 
   // Fetch similar places in the same city (limit 4, excluding current place)
   const { data: reviewPlatformsData } = useReviewPlatforms(id || "");
@@ -318,9 +310,10 @@ export function PlaceDetailPage() {
               place={place}
               placeId={id}
               contextBidId={contextBidId}
-              onDateChange={(date) =>
-                setInventoryDate(toApiDateOnly(date))
-              }
+              onDateChange={(date) => {
+                setUserPickedCheckIn(true);
+                setInventoryDate(toApiDateOnly(date));
+              }}
               onBookingDatesChange={(checkIn, checkOut) => {
                 setBookingCheckIn(checkIn);
                 setBookingCheckOut(checkOut);

@@ -10,6 +10,7 @@ import {
   listPlacesQuerySchema,
   publicPlacesQuerySchema,
   resendHotelInviteSchema,
+  unavailableNightsQuerySchema,
 } from "../validations/places/places.validation";
 import { UserRole } from "../types/auth.types";
 
@@ -38,6 +39,14 @@ router.get(
 
 // Public route - get price range of LIVE places (for filters)
 router.get("/public/price-range", placesController.getPriceRange);
+
+// Public route - sold-out nights for calendar (must be before /public/:id)
+router.get(
+  "/public/:id/unavailable-nights",
+  validate(placeIdParamSchema, "params"),
+  validate(unavailableNightsQuerySchema, "query"),
+  placesController.getPublicPlaceUnavailableNights,
+);
 
 router.post(
   "/resend-invite",

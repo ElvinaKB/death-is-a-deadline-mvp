@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { addDays, format } from "date-fns";
 import { toast } from "sonner";
 import { ENDPOINTS, getEndpoint } from "../config/endpoints.config";
 import { QUERY_KEYS } from "../config/queryKeys.config";
@@ -8,6 +9,7 @@ import {
   CreatePlaceRequest,
   PlaceResponse,
   PlaceStatus,
+  SoldOutNightsResponse,
   UpdatePlaceRequest,
 } from "../types/place.types";
 import { apiClient } from "../lib/apiClient";
@@ -38,6 +40,22 @@ export const usePublicPlace = (id: string, date?: string) => {
     queryKey: [...QUERY_KEYS.PLACE(id), "public", apiDate],
     endpoint,
     enabled: !!id,
+  });
+};
+
+/** Sold-out nights for the bid calendar (today through +30 days). */
+export const usePlaceSoldOutNights = (placeId: string) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const from = format(today, "yyyy-MM-dd");
+  const to = format(addDays(today, 30), "yyyy-MM-dd");
+
+  return useApiQuery<SoldOutNightsResponse>({
+    queryKey: [...QUERY_KEYS.PLACE(placeId), "sold-out-nights", from, to],
+    endpoint: getEndpoint(ENDPOINTS.PLACE_UNAVAILABLE_NIGHTS, { id: placeId }),
+    params: { from, to },
+    enabled: !!placeId,
+    staleTime: 60_000,
   });
 };
 

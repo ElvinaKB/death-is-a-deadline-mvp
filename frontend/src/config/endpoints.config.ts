@@ -23,6 +23,7 @@ export const ENDPOINTS = {
   PLACES_PRICE_RANGE: "/api/places/public/price-range",
   PLACE_DETAIL: "/api/places/:id",
   PLACE_PUBLIC_DETAIL: "/api/places/public/:id",
+  PLACE_UNAVAILABLE_NIGHTS: "/api/places/public/:id/unavailable-nights",
   PLACE_CREATE: "/api/places",
   PLACE_UPDATE: "/api/places/:id",
   PLACE_STATUS: "/api/places/:id/status",

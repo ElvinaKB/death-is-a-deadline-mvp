@@ -3,6 +3,7 @@ import {
   getOccupiedNightDates,
   isDateInBlackout,
   isDayOfWeekAllowed,
+  toApiDateOnly,
 } from "./dateHelpers";
 
 /** 0 = Sunday … 6 = Saturday (matches place.allowedDaysOfWeek). */
@@ -16,7 +17,7 @@ export const DAY_NAMES = [
   "Saturday",
 ] as const;
 
-export type StayNightIssueReason = "blackout" | "day_of_week";
+export type StayNightIssueReason = "blackout" | "day_of_week" | "sold_out";
 
 export interface StayNightIssue {
   date: Date;
@@ -29,6 +30,7 @@ export function getStayNightIssues(
   options: {
     blackoutDates?: string[];
     allowedDaysOfWeek?: number[];
+    soldOutNights?: Set<string>;
   },
 ): StayNightIssue[] {
   if (!checkIn || !checkOut || !isBefore(checkIn, checkOut)) {
@@ -36,6 +38,10 @@ export function getStayNightIssues(
   }
 
   return getOccupiedNightDates(checkIn, checkOut).flatMap((date) => {
+    const nightKey = toApiDateOnly(date);
+    if (nightKey && options.soldOutNights?.has(nightKey)) {
+      return [{ date, reason: "sold_out" as const }];
+    }
     if (isDateInBlackout(date, options.blackoutDates)) {
       return [{ date, reason: "blackout" as const }];
     }
@@ -64,6 +70,7 @@ export function buildStayDatesProceedError(
   options: {
     blackoutDates?: string[];
     allowedDaysOfWeek?: number[];
+    soldOutNights?: Set<string>;
   },
 ): string | null {
   if (!checkIn || !checkOut) {
@@ -81,6 +88,18 @@ export function buildStayDatesProceedError(
   const parts: string[] = [];
   const weekdayIssues = issues.filter((i) => i.reason === "day_of_week");
   const blackoutIssues = issues.filter((i) => i.reason === "blackout");
+  const soldOutIssues = issues.filter((i) => i.reason === "sold_out");
+
+  if (soldOutIssues.length > 0) {
+    const labels = soldOutIssues
+      .map((i) => format(i.date, "EEEE, MMM d"))
+      .join("; ");
+    parts.push(
+      soldOutIssues.length === 1
+        ? `Your stay includes a fully booked night (${labels}). Choose different dates.`
+        : `Your stay includes fully booked nights (${labels}). Choose different dates.`,
+    );
+  }
 
   if (weekdayIssues.length > 0) {
     const allowed = options.allowedDaysOfWeek?.length
@@ -120,6 +139,17 @@ export function buildStayDatesAlertContent(
 ): StayDatesAlertContent {
   const weekdayIssues = issues.filter((i) => i.reason === "day_of_week");
   const blackoutIssues = issues.filter((i) => i.reason === "blackout");
+  const soldOutIssues = issues.filter((i) => i.reason === "sold_out");
+
+  if (soldOutIssues.length > 0) {
+    return {
+      title: "Some nights in your stay are fully booked",
+      lines: [
+        `Fully booked: ${soldOutIssues.map((i) => format(i.date, "EEEE, MMM d")).join("; ")}.`,
+        "Choose different check-in or check-out dates.",
+      ],
+    };
+  }
 
   if (weekdayIssues.length > 0 && blackoutIssues.length > 0) {
     const allowed = allowedDaysOfWeek?.length

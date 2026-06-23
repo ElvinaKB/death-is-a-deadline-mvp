@@ -14,6 +14,7 @@ import { EmailType } from "../email/emailTypes";
 import { createHotelInviteToken } from "../libs/utils/inviteToken";
 import { supabase } from "../libs/config/supabase";
 import { inferTimezoneFromLocation } from "../libs/utils/hotelDates";
+import { getSoldOutNightsInRange } from "../services/inventory.service";
 
 const APP_URL = process.env.CLIENT_URL;
 
@@ -375,6 +376,35 @@ export async function getPublicPlace(req: Request, res: Response) {
           "Inventory sold out for this day, try a different date or place",
       }),
     },
+  });
+}
+
+/** Sold-out calendar nights for bid date picker (public, LIVE places only). */
+export async function getPublicPlaceUnavailableNights(
+  req: Request,
+  res: Response,
+) {
+  const { id } = req.params;
+  const { from, to } = req.query as { from: string; to: string };
+
+  const place = await prisma.place.findUnique({
+    where: { id },
+    select: { id: true, status: true, maxInventory: true },
+  });
+
+  if (!place || place.status !== PlaceStatus.LIVE) {
+    throw new CustomError("Place not found", 404);
+  }
+
+  const soldOutNights = await getSoldOutNightsInRange(
+    place.id,
+    place.maxInventory,
+    from,
+    to,
+  );
+
+  res.status(200).json({
+    data: { soldOutNights },
   });
 }
 
