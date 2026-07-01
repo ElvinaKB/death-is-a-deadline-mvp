@@ -228,6 +228,7 @@ export function BidOutcomePanel({
             value={newBidInput}
             disabled={!adjustBid || isBusy}
             onChange={(e) => setNewBidInput(e.target.value)}
+            onWheel={(e) => e.preventDefault()}
             className="outcome-rejected-amount-input border-0 bg-transparent shadow-none disabled:opacity-60"
             aria-label="Bid amount per night in US dollars"
           />

@@ -1303,6 +1303,14 @@
     color: hsl(var(--gold)) !important;
     height: auto !important;
     padding-left: 2rem !important;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  .listing-bid-amount-box input::-webkit-outer-spin-button,
+  .listing-bid-amount-box input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
   }
 
   .listing-date-field {
