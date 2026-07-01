@@ -11,7 +11,10 @@ import {
 } from "../validations/places/places.validation";
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
-import { createHotelInviteToken } from "../libs/utils/inviteToken";
+import {
+  createHotelInviteToken,
+  HOTEL_INVITE_EXPIRY_DAYS,
+} from "../libs/utils/inviteToken";
 import { supabase } from "../libs/config/supabase";
 import { inferTimezoneFromLocation } from "../libs/utils/hotelDates";
 import { getSoldOutNightsInRange } from "../services/inventory.service";
@@ -530,7 +533,7 @@ async function notifyHotelOnPlaceCreated({
         placeCity,
         placeCountry,
         inviteUrl,
-        expiryMinutes: 15,
+        expiryDays: HOTEL_INVITE_EXPIRY_DAYS,
       },
     });
   }
@@ -739,7 +742,7 @@ export async function resendHotelInvite(req: Request, res: Response) {
       placeCity: place.city,
       placeCountry: place.country,
       inviteUrl,
-      expiryMinutes: 15,
+      expiryDays: HOTEL_INVITE_EXPIRY_DAYS,
     },
   });
 

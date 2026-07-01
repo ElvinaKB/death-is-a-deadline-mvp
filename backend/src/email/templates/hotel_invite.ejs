@@ -142,15 +142,14 @@
         <p>
           Click the button below to set your name and password. This link is
           private — it was sent only to you and expires in
-          <strong style="color: #c9a96e"><%= expiryMinutes %> minutes</strong>.
+          <strong style="color: #c9a96e"><%= expiryDays %> days</strong>.
         </p>
 
         <div class="cta-wrapper">
           <a href="<%= inviteUrl %>" class="cta">Create My Account</a>
         </div>
         <p class="expiry-note">
-          Link expires in <%= expiryMinutes %> minutes and can only be used
-          once.
+          Link expires in <%= expiryDays %> days and can only be used once.
         </p>
 
         <hr class="divider" />
