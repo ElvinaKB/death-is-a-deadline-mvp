@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { PLACE_KEYWORD_IDS } from "../../constants/placeKeywords";
 import { isValidIanaTimezone } from "../../libs/utils/hotelDates";
+import { isUuid } from "../../libs/utils/placeSlug";
 
 // Enum schemas
 export const accommodationTypeSchema = z.enum([
@@ -102,6 +103,17 @@ export const updatePlaceStatusSchema = z.object({
 // Param schemas
 export const placeIdParamSchema = z.object({
   id: z.string().uuid({ message: "Invalid place id" }),
+});
+
+/** Public marketplace routes accept a slug or legacy UUID. */
+export const placeRefParamSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .max(100)
+    .refine((value) => isUuid(value) || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value), {
+      message: "Invalid place reference",
+    }),
 });
 
 // Query schema for listing

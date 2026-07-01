@@ -7,6 +7,7 @@ import {
   updatePlaceSchema,
   updatePlaceStatusSchema,
   placeIdParamSchema,
+  placeRefParamSchema,
   listPlacesQuerySchema,
   publicPlacesQuerySchema,
   resendHotelInviteSchema,
@@ -43,7 +44,7 @@ router.get("/public/price-range", placesController.getPriceRange);
 // Public route - sold-out nights for calendar (must be before /public/:id)
 router.get(
   "/public/:id/unavailable-nights",
-  validate(placeIdParamSchema, "params"),
+  validate(placeRefParamSchema, "params"),
   validate(unavailableNightsQuerySchema, "query"),
   placesController.getPublicPlaceUnavailableNights,
 );
@@ -58,7 +59,7 @@ router.post(
 // Public route - get single place by ID (for students - includes inventory status)
 router.get(
   "/public/:id",
-  validate(placeIdParamSchema, "params"),
+  validate(placeRefParamSchema, "params"),
   placesController.getPublicPlace,
 );
 

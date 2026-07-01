@@ -15,6 +15,10 @@ import { createHotelInviteToken } from "../libs/utils/inviteToken";
 import { supabase } from "../libs/config/supabase";
 import { inferTimezoneFromLocation } from "../libs/utils/hotelDates";
 import { getSoldOutNightsInRange } from "../services/inventory.service";
+import {
+  generateUniquePlaceSlug,
+  isUuid,
+} from "../libs/utils/placeSlug";
 
 const APP_URL = process.env.CLIENT_URL;
 
@@ -27,6 +31,7 @@ const formatPlace = (
   },
 ) => ({
   id: place.id,
+  slug: place.slug,
   name: place.name,
   email: place.email,
   shortDescription: place.shortDescription,
@@ -55,6 +60,22 @@ const formatPlace = (
     isInventoryExhausted: inventoryInfo.isInventoryExhausted,
   }),
 });
+
+const placeInclude = { images: { orderBy: { order: "asc" as const } } };
+
+async function findPlaceByRef(ref: string) {
+  if (isUuid(ref)) {
+    return prisma.place.findUnique({
+      where: { id: ref },
+      include: placeInclude,
+    });
+  }
+
+  return prisma.place.findUnique({
+    where: { slug: ref },
+    include: placeInclude,
+  });
+}
 
 /** yyyy-MM-dd from query string or ISO datetime */
 function normalizeQueryDate(date: string): string {
@@ -341,13 +362,10 @@ export async function getPlace(req: Request, res: Response) {
 
 // Get public place by ID (for students - includes inventory status)
 export async function getPublicPlace(req: Request, res: Response) {
-  const { id } = req.params;
+  const { id: ref } = req.params;
   const { date } = req.query as { date?: string };
 
-  const place = await prisma.place.findUnique({
-    where: { id },
-    include: { images: { orderBy: { order: "asc" } } },
-  });
+  const place = await findPlaceByRef(ref);
 
   if (!place) {
     throw new CustomError("Place not found", 404);
@@ -384,13 +402,10 @@ export async function getPublicPlaceUnavailableNights(
   req: Request,
   res: Response,
 ) {
-  const { id } = req.params;
+  const { id: ref } = req.params;
   const { from, to } = req.query as { from: string; to: string };
 
-  const place = await prisma.place.findUnique({
-    where: { id },
-    select: { id: true, status: true, maxInventory: true },
-  });
+  const place = await findPlaceByRef(ref);
 
   if (!place || place.status !== PlaceStatus.LIVE) {
     throw new CustomError("Place not found", 404);
@@ -416,8 +431,11 @@ export async function createPlace(req: Request, res: Response) {
     throw new CustomError("Minimum bid must be less than retail price", 400);
   }
 
+  const slug = await generateUniquePlaceSlug(data.name);
+
   const place = await prisma.place.create({
     data: {
+      slug,
       name: data.name,
       shortDescription: data.shortDescription,
       fullDescription: data.fullDescription,
@@ -536,6 +554,11 @@ export async function updatePlace(req: Request, res: Response) {
     throw new CustomError("Minimum bid must be less than retail price", 400);
   }
 
+  const slug =
+    data.name && data.name !== existingPlace.name
+      ? await generateUniquePlaceSlug(data.name, id)
+      : undefined;
+
   // Handle images update - delete old images and create new ones if provided
   if (data.images && data.images.length > 0) {
     await prisma.placeImage.deleteMany({ where: { placeId: id } });
@@ -544,6 +567,7 @@ export async function updatePlace(req: Request, res: Response) {
   const place = await prisma.place.update({
     where: { id },
     data: {
+      ...(slug && { slug }),
       ...(data.name && { name: data.name }),
       ...(data.shortDescription && { shortDescription: data.shortDescription }),
       ...(data.fullDescription && { fullDescription: data.fullDescription }),

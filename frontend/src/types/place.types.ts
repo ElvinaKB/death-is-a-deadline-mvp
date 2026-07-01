@@ -12,6 +12,7 @@ export enum PlaceStatus {
 
 export interface Place {
   id: string;
+  slug: string;
   name: string;
   shortDescription: string;
   fullDescription: string;

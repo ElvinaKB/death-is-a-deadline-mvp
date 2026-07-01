@@ -1150,6 +1150,28 @@ function BidFormInner({
     }
   }, [isAuthenticated, contextBidId, existingBidData?.bid]);
 
+  const handleCheckInSelect = useCallback(
+    (date: Date | undefined) => {
+      formik.setFieldValue("checkInDate", date);
+      const checkoutConflicts =
+        date &&
+        formik.values.checkOutDate &&
+        !isBefore(date, formik.values.checkOutDate);
+      if (checkoutConflicts) {
+        formik.setFieldValue("checkOutDate", undefined);
+      }
+      setCheckInOpen(false);
+      setPaymentError(null);
+      if (date && onDateChange) {
+        onDateChange(toApiDateOnly(date));
+      }
+      if (checkoutConflicts) {
+        window.setTimeout(() => setCheckOutOpen(true), 0);
+      }
+    },
+    [formik, onDateChange],
+  );
+
   const isDateBlocked =
     (field: "checkInDate" | "checkOutDate") => (date: Date) => {
       // Basic date range validation
@@ -1157,16 +1179,13 @@ function BidFormInner({
         return true;
       }
 
-      // Prevent selecting the same date for both fields
-      if (formik.values[field] && isSameDay(date, formik.values[field])) {
+      // Re-clicking the current check-out is a no-op
+      if (
+        field === "checkOutDate" &&
+        formik.values.checkOutDate &&
+        isSameDay(date, formik.values.checkOutDate)
+      ) {
         return true;
-      }
-
-      // For check-in: disable dates on or after the selected check-out
-      if (field === "checkInDate" && formik.values.checkOutDate) {
-        if (!isBefore(date, formik.values.checkOutDate)) {
-          return true;
-        }
       }
 
       // For check-out: disable dates on or before the selected check-in
@@ -1190,6 +1209,7 @@ function BidFormInner({
         }
         if (
           formik.values.checkOutDate &&
+          isBefore(date, formik.values.checkOutDate) &&
           stayIncludesSoldOutNight(
             date,
             formik.values.checkOutDate,
@@ -1679,14 +1699,7 @@ function BidFormInner({
                       selected={formik.values.checkInDate}
                       highlightToday={false}
                       classNames={BID_CALENDAR_CLASS_NAMES}
-                      onSelect={(date) => {
-                        formik.setFieldValue("checkInDate", date);
-                        setCheckInOpen(false);
-                        setPaymentError(null);
-                        if (date && onDateChange) {
-                          onDateChange(toApiDateOnly(date));
-                        }
-                      }}
+                      onSelect={handleCheckInSelect}
                       disabled={isDateBlocked("checkInDate")}
                     />
                   </PopoverContent>
@@ -2070,14 +2083,7 @@ function BidFormInner({
                   selected={formik.values.checkInDate}
                   highlightToday={false}
                   classNames={BID_CALENDAR_CLASS_NAMES}
-                  onSelect={(date) => {
-                    formik.setFieldValue("checkInDate", date);
-                    setCheckInOpen(false);
-                    setPaymentError(null);
-                    if (date && onDateChange) {
-                      onDateChange(toApiDateOnly(date));
-                    }
-                  }}
+                  onSelect={handleCheckInSelect}
                   disabled={isDateBlocked("checkInDate")}
                   className=" text-fg"
                 />

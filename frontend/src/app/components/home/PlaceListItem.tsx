@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { MapPin } from "lucide-react";
-import { getRoute, ROUTES } from "../../../config/routes.config";
+import { getPublicPlaceUrl } from "../../../utils/placeUrl";
 import { useAppSelector } from "../../../store/hooks";
 import { Place, ACCOMMODATION_TYPE_LABELS } from "../../../types/place.types";
 import { formatCurrency } from "../../../utils/currency";
@@ -21,9 +21,10 @@ export function PlaceListItem({
   const { selectedDate } = useAppSelector((state) => state.search);
 
   const handleClick = () => {
-    const path = getRoute(ROUTES.PUBLIC_PLACE_DETAIL, { id: place.id });
     const apiDate = toApiDateOnly(selectedDate);
-    navigate(apiDate ? `${path}?date=${encodeURIComponent(apiDate)}` : path);
+    navigate(
+      getPublicPlaceUrl(place, apiDate ? { date: apiDate } : undefined),
+    );
   };
 
   const imageUrl =

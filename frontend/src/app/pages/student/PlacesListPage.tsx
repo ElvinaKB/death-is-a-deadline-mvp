@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ENDPOINTS } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
-import { getRoute, ROUTES } from "../../../config/routes.config";
+import { getPublicPlacePath } from "../../../utils/placeUrl";
 import { useApiQuery } from "../../../hooks/useApi";
 import {
   ACCOMMODATION_TYPE_LABELS,
@@ -93,11 +93,7 @@ export function PlacesListPage() {
               <Card
                 key={place.id}
                 className="overflow-hidden glass-2 border-white/10 hover:border-brand/50 transition-all cursor-pointer"
-                onClick={() =>
-                  navigate(
-                    getRoute(ROUTES.PUBLIC_PLACE_DETAIL, { id: place.id }),
-                  )
-                }
+                onClick={() => navigate(getPublicPlacePath(place))}
               >
                 {/* Cover Image */}
                 <div className="aspect-video relative overflow-hidden">

@@ -12,6 +12,7 @@ datasource db {
 
 model Place {
   id                     String            @id @default(uuid())
+  slug                   String            @unique @db.VarChar(100)
   name                   String
   shortDescription       String            @db.VarChar(150)
   fullDescription        String

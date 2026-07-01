@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ROUTES } from "../../../config/routes.config";
+import { getPublicPlaceUrl } from "../../../utils/placeUrl";
 import { useMyBids } from "../../../hooks/useBids";
 import { Button } from "../../components/ui/button";
 import {
@@ -252,10 +252,10 @@ export function MyBidsPage() {
                       className="border-line text-fg hover:bg-glass h-8 text-xs sm:text-sm ml-auto"
                     >
                       <Link
-                        to={`${ROUTES.PUBLIC_PLACE_DETAIL.replace(
-                          ":id",
-                          bid.placeId,
-                        )}?bidId=${bid.id}`}
+                        to={getPublicPlaceUrl(
+                          bid.place ?? { slug: bid.placeId },
+                          { bidId: bid.id },
+                        )}
                       >
                         View Place
                       </Link>

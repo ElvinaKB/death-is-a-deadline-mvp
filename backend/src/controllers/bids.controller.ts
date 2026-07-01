@@ -60,6 +60,7 @@ const formatBid = (bid: any) => {
   place: bid.place
     ? {
         id: bid.place.id,
+        slug: bid.place.slug,
         name: bid.place.name,
         city: bid.place.city,
         country: bid.place.country,

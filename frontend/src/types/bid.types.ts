@@ -19,6 +19,7 @@ export enum BookingStatus {
 
 export interface BidPlace {
   id: string;
+  slug: string;
   name: string;
   city: string;
   country: string;

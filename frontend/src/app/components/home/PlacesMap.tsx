@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Map, { Marker, Popup, NavigationControl } from "react-map-gl/mapbox";
 import type { MapRef } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { getRoute, ROUTES } from "../../../config/routes.config";
 import { Place } from "../../../types/place.types";
+import { getPublicPlacePath } from "../../../utils/placeUrl";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_APP_MAPBOX;
 
@@ -56,8 +56,8 @@ export function PlacesMap({
   }, []);
 
   const handleViewDetails = useCallback(
-    (placeId: string) => {
-      navigate(getRoute(ROUTES.PUBLIC_PLACE_DETAIL, { id: placeId }));
+    (place: Place) => {
+      navigate(getPublicPlacePath(place));
     },
     [navigate],
   );
@@ -248,7 +248,7 @@ export function PlacesMap({
           >
             <div
               className="text-center min-w-[150px] cursor-pointer"
-              onClick={() => handleViewDetails(popupInfo.id)}
+              onClick={() => handleViewDetails(popupInfo)}
             >
               <h4 className="font-semibold text-fg mb-1">{popupInfo.name}</h4>
               <p className="text-sm text-muted">
