@@ -3,7 +3,7 @@ import { PaymentStatus } from "../types/payment.types";
 
 const LOW_BID_PHRASE = "very low";
 
-/** Production: POST /api/bids returns 400 when bidPerNight < place.minimumBid */
+/** Production: POST /api/bids returns 400 when total bid is below stay threshold */
 export function isLowBidRejection(error: {
   statusCode?: number;
   message?: string;

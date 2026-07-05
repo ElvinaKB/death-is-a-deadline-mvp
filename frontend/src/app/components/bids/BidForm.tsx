@@ -43,7 +43,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useBidForPlace, useCreateBid } from "../../../hooks/useBids";
-import { usePlaceSoldOutNights } from "../../../hooks/usePlaces";
+import { usePlaceSoldOutNights, usePlaceStayMinimum } from "../../../hooks/usePlaces";
 import {
   useConfirmPayment,
   useCreatePaymentIntent,
@@ -1287,6 +1287,18 @@ function BidFormInner({
     return 0;
   };
 
+  const stayCheckIn = formik.values.checkInDate
+    ? toApiDateOnly(formik.values.checkInDate) ?? undefined
+    : undefined;
+  const stayCheckOut = formik.values.checkOutDate
+    ? toApiDateOnly(formik.values.checkOutDate) ?? undefined
+    : undefined;
+  const { data: stayMinimum } = usePlaceStayMinimum(
+    placeId,
+    stayCheckIn,
+    stayCheckOut,
+  );
+
   const calculateTotalAmount = () => {
     const nights = calculateTotalNights();
     const bidAmount = Number(formik.values.bidPerNight) || 0;
@@ -2207,6 +2219,20 @@ function BidFormInner({
             {formik.touched.bidPerNight && formik.errors.bidPerNight && (
               <p className="text-xs text-danger mt-1">
                 {formik.errors.bidPerNight}
+              </p>
+            )}
+            {stayMinimum && stayMinimum.nights > 0 && (
+              <p className="text-xs text-muted">
+                Minimum total for your stay:{" "}
+                <span className="text-fg font-medium">
+                  ${stayMinimum.minimumTotal.toFixed(2)}
+                </span>
+                {stayMinimum.nights > 1 && (
+                  <>
+                    {" "}
+                    (~${stayMinimum.impliedPerNight.toFixed(2)}/night average)
+                  </>
+                )}
               </p>
             )}
             {savingsPercent > 0 && (

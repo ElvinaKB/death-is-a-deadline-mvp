@@ -12,6 +12,8 @@ export const accommodationTypeSchema = z.enum([
 
 export const placeStatusSchema = z.enum(["DRAFT", "LIVE", "PAUSED"]);
 
+export const thresholdPricingModeSchema = z.enum(["UNIFORM", "PER_WEEKDAY"]);
+
 export const placeKeywordSchema = z.enum(PLACE_KEYWORD_IDS);
 
 // Image schema (URL from Supabase storage)
@@ -40,6 +42,11 @@ export const createPlaceSchema = z.object({
   accommodationType: accommodationTypeSchema,
   retailPrice: z.number().min(1, "Retail price must be greater than 0"),
   minimumBid: z.number().min(1, "Minimum bid must be greater than 0"),
+  thresholdPricingMode: thresholdPricingModeSchema.optional().default("UNIFORM"),
+  minimumBidByDayOfWeek: z
+    .array(z.number().min(0, "Minimum bid cannot be negative"))
+    .length(7, "All 7 weekday minimum bids are required")
+    .optional(),
   autoAcceptAboveMinimum: z.boolean().optional().default(true),
   blackoutDates: z.array(z.string()).optional().default([]),
   allowedDaysOfWeek: z
@@ -79,6 +86,11 @@ export const updatePlaceSchema = z.object({
   accommodationType: accommodationTypeSchema.optional(),
   retailPrice: z.number().min(1).optional(),
   minimumBid: z.number().min(1).optional(),
+  thresholdPricingMode: thresholdPricingModeSchema.optional(),
+  minimumBidByDayOfWeek: z
+    .array(z.number().min(0))
+    .length(7)
+    .optional(),
   autoAcceptAboveMinimum: z.boolean().optional(),
   blackoutDates: z.array(z.string()).optional(),
   allowedDaysOfWeek: z.array(z.number().int().min(0).max(6)).optional(),
@@ -156,6 +168,16 @@ export const resendHotelInviteSchema = z.object({
 const calendarDateKeySchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be yyyy-MM-dd");
+
+export const stayMinimumQuerySchema = z
+  .object({
+    checkIn: calendarDateKeySchema,
+    checkOut: calendarDateKeySchema,
+  })
+  .refine((q) => q.checkIn < q.checkOut, {
+    message: "checkOut must be after checkIn",
+    path: ["checkOut"],
+  });
 
 export const unavailableNightsQuerySchema = z
   .object({

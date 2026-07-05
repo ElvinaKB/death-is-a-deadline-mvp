@@ -27,6 +27,8 @@ model Place {
   accommodationType      AccommodationType
   retailPrice            Float
   minimumBid             Float
+  thresholdPricingMode   ThresholdPricingMode @default(UNIFORM) @map("threshold_pricing_mode")
+  minimumBidByDayOfWeek  Float[]           @default([]) @map("minimum_bid_by_day_of_week")
   autoAcceptAboveMinimum Boolean           @default(true)
   blackoutDates          String[]          @default([])
   allowedDaysOfWeek      Int[]             @default([0, 1, 2, 3, 4, 5, 6]) @map("allowed_days_of_week")
@@ -599,6 +601,14 @@ enum PlaceStatus {
   LIVE
   PAUSED
 
+  @@schema("public")
+}
+
+enum ThresholdPricingMode {
+  UNIFORM
+  PER_WEEKDAY
+
+  @@map("threshold_pricing_mode")
   @@schema("public")
 }
 

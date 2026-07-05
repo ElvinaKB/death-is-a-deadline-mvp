@@ -16,8 +16,13 @@ import {
   HOTEL_INVITE_EXPIRY_DAYS,
 } from "../libs/utils/inviteToken";
 import { supabase } from "../libs/config/supabase";
-import { inferTimezoneFromLocation } from "../libs/utils/hotelDates";
+import { inferTimezoneFromLocation, parseBookingDateOnly } from "../libs/utils/hotelDates";
 import { getSoldOutNightsInRange } from "../services/inventory.service";
+import {
+  getStayThresholdSummary,
+  resolvePlaceThresholdPayload,
+  validatePlaceThresholdPricing,
+} from "../services/thresholdPricing.service";
 import {
   generateUniquePlaceSlug,
   isUuid,
@@ -47,6 +52,8 @@ const formatPlace = (
   accommodationType: place.accommodationType,
   retailPrice: place.retailPrice,
   minimumBid: place.minimumBid,
+  thresholdPricingMode: place.thresholdPricingMode ?? "UNIFORM",
+  minimumBidByDayOfWeek: (place.minimumBidByDayOfWeek || []).map(Number),
   autoAcceptAboveMinimum: place.autoAcceptAboveMinimum,
   blackoutDates: place.blackoutDates || [],
   allowedDaysOfWeek: place.allowedDaysOfWeek || [0, 1, 2, 3, 4, 5, 6],
@@ -99,7 +106,7 @@ const formatPublicPlace = (
   place: Parameters<typeof formatPlace>[0],
   inventoryInfo?: Parameters<typeof formatPlace>[1],
 ) => {
-  const { minimumBid: _minimumBid, autoAcceptAboveMinimum: _auto, ...rest } =
+  const { minimumBid: _minimumBid, autoAcceptAboveMinimum: _auto, thresholdPricingMode: _tpm, minimumBidByDayOfWeek: _mbd, ...rest } =
     formatPlace(place, inventoryInfo);
   return rest;
 };
@@ -426,12 +433,58 @@ export async function getPublicPlaceUnavailableNights(
   });
 }
 
+/** Minimum total bid for a stay (public — no raw weekday map). */
+export async function getPublicPlaceStayMinimum(
+  req: Request,
+  res: Response,
+) {
+  const { id: ref } = req.params;
+  const { checkIn, checkOut } = req.query as {
+    checkIn: string;
+    checkOut: string;
+  };
+
+  const place = await findPlaceByRef(ref);
+
+  if (!place || place.status !== PlaceStatus.LIVE) {
+    throw new CustomError("Place not found", 404);
+  }
+
+  let checkInDate: Date;
+  let checkOutDate: Date;
+  try {
+    checkInDate = parseBookingDateOnly(checkIn);
+    checkOutDate = parseBookingDateOnly(checkOut);
+  } catch {
+    throw new CustomError("Invalid booking date", 400);
+  }
+
+  const summary = getStayThresholdSummary(place, checkInDate, checkOutDate);
+
+  res.status(200).json({
+    data: summary,
+  });
+}
+
 export async function createPlace(req: Request, res: Response) {
   const data = req.body as CreatePlaceInput;
 
-  // Validate minimumBid < retailPrice
-  if (data.minimumBid >= data.retailPrice) {
-    throw new CustomError("Minimum bid must be less than retail price", 400);
+  const threshold = resolvePlaceThresholdPayload({
+    minimumBid: data.minimumBid,
+    thresholdPricingMode: data.thresholdPricingMode,
+    minimumBidByDayOfWeek: data.minimumBidByDayOfWeek,
+  });
+
+  try {
+    validatePlaceThresholdPricing({
+      retailPrice: data.retailPrice,
+      ...threshold,
+    });
+  } catch (err) {
+    throw new CustomError(
+      err instanceof Error ? err.message : "Invalid threshold pricing",
+      400,
+    );
   }
 
   const slug = await generateUniquePlaceSlug(data.name);
@@ -450,7 +503,9 @@ export async function createPlace(req: Request, res: Response) {
       longitude: data.longitude ?? null,
       accommodationType: data.accommodationType,
       retailPrice: data.retailPrice,
-      minimumBid: data.minimumBid,
+      minimumBid: threshold.minimumBid,
+      thresholdPricingMode: threshold.thresholdPricingMode,
+      minimumBidByDayOfWeek: threshold.minimumBidByDayOfWeek,
       autoAcceptAboveMinimum: true,
       blackoutDates: data.blackoutDates ?? [],
       allowedDaysOfWeek: data.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
@@ -550,11 +605,27 @@ export async function updatePlace(req: Request, res: Response) {
     throw new CustomError("Place not found", 404);
   }
 
-  // Validate minimumBid < retailPrice if both are provided
+  // Validate threshold pricing against retail price
   const retailPrice = data.retailPrice ?? existingPlace.retailPrice;
-  const minimumBid = data.minimumBid ?? existingPlace.minimumBid;
-  if (minimumBid >= retailPrice) {
-    throw new CustomError("Minimum bid must be less than retail price", 400);
+  const threshold = resolvePlaceThresholdPayload({
+    minimumBid: data.minimumBid ?? existingPlace.minimumBid,
+    thresholdPricingMode:
+      data.thresholdPricingMode ?? existingPlace.thresholdPricingMode,
+    minimumBidByDayOfWeek:
+      data.minimumBidByDayOfWeek ??
+      existingPlace.minimumBidByDayOfWeek.map(Number),
+  });
+
+  try {
+    validatePlaceThresholdPricing({
+      retailPrice,
+      ...threshold,
+    });
+  } catch (err) {
+    throw new CustomError(
+      err instanceof Error ? err.message : "Invalid threshold pricing",
+      400,
+    );
   }
 
   const slug =
@@ -584,7 +655,9 @@ export async function updatePlace(req: Request, res: Response) {
         accommodationType: data.accommodationType,
       }),
       ...(data.retailPrice !== undefined && { retailPrice: data.retailPrice }),
-      ...(data.minimumBid !== undefined && { minimumBid: data.minimumBid }),
+      minimumBid: threshold.minimumBid,
+      thresholdPricingMode: threshold.thresholdPricingMode,
+      minimumBidByDayOfWeek: threshold.minimumBidByDayOfWeek,
       autoAcceptAboveMinimum: true,
       ...(data.blackoutDates && { blackoutDates: data.blackoutDates }),
       ...(data.allowedDaysOfWeek && {

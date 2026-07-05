@@ -26,6 +26,10 @@ import {
   resolvePlaceTimezone,
   toCalendarDateKey,
 } from "../libs/utils/hotelDates";
+import {
+  getOccupiedNights,
+  isBidAboveStayThreshold,
+} from "../services/thresholdPricing.service";
 
 // Helper to format bid response
 const formatBid = (bid: any) => {
@@ -143,8 +147,23 @@ export async function createBid(req: Request, res: Response) {
   const totalNights = differenceInDays(checkOutDate, checkInDate);
   const totalAmount = data.bidPerNight * totalNights;
 
-  // Check if bid meets minimum
-  if (data.bidPerNight < place.minimumBid) {
+  // Enforce allowed days of week for each occupied night
+  const allowedDays = place.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6];
+  const occupiedNights = getOccupiedNights(checkInDate, checkOutDate);
+  const disallowedNight = occupiedNights.find(
+    (night) => !allowedDays.includes(night.getUTCDay()),
+  );
+  if (disallowedNight) {
+    throw new CustomError(
+      "This place does not accept bookings on one or more of your selected dates. Please choose different dates.",
+      400,
+      null,
+      ErrorCode.BID_DAY_NOT_ALLOWED,
+    );
+  }
+
+  // Total Stay Threshold: sum of each night's minimum vs total bid
+  if (!isBidAboveStayThreshold(place, checkInDate, checkOutDate, data.bidPerNight)) {
     throw new CustomError(
       `Your bid is very low, try again by increasing it.`,
       400,

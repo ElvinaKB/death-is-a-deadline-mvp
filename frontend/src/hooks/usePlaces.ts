@@ -10,6 +10,8 @@ import {
   PlaceResponse,
   PlaceStatus,
   SoldOutNightsResponse,
+  StayMinimumResponse,
+  ThresholdPricingMode,
   UpdatePlaceRequest,
 } from "../types/place.types";
 import { apiClient } from "../lib/apiClient";
@@ -59,6 +61,30 @@ export const usePlaceSoldOutNights = (placeId: string) => {
   });
 };
 
+/** Minimum total for a stay (Total Stay Threshold). */
+export const usePlaceStayMinimum = (
+  placeId: string,
+  checkIn?: string,
+  checkOut?: string,
+) => {
+  const apiCheckIn = toApiDateOnly(checkIn);
+  const apiCheckOut = toApiDateOnly(checkOut);
+  const enabled = !!placeId && !!apiCheckIn && !!apiCheckOut;
+
+  return useApiQuery<StayMinimumResponse>({
+    queryKey: [
+      ...QUERY_KEYS.PLACE(placeId),
+      "stay-minimum",
+      apiCheckIn,
+      apiCheckOut,
+    ],
+    endpoint: getEndpoint(ENDPOINTS.PLACE_STAY_MINIMUM, { id: placeId }),
+    params: { checkIn: apiCheckIn!, checkOut: apiCheckOut! },
+    enabled,
+    staleTime: 60_000,
+  });
+};
+
 export const useCreatePlace = () => {
   const queryClient = useQueryClient();
 
@@ -79,6 +105,9 @@ export const useCreatePlace = () => {
         accommodationType: data.accommodationType,
         retailPrice: data.retailPrice,
         minimumBid: data.minimumBid,
+        thresholdPricingMode:
+          data.thresholdPricingMode ?? ThresholdPricingMode.UNIFORM,
+        minimumBidByDayOfWeek: data.minimumBidByDayOfWeek,
         maxInventory: data.maxInventory,
         autoAcceptAboveMinimum: data.autoAcceptAboveMinimum,
         blackoutDates: data.blackoutDates,
