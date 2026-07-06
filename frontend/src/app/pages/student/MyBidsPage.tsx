@@ -20,7 +20,7 @@ import {
   XCircle,
   CreditCard,
 } from "lucide-react";
-import { format } from "date-fns";
+import { formatBookingDate } from "../../../utils/dateHelpers";
 import { HomeHeader } from "../../components/home";
 import {
   isDbPaymentAwaitingCapture,
@@ -187,14 +187,14 @@ export function MyBidsPage() {
                       <Calendar className="w-4 h-4 text-muted shrink-0" />
                       <span className="text-fg text-xs sm:text-sm">
                         <strong>In:</strong>{" "}
-                        {format(new Date(bid.checkInDate), "MMM d, yyyy")}
+                        {formatBookingDate(bid.checkInDate, "MMM d, yyyy")}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-4 h-4 text-muted shrink-0" />
                       <span className="text-fg text-xs sm:text-sm">
                         <strong>Out:</strong>{" "}
-                        {format(new Date(bid.checkOutDate), "MMM d, yyyy")}
+                        {formatBookingDate(bid.checkOutDate, "MMM d, yyyy")}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs sm:text-sm">

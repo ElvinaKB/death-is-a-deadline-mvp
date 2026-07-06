@@ -25,6 +25,11 @@ export function toApiDateOnly(
     return trimmed;
   }
 
+  // API @db.Date values arrive as UTC midnight ISO — use calendar date, not local TZ
+  if (/^\d{4}-\d{2}-\d{2}[T ]/.test(trimmed)) {
+    return trimmed.slice(0, 10);
+  }
+
   const parsed = parseISO(trimmed);
   if (!isValid(parsed)) return undefined;
   return format(parsed, "yyyy-MM-dd");
@@ -34,8 +39,23 @@ export function toApiDateOnly(
 export function parseApiDate(value: string | null | undefined): Date | undefined {
   const dateOnly = toApiDateOnly(value);
   if (!dateOnly) return undefined;
-  const parsed = parseISO(dateOnly);
-  return isValid(parsed) ? parsed : undefined;
+  const [y, m, d] = dateOnly.split("-").map(Number);
+  const local = new Date(y, m - 1, d);
+  return isValid(local) ? local : undefined;
+}
+
+/**
+ * Format a booking calendar date for display (hotel night, not a timestamp).
+ * Safe for yyyy-MM-dd strings and UTC-midnight ISO from the API.
+ */
+export function formatBookingDate(
+  value: string | Date | null | undefined,
+  pattern = "MMM d, yyyy",
+): string {
+  const dateOnly = toApiDateOnly(value);
+  if (!dateOnly) return "";
+  const [y, m, d] = dateOnly.split("-").map(Number);
+  return format(new Date(y, m - 1, d), pattern);
 }
 
 /**

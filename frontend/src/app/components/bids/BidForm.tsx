@@ -102,6 +102,7 @@ import {
   isDateInBlackout,
   isDayOfWeekAllowed,
   bookingDatesOverlap,
+  formatBookingDate,
   parseApiDate,
   stayIncludesSoldOutNight,
   toApiDateOnly,
@@ -1486,12 +1487,12 @@ function BidFormInner({
 
   const overlapDatesError = useMemo(() => {
     if (!overlappingActiveBid) return null;
-    const inDate = format(
-      new Date(overlappingActiveBid.checkInDate),
+    const inDate = formatBookingDate(
+      overlappingActiveBid.checkInDate,
       "MMM d, yyyy",
     );
-    const outDate = format(
-      new Date(overlappingActiveBid.checkOutDate),
+    const outDate = formatBookingDate(
+      overlappingActiveBid.checkOutDate,
       "MMM d, yyyy",
     );
     return `You already have a booking here for ${inDate} – ${outDate}. Choose different dates or view that booking from My Bids.`;
@@ -1571,8 +1572,8 @@ function BidFormInner({
         <BidOutcomePanel
           status={BidStatus.ACCEPTED}
           place={place}
-          checkIn={new Date(bid.checkInDate)}
-          checkOut={new Date(bid.checkOutDate)}
+          checkIn={parseApiDate(bid.checkInDate)!}
+          checkOut={parseApiDate(bid.checkOutDate)!}
           bidPerNight={bid.bidPerNight}
           totalAmount={bid.totalAmount}
           onTryAgain={handleTryAgain}
@@ -1587,8 +1588,8 @@ function BidFormInner({
         <BidOutcomePanel
           status={BidStatus.REJECTED}
           place={place}
-          checkIn={new Date(bid.checkInDate)}
-          checkOut={new Date(bid.checkOutDate)}
+          checkIn={parseApiDate(bid.checkInDate)!}
+          checkOut={parseApiDate(bid.checkOutDate)!}
           bidPerNight={bid.bidPerNight}
           totalAmount={bid.totalAmount}
           onTryAgain={handleTryAgain}
@@ -2880,8 +2881,8 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
       <BidOutcomePanel
         status={BidStatus.ACCEPTED}
         place={place}
-        checkIn={new Date(bid.checkInDate)}
-        checkOut={new Date(bid.checkOutDate)}
+        checkIn={parseApiDate(bid.checkInDate)!}
+        checkOut={parseApiDate(bid.checkOutDate)!}
         bidPerNight={bid.bidPerNight}
         totalAmount={bid.totalAmount}
         onTryAgain={() => navigate(ROUTES.HOME)}
@@ -2921,13 +2922,13 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
         <div className="flex justify-between">
           <span className="text-muted">Check-in:</span>
           <span className="font-medium text-fg">
-            {format(new Date(bid.checkInDate), "MMM dd, yyyy")}
+            {formatBookingDate(bid.checkInDate, "MMM dd, yyyy")}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted">Check-out:</span>
           <span className="font-medium text-fg">
-            {format(new Date(bid.checkOutDate), "MMM dd, yyyy")}
+            {formatBookingDate(bid.checkOutDate, "MMM dd, yyyy")}
           </span>
         </div>
         <div className="flex justify-between">

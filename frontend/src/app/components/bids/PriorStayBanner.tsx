@@ -1,11 +1,11 @@
-import { format } from "date-fns";
 import { PriorStaySummary } from "../../../types/bid.types";
+import { formatBookingDate } from "../../../utils/dateHelpers";
 import { cn } from "../ui/utils";
 
 function formatStayRange(stay: PriorStaySummary): string {
-  const checkIn = new Date(stay.checkInDate);
-  const checkOut = new Date(stay.checkOutDate);
-  return `${format(checkIn, "MMM d")}–${format(checkOut, "MMM d, yyyy")}`;
+  const checkIn = formatBookingDate(stay.checkInDate, "MMM d");
+  const checkOut = formatBookingDate(stay.checkOutDate, "MMM d, yyyy");
+  return `${checkIn}–${checkOut}`;
 }
 
 interface PriorStayBannerProps {
@@ -84,7 +84,7 @@ export function PriorStayBanner({
         <>
           You have{" "}
           <span className="text-fg font-medium">{stays.length} upcoming bookings</span>{" "}
-          ({stays.map((s) => format(new Date(s.checkInDate), "MMM d")).join(", ")})
+          ({stays.map((s) => formatBookingDate(s.checkInDate, "MMM d")).join(", ")})
           . Try new dates?
         </>
       ) : (

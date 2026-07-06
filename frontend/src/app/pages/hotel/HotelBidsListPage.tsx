@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { formatBookingDate } from "../../../utils/dateHelpers";
 import { CalendarCheck, DollarSign, FileText, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { useHotelBids } from "../../../hooks/useBids";
@@ -82,10 +82,10 @@ export function HotelBidsPage() {
       render: (row) => (
         <div className="text-xs sm:text-sm">
           <p className="text-fg">
-            {format(new Date(row.checkInDate), "MMM d, yyyy")}
+            {formatBookingDate(row.checkInDate, "MMM d, yyyy")}
           </p>
           <p className="text-muted">
-            → {format(new Date(row.checkOutDate), "MMM d, yyyy")}
+            → {formatBookingDate(row.checkOutDate, "MMM d, yyyy")}
           </p>
           <p className="text-xs text-muted">({row.totalNights}n)</p>
         </div>

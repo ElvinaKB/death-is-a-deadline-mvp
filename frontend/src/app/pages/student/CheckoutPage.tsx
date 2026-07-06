@@ -27,6 +27,7 @@ import { Badge } from "../../components/ui/badge";
 import { ROUTES } from "../../../config/routes.config";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
 import { format } from "date-fns";
+import { formatBookingDate } from "../../../utils/dateHelpers";
 import {
   CheckCircle,
   XCircle,
@@ -493,13 +494,13 @@ export function CheckoutPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted">Check-in:</span>
                   <span className="font-medium text-fg">
-                    {format(new Date(bid.checkInDate), "MMM dd, yyyy")}
+                    {formatBookingDate(bid.checkInDate, "MMM dd, yyyy")}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted">Check-out:</span>
                   <span className="font-medium text-fg">
-                    {format(new Date(bid.checkOutDate), "MMM dd, yyyy")}
+                    {formatBookingDate(bid.checkOutDate, "MMM dd, yyyy")}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">

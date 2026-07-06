@@ -22,6 +22,7 @@ import {
   hotelTodayAsDate,
   isStayActiveAtHotel,
   isStayCompletedAtHotel,
+  formatBookingDate,
   parseBookingDateOnly,
   resolvePlaceTimezone,
   toCalendarDateKey,
@@ -42,8 +43,8 @@ const formatBid = (bid: any) => {
   id: bid.id,
   placeId: bid.placeId,
   studentId: bid.studentId,
-  checkInDate: bid.checkInDate,
-  checkOutDate: bid.checkOutDate,
+  checkInDate: toCalendarDateKey(bid.checkInDate),
+  checkOutDate: toCalendarDateKey(bid.checkOutDate),
   bidPerNight: Number(bid.bidPerNight),
   totalNights: bid.totalNights,
   totalAmount: Number(bid.totalAmount),
@@ -248,8 +249,8 @@ const formatStaySummary = (bid: {
   checkOutDate: Date;
   bidPerNight: Prisma.Decimal;
 }) => ({
-  checkInDate: bid.checkInDate,
-  checkOutDate: bid.checkOutDate,
+  checkInDate: toCalendarDateKey(bid.checkInDate),
+  checkOutDate: toCalendarDateKey(bid.checkOutDate),
   bidPerNight: Number(bid.bidPerNight),
 });
 
@@ -596,8 +597,8 @@ export async function updatePayout(req: Request, res: Response) {
             (bid.users?.raw_user_meta_data as any)?.name ||
             bid.users?.email ||
             "Guest",
-          checkInDate: format(new Date(bid.checkInDate), "MMM dd, yyyy"),
-          checkOutDate: format(new Date(bid.checkOutDate), "MMM dd, yyyy"),
+          checkInDate: formatBookingDate(bid.checkInDate, "MMM dd, yyyy"),
+          checkOutDate: formatBookingDate(bid.checkOutDate, "MMM dd, yyyy"),
           totalNights: bid.totalNights,
           totalAmount: totalAmount.toFixed(2),
           commissionRate: commissionRate.toFixed(2),
