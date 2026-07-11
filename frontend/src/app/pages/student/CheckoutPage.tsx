@@ -127,9 +127,9 @@ function CheckoutForm({
       <PaymentElement />
 
       {errorMessage && (
-        <div className="glass rounded-lg p-4 border border-danger/50">
+        <div className="glass rounded-lg p-4 border border-danger/50" role="alert" aria-live="polite">
           <div className="flex gap-2">
-            <AlertCircle className="h-5 w-5 text-danger flex-shrink-0" />
+            <AlertCircle className="h-5 w-5 text-danger flex-shrink-0" aria-hidden />
             <p className="text-sm text-danger">{errorMessage}</p>
           </div>
         </div>
@@ -461,7 +461,7 @@ export function CheckoutPage() {
   return (
     <div className="min-h-screen bg-bg">
       <HomeHeader />
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <main id="main-content" className="max-w-4xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Order Summary */}
           <Card className="glass-2 border-line">
@@ -579,7 +579,7 @@ export function CheckoutPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

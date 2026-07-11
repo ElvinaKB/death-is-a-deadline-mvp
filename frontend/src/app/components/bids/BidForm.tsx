@@ -245,41 +245,51 @@ function CardPaymentFeedback({
   error,
   notice,
   variant = "default",
+  errorId = "bid-card-feedback",
 }: {
   error: string | null;
   notice: string | null;
   variant?: "default" | "listing";
+  errorId?: string;
 }) {
   if (!error && !notice) return null;
 
   if (variant === "listing") {
     return (
-      <div className="space-y-1">
+      <div className="space-y-1" aria-live="polite">
         {notice && (
-          <p className="text-xs text-success flex items-center gap-1.5">
-            <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+          <p className="text-xs text-success flex items-center gap-1.5" role="status">
+            <CheckCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />
             {notice}
           </p>
         )}
-        {error && <p className="text-xs text-urgent">{error}</p>}
+        {error && (
+          <p id={errorId} className="text-xs text-urgent" role="alert">
+            {error}
+          </p>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" aria-live="polite">
       {notice && (
-        <div className="glass rounded-lg p-3 border border-success/50">
+        <div className="glass rounded-lg p-3 border border-success/50" role="status">
           <div className="flex gap-2">
-            <CheckCircle className="h-4 w-4 text-success flex-shrink-0 mt-0.5" />
+            <CheckCircle className="h-4 w-4 text-success flex-shrink-0 mt-0.5" aria-hidden />
             <p className="text-sm text-success">{notice}</p>
           </div>
         </div>
       )}
       {error && (
-        <div className="glass rounded-lg p-3 border border-danger/50">
+        <div
+          id={errorId}
+          className="glass rounded-lg p-3 border border-danger/50"
+          role="alert"
+        >
           <div className="flex gap-2">
-            <AlertCircle className="h-4 w-4 text-danger flex-shrink-0 mt-0.5" />
+            <AlertCircle className="h-4 w-4 text-danger flex-shrink-0 mt-0.5" aria-hidden />
             <p className="text-sm text-danger">{error}</p>
           </div>
         </div>
@@ -1730,14 +1740,25 @@ function BidFormInner({
           <form onSubmit={handleBidFormSubmit} className="space-y-4">
             <div className="listing-dates-box">
               <div className="listing-dates-box__col">
-                <Label className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase mb-1.5 block">
+                <Label
+                  htmlFor="listing-check-in"
+                  className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase mb-1.5 block"
+                >
                   Check-in
                 </Label>
                 <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
                   <PopoverTrigger asChild>
                     <Button
+                      id="listing-check-in"
                       type="button"
                       variant="outline"
+                      aria-haspopup="dialog"
+                      aria-expanded={checkInOpen}
+                      aria-label={
+                        formik.values.checkInDate
+                          ? `Check-in: ${format(formik.values.checkInDate, "EEE, MMM d, yyyy")}`
+                          : "Select check-in date"
+                      }
                       className={cn(
                         "listing-date-field w-full justify-between text-left font-normal text-fg",
                         !formik.values.checkInDate && "text-muted",
@@ -1762,14 +1783,25 @@ function BidFormInner({
                 </Popover>
               </div>
               <div className="listing-dates-box__col">
-                <Label className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase mb-1.5 block">
+                <Label
+                  htmlFor="listing-check-out"
+                  className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase mb-1.5 block"
+                >
                   Check-out
                 </Label>
                 <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
                   <PopoverTrigger asChild>
                     <Button
+                      id="listing-check-out"
                       type="button"
                       variant="outline"
+                      aria-haspopup="dialog"
+                      aria-expanded={checkOutOpen}
+                      aria-label={
+                        formik.values.checkOutDate
+                          ? `Check-out: ${format(formik.values.checkOutDate, "EEE, MMM d, yyyy")}`
+                          : "Select check-out date"
+                      }
                       className={cn(
                         "listing-date-field w-full justify-between text-left font-normal text-fg",
                         !formik.values.checkOutDate && "text-muted",
@@ -1808,7 +1840,7 @@ function BidFormInner({
               </p>
             )}
             <div>
-              <Label className="listing-bid-amount-label mb-2 block">
+              <Label htmlFor="bidPerNightListing" className="listing-bid-amount-label mb-2 block">
                 <span className="text-fg">Your bid per night </span>
                 <span className="text-muted">(USD)</span>
               </Label>
@@ -1860,13 +1892,16 @@ function BidFormInner({
               {showPaymentMethodLoading ? (
                 <PaymentMethodSkeleton variant="listing" />
               ) : uiSavedMethods.length > 0 && uiPayWithSaved ? (
-                <div className="space-y-2">
+                <div className="space-y-2" role="radiogroup" aria-label="Saved payment methods">
                   {uiSavedMethods.map((pm) => {
                     const isSelected = selectedPaymentMethodId === pm.id;
                     return (
                       <button
                         key={pm.id}
                         type="button"
+                        role="radio"
+                        aria-checked={isSelected}
+                        aria-label={`${pm.brand} card ending in ${pm.last4}`}
                         disabled={isProcessing}
                         onClick={() => {
                           setPayWithSavedCard(true);
@@ -1952,7 +1987,15 @@ function BidFormInner({
                       </div>
                     </button>
                   )}
-                  <div className="border border-line rounded-lg p-3 bg-bg">
+                  <div
+                    className="border border-line rounded-lg p-3 bg-bg"
+                    role="group"
+                    aria-labelledby="listing-card-label"
+                    aria-describedby={paymentError ? "bid-card-feedback" : undefined}
+                  >
+                    <span id="listing-card-label" className="sr-only">
+                      Credit or debit card details
+                    </span>
                     <CardElement
                       options={{
                         style: {
@@ -1989,24 +2032,26 @@ function BidFormInner({
                 lock-in timer.
               </p>
             </div>
-            <label className="flex items-start gap-3 cursor-pointer">
+            <div className="flex items-start gap-3">
               <Checkbox
+                id="listing-hotel-taxes-ack"
                 checked={acceptedHotelTaxes}
                 onCheckedChange={handleAcceptedHotelTaxesChange}
                 className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
               />
-              <span className="text-xs text-muted leading-relaxed">
+              <Label htmlFor="listing-hotel-taxes-ack" className="text-xs text-muted leading-relaxed cursor-pointer">
                 Hotel taxes and government-imposed fees may be collected separately
                 by the hotel at check-in.
-              </span>
-            </label>
-            <label className="flex items-start gap-3 cursor-pointer">
+              </Label>
+            </div>
+            <div className="flex items-start gap-3">
               <Checkbox
+                id="listing-terms-ack"
                 checked={acceptedTerms}
                 onCheckedChange={handleAcceptedTermsChange}
                 className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
               />
-              <span className="text-xs text-muted leading-relaxed">
+              <Label htmlFor="listing-terms-ack" className="text-xs text-muted leading-relaxed cursor-pointer">
                 I agree to the{" "}
                 <Link to={ROUTES.TERMS} className="text-gold underline" target="_blank">
                   Terms of Use
@@ -2016,8 +2061,8 @@ function BidFormInner({
                   Privacy Policy
                 </Link>
                 .
-              </span>
-            </label>
+              </Label>
+            </div>
             {paymentError &&
               (paymentError === DUPLICATE_SAVED_CARD_MESSAGE ? (
                 <CardPaymentFeedback
@@ -2026,7 +2071,9 @@ function BidFormInner({
                   variant="listing"
                 />
               ) : (
-                <p className="text-xs text-urgent">{paymentError}</p>
+                <p className="text-xs text-urgent" role="alert" aria-live="polite">
+                  {paymentError}
+                </p>
               ))}
             {isInventoryExhausted && formik.values.checkInDate && (
               <p className="text-xs text-urgent">
@@ -2111,13 +2158,22 @@ function BidFormInner({
       <form onSubmit={handleBidFormSubmit} className="space-y-4">
         {bidStep === "dates" && (
         <div className="grid grid-cols-2 gap-3">
-          {/* Check-in Date */}
           <div>
-            <Label className="text-sm text-muted mb-1.5 block">Check-in</Label>
+            <Label htmlFor="bid-check-in" className="text-sm text-muted mb-1.5 block">
+              Check-in
+            </Label>
             <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
               <PopoverTrigger asChild>
                 <Button
+                  id="bid-check-in"
                   variant="outline"
+                  aria-haspopup="dialog"
+                  aria-expanded={checkInOpen}
+                  aria-label={
+                    formik.values.checkInDate
+                      ? `Check-in: ${format(formik.values.checkInDate, "MMM d, yyyy")}`
+                      : "Select check-in date"
+                  }
                   className={cn(
                     "w-full justify-between text-left font-normal h-11 bg-glass border-line text-fg",
                     !formik.values.checkInDate && "text-muted",
@@ -2147,19 +2203,28 @@ function BidFormInner({
               </PopoverContent>
             </Popover>
             {formik.touched.checkInDate && formik.errors.checkInDate && (
-              <p className="text-xs text-danger mt-1">
+              <p className="text-xs text-danger mt-1" role="alert">
                 {formik.errors.checkInDate}
               </p>
             )}
           </div>
 
-          {/* Check-out Date */}
           <div>
-            <Label className="text-sm text-muted mb-1.5 block">Check-out</Label>
+            <Label htmlFor="bid-check-out" className="text-sm text-muted mb-1.5 block">
+              Check-out
+            </Label>
             <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
               <PopoverTrigger asChild>
                 <Button
+                  id="bid-check-out"
                   variant="outline"
+                  aria-haspopup="dialog"
+                  aria-expanded={checkOutOpen}
+                  aria-label={
+                    formik.values.checkOutDate
+                      ? `Check-out: ${format(formik.values.checkOutDate, "MMM d, yyyy")}`
+                      : "Select check-out date"
+                  }
                   className={cn(
                     "w-full justify-between text-left font-normal h-11 bg-glass border-line text-fg",
                     !formik.values.checkOutDate && "text-muted",
@@ -2192,7 +2257,7 @@ function BidFormInner({
               </PopoverContent>
             </Popover>
             {formik.touched.checkOutDate && formik.errors.checkOutDate && (
-              <p className="text-xs text-danger mt-1">
+              <p className="text-xs text-danger mt-1" role="alert">
                 {formik.errors.checkOutDate}
               </p>
             )}
@@ -2202,7 +2267,7 @@ function BidFormInner({
 
         {bidStep === "amount" && (
           <div className="space-y-3">
-            <Label className="text-sm text-muted mb-1.5 block">
+            <Label htmlFor="bidPerNight" className="text-sm text-muted mb-1.5 block">
               Your bid per night
             </Label>
             <div className="relative">
@@ -2218,7 +2283,7 @@ function BidFormInner({
               />
             </div>
             {formik.touched.bidPerNight && formik.errors.bidPerNight && (
-              <p className="text-xs text-danger mt-1">
+              <p className="text-xs text-danger mt-1" role="alert">
                 {formik.errors.bidPerNight}
               </p>
             )}
@@ -2291,8 +2356,15 @@ function BidFormInner({
         {bidStep === "payment" && isAuthenticated && (
           <>
             <div className="space-y-2">
-              <Label className="text-sm text-muted mb-1.5 block">Card details</Label>
-              <div className="border border-gold/30 rounded-lg p-3 bg-glass">
+              <Label id="bid-card-label" className="text-sm text-muted mb-1.5 block">
+                Card details
+              </Label>
+              <div
+                className="border border-gold/30 rounded-lg p-3 bg-glass"
+                role="group"
+                aria-labelledby="bid-card-label"
+                aria-describedby={paymentError ? "bid-card-feedback" : undefined}
+              >
                 <CardElement
                   options={{
                     style: {
@@ -2312,20 +2384,21 @@ function BidFormInner({
                 />
               </div>
             </div>
-            <label className="flex items-start gap-3 cursor-pointer">
+            <div className="flex items-start gap-3">
               <Checkbox
+                id="bid-terms-ack"
                 checked={acceptedTerms}
                 onCheckedChange={handleAcceptedTermsChange}
                 className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
               />
-              <span className="text-xs text-muted leading-relaxed">
+              <Label htmlFor="bid-terms-ack" className="text-xs text-muted leading-relaxed cursor-pointer">
                 I agree to the{" "}
                 <Link to={ROUTES.TERMS} className="text-gold underline" target="_blank">Terms of Use</Link>
                 ,{" "}
                 <Link to={ROUTES.PRIVACY} className="text-gold underline" target="_blank">Privacy Policy</Link>
                 , and cancellation terms. If my bid is accepted, my card will be charged immediately.
-              </span>
-            </label>
+              </Label>
+            </div>
           </>
         )}
 
@@ -2345,13 +2418,16 @@ function BidFormInner({
             {showPaymentMethodLoading ? (
               <PaymentMethodSkeleton variant="default" />
             ) : uiSavedMethods.length > 0 && uiPayWithSaved ? (
-              <div className="space-y-2">
+              <div className="space-y-2" role="radiogroup" aria-label="Saved payment methods">
                 {uiSavedMethods.map((pm) => {
                   const isSelected = selectedPaymentMethodId === pm.id;
                   return (
                     <button
                       key={pm.id}
                       type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      aria-label={`${pm.brand} card ending in ${pm.last4}`}
                       disabled={isProcessing}
                       onClick={() => {
                         setPayWithSavedCard(true);
@@ -2437,7 +2513,15 @@ function BidFormInner({
                     </div>
                   </button>
                 )}
-                <div className="rounded-lg border border-line bg-glass p-3">
+                <div
+                  className="rounded-lg border border-line bg-glass p-3"
+                  role="group"
+                  aria-labelledby="bid-saved-card-label"
+                  aria-describedby={paymentError ? "bid-card-feedback" : undefined}
+                >
+                  <span id="bid-saved-card-label" className="sr-only">
+                    Credit or debit card details
+                  </span>
                   <CardElement
                     options={{
                       style: {

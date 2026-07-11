@@ -16,6 +16,11 @@ import {
 import { toast } from "sonner";
 import { Hourglass, Mail, ArrowLeft, CheckCircle } from "lucide-react";
 import * as Yup from "yup";
+import {
+  getFieldError,
+  getFieldDescribedBy,
+  getFieldErrorId,
+} from "../../utils/formikHelpers";
 
 const forgotPasswordSchema = Yup.object({
   email: Yup.string()
@@ -56,8 +61,7 @@ export function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen bg-bg diad-vignette">
-      {/* Full-screen explainer layout */}
-      <div className="flex flex-col-reverse lg:flex-row min-h-screen">
+      <main id="main-content" className="flex flex-col-reverse lg:flex-row min-h-screen">
         {/* Left Side - Explainer Content */}
         <div className="lg:w-1/2 flex flex-col justify-center px-8 lg:px-16 py-12 lg:py-0">
           <div className="max-w-lg mx-auto lg:mx-0">
@@ -161,7 +165,7 @@ export function ForgotPasswordPage() {
                   </Button>
                 </div>
               ) : (
-                <form onSubmit={formik.handleSubmit} className="space-y-4">
+                <form onSubmit={formik.handleSubmit} className="space-y-4" noValidate>
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-fg">
                       Email Address
@@ -170,16 +174,21 @@ export function ForgotPasswordPage() {
                       id="email"
                       type="email"
                       placeholder="you@university.edu"
+                      autoComplete="email"
+                      aria-invalid={!!getFieldError("email", formik)}
+                      aria-describedby={getFieldDescribedBy("email", formik)}
                       {...formik.getFieldProps("email")}
                       className={`bg-glass border-line text-fg placeholder:text-muted ${
-                        formik.touched.email && formik.errors.email
-                          ? "border-danger"
-                          : ""
+                        getFieldError("email", formik) ? "border-danger" : ""
                       }`}
                     />
-                    {formik.touched.email && formik.errors.email && (
-                      <p className="text-sm text-danger">
-                        {formik.errors.email}
+                    {getFieldError("email", formik) && (
+                      <p
+                        id={getFieldErrorId("email")}
+                        className="text-sm text-danger"
+                        role="alert"
+                      >
+                        {getFieldError("email", formik)}
                       </p>
                     )}
                   </div>
@@ -208,7 +217,7 @@ export function ForgotPasswordPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

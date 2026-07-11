@@ -16,6 +16,7 @@ import { AnalyticsProvider } from "./components/common/AnalyticsProvider";
 import { AuthTokenSync } from "./components/common/AuthTokenSync";
 import { CookieConsentBanner } from "./components/common/CookieConsentBanner";
 import { ScrollToTop } from "./components/common/ScrollToTop";
+import { SkipLink } from "./components/common/SkipLink";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +42,7 @@ export default function App() {
       <PersistGate loading={<AppLoader />} persistor={persistor}>
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
+            <SkipLink />
             <ScrollToTop />
             <AuthTokenSync />
             <AnalyticsProvider>

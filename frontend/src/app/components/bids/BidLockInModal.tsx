@@ -4,6 +4,8 @@ import { Hourglass, Loader2, Lock, Shield, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogTitle,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { formatCurrency } from "../../../utils/currency";
@@ -102,13 +104,13 @@ export function BidLockInModal({
     return (
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent isClose={false} className="max-w-lg bg-[#0a0a0a] border-line text-fg">
-          <p className="text-sm text-warning font-medium text-center">
+          <DialogTitle className="text-sm text-warning font-medium text-center">
             Dates need a quick fix
-          </p>
-          <p className="text-sm text-muted text-center py-4 leading-relaxed">
+          </DialogTitle>
+          <DialogDescription className="text-sm text-muted text-center py-4 leading-relaxed">
             {datesErrorMessage ??
               "Select check-in and check-out dates before confirming your bid."}
-          </p>
+          </DialogDescription>
           <Button type="button" className="w-full btn-outline-gold" onClick={handleGoBack}>
             Go back to dates
           </Button>
@@ -150,9 +152,12 @@ export function BidLockInModal({
         )}
 
         <div className="p-6 md:p-8 space-y-5">
-          <p className="text-center text-xs font-semibold tracking-[0.25em] text-urgent uppercase">
+          <DialogTitle className="text-center text-xs font-semibold tracking-[0.25em] text-urgent uppercase">
             Final Bid
-          </p>
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Review your binding bid for {place.name} before confirming payment.
+          </DialogDescription>
 
           <div className="text-center">
             <p className="text-5xl md:text-6xl font-bold text-fg tracking-tight">

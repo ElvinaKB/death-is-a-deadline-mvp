@@ -5,7 +5,7 @@ import { clearPreviewBypassLoggedOut } from "../../config/previewBypass";
 import { setCredentials } from "../../store/slices/authSlice";
 import { setAuthToken } from "../../utils/tokenHelpers";
 import { loginSchema } from "../../utils/validationSchemas";
-import { getFieldError } from "../../utils/formikHelpers";
+import { getFieldError, getFieldDescribedBy, getFieldErrorId } from "../../utils/formikHelpers";
 import { useApiMutation } from "../../hooks/useApi";
 import { ENDPOINTS } from "../../config/endpoints.config";
 import { ROUTES } from "../../config/routes.config";
@@ -125,8 +125,7 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen bg-bg diad-vignette">
-      {/* Mobile: form first; desktop: explainer left, form right */}
-      <div className="flex flex-col lg:flex-row min-h-screen">
+      <main id="main-content" className="flex flex-col lg:flex-row min-h-screen">
         {/* Explainer — below form on mobile */}
         <div className="order-2 lg:order-1 lg:w-1/2 flex flex-col justify-center px-4 sm:px-8 lg:px-16 py-10 lg:py-0">
           <div className="max-w-lg mx-auto lg:mx-0">
@@ -234,7 +233,7 @@ export function LoginPage() {
                 </div>
               )}
 
-              <form onSubmit={formik.handleSubmit} className="space-y-4">
+              <form onSubmit={formik.handleSubmit} className="space-y-4" noValidate>
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-fg">
                     Email
@@ -243,13 +242,20 @@ export function LoginPage() {
                     id="email"
                     type="email"
                     placeholder="you@example.com"
+                    autoComplete="email"
+                    aria-invalid={!!getFieldError("email", formik)}
+                    aria-describedby={getFieldDescribedBy("email", formik)}
                     {...formik.getFieldProps("email")}
                     className={`bg-glass border-line text-fg placeholder:text-muted ${
                       getFieldError("email", formik) ? "border-danger" : ""
                     }`}
                   />
                   {getFieldError("email", formik) && (
-                    <p className="text-sm text-danger">
+                    <p
+                      id={getFieldErrorId("email")}
+                      className="text-sm text-danger"
+                      role="alert"
+                    >
                       {getFieldError("email", formik)}
                     </p>
                   )}
@@ -262,13 +268,20 @@ export function LoginPage() {
                   <PasswordInput
                     id="password"
                     placeholder="••••••••"
+                    autoComplete="current-password"
+                    aria-invalid={!!getFieldError("password", formik)}
+                    aria-describedby={getFieldDescribedBy("password", formik)}
                     {...formik.getFieldProps("password")}
                     className={`bg-glass border-line text-fg placeholder:text-muted ${
                       getFieldError("password", formik) ? "border-danger" : ""
                     }`}
                   />
                   {getFieldError("password", formik) && (
-                    <p className="text-sm text-danger">
+                    <p
+                      id={getFieldErrorId("password")}
+                      className="text-sm text-danger"
+                      role="alert"
+                    >
                       {getFieldError("password", formik)}
                     </p>
                   )}
@@ -307,7 +320,7 @@ export function LoginPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

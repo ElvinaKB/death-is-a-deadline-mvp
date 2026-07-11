@@ -1020,6 +1020,12 @@
     right: 0.75rem;
   }
 
+  .listing-hero-carousel__nav--pause {
+    top: 0.75rem;
+    right: 0.75rem;
+    transform: none;
+  }
+
   @media (min-width: 640px) {
     .listing-hero-carousel__nav {
       width: 2.5rem;
@@ -1612,5 +1618,34 @@
     text-transform: uppercase;
     color: hsl(var(--muted-color));
     white-space: nowrap;
+  }
+
+  /* Skip link — visible on keyboard focus (WCAG 2.4.1) */
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    z-index: 10000;
+    padding: 0.75rem 1.25rem;
+    background: hsl(var(--gold));
+    color: hsl(0 0% 0%);
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    border-radius: 0 0 var(--r-md) 0;
+  }
+
+  .skip-link:focus {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    outline: 2px solid hsl(var(--gold-light));
+    outline-offset: 2px;
   }
 }

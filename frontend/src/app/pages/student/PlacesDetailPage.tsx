@@ -236,7 +236,7 @@ export function PlaceDetailPage() {
         onClose={() => setGalleryOpen(false)}
       />
 
-      <div className="mx-auto max-w-[1400px] px-4 py-2 sm:py-4 md:px-8 md:py-6 min-w-0">
+      <main id="main-content" className="mx-auto max-w-[1400px] px-4 py-2 sm:py-4 md:px-8 md:py-6 min-w-0">
         <div
           className={`listing-detail-grid gap-3 lg:gap-7${amenities.length === 0 ? " listing-detail-grid--no-amenities" : ""}`}
         >
@@ -268,6 +268,7 @@ export function PlaceDetailPage() {
                   type="button"
                   onClick={() => openGallery(heroSlideIndex)}
                   className="absolute bottom-4 right-4 z-10 rounded-lg bg-black/70 px-3 py-1.5 text-xs text-fg backdrop-blur-sm hover:bg-black/80"
+                  aria-label={`Open photo gallery, image ${heroSlideIndex + 1} of ${allImages.length}`}
                 >
                   {heroSlideIndex + 1} / {allImages.length}
                 </button>
@@ -525,7 +526,7 @@ export function PlaceDetailPage() {
               </div>
             </div>
           )}
-      </div>
+      </main>
 
       {/* Sold Out Modal - SweetAlert Style */}
       <Dialog open={showSoldOutModal} onOpenChange={setShowSoldOutModal}>
