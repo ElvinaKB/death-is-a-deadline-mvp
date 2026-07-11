@@ -38,7 +38,7 @@ import {
  * Toggle guide: frontend/docs/payment-flow-toggle.md
  * Search: PAYMENT_FLOW_V1 | PAYMENT_FLOW_V2
  */
-import { useState, useRef, useEffect, useCallback, useMemo, type FormEvent, type WheelEventHandler } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
@@ -142,11 +142,6 @@ const HOTEL_TAXES_ACK_ERROR =
 const TERMS_ACK_ERROR =
   "Please agree to the Terms of Use, Privacy Policy, and cancellation terms.";
 const BID_AMOUNT_ERROR = "Enter your bid amount.";
-
-/** Number inputs change value on scroll while focused; block that for bid fields. */
-const preventBidWheelChange: WheelEventHandler<HTMLInputElement> = (e) => {
-  e.preventDefault();
-};
 
 /** Only errors that should disable Lock In while payment UI still looks ready. */
 function isBlockingPaymentError(error: string | null): boolean {
@@ -1855,7 +1850,6 @@ function BidFormInner({
                   step="1"
                   placeholder="0"
                   className="w-full"
-                  onWheel={preventBidWheelChange}
                   {...formik.getFieldProps("bidPerNight")}
                 />
               </div>
@@ -2278,7 +2272,6 @@ function BidFormInner({
                 min="1"
                 step="0.01"
                 className="pl-9 h-11 bg-glass border-gold/30 text-fg placeholder:text-muted"
-                onWheel={preventBidWheelChange}
                 {...formik.getFieldProps("bidPerNight")}
               />
             </div>

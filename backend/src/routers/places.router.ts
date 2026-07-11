@@ -61,7 +61,7 @@ router.get(
 router.post(
   "/resend-invite",
   validate(resendHotelInviteSchema),
-  authenticate(UserRole.HOTEL_OWNER),
+  authenticate(UserRole.ADMIN),
   placesController.resendHotelInvite,
 );
 
