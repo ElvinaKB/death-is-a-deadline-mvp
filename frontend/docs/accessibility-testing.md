@@ -13,8 +13,8 @@ Practical manual QA for core booking paths. This is **not** a legal WCAG certifi
 
 ### 1. Skip link & landmarks
 
-- [ ] Tab from page load: "Skip to main content" appears and focuses
-- [ ] Activating skip link moves focus to `#main-content`
+- [ ] Tab from page load: gold "Skip to main content" button appears at top-left
+- [ ] Activating skip link moves focus to `#main-content` (past header/nav)
 - [ ] Home, listing, auth, checkout, and legal pages have a `<main id="main-content">` landmark
 
 ### 2. Marketplace search (`/`)

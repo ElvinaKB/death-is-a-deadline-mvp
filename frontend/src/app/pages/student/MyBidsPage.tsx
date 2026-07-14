@@ -85,9 +85,9 @@ export function MyBidsPage() {
     return (
       <div className="min-h-screen bg-bg">
         <HomeHeader />
-        <div className="flex items-center justify-center h-64">
+        <main id="main-content" className="flex items-center justify-center h-64" tabIndex={-1}>
           <Loader2 className="w-8 h-8 animate-spin text-brand" />
-        </div>
+        </main>
       </div>
     );
   }
@@ -96,7 +96,7 @@ export function MyBidsPage() {
     return (
       <div className="min-h-screen bg-bg">
         <HomeHeader />
-        <div className="container mx-auto px-4 py-8">
+        <main id="main-content" className="container mx-auto px-4 py-8" tabIndex={-1}>
           <h1 className="text-2xl font-bold text-fg mb-6">My Bids</h1>
           <Card className="bg-glass-2 border-line">
             <CardContent className="py-12 text-center">
@@ -108,7 +108,7 @@ export function MyBidsPage() {
               </Button>
             </CardContent>
           </Card>
-        </div>
+        </main>
       </div>
     );
   }
@@ -116,7 +116,7 @@ export function MyBidsPage() {
   return (
     <div className="min-h-screen bg-bg">
       <HomeHeader />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8" tabIndex={-1}>
         <h1 className="text-xl sm:text-2xl font-bold text-fg mb-4 sm:mb-6">
           My Bids
         </h1>
@@ -266,7 +266,7 @@ export function MyBidsPage() {
             );
           })}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

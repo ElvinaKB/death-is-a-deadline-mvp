@@ -236,7 +236,7 @@ export function PlaceDetailPage() {
         onClose={() => setGalleryOpen(false)}
       />
 
-      <main id="main-content" className="mx-auto max-w-[1400px] px-4 py-2 sm:py-4 md:px-8 md:py-6 min-w-0">
+      <main id="main-content" className="mx-auto max-w-[1400px] px-4 py-2 sm:py-4 md:px-8 md:py-6 min-w-0" tabIndex={-1}>
         <div
           className={`listing-detail-grid gap-3 lg:gap-7${amenities.length === 0 ? " listing-detail-grid--no-amenities" : ""}`}
         >

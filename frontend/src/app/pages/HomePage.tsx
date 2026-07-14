@@ -53,7 +53,7 @@ export function HomePage() {
       <HomeHeader showSearchBar onSearch={handleSearch} />
 
       {/* Main Content */}
-      <main id="main-content" className="flex-1 flex min-h-0 min-w-0">
+      <main id="main-content" className="flex-1 flex min-h-0 min-w-0" tabIndex={-1}>
         {/* Left Sidebar - Places List */}
         <div className="w-full md:w-1/2 bg-bg flex flex-col min-h-0 min-w-0">
           {/* Places List */}

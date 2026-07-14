@@ -461,7 +461,7 @@ export function CheckoutPage() {
   return (
     <div className="min-h-screen bg-bg">
       <HomeHeader />
-      <main id="main-content" className="max-w-4xl mx-auto px-6 py-12">
+      <main id="main-content" className="max-w-4xl mx-auto px-6 py-12" tabIndex={-1}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Order Summary */}
           <Card className="glass-2 border-line">

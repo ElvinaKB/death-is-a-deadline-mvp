@@ -61,7 +61,7 @@ export function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen bg-bg diad-vignette">
-      <main id="main-content" className="flex flex-col-reverse lg:flex-row min-h-screen">
+      <main id="main-content" className="flex flex-col-reverse lg:flex-row min-h-screen" tabIndex={-1}>
         {/* Left Side - Explainer Content */}
         <div className="lg:w-1/2 flex flex-col justify-center px-8 lg:px-16 py-12 lg:py-0">
           <div className="max-w-lg mx-auto lg:mx-0">

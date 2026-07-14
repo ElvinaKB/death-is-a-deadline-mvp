@@ -44,6 +44,10 @@ export function HowItWorksModal({
         <DialogContent
           isClose={false}
           className="max-w-[90vw] w-[90vw] !p-0 overflow-hidden !bg-transparent !border-none !shadow-none z-[100]"
+          onOpenAutoFocus={(e) => {
+            // Let Tab land on the skip link first (WCAG 2.4.1) before trapping into this modal.
+            if (showOnFirstVisit) e.preventDefault();
+          }}
         >
           <DialogTitle className="sr-only">How It Works</DialogTitle>
           <DialogDescription className="sr-only">

@@ -158,7 +158,7 @@ export function SignupPage() {
 
   return (
     <div className="min-h-screen bg-bg diad-vignette">
-      <main id="main-content" className="flex flex-col lg:flex-row min-h-screen">
+      <main id="main-content" className="flex flex-col lg:flex-row min-h-screen" tabIndex={-1}>
         {/* Explainer — below form on mobile */}
         <div className="order-2 lg:order-1 lg:w-1/2 flex flex-col justify-center px-4 sm:px-8 lg:px-16 py-10 lg:py-0">
           <div className="max-w-lg mx-auto lg:mx-0">
