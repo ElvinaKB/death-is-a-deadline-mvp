@@ -66,6 +66,9 @@ export const ENDPOINTS = {
   // Contact
   CONTACT: "/api/contact",
 
+  // Newsletter
+  NEWSLETTER_SUBSCRIBE: "/api/newsletter/subscribe",
+
   // Review Platforms
   REVIEW_PLATFORMS_LIST: "/api/testimonials/review-platforms",
   REVIEW_PLATFORM_CREATE: "/api/testimonials/review-platforms",

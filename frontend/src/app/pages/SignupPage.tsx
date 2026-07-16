@@ -4,7 +4,7 @@ import { useFormik } from "formik";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { signupSchema } from "../../utils/validationSchemas";
 import { getFieldError } from "../../utils/formikHelpers";
-import { isAcademicEmail } from "../../utils/emailValidator";
+import { isAutoVerifiedEmail } from "../../utils/emailValidator";
 import { ANALYTICS_EVENTS, trackEvent } from "../../utils/analytics";
 import { useApiMutation } from "../../hooks/useApi";
 import { ENDPOINTS } from "../../config/endpoints.config";
@@ -144,7 +144,7 @@ export function SignupPage() {
   // Check if email needs ID upload
   useEffect(() => {
     const handleEmailBlur = () => {
-      if (emailDebounced && !isAcademicEmail(emailDebounced)) {
+      if (emailDebounced && !isAutoVerifiedEmail(emailDebounced)) {
         setNeedsIdUpload(true);
       } else {
         setNeedsIdUpload(false);
@@ -310,19 +310,21 @@ export function SignupPage() {
                   )}
                   {formik.values.email && !getFieldError("email", formik) && (
                     <>
-                      {isAcademicEmail(formik.values.email) ? (
+                      {isAutoVerifiedEmail(formik.values.email) ? (
                         <Alert className="border-success/30 bg-success/10">
                           <AlertDescription className="text-success text-sm">
-                            Academic email detected. Your account will be
-                            approved automatically.
+                            Verified email domain detected. Your account will
+                            be approved automatically.
                           </AlertDescription>
                         </Alert>
                       ) : (
                         <Alert className="border-brand/30 bg-brand/10">
                           <AlertCircle className="h-4 w-4 text-brand" />
                           <AlertDescription className="text-brand-2 text-sm">
-                            Non-academic email. Please upload your student ID
-                            card for verification.
+                            Certain domains (.edu, .gov, and approved partner
+                            organizations) are approved automatically. Others
+                            need manual verification — please upload your ID
+                            card.
                           </AlertDescription>
                         </Alert>
                       )}

@@ -42,6 +42,15 @@ model Place {
   @@schema("public")
 }
 
+model NewsletterSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("newsletter_subscribers")
+  @@schema("public")
+}
+
 model Testimonial {
   id         String   @id @default(uuid())
   place      Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
