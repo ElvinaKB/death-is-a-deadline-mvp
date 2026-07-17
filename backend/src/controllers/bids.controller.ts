@@ -22,9 +22,15 @@ import {
   hotelTodayAsDate,
   isStayActiveAtHotel,
   isStayCompletedAtHotel,
+  formatBookingDate,
   parseBookingDateOnly,
   resolvePlaceTimezone,
+  toCalendarDateKey,
 } from "../libs/utils/hotelDates";
+import {
+  getOccupiedNights,
+  isBidAboveStayThreshold,
+} from "../services/thresholdPricing.service";
 
 // Helper to format bid response
 const formatBid = (bid: any) => {
@@ -37,8 +43,8 @@ const formatBid = (bid: any) => {
   id: bid.id,
   placeId: bid.placeId,
   studentId: bid.studentId,
-  checkInDate: bid.checkInDate,
-  checkOutDate: bid.checkOutDate,
+  checkInDate: toCalendarDateKey(bid.checkInDate),
+  checkOutDate: toCalendarDateKey(bid.checkOutDate),
   bidPerNight: Number(bid.bidPerNight),
   totalNights: bid.totalNights,
   totalAmount: Number(bid.totalAmount),
@@ -59,6 +65,7 @@ const formatBid = (bid: any) => {
   place: bid.place
     ? {
         id: bid.place.id,
+        slug: bid.place.slug,
         name: bid.place.name,
         city: bid.place.city,
         country: bid.place.country,
@@ -141,8 +148,23 @@ export async function createBid(req: Request, res: Response) {
   const totalNights = differenceInDays(checkOutDate, checkInDate);
   const totalAmount = data.bidPerNight * totalNights;
 
-  // Check if bid meets minimum
-  if (data.bidPerNight < place.minimumBid) {
+  // Enforce allowed days of week for each occupied night
+  const allowedDays = place.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6];
+  const occupiedNights = getOccupiedNights(checkInDate, checkOutDate);
+  const disallowedNight = occupiedNights.find(
+    (night) => !allowedDays.includes(night.getUTCDay()),
+  );
+  if (disallowedNight) {
+    throw new CustomError(
+      "This place does not accept bookings on one or more of your selected dates. Please choose different dates.",
+      400,
+      null,
+      ErrorCode.BID_DAY_NOT_ALLOWED,
+    );
+  }
+
+  // Total Stay Threshold: sum of each night's minimum vs total bid
+  if (!isBidAboveStayThreshold(place, checkInDate, checkOutDate, data.bidPerNight)) {
     throw new CustomError(
       `Your bid is very low, try again by increasing it.`,
       400,
@@ -222,20 +244,32 @@ export async function createBid(req: Request, res: Response) {
   });
 }
 
-const formatPriorStay = (bid: {
+const formatStaySummary = (bid: {
   checkInDate: Date;
   checkOutDate: Date;
   bidPerNight: Prisma.Decimal;
 }) => ({
-  checkInDate: bid.checkInDate,
-  checkOutDate: bid.checkOutDate,
+  checkInDate: toCalendarDateKey(bid.checkInDate),
+  checkOutDate: toCalendarDateKey(bid.checkOutDate),
   bidPerNight: Number(bid.bidPerNight),
 });
 
-// Get student's existing bid for a specific place (+ last completed stay for rebooking UX)
+const isActiveBookingBid = (
+  bid: { status: bid_status; checkOutDate: Date },
+  hotelToday: string,
+) =>
+  (bid.status === bid_status.ACCEPTED || bid.status === bid_status.PENDING) &&
+  isStayActiveAtHotel(bid.checkOutDate, hotelToday);
+
+// Get student's bids for a place (+ completed/upcoming stay summaries for rebooking UX)
 export async function getBidForPlace(req: Request, res: Response) {
   const studentId = req.user!.id;
   const { placeId } = req.params;
+  const { bidId, checkIn, checkOut } = req.query as {
+    bidId?: string;
+    checkIn?: string;
+    checkOut?: string;
+  };
 
   const [place, recentBids] = await Promise.all([
     prisma.place.findUnique({
@@ -267,28 +301,68 @@ export async function getBidForPlace(req: Request, res: Response) {
       isStayCompletedAtHotel(b.checkOutDate, hotelToday),
   );
 
-  const activeBid =
-    recentBids.find((b) => isStayActiveAtHotel(b.checkOutDate, hotelToday)) ??
-    null;
+  const activeBids = recentBids
+    .filter((b) => isActiveBookingBid(b, hotelToday))
+    .map(formatBid);
 
-  const priorStay = priorStayBid ? formatPriorStay(priorStayBid) : null;
+  const upcomingAccepted = recentBids
+    .filter(
+      (b) =>
+        b.status === bid_status.ACCEPTED &&
+        isStayActiveAtHotel(b.checkOutDate, hotelToday),
+    )
+    .sort(
+      (a, b) =>
+        toCalendarDateKey(a.checkInDate).localeCompare(
+          toCalendarDateKey(b.checkInDate),
+        ),
+    );
 
-  if (!activeBid) {
-    res.status(200).json({
-      data: {
-        bid: null,
-        priorStay,
-        hotelTimezone: resolvePlaceTimezone(place),
-        hotelToday,
-      },
-    });
-    return;
+  const upcomingStays = upcomingAccepted.map(formatStaySummary);
+
+  const upcomingStay = upcomingStays[0] ?? null;
+
+  const priorStay = priorStayBid ? formatStaySummary(priorStayBid) : null;
+
+  let bid = null;
+  if (bidId) {
+    const match = recentBids.find((b) => b.id === bidId);
+    if (match) {
+      bid = formatBid(match);
+    }
+  }
+
+  let overlappingBid = null;
+  if (checkIn && checkOut) {
+    try {
+      const checkInDate = parseBookingDateOnly(checkIn);
+      const checkOutDate = parseBookingDateOnly(checkOut);
+      const overlapRaw = recentBids.find(
+        (b) =>
+          isActiveBookingBid(b, hotelToday) &&
+          bookingDatesOverlap(
+            checkInDate,
+            checkOutDate,
+            b.checkInDate,
+            b.checkOutDate,
+          ),
+      );
+      if (overlapRaw) {
+        overlappingBid = formatBid(overlapRaw);
+      }
+    } catch {
+      /* ignore invalid date query */
+    }
   }
 
   res.status(200).json({
     data: {
-      bid: formatBid(activeBid),
+      bid,
+      activeBids,
       priorStay,
+      upcomingStay,
+      upcomingStays,
+      overlappingBid,
       hotelTimezone: resolvePlaceTimezone(place),
       hotelToday,
     },
@@ -523,8 +597,8 @@ export async function updatePayout(req: Request, res: Response) {
             (bid.users?.raw_user_meta_data as any)?.name ||
             bid.users?.email ||
             "Guest",
-          checkInDate: format(new Date(bid.checkInDate), "MMM dd, yyyy"),
-          checkOutDate: format(new Date(bid.checkOutDate), "MMM dd, yyyy"),
+          checkInDate: formatBookingDate(bid.checkInDate, "MMM dd, yyyy"),
+          checkOutDate: formatBookingDate(bid.checkOutDate, "MMM dd, yyyy"),
           totalNights: bid.totalNights,
           totalAmount: totalAmount.toFixed(2),
           commissionRate: commissionRate.toFixed(2),

@@ -10,8 +10,14 @@ export enum PlaceStatus {
   PAUSED = "PAUSED",
 }
 
+export enum ThresholdPricingMode {
+  UNIFORM = "UNIFORM",
+  PER_WEEKDAY = "PER_WEEKDAY",
+}
+
 export interface Place {
   id: string;
+  slug: string;
   name: string;
   shortDescription: string;
   fullDescription: string;
@@ -28,6 +34,10 @@ export interface Place {
   /** Admin/hotel only — omitted from student marketplace API */
   minimumBid?: number;
   /** Admin/hotel only */
+  thresholdPricingMode?: ThresholdPricingMode;
+  /** Admin/hotel only — 0=Sun … 6=Sat */
+  minimumBidByDayOfWeek?: number[];
+  /** Admin/hotel only */
   autoAcceptAboveMinimum?: boolean;
   blackoutDates: string[]; // Array of ISO date strings
   allowedDaysOfWeek: number[]; // 0=Sunday, 1=Monday, ..., 6=Saturday
@@ -39,6 +49,16 @@ export interface Place {
   availableInventory?: number;
   isInventoryExhausted?: boolean;
   hasHotelAccount?: boolean;
+}
+
+export interface SoldOutNightsResponse {
+  soldOutNights: string[];
+}
+
+export interface StayMinimumResponse {
+  minimumTotal: number;
+  nights: number;
+  impliedPerNight: number;
 }
 
 export interface PlaceImage {
@@ -61,6 +81,8 @@ export interface CreatePlaceRequest {
   accommodationType: AccommodationType;
   retailPrice: number;
   minimumBid: number;
+  thresholdPricingMode?: ThresholdPricingMode;
+  minimumBidByDayOfWeek?: number[];
   autoAcceptAboveMinimum: boolean;
   blackoutDates: string[];
   allowedDaysOfWeek: number[];
@@ -105,6 +127,8 @@ export interface CreatePlacePayload {
   accommodationType: string;
   retailPrice: number;
   minimumBid: number;
+  thresholdPricingMode?: ThresholdPricingMode;
+  minimumBidByDayOfWeek?: number[];
   autoAcceptAboveMinimum: boolean;
   blackoutDates: string[];
   allowedDaysOfWeek: number[];

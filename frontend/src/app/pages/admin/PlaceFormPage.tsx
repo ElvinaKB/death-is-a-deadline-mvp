@@ -12,7 +12,12 @@ import {
   AccommodationType,
   PlaceStatus,
   ACCOMMODATION_TYPE_LABELS,
+  ThresholdPricingMode,
 } from "../../../types/place.types";
+import {
+  buildUniformWeekdayMins,
+  ThresholdPricingFields,
+} from "../../components/places/ThresholdPricingFields";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
@@ -115,6 +120,11 @@ export function PlaceFormPage() {
   const [allowedDaysOfWeek, setAllowedDaysOfWeek] = useState<number[]>([
     0, 1, 2, 3, 4, 5, 6,
   ]);
+  const [useSameThresholdForAllDays, setUseSameThresholdForAllDays] =
+    useState(true);
+  const [minimumBidByDayOfWeek, setMinimumBidByDayOfWeek] = useState<number[]>(
+    buildUniformWeekdayMins(0),
+  );
   const [isUploading, setIsUploading] = useState(false);
 
   const DAYS_OF_WEEK = [
@@ -169,8 +179,21 @@ export function PlaceFormPage() {
           return;
         }
 
+        const thresholdPayload = useSameThresholdForAllDays
+          ? {
+              minimumBid: values.minimumBid,
+              thresholdPricingMode: ThresholdPricingMode.UNIFORM,
+              minimumBidByDayOfWeek: buildUniformWeekdayMins(values.minimumBid),
+            }
+          : {
+              minimumBid: Math.min(...minimumBidByDayOfWeek),
+              thresholdPricingMode: ThresholdPricingMode.PER_WEEKDAY,
+              minimumBidByDayOfWeek,
+            };
+
         const data = {
           ...values,
+          ...thresholdPayload,
           shortDescription: deriveShortDescription(
             values.fullDescription,
             values.name,
@@ -206,6 +229,15 @@ export function PlaceFormPage() {
       setBlackoutDates(existingPlace.blackoutDates.map((d) => new Date(d)));
       setAllowedDaysOfWeek(
         existingPlace.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
+      );
+      const isUniform =
+        !existingPlace.thresholdPricingMode ||
+        existingPlace.thresholdPricingMode === ThresholdPricingMode.UNIFORM;
+      setUseSameThresholdForAllDays(isUniform);
+      setMinimumBidByDayOfWeek(
+        existingPlace.minimumBidByDayOfWeek?.length === 7
+          ? existingPlace.minimumBidByDayOfWeek
+          : buildUniformWeekdayMins(existingPlace.minimumBid ?? 0),
       );
     }
   }, [existingPlace, isEditMode]);
@@ -602,26 +634,44 @@ export function PlaceFormPage() {
                   </p>
                 )}
               </div>
-
-              <div>
-                <Label htmlFor="minimumBid" className="text-fg">
-                  Minimum Acceptable Bid (per night) *
-                </Label>
-                <Input
-                  id="minimumBid"
-                  type="number"
-                  {...formik.getFieldProps("minimumBid")}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                />
-                {formik.touched.minimumBid && formik.errors.minimumBid && (
-                  <p className="text-sm text-error mt-1">
-                    {formik.errors.minimumBid}
-                  </p>
-                )}
-              </div>
             </div>
+
+            <ThresholdPricingFields
+              retailPrice={formik.values.retailPrice}
+              useSameThresholdForAllDays={useSameThresholdForAllDays}
+              onUseSameThresholdChange={(checked) => {
+                if (checked) {
+                  setUseSameThresholdForAllDays(true);
+                  formik.setFieldValue(
+                    "minimumBid",
+                    formik.values.minimumBid ||
+                      Math.max(...minimumBidByDayOfWeek),
+                  );
+                } else {
+                  setUseSameThresholdForAllDays(false);
+                  setMinimumBidByDayOfWeek(
+                    buildUniformWeekdayMins(formik.values.minimumBid),
+                  );
+                }
+              }}
+              minimumBid={formik.values.minimumBid}
+              onMinimumBidChange={(value) =>
+                formik.setFieldValue("minimumBid", value)
+              }
+              minimumBidByDayOfWeek={minimumBidByDayOfWeek}
+              onWeekdayMinimumChange={(dayIndex, value) => {
+                setMinimumBidByDayOfWeek((prev) => {
+                  const next = [...prev];
+                  next[dayIndex] = value;
+                  return next;
+                });
+              }}
+              minimumBidError={
+                formik.touched.minimumBid && formik.errors.minimumBid
+                  ? String(formik.errors.minimumBid)
+                  : undefined
+              }
+            />
 
             <div>
               <Label htmlFor="maxInventory" className="text-fg">

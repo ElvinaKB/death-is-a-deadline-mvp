@@ -2,6 +2,8 @@
  * Hotel calendar dates — bookings are yyyy-MM-dd nights; "today" uses the property IANA timezone.
  */
 
+import { format } from "date-fns";
+
 export const DEFAULT_HOTEL_TIMEZONE = "America/Los_Angeles";
 
 export type PlaceTimezoneSource = {
@@ -123,6 +125,16 @@ export function isStayActiveAtHotel(
   hotelToday: string,
 ): boolean {
   return toCalendarDateKey(checkOutDate) > hotelToday;
+}
+
+/** Format a booking calendar date for display (hotel night, not a timestamp). */
+export function formatBookingDate(
+  value: Date | string,
+  pattern = "MMM d, yyyy",
+): string {
+  const key = toCalendarDateKey(value);
+  const [y, m, d] = key.split("-").map(Number);
+  return format(new Date(y, m - 1, d), pattern);
 }
 
 /** Calendar-night overlap: [checkIn, checkOut) intervals share a night. */

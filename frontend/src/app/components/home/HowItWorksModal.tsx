@@ -1,7 +1,7 @@
 import { useState } from "react";
 import infoImg from "../../../assets/info.png";
 import howItWorksImg from "../../../assets/how-it-works.png";
-import { Dialog, DialogContent } from "../ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../ui/dialog";
 
 interface HowItWorksModalProps {
   showOnFirstVisit?: boolean;
@@ -44,7 +44,15 @@ export function HowItWorksModal({
         <DialogContent
           isClose={false}
           className="max-w-[90vw] w-[90vw] !p-0 overflow-hidden !bg-transparent !border-none !shadow-none z-[100]"
+          onOpenAutoFocus={(e) => {
+            // Let Tab land on the skip link first (WCAG 2.4.1) before trapping into this modal.
+            if (showOnFirstVisit) e.preventDefault();
+          }}
         >
+          <DialogTitle className="sr-only">How It Works</DialogTitle>
+          <DialogDescription className="sr-only">
+            Visual guide explaining the student hotel bidding process.
+          </DialogDescription>
           <div className="w-full">
             <img
               src={image}

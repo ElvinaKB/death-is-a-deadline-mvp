@@ -19,6 +19,7 @@ import {
   TabsTrigger,
 } from "../../components/ui/tabs";
 import { format } from "date-fns";
+import { formatBookingDate } from "../../../utils/dateHelpers";
 import { DollarSign, EyeIcon } from "lucide-react";
 import { PayoutModal } from "../../components/bids/PayoutModal";
 
@@ -114,10 +115,10 @@ export function BidsListPage() {
       render: (row) => (
         <div className="text-sm">
           <p className="text-fg">
-            {format(new Date(row.checkInDate), "MMM d, yyyy")}
+            {formatBookingDate(row.checkInDate, "MMM d, yyyy")}
           </p>
           <p className="text-muted">
-            to {format(new Date(row.checkOutDate), "MMM d, yyyy")}
+            to {formatBookingDate(row.checkOutDate, "MMM d, yyyy")}
           </p>
           <p className="text-xs text-muted">({row.totalNights} nights)</p>
         </div>

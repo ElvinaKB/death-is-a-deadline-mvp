@@ -11,9 +11,22 @@ import {
 } from "../validations/places/places.validation";
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
-import { createHotelInviteToken } from "../libs/utils/inviteToken";
+import {
+  createHotelInviteToken,
+  HOTEL_INVITE_EXPIRY_DAYS,
+} from "../libs/utils/inviteToken";
 import { supabase } from "../libs/config/supabase";
-import { inferTimezoneFromLocation } from "../libs/utils/hotelDates";
+import { inferTimezoneFromLocation, parseBookingDateOnly } from "../libs/utils/hotelDates";
+import { getSoldOutNightsInRange } from "../services/inventory.service";
+import {
+  getStayThresholdSummary,
+  resolvePlaceThresholdPayload,
+  validatePlaceThresholdPricing,
+} from "../services/thresholdPricing.service";
+import {
+  generateUniquePlaceSlug,
+  isUuid,
+} from "../libs/utils/placeSlug";
 
 const APP_URL = process.env.CLIENT_URL;
 
@@ -26,6 +39,7 @@ const formatPlace = (
   },
 ) => ({
   id: place.id,
+  slug: place.slug,
   name: place.name,
   email: place.email,
   shortDescription: place.shortDescription,
@@ -38,6 +52,8 @@ const formatPlace = (
   accommodationType: place.accommodationType,
   retailPrice: place.retailPrice,
   minimumBid: place.minimumBid,
+  thresholdPricingMode: place.thresholdPricingMode ?? "UNIFORM",
+  minimumBidByDayOfWeek: (place.minimumBidByDayOfWeek || []).map(Number),
   autoAcceptAboveMinimum: place.autoAcceptAboveMinimum,
   blackoutDates: place.blackoutDates || [],
   allowedDaysOfWeek: place.allowedDaysOfWeek || [0, 1, 2, 3, 4, 5, 6],
@@ -54,6 +70,22 @@ const formatPlace = (
     isInventoryExhausted: inventoryInfo.isInventoryExhausted,
   }),
 });
+
+const placeInclude = { images: { orderBy: { order: "asc" as const } } };
+
+async function findPlaceByRef(ref: string) {
+  if (isUuid(ref)) {
+    return prisma.place.findUnique({
+      where: { id: ref },
+      include: placeInclude,
+    });
+  }
+
+  return prisma.place.findUnique({
+    where: { slug: ref },
+    include: placeInclude,
+  });
+}
 
 /** yyyy-MM-dd from query string or ISO datetime */
 function normalizeQueryDate(date: string): string {
@@ -74,7 +106,7 @@ const formatPublicPlace = (
   place: Parameters<typeof formatPlace>[0],
   inventoryInfo?: Parameters<typeof formatPlace>[1],
 ) => {
-  const { minimumBid: _minimumBid, autoAcceptAboveMinimum: _auto, ...rest } =
+  const { minimumBid: _minimumBid, autoAcceptAboveMinimum: _auto, thresholdPricingMode: _tpm, minimumBidByDayOfWeek: _mbd, ...rest } =
     formatPlace(place, inventoryInfo);
   return rest;
 };
@@ -340,13 +372,10 @@ export async function getPlace(req: Request, res: Response) {
 
 // Get public place by ID (for students - includes inventory status)
 export async function getPublicPlace(req: Request, res: Response) {
-  const { id } = req.params;
+  const { id: ref } = req.params;
   const { date } = req.query as { date?: string };
 
-  const place = await prisma.place.findUnique({
-    where: { id },
-    include: { images: { orderBy: { order: "asc" } } },
-  });
+  const place = await findPlaceByRef(ref);
 
   if (!place) {
     throw new CustomError("Place not found", 404);
@@ -378,16 +407,91 @@ export async function getPublicPlace(req: Request, res: Response) {
   });
 }
 
+/** Sold-out calendar nights for bid date picker (public, LIVE places only). */
+export async function getPublicPlaceUnavailableNights(
+  req: Request,
+  res: Response,
+) {
+  const { id: ref } = req.params;
+  const { from, to } = req.query as { from: string; to: string };
+
+  const place = await findPlaceByRef(ref);
+
+  if (!place || place.status !== PlaceStatus.LIVE) {
+    throw new CustomError("Place not found", 404);
+  }
+
+  const soldOutNights = await getSoldOutNightsInRange(
+    place.id,
+    place.maxInventory,
+    from,
+    to,
+  );
+
+  res.status(200).json({
+    data: { soldOutNights },
+  });
+}
+
+/** Minimum total bid for a stay (public — no raw weekday map). */
+export async function getPublicPlaceStayMinimum(
+  req: Request,
+  res: Response,
+) {
+  const { id: ref } = req.params;
+  const { checkIn, checkOut } = req.query as {
+    checkIn: string;
+    checkOut: string;
+  };
+
+  const place = await findPlaceByRef(ref);
+
+  if (!place || place.status !== PlaceStatus.LIVE) {
+    throw new CustomError("Place not found", 404);
+  }
+
+  let checkInDate: Date;
+  let checkOutDate: Date;
+  try {
+    checkInDate = parseBookingDateOnly(checkIn);
+    checkOutDate = parseBookingDateOnly(checkOut);
+  } catch {
+    throw new CustomError("Invalid booking date", 400);
+  }
+
+  const summary = getStayThresholdSummary(place, checkInDate, checkOutDate);
+
+  res.status(200).json({
+    data: summary,
+  });
+}
+
 export async function createPlace(req: Request, res: Response) {
   const data = req.body as CreatePlaceInput;
 
-  // Validate minimumBid < retailPrice
-  if (data.minimumBid >= data.retailPrice) {
-    throw new CustomError("Minimum bid must be less than retail price", 400);
+  const threshold = resolvePlaceThresholdPayload({
+    minimumBid: data.minimumBid,
+    thresholdPricingMode: data.thresholdPricingMode,
+    minimumBidByDayOfWeek: data.minimumBidByDayOfWeek,
+  });
+
+  try {
+    validatePlaceThresholdPricing({
+      retailPrice: data.retailPrice,
+      ...threshold,
+    });
+  } catch (err) {
+    throw new CustomError(
+      err instanceof Error ? err.message : "Invalid threshold pricing",
+      400,
+    );
   }
+
+  const slug = await generateUniquePlaceSlug(data.name);
 
   const place = await prisma.place.create({
     data: {
+      slug,
       name: data.name,
       shortDescription: data.shortDescription,
       fullDescription: data.fullDescription,
@@ -399,7 +503,9 @@ export async function createPlace(req: Request, res: Response) {
       longitude: data.longitude ?? null,
       accommodationType: data.accommodationType,
       retailPrice: data.retailPrice,
-      minimumBid: data.minimumBid,
+      minimumBid: threshold.minimumBid,
+      thresholdPricingMode: threshold.thresholdPricingMode,
+      minimumBidByDayOfWeek: threshold.minimumBidByDayOfWeek,
       autoAcceptAboveMinimum: true,
       blackoutDates: data.blackoutDates ?? [],
       allowedDaysOfWeek: data.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
@@ -482,7 +588,7 @@ async function notifyHotelOnPlaceCreated({
         placeCity,
         placeCountry,
         inviteUrl,
-        expiryMinutes: 15,
+        expiryDays: HOTEL_INVITE_EXPIRY_DAYS,
       },
     });
   }
@@ -499,12 +605,33 @@ export async function updatePlace(req: Request, res: Response) {
     throw new CustomError("Place not found", 404);
   }
 
-  // Validate minimumBid < retailPrice if both are provided
+  // Validate threshold pricing against retail price
   const retailPrice = data.retailPrice ?? existingPlace.retailPrice;
-  const minimumBid = data.minimumBid ?? existingPlace.minimumBid;
-  if (minimumBid >= retailPrice) {
-    throw new CustomError("Minimum bid must be less than retail price", 400);
+  const threshold = resolvePlaceThresholdPayload({
+    minimumBid: data.minimumBid ?? existingPlace.minimumBid,
+    thresholdPricingMode:
+      data.thresholdPricingMode ?? existingPlace.thresholdPricingMode,
+    minimumBidByDayOfWeek:
+      data.minimumBidByDayOfWeek ??
+      existingPlace.minimumBidByDayOfWeek.map(Number),
+  });
+
+  try {
+    validatePlaceThresholdPricing({
+      retailPrice,
+      ...threshold,
+    });
+  } catch (err) {
+    throw new CustomError(
+      err instanceof Error ? err.message : "Invalid threshold pricing",
+      400,
+    );
   }
+
+  const slug =
+    data.name && data.name !== existingPlace.name
+      ? await generateUniquePlaceSlug(data.name, id)
+      : undefined;
 
   // Handle images update - delete old images and create new ones if provided
   if (data.images && data.images.length > 0) {
@@ -514,6 +641,7 @@ export async function updatePlace(req: Request, res: Response) {
   const place = await prisma.place.update({
     where: { id },
     data: {
+      ...(slug && { slug }),
       ...(data.name && { name: data.name }),
       ...(data.shortDescription && { shortDescription: data.shortDescription }),
       ...(data.fullDescription && { fullDescription: data.fullDescription }),
@@ -527,7 +655,9 @@ export async function updatePlace(req: Request, res: Response) {
         accommodationType: data.accommodationType,
       }),
       ...(data.retailPrice !== undefined && { retailPrice: data.retailPrice }),
-      ...(data.minimumBid !== undefined && { minimumBid: data.minimumBid }),
+      minimumBid: threshold.minimumBid,
+      thresholdPricingMode: threshold.thresholdPricingMode,
+      minimumBidByDayOfWeek: threshold.minimumBidByDayOfWeek,
       autoAcceptAboveMinimum: true,
       ...(data.blackoutDates && { blackoutDates: data.blackoutDates }),
       ...(data.allowedDaysOfWeek && {
@@ -685,7 +815,7 @@ export async function resendHotelInvite(req: Request, res: Response) {
       placeCity: place.city,
       placeCountry: place.country,
       inviteUrl,
-      expiryMinutes: 15,
+      expiryDays: HOTEL_INVITE_EXPIRY_DAYS,
     },
   });
 

@@ -38,11 +38,12 @@ import {
  * Toggle guide: frontend/docs/payment-flow-toggle.md
  * Search: PAYMENT_FLOW_V1 | PAYMENT_FLOW_V2
  */
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useBidForPlace, useCreateBid } from "../../../hooks/useBids";
+import { usePlaceSoldOutNights, usePlaceStayMinimum } from "../../../hooks/usePlaces";
 import {
   useConfirmPayment,
   useCreatePaymentIntent,
@@ -57,6 +58,7 @@ import {
 import {
   isDbPaymentAwaitingCapture,
   isLowBidRejection,
+  isBidOverlapRejection,
   isStripeActionRequired,
   shouldShowConfirmedOutcome,
   shouldShowRejectedOutcome,
@@ -99,7 +101,10 @@ import { formatCurrency } from "../../../utils/currency";
 import {
   isDateInBlackout,
   isDayOfWeekAllowed,
+  bookingDatesOverlap,
+  formatBookingDate,
   parseApiDate,
+  stayIncludesSoldOutNight,
   toApiDateOnly,
 } from "../../../utils/dateHelpers";
 import {
@@ -125,6 +130,24 @@ import {
 
 // LocalStorage key for persisting bid form state
 const BID_FORM_STORAGE_KEY = "pendingBidForm";
+
+/** Disabled nights (past, sold-out, blackout) — muted text only, no filled circle. */
+const BID_CALENDAR_CLASS_NAMES = {
+  day_disabled:
+    "text-muted-foreground opacity-40 hover:bg-transparent hover:text-muted-foreground cursor-not-allowed",
+};
+
+const HOTEL_TAXES_ACK_ERROR =
+  "Please acknowledge that hotel taxes and fees may be collected separately at check-in.";
+const TERMS_ACK_ERROR =
+  "Please agree to the Terms of Use, Privacy Policy, and cancellation terms.";
+const BID_AMOUNT_ERROR = "Enter your bid amount.";
+
+/** Only errors that should disable Lock In while payment UI still looks ready. */
+function isBlockingPaymentError(error: string | null): boolean {
+  if (!error) return false;
+  return error === DUPLICATE_SAVED_CARD_MESSAGE;
+}
 
 interface StoredBidFormState {
   placeId: string;
@@ -187,6 +210,8 @@ const clearBidFormStorage = () => {
 interface BidFormProps {
   place: Place;
   placeId: string;
+  /** When set (e.g. from My Bids ?bidId=), show receipt for that booking */
+  contextBidId?: string | null;
   onDateChange?: (date: string | undefined) => void;
   onBookingDatesChange?: (checkIn?: Date, checkOut?: Date) => void;
   isInventoryExhausted?: boolean;
@@ -215,41 +240,51 @@ function CardPaymentFeedback({
   error,
   notice,
   variant = "default",
+  errorId = "bid-card-feedback",
 }: {
   error: string | null;
   notice: string | null;
   variant?: "default" | "listing";
+  errorId?: string;
 }) {
   if (!error && !notice) return null;
 
   if (variant === "listing") {
     return (
-      <div className="space-y-1">
+      <div className="space-y-1" aria-live="polite">
         {notice && (
-          <p className="text-xs text-success flex items-center gap-1.5">
-            <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+          <p className="text-xs text-success flex items-center gap-1.5" role="status">
+            <CheckCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />
             {notice}
           </p>
         )}
-        {error && <p className="text-xs text-urgent">{error}</p>}
+        {error && (
+          <p id={errorId} className="text-xs text-urgent" role="alert">
+            {error}
+          </p>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" aria-live="polite">
       {notice && (
-        <div className="glass rounded-lg p-3 border border-success/50">
+        <div className="glass rounded-lg p-3 border border-success/50" role="status">
           <div className="flex gap-2">
-            <CheckCircle className="h-4 w-4 text-success flex-shrink-0 mt-0.5" />
+            <CheckCircle className="h-4 w-4 text-success flex-shrink-0 mt-0.5" aria-hidden />
             <p className="text-sm text-success">{notice}</p>
           </div>
         </div>
       )}
       {error && (
-        <div className="glass rounded-lg p-3 border border-danger/50">
+        <div
+          id={errorId}
+          className="glass rounded-lg p-3 border border-danger/50"
+          role="alert"
+        >
           <div className="flex gap-2">
-            <AlertCircle className="h-4 w-4 text-danger flex-shrink-0 mt-0.5" />
+            <AlertCircle className="h-4 w-4 text-danger flex-shrink-0 mt-0.5" aria-hidden />
             <p className="text-sm text-danger">{error}</p>
           </div>
         </div>
@@ -286,6 +321,7 @@ function PaymentMethodSkeleton({
 function BidFormInner({
   place,
   placeId,
+  contextBidId,
   onDateChange,
   onBookingDatesChange,
   isInventoryExhausted,
@@ -386,7 +422,14 @@ function BidFormInner({
         !isProcessing &&
         !bidResult &&
         !stripeCompletion,
+      bidId: contextBidId ?? undefined,
     });
+
+  const { data: soldOutNightsData } = usePlaceSoldOutNights(placeId);
+  const soldOutNightSet = useMemo(
+    () => new Set(soldOutNightsData?.soldOutNights ?? []),
+    [soldOutNightsData?.soldOutNights],
+  );
 
   // Date restrictions: today to 30 days from today
   const today = new Date();
@@ -575,8 +618,24 @@ function BidFormInner({
     validatePaymentMethod,
   ]);
 
+  const handleAcceptedHotelTaxesChange = (v: boolean | "indeterminate") => {
+    const checked = v === true;
+    setAcceptedHotelTaxes(checked);
+    if (checked && paymentError === HOTEL_TAXES_ACK_ERROR) {
+      setPaymentError(null);
+    }
+  };
+
+  const handleAcceptedTermsChange = (v: boolean | "indeterminate") => {
+    const checked = v === true;
+    setAcceptedTerms(checked);
+    if (checked && paymentError === TERMS_ACK_ERROR) {
+      setPaymentError(null);
+    }
+  };
+
   const canLockInBid = useMemo(() => {
-    if (paymentError) return false;
+    if (isBlockingPaymentError(paymentError)) return false;
     if (
       stripeModesMismatch(
         getPublishableStripeMode(),
@@ -773,17 +832,13 @@ function BidFormInner({
       setCardNotice(null);
 
       if (isAuthenticated && !acceptedHotelTaxes) {
-        setPaymentError(
-          "Please acknowledge that hotel taxes and fees may be collected separately at check-in.",
-        );
+        setPaymentError(HOTEL_TAXES_ACK_ERROR);
         submitInFlightRef.current = false;
         return;
       }
 
       if (isAuthenticated && !acceptedTerms) {
-        setPaymentError(
-          "Please agree to the Terms of Use, Privacy Policy, and cancellation terms.",
-        );
+        setPaymentError(TERMS_ACK_ERROR);
         submitInFlightRef.current = false;
         return;
       }
@@ -845,15 +900,31 @@ function BidFormInner({
 
       try {
         // PAYMENT_FLOW_V2 START — Step 1: bid create or resume pending payment
-        const existingActive = existingBidData?.bid;
-        const resumeAwaitingPayment =
-          existingActive?.status === BidStatus.ACCEPTED &&
-          existingActive.placeId === placeId &&
-          isDbPaymentAwaitingCapture(existingActive.payment?.status);
+        const activeBids = existingBidData?.activeBids ?? [];
+        const resumeBid =
+          activeBids.find(
+            (b) =>
+              b.status === BidStatus.ACCEPTED &&
+              isDbPaymentAwaitingCapture(b.payment?.status) &&
+              values.checkInDate &&
+              values.checkOutDate &&
+              bookingDatesOverlap(
+                values.checkInDate,
+                values.checkOutDate,
+                b.checkInDate,
+                b.checkOutDate,
+              ),
+          ) ??
+          activeBids.find(
+            (b) =>
+              b.status === BidStatus.ACCEPTED &&
+              isDbPaymentAwaitingCapture(b.payment?.status),
+          );
+        const resumeAwaitingPayment = !!resumeBid;
 
         const result = resumeAwaitingPayment
           ? {
-              bid: existingActive,
+              bid: resumeBid,
               status: BidStatus.ACCEPTED,
               message: "Resuming payment for your accepted bid.",
             }
@@ -1028,6 +1099,11 @@ function BidFormInner({
           });
           setRejectedScrollTrigger((n) => n + 1);
           trackEvent(ANALYTICS_EVENTS.REJECTED_BID, { place_id: placeId });
+        } else if (isBidOverlapRejection(error)) {
+          setPaymentError(
+            error.message ||
+              "You already have a booking at this hotel for overlapping dates.",
+          );
         } else {
           setPaymentError(error.message || "Failed to submit bid");
         }
@@ -1078,12 +1154,34 @@ function BidFormInner({
     }
   }, [bidResult]);
 
-  // Clear localStorage when user becomes authenticated and has existing bid
+  // Clear localStorage when viewing a specific booking receipt
   useEffect(() => {
-    if (isAuthenticated && existingBidData?.bid) {
+    if (isAuthenticated && contextBidId && existingBidData?.bid) {
       clearBidFormStorage();
     }
-  }, [isAuthenticated, existingBidData]);
+  }, [isAuthenticated, contextBidId, existingBidData?.bid]);
+
+  const handleCheckInSelect = useCallback(
+    (date: Date | undefined) => {
+      formik.setFieldValue("checkInDate", date);
+      const checkoutConflicts =
+        date &&
+        formik.values.checkOutDate &&
+        !isBefore(date, formik.values.checkOutDate);
+      if (checkoutConflicts) {
+        formik.setFieldValue("checkOutDate", undefined);
+      }
+      setCheckInOpen(false);
+      setPaymentError(null);
+      if (date && onDateChange) {
+        onDateChange(toApiDateOnly(date));
+      }
+      if (checkoutConflicts) {
+        window.setTimeout(() => setCheckOutOpen(true), 0);
+      }
+    },
+    [formik, onDateChange],
+  );
 
   const isDateBlocked =
     (field: "checkInDate" | "checkOutDate") => (date: Date) => {
@@ -1092,16 +1190,13 @@ function BidFormInner({
         return true;
       }
 
-      // Prevent selecting the same date for both fields
-      if (formik.values[field] && isSameDay(date, formik.values[field])) {
+      // Re-clicking the current check-out is a no-op
+      if (
+        field === "checkOutDate" &&
+        formik.values.checkOutDate &&
+        isSameDay(date, formik.values.checkOutDate)
+      ) {
         return true;
-      }
-
-      // For check-in: disable dates on or after the selected check-out
-      if (field === "checkInDate" && formik.values.checkOutDate) {
-        if (!isBefore(date, formik.values.checkOutDate)) {
-          return true;
-        }
       }
 
       // For check-out: disable dates on or before the selected check-in
@@ -1119,6 +1214,33 @@ function BidFormInner({
         if (isDateInBlackout(date, place?.blackoutDates)) {
           return true;
         }
+        const nightKey = toApiDateOnly(date);
+        if (nightKey && soldOutNightSet.has(nightKey)) {
+          return true;
+        }
+        if (
+          formik.values.checkOutDate &&
+          isBefore(date, formik.values.checkOutDate) &&
+          stayIncludesSoldOutNight(
+            date,
+            formik.values.checkOutDate,
+            soldOutNightSet,
+          )
+        ) {
+          return true;
+        }
+      }
+
+      if (
+        field === "checkOutDate" &&
+        formik.values.checkInDate &&
+        stayIncludesSoldOutNight(
+          formik.values.checkInDate,
+          date,
+          soldOutNightSet,
+        )
+      ) {
+        return true;
       }
 
       return false;
@@ -1128,8 +1250,9 @@ function BidFormInner({
     () => ({
       blackoutDates: place?.blackoutDates,
       allowedDaysOfWeek: place?.allowedDaysOfWeek,
+      soldOutNights: soldOutNightSet,
     }),
-    [place?.blackoutDates, place?.allowedDaysOfWeek],
+    [place?.blackoutDates, place?.allowedDaysOfWeek, soldOutNightSet],
   );
 
   const stayNightIssues = useMemo(
@@ -1170,6 +1293,18 @@ function BidFormInner({
     return 0;
   };
 
+  const stayCheckIn = formik.values.checkInDate
+    ? toApiDateOnly(formik.values.checkInDate) ?? undefined
+    : undefined;
+  const stayCheckOut = formik.values.checkOutDate
+    ? toApiDateOnly(formik.values.checkOutDate) ?? undefined
+    : undefined;
+  const { data: stayMinimum } = usePlaceStayMinimum(
+    placeId,
+    stayCheckIn,
+    stayCheckOut,
+  );
+
   const calculateTotalAmount = () => {
     const nights = calculateTotalNights();
     const bidAmount = Number(formik.values.bidPerNight) || 0;
@@ -1198,7 +1333,7 @@ function BidFormInner({
       return;
     }
     if (!canProceedFromAmount) {
-      setPaymentError("Enter your bid amount.");
+      setPaymentError(BID_AMOUNT_ERROR);
       return;
     }
     if (!isAuthenticated) {
@@ -1209,15 +1344,11 @@ function BidFormInner({
       return;
     }
     if (!acceptedHotelTaxes) {
-      setPaymentError(
-        "Please acknowledge that hotel taxes and fees may be collected separately at check-in.",
-      );
+      setPaymentError(HOTEL_TAXES_ACK_ERROR);
       return;
     }
     if (!acceptedTerms) {
-      setPaymentError(
-        "Please agree to the Terms of Use, Privacy Policy, and cancellation terms.",
-      );
+      setPaymentError(TERMS_ACK_ERROR);
       return;
     }
 
@@ -1248,13 +1379,51 @@ function BidFormInner({
       return;
     }
     if (!canProceedFromAmount) {
-      setPaymentError("Enter your bid amount.");
+      setPaymentError(BID_AMOUNT_ERROR);
       return;
     }
     saveBidFormToStorage(placeId, formik.values);
     navigate(ROUTES.SIGNUP, {
       state: { returnUrl: location.pathname },
     });
+  };
+
+  const handleBidFormSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (isListing) {
+      if (isInventoryExhausted) return;
+      if (isAuthenticated) {
+        if (isProcessing || showPaymentMethodLoading || !canLockInBid) return;
+        void handleReviewBindingBid();
+      } else {
+        handleLoggedOutListingSubmit();
+      }
+      return;
+    }
+
+    if (bidStep === "payment") {
+      if (
+        isProcessing ||
+        createBid.isPending ||
+        showPaymentMethodLoading ||
+        !stripe ||
+        !canLockInBid ||
+        !formik.values.checkInDate ||
+        !formik.values.checkOutDate ||
+        !formik.values.bidPerNight ||
+        Number(formik.values.bidPerNight) <= 0 ||
+        isInventoryExhausted
+      ) {
+        return;
+      }
+      void formik.submitForm();
+      return;
+    }
+
+    if (bidStep === "dates" && !canProceedFromDates) return;
+    if (bidStep === "amount" && !canProceedFromAmount) return;
+    goNext();
   };
 
   const handleRebid = async (newBidPerNight: number) => {
@@ -1298,13 +1467,79 @@ function BidFormInner({
 
   const isRebidProcessing = isRebidding || isProcessing;
 
+  const contextBid = contextBidId ? (existingBidData?.bid ?? null) : null;
+  const activeBids = existingBidData?.activeBids ?? [];
+  const priorStay = existingBidData?.priorStay ?? null;
+  const upcomingStays = existingBidData?.upcomingStays ?? [];
+
+  const overlappingActiveBid = useMemo(() => {
+    if (!formik.values.checkInDate || !formik.values.checkOutDate) return null;
+    return (
+      activeBids.find((b) =>
+        bookingDatesOverlap(
+          formik.values.checkInDate!,
+          formik.values.checkOutDate!,
+          b.checkInDate,
+          b.checkOutDate,
+        ),
+      ) ?? null
+    );
+  }, [
+    activeBids,
+    formik.values.checkInDate,
+    formik.values.checkOutDate,
+  ]);
+
+  const overlapDatesError = useMemo(() => {
+    if (!overlappingActiveBid) return null;
+    const inDate = formatBookingDate(
+      overlappingActiveBid.checkInDate,
+      "MMM d, yyyy",
+    );
+    const outDate = formatBookingDate(
+      overlappingActiveBid.checkOutDate,
+      "MMM d, yyyy",
+    );
+    return `You already have a booking here for ${inDate} – ${outDate}. Choose different dates or view that booking from My Bids.`;
+  }, [overlappingActiveBid]);
+
+  const showUpcomingStayBanner =
+    upcomingStays.length > 0 &&
+    !contextBidId &&
+    !bidResult &&
+    !isProcessing &&
+    !stripeCompletion;
+  const showPriorStayBanner =
+    !!priorStay &&
+    upcomingStays.length === 0 &&
+    !contextBidId &&
+    !bidResult &&
+    !isProcessing &&
+    !stripeCompletion;
+
   const stepIndex = STEPS.indexOf(bidStep);
 
   const canProceedFromDates =
-    !datesProceedError && !isInventoryExhausted;
+    !datesProceedError && !isInventoryExhausted && !overlapDatesError;
 
   const canProceedFromAmount =
     formik.values.bidPerNight && Number(formik.values.bidPerNight) > 0;
+
+  useEffect(() => {
+    if (!paymentError) return;
+    if (paymentError === HOTEL_TAXES_ACK_ERROR && acceptedHotelTaxes) {
+      setPaymentError(null);
+    } else if (paymentError === TERMS_ACK_ERROR && acceptedTerms) {
+      setPaymentError(null);
+    } else if (paymentError === BID_AMOUNT_ERROR && canProceedFromAmount) {
+      setPaymentError(null);
+    }
+  }, [
+    paymentError,
+    acceptedHotelTaxes,
+    acceptedTerms,
+    canProceedFromAmount,
+  ]);
 
   const goNext = () => {
     if (bidStep === "dates" && canProceedFromDates) setBidStep("amount");
@@ -1335,6 +1570,42 @@ function BidFormInner({
           ),
         )
       : 0;
+
+  const renderContextBidPanel = (bid: Bid) => {
+    if (shouldShowConfirmedOutcome(bid.status, bid.payment?.status)) {
+      return (
+        <BidOutcomePanel
+          status={BidStatus.ACCEPTED}
+          place={place}
+          checkIn={parseApiDate(bid.checkInDate)!}
+          checkOut={parseApiDate(bid.checkOutDate)!}
+          bidPerNight={bid.bidPerNight}
+          totalAmount={bid.totalAmount}
+          onTryAgain={handleTryAgain}
+          onTryNewDates={handleTryAgain}
+          onRebid={isAuthenticated ? handleRebid : undefined}
+          isRebidding={isRebidding}
+        />
+      );
+    }
+    if (shouldShowRejectedOutcome(bid.status)) {
+      return (
+        <BidOutcomePanel
+          status={BidStatus.REJECTED}
+          place={place}
+          checkIn={parseApiDate(bid.checkInDate)!}
+          checkOut={parseApiDate(bid.checkOutDate)!}
+          bidPerNight={bid.bidPerNight}
+          totalAmount={bid.totalAmount}
+          onTryAgain={handleTryAgain}
+          onTryNewDates={handleTryAgain}
+          onRebid={isAuthenticated ? handleRebid : undefined}
+          isRebidding={isRebidding}
+        />
+      );
+    }
+    return <ExistingBidCard bid={bid} place={place} />;
+  };
 
   // Loading state
   if (isLoadingExistingBid) {
@@ -1385,21 +1656,6 @@ function BidFormInner({
     );
   }
 
-  // If user has existing bid for this place (only when no active session outcome)
-  const existingBid = existingBidData?.bid ?? null;
-  const priorStay = existingBidData?.priorStay ?? null;
-  const isPastBid =
-    existingBid && new Date(existingBid.checkOutDate) < today;
-  const showPriorStayBanner =
-    !!priorStay &&
-    !(
-      existingBid &&
-      !isPastBid &&
-      !isProcessing &&
-      !bidResult &&
-      !stripeCompletion
-    );
-
   const handleStripeCompletionSuccess = async () => {
     if (!stripeCompletion) return;
     await finalizeAcceptedPayment(
@@ -1414,45 +1670,8 @@ function BidFormInner({
     );
   };
 
-  if (existingBid && !isProcessing && !isPastBid && !bidResult && !stripeCompletion) {
-    if (
-      shouldShowConfirmedOutcome(
-        existingBid.status,
-        existingBid.payment?.status,
-      )
-    ) {
-      return (
-        <BidOutcomePanel
-          status={BidStatus.ACCEPTED}
-          place={place}
-          checkIn={new Date(existingBid.checkInDate)}
-          checkOut={new Date(existingBid.checkOutDate)}
-          bidPerNight={existingBid.bidPerNight}
-          totalAmount={existingBid.totalAmount}
-          onTryAgain={handleTryAgain}
-          onTryNewDates={handleTryAgain}
-          onRebid={isAuthenticated ? handleRebid : undefined}
-          isRebidding={isRebidding}
-        />
-      );
-    }
-    if (shouldShowRejectedOutcome(existingBid.status)) {
-      return (
-        <BidOutcomePanel
-          status={BidStatus.REJECTED}
-          place={place}
-          checkIn={new Date(existingBid.checkInDate)}
-          checkOut={new Date(existingBid.checkOutDate)}
-          bidPerNight={existingBid.bidPerNight}
-          totalAmount={existingBid.totalAmount}
-          onTryAgain={handleTryAgain}
-          onTryNewDates={handleTryAgain}
-          onRebid={isAuthenticated ? handleRebid : undefined}
-          isRebidding={isRebidding}
-        />
-      );
-    }
-    return <ExistingBidCard bid={existingBid} place={place} />;
+  if (contextBid && !isProcessing && !bidResult && !stripeCompletion) {
+    return renderContextBidPanel(contextBid);
   }
 
   if (isListing) {
@@ -1500,27 +1719,41 @@ function BidFormInner({
           bidPerNight={Number(formik.values.bidPerNight) || 0}
           totalAmount={totalAmount}
           auctionSeconds={auctionSeconds}
-          datesErrorMessage={datesProceedError}
+          datesErrorMessage={datesProceedError || overlapDatesError}
           onConfirm={handleLockInConfirm}
           onGoBack={() => setLockInOpen(false)}
           isSubmitting={isProcessing}
         />
         <div className="listing-bid-sidebar space-y-4 lg:sticky lg:top-24">
           <ListingBidPanelHeader />
-          {showPriorStayBanner && priorStay && (
-            <PriorStayBanner priorStay={priorStay} />
+          {showUpcomingStayBanner && (
+            <PriorStayBanner upcomingStays={upcomingStays} kind="upcoming" />
           )}
-          <form onSubmit={formik.handleSubmit} className="space-y-4">
+          {showPriorStayBanner && priorStay && (
+            <PriorStayBanner priorStay={priorStay} kind="completed" />
+          )}
+          <form onSubmit={handleBidFormSubmit} className="space-y-4">
             <div className="listing-dates-box">
               <div className="listing-dates-box__col">
-                <Label className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase mb-1.5 block">
+                <Label
+                  htmlFor="listing-check-in"
+                  className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase mb-1.5 block"
+                >
                   Check-in
                 </Label>
                 <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
                   <PopoverTrigger asChild>
                     <Button
+                      id="listing-check-in"
                       type="button"
                       variant="outline"
+                      aria-haspopup="dialog"
+                      aria-expanded={checkInOpen}
+                      aria-label={
+                        formik.values.checkInDate
+                          ? `Check-in: ${format(formik.values.checkInDate, "EEE, MMM d, yyyy")}`
+                          : "Select check-in date"
+                      }
                       className={cn(
                         "listing-date-field w-full justify-between text-left font-normal text-fg",
                         !formik.values.checkInDate && "text-muted",
@@ -1537,28 +1770,33 @@ function BidFormInner({
                       mode="single"
                       selected={formik.values.checkInDate}
                       highlightToday={false}
-                      onSelect={(date) => {
-                        formik.setFieldValue("checkInDate", date);
-                        setCheckInOpen(false);
-                        setPaymentError(null);
-                        if (date && onDateChange) {
-                          onDateChange(toApiDateOnly(date));
-                        }
-                      }}
+                      classNames={BID_CALENDAR_CLASS_NAMES}
+                      onSelect={handleCheckInSelect}
                       disabled={isDateBlocked("checkInDate")}
                     />
                   </PopoverContent>
                 </Popover>
               </div>
               <div className="listing-dates-box__col">
-                <Label className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase mb-1.5 block">
+                <Label
+                  htmlFor="listing-check-out"
+                  className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase mb-1.5 block"
+                >
                   Check-out
                 </Label>
                 <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
                   <PopoverTrigger asChild>
                     <Button
+                      id="listing-check-out"
                       type="button"
                       variant="outline"
+                      aria-haspopup="dialog"
+                      aria-expanded={checkOutOpen}
+                      aria-label={
+                        formik.values.checkOutDate
+                          ? `Check-out: ${format(formik.values.checkOutDate, "EEE, MMM d, yyyy")}`
+                          : "Select check-out date"
+                      }
                       className={cn(
                         "listing-date-field w-full justify-between text-left font-normal text-fg",
                         !formik.values.checkOutDate && "text-muted",
@@ -1575,6 +1813,7 @@ function BidFormInner({
                       mode="single"
                       selected={formik.values.checkOutDate}
                       highlightToday={false}
+                      classNames={BID_CALENDAR_CLASS_NAMES}
                       onSelect={(date) => {
                         formik.setFieldValue("checkOutDate", date);
                         setCheckOutOpen(false);
@@ -1590,8 +1829,13 @@ function BidFormInner({
               issues={stayNightIssues}
               allowedDaysOfWeek={place?.allowedDaysOfWeek}
             />
+            {overlapDatesError && (
+              <p className="text-xs text-urgent" role="alert">
+                {overlapDatesError}
+              </p>
+            )}
             <div>
-              <Label className="listing-bid-amount-label mb-2 block">
+              <Label htmlFor="bidPerNightListing" className="listing-bid-amount-label mb-2 block">
                 <span className="text-fg">Your bid per night </span>
                 <span className="text-muted">(USD)</span>
               </Label>
@@ -1642,13 +1886,16 @@ function BidFormInner({
               {showPaymentMethodLoading ? (
                 <PaymentMethodSkeleton variant="listing" />
               ) : uiSavedMethods.length > 0 && uiPayWithSaved ? (
-                <div className="space-y-2">
+                <div className="space-y-2" role="radiogroup" aria-label="Saved payment methods">
                   {uiSavedMethods.map((pm) => {
                     const isSelected = selectedPaymentMethodId === pm.id;
                     return (
                       <button
                         key={pm.id}
                         type="button"
+                        role="radio"
+                        aria-checked={isSelected}
+                        aria-label={`${pm.brand} card ending in ${pm.last4}`}
                         disabled={isProcessing}
                         onClick={() => {
                           setPayWithSavedCard(true);
@@ -1734,7 +1981,15 @@ function BidFormInner({
                       </div>
                     </button>
                   )}
-                  <div className="border border-line rounded-lg p-3 bg-bg">
+                  <div
+                    className="border border-line rounded-lg p-3 bg-bg"
+                    role="group"
+                    aria-labelledby="listing-card-label"
+                    aria-describedby={paymentError ? "bid-card-feedback" : undefined}
+                  >
+                    <span id="listing-card-label" className="sr-only">
+                      Credit or debit card details
+                    </span>
                     <CardElement
                       options={{
                         style: {
@@ -1771,24 +2026,26 @@ function BidFormInner({
                 lock-in timer.
               </p>
             </div>
-            <label className="flex items-start gap-3 cursor-pointer">
+            <div className="flex items-start gap-3">
               <Checkbox
+                id="listing-hotel-taxes-ack"
                 checked={acceptedHotelTaxes}
-                onCheckedChange={(v) => setAcceptedHotelTaxes(v === true)}
+                onCheckedChange={handleAcceptedHotelTaxesChange}
                 className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
               />
-              <span className="text-xs text-muted leading-relaxed">
+              <Label htmlFor="listing-hotel-taxes-ack" className="text-xs text-muted leading-relaxed cursor-pointer">
                 Hotel taxes and government-imposed fees may be collected separately
                 by the hotel at check-in.
-              </span>
-            </label>
-            <label className="flex items-start gap-3 cursor-pointer">
+              </Label>
+            </div>
+            <div className="flex items-start gap-3">
               <Checkbox
+                id="listing-terms-ack"
                 checked={acceptedTerms}
-                onCheckedChange={(v) => setAcceptedTerms(v === true)}
+                onCheckedChange={handleAcceptedTermsChange}
                 className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
               />
-              <span className="text-xs text-muted leading-relaxed">
+              <Label htmlFor="listing-terms-ack" className="text-xs text-muted leading-relaxed cursor-pointer">
                 I agree to the{" "}
                 <Link to={ROUTES.TERMS} className="text-gold underline" target="_blank">
                   Terms of Use
@@ -1798,8 +2055,8 @@ function BidFormInner({
                   Privacy Policy
                 </Link>
                 .
-              </span>
-            </label>
+              </Label>
+            </div>
             {paymentError &&
               (paymentError === DUPLICATE_SAVED_CARD_MESSAGE ? (
                 <CardPaymentFeedback
@@ -1808,7 +2065,9 @@ function BidFormInner({
                   variant="listing"
                 />
               ) : (
-                <p className="text-xs text-urgent">{paymentError}</p>
+                <p className="text-xs text-urgent" role="alert" aria-live="polite">
+                  {paymentError}
+                </p>
               ))}
             {isInventoryExhausted && formik.values.checkInDate && (
               <p className="text-xs text-urgent">
@@ -1884,19 +2143,31 @@ function BidFormInner({
         <p className="text-xs text-muted">/ night · anchor price</p>
       </div>
 
-      {showPriorStayBanner && priorStay && (
-        <PriorStayBanner priorStay={priorStay} />
+      {showUpcomingStayBanner && (
+        <PriorStayBanner upcomingStays={upcomingStays} kind="upcoming" />
       )}
-      <form onSubmit={formik.handleSubmit} className="space-y-4">
+      {showPriorStayBanner && priorStay && (
+        <PriorStayBanner priorStay={priorStay} kind="completed" />
+      )}
+      <form onSubmit={handleBidFormSubmit} className="space-y-4">
         {bidStep === "dates" && (
         <div className="grid grid-cols-2 gap-3">
-          {/* Check-in Date */}
           <div>
-            <Label className="text-sm text-muted mb-1.5 block">Check-in</Label>
+            <Label htmlFor="bid-check-in" className="text-sm text-muted mb-1.5 block">
+              Check-in
+            </Label>
             <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
               <PopoverTrigger asChild>
                 <Button
+                  id="bid-check-in"
                   variant="outline"
+                  aria-haspopup="dialog"
+                  aria-expanded={checkInOpen}
+                  aria-label={
+                    formik.values.checkInDate
+                      ? `Check-in: ${format(formik.values.checkInDate, "MMM d, yyyy")}`
+                      : "Select check-in date"
+                  }
                   className={cn(
                     "w-full justify-between text-left font-normal h-11 bg-glass border-line text-fg",
                     !formik.values.checkInDate && "text-muted",
@@ -1918,33 +2189,36 @@ function BidFormInner({
                   mode="single"
                   selected={formik.values.checkInDate}
                   highlightToday={false}
-                  onSelect={(date) => {
-                    formik.setFieldValue("checkInDate", date);
-                    setCheckInOpen(false);
-                    setPaymentError(null);
-                    if (date && onDateChange) {
-                      onDateChange(toApiDateOnly(date));
-                    }
-                  }}
+                  classNames={BID_CALENDAR_CLASS_NAMES}
+                  onSelect={handleCheckInSelect}
                   disabled={isDateBlocked("checkInDate")}
                   className=" text-fg"
                 />
               </PopoverContent>
             </Popover>
             {formik.touched.checkInDate && formik.errors.checkInDate && (
-              <p className="text-xs text-danger mt-1">
+              <p className="text-xs text-danger mt-1" role="alert">
                 {formik.errors.checkInDate}
               </p>
             )}
           </div>
 
-          {/* Check-out Date */}
           <div>
-            <Label className="text-sm text-muted mb-1.5 block">Check-out</Label>
+            <Label htmlFor="bid-check-out" className="text-sm text-muted mb-1.5 block">
+              Check-out
+            </Label>
             <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
               <PopoverTrigger asChild>
                 <Button
+                  id="bid-check-out"
                   variant="outline"
+                  aria-haspopup="dialog"
+                  aria-expanded={checkOutOpen}
+                  aria-label={
+                    formik.values.checkOutDate
+                      ? `Check-out: ${format(formik.values.checkOutDate, "MMM d, yyyy")}`
+                      : "Select check-out date"
+                  }
                   className={cn(
                     "w-full justify-between text-left font-normal h-11 bg-glass border-line text-fg",
                     !formik.values.checkOutDate && "text-muted",
@@ -1966,6 +2240,7 @@ function BidFormInner({
                   mode="single"
                   selected={formik.values.checkOutDate}
                   highlightToday={false}
+                  classNames={BID_CALENDAR_CLASS_NAMES}
                   onSelect={(date) => {
                     formik.setFieldValue("checkOutDate", date);
                     setCheckOutOpen(false);
@@ -1976,7 +2251,7 @@ function BidFormInner({
               </PopoverContent>
             </Popover>
             {formik.touched.checkOutDate && formik.errors.checkOutDate && (
-              <p className="text-xs text-danger mt-1">
+              <p className="text-xs text-danger mt-1" role="alert">
                 {formik.errors.checkOutDate}
               </p>
             )}
@@ -1986,7 +2261,7 @@ function BidFormInner({
 
         {bidStep === "amount" && (
           <div className="space-y-3">
-            <Label className="text-sm text-muted mb-1.5 block">
+            <Label htmlFor="bidPerNight" className="text-sm text-muted mb-1.5 block">
               Your bid per night
             </Label>
             <div className="relative">
@@ -2001,8 +2276,22 @@ function BidFormInner({
               />
             </div>
             {formik.touched.bidPerNight && formik.errors.bidPerNight && (
-              <p className="text-xs text-danger mt-1">
+              <p className="text-xs text-danger mt-1" role="alert">
                 {formik.errors.bidPerNight}
+              </p>
+            )}
+            {stayMinimum && stayMinimum.nights > 0 && (
+              <p className="text-xs text-muted">
+                Minimum total for your stay:{" "}
+                <span className="text-fg font-medium">
+                  ${stayMinimum.minimumTotal.toFixed(2)}
+                </span>
+                {stayMinimum.nights > 1 && (
+                  <>
+                    {" "}
+                    (~${stayMinimum.impliedPerNight.toFixed(2)}/night average)
+                  </>
+                )}
               </p>
             )}
             {savingsPercent > 0 && (
@@ -2060,8 +2349,15 @@ function BidFormInner({
         {bidStep === "payment" && isAuthenticated && (
           <>
             <div className="space-y-2">
-              <Label className="text-sm text-muted mb-1.5 block">Card details</Label>
-              <div className="border border-gold/30 rounded-lg p-3 bg-glass">
+              <Label id="bid-card-label" className="text-sm text-muted mb-1.5 block">
+                Card details
+              </Label>
+              <div
+                className="border border-gold/30 rounded-lg p-3 bg-glass"
+                role="group"
+                aria-labelledby="bid-card-label"
+                aria-describedby={paymentError ? "bid-card-feedback" : undefined}
+              >
                 <CardElement
                   options={{
                     style: {
@@ -2081,20 +2377,21 @@ function BidFormInner({
                 />
               </div>
             </div>
-            <label className="flex items-start gap-3 cursor-pointer">
+            <div className="flex items-start gap-3">
               <Checkbox
+                id="bid-terms-ack"
                 checked={acceptedTerms}
-                onCheckedChange={(v) => setAcceptedTerms(v === true)}
+                onCheckedChange={handleAcceptedTermsChange}
                 className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
               />
-              <span className="text-xs text-muted leading-relaxed">
+              <Label htmlFor="bid-terms-ack" className="text-xs text-muted leading-relaxed cursor-pointer">
                 I agree to the{" "}
                 <Link to={ROUTES.TERMS} className="text-gold underline" target="_blank">Terms of Use</Link>
                 ,{" "}
                 <Link to={ROUTES.PRIVACY} className="text-gold underline" target="_blank">Privacy Policy</Link>
                 , and cancellation terms. If my bid is accepted, my card will be charged immediately.
-              </span>
-            </label>
+              </Label>
+            </div>
           </>
         )}
 
@@ -2114,13 +2411,16 @@ function BidFormInner({
             {showPaymentMethodLoading ? (
               <PaymentMethodSkeleton variant="default" />
             ) : uiSavedMethods.length > 0 && uiPayWithSaved ? (
-              <div className="space-y-2">
+              <div className="space-y-2" role="radiogroup" aria-label="Saved payment methods">
                 {uiSavedMethods.map((pm) => {
                   const isSelected = selectedPaymentMethodId === pm.id;
                   return (
                     <button
                       key={pm.id}
                       type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      aria-label={`${pm.brand} card ending in ${pm.last4}`}
                       disabled={isProcessing}
                       onClick={() => {
                         setPayWithSavedCard(true);
@@ -2206,7 +2506,15 @@ function BidFormInner({
                     </div>
                   </button>
                 )}
-                <div className="rounded-lg border border-line bg-glass p-3">
+                <div
+                  className="rounded-lg border border-line bg-glass p-3"
+                  role="group"
+                  aria-labelledby="bid-saved-card-label"
+                  aria-describedby={paymentError ? "bid-card-feedback" : undefined}
+                >
+                  <span id="bid-saved-card-label" className="sr-only">
+                    Credit or debit card details
+                  </span>
                   <CardElement
                     options={{
                       style: {
@@ -2350,6 +2658,7 @@ function BidFormInner({
 export function BidForm({
   place,
   placeId,
+  contextBidId,
   onDateChange,
   onBookingDatesChange,
   isInventoryExhausted,
@@ -2368,6 +2677,7 @@ export function BidForm({
       <BidFormInner
         place={place}
         placeId={placeId}
+        contextBidId={contextBidId}
         onDateChange={onDateChange}
         onBookingDatesChange={onBookingDatesChange}
         isInventoryExhausted={isInventoryExhausted}
@@ -2648,8 +2958,8 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
       <BidOutcomePanel
         status={BidStatus.ACCEPTED}
         place={place}
-        checkIn={new Date(bid.checkInDate)}
-        checkOut={new Date(bid.checkOutDate)}
+        checkIn={parseApiDate(bid.checkInDate)!}
+        checkOut={parseApiDate(bid.checkOutDate)!}
         bidPerNight={bid.bidPerNight}
         totalAmount={bid.totalAmount}
         onTryAgain={() => navigate(ROUTES.HOME)}
@@ -2689,13 +2999,13 @@ function ExistingBidCard({ bid, place }: { bid: Bid; place: Place }) {
         <div className="flex justify-between">
           <span className="text-muted">Check-in:</span>
           <span className="font-medium text-fg">
-            {format(new Date(bid.checkInDate), "MMM dd, yyyy")}
+            {formatBookingDate(bid.checkInDate, "MMM dd, yyyy")}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted">Check-out:</span>
           <span className="font-medium text-fg">
-            {format(new Date(bid.checkOutDate), "MMM dd, yyyy")}
+            {formatBookingDate(bid.checkOutDate, "MMM dd, yyyy")}
           </span>
         </div>
         <div className="flex justify-between">

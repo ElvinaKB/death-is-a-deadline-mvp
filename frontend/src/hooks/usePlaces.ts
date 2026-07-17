@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { addDays, format } from "date-fns";
 import { toast } from "sonner";
 import { ENDPOINTS, getEndpoint } from "../config/endpoints.config";
 import { QUERY_KEYS } from "../config/queryKeys.config";
@@ -8,6 +9,9 @@ import {
   CreatePlaceRequest,
   PlaceResponse,
   PlaceStatus,
+  SoldOutNightsResponse,
+  StayMinimumResponse,
+  ThresholdPricingMode,
   UpdatePlaceRequest,
 } from "../types/place.types";
 import { apiClient } from "../lib/apiClient";
@@ -41,6 +45,46 @@ export const usePublicPlace = (id: string, date?: string) => {
   });
 };
 
+/** Sold-out nights for the bid calendar (today through +30 days). */
+export const usePlaceSoldOutNights = (placeId: string) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const from = format(today, "yyyy-MM-dd");
+  const to = format(addDays(today, 30), "yyyy-MM-dd");
+
+  return useApiQuery<SoldOutNightsResponse>({
+    queryKey: [...QUERY_KEYS.PLACE(placeId), "sold-out-nights", from, to],
+    endpoint: getEndpoint(ENDPOINTS.PLACE_UNAVAILABLE_NIGHTS, { id: placeId }),
+    params: { from, to },
+    enabled: !!placeId,
+    staleTime: 60_000,
+  });
+};
+
+/** Minimum total for a stay (Total Stay Threshold). */
+export const usePlaceStayMinimum = (
+  placeId: string,
+  checkIn?: string,
+  checkOut?: string,
+) => {
+  const apiCheckIn = toApiDateOnly(checkIn);
+  const apiCheckOut = toApiDateOnly(checkOut);
+  const enabled = !!placeId && !!apiCheckIn && !!apiCheckOut;
+
+  return useApiQuery<StayMinimumResponse>({
+    queryKey: [
+      ...QUERY_KEYS.PLACE(placeId),
+      "stay-minimum",
+      apiCheckIn,
+      apiCheckOut,
+    ],
+    endpoint: getEndpoint(ENDPOINTS.PLACE_STAY_MINIMUM, { id: placeId }),
+    params: { checkIn: apiCheckIn!, checkOut: apiCheckOut! },
+    enabled,
+    staleTime: 60_000,
+  });
+};
+
 export const useCreatePlace = () => {
   const queryClient = useQueryClient();
 
@@ -61,6 +105,9 @@ export const useCreatePlace = () => {
         accommodationType: data.accommodationType,
         retailPrice: data.retailPrice,
         minimumBid: data.minimumBid,
+        thresholdPricingMode:
+          data.thresholdPricingMode ?? ThresholdPricingMode.UNIFORM,
+        minimumBidByDayOfWeek: data.minimumBidByDayOfWeek,
         maxInventory: data.maxInventory,
         autoAcceptAboveMinimum: data.autoAcceptAboveMinimum,
         blackoutDates: data.blackoutDates,

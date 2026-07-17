@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { PLACE_KEYWORD_IDS } from "../../constants/placeKeywords";
 import { isValidIanaTimezone } from "../../libs/utils/hotelDates";
+import { isUuid } from "../../libs/utils/placeSlug";
 
 // Enum schemas
 export const accommodationTypeSchema = z.enum([
@@ -10,6 +11,8 @@ export const accommodationTypeSchema = z.enum([
 ]);
 
 export const placeStatusSchema = z.enum(["DRAFT", "LIVE", "PAUSED"]);
+
+export const thresholdPricingModeSchema = z.enum(["UNIFORM", "PER_WEEKDAY"]);
 
 export const placeKeywordSchema = z.enum(PLACE_KEYWORD_IDS);
 
@@ -39,6 +42,11 @@ export const createPlaceSchema = z.object({
   accommodationType: accommodationTypeSchema,
   retailPrice: z.number().min(1, "Retail price must be greater than 0"),
   minimumBid: z.number().min(1, "Minimum bid must be greater than 0"),
+  thresholdPricingMode: thresholdPricingModeSchema.optional().default("UNIFORM"),
+  minimumBidByDayOfWeek: z
+    .array(z.number().min(0, "Minimum bid cannot be negative"))
+    .length(7, "All 7 weekday minimum bids are required")
+    .optional(),
   autoAcceptAboveMinimum: z.boolean().optional().default(true),
   blackoutDates: z.array(z.string()).optional().default([]),
   allowedDaysOfWeek: z
@@ -78,6 +86,11 @@ export const updatePlaceSchema = z.object({
   accommodationType: accommodationTypeSchema.optional(),
   retailPrice: z.number().min(1).optional(),
   minimumBid: z.number().min(1).optional(),
+  thresholdPricingMode: thresholdPricingModeSchema.optional(),
+  minimumBidByDayOfWeek: z
+    .array(z.number().min(0))
+    .length(7)
+    .optional(),
   autoAcceptAboveMinimum: z.boolean().optional(),
   blackoutDates: z.array(z.string()).optional(),
   allowedDaysOfWeek: z.array(z.number().int().min(0).max(6)).optional(),
@@ -102,6 +115,17 @@ export const updatePlaceStatusSchema = z.object({
 // Param schemas
 export const placeIdParamSchema = z.object({
   id: z.string().uuid({ message: "Invalid place id" }),
+});
+
+/** Public marketplace routes accept a slug or legacy UUID. */
+export const placeRefParamSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .max(100)
+    .refine((value) => isUuid(value) || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value), {
+      message: "Invalid place reference",
+    }),
 });
 
 // Query schema for listing
@@ -140,6 +164,40 @@ export const publicPlacesQuerySchema = z.object({
 export const resendHotelInviteSchema = z.object({
   placeId: z.string().uuid({ message: "Invalid place id" }),
 });
+
+const calendarDateKeySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be yyyy-MM-dd");
+
+export const stayMinimumQuerySchema = z
+  .object({
+    checkIn: calendarDateKeySchema,
+    checkOut: calendarDateKeySchema,
+  })
+  .refine((q) => q.checkIn < q.checkOut, {
+    message: "checkOut must be after checkIn",
+    path: ["checkOut"],
+  });
+
+export const unavailableNightsQuerySchema = z
+  .object({
+    from: calendarDateKeySchema,
+    to: calendarDateKeySchema,
+  })
+  .refine((q) => q.from <= q.to, {
+    message: "from must be on or before to",
+    path: ["from"],
+  })
+  .refine(
+    (q) => {
+      const from = new Date(`${q.from}T12:00:00`);
+      const to = new Date(`${q.to}T12:00:00`);
+      const days =
+        Math.round((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+      return days <= 62;
+    },
+    { message: "Date range cannot exceed 62 days", path: ["to"] },
+  );
 
 // Type exports
 export type CreatePlaceInput = z.infer<typeof createPlaceSchema>;

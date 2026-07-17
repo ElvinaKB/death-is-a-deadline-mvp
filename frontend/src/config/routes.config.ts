@@ -8,7 +8,7 @@ export const ROUTES = {
   RESET_PASSWORD: "/reset-password",
 
   HOME: "/",
-  PUBLIC_PLACE_DETAIL: "/student/marketplace/:id",
+  PUBLIC_PLACE_DETAIL: "/student/marketplace/:slug",
 
   // Student routes
   STUDENT_DASHBOARD: "/student/dashboard",

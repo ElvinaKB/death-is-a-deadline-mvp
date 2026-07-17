@@ -1,7 +1,7 @@
-import { format } from "date-fns";
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
 import { prisma } from "../libs/config/prisma";
+import { formatBookingDate } from "../libs/utils/hotelDates";
 
 /** Booking confirmation emails — webhook path only (PR 3). */
 export async function sendBookingConfirmationEmails(
@@ -52,8 +52,8 @@ export async function sendBookingConfirmationEmails(
     placeContactEmail: place.email || null,
     placeContactPhone: null as string | null,
     mapsUrl,
-    checkInDate: format(new Date(bid.checkInDate), "MMMM d, yyyy"),
-    checkOutDate: format(new Date(bid.checkOutDate), "MMMM d, yyyy"),
+    checkInDate: formatBookingDate(bid.checkInDate, "MMMM d, yyyy"),
+    checkOutDate: formatBookingDate(bid.checkOutDate, "MMMM d, yyyy"),
     totalNights: bid.totalNights,
     bidPerNight: Number(bid.bidPerNight).toFixed(2),
     totalAmount: Number(bid.totalAmount).toFixed(2),

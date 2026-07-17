@@ -19,6 +19,7 @@ export enum BookingStatus {
 
 export interface BidPlace {
   id: string;
+  slug: string;
   name: string;
   city: string;
   country: string;
@@ -91,7 +92,7 @@ export interface MyBidsResponse {
   limit: number;
 }
 
-/** Last completed accepted stay at a place (checkout before today) */
+/** Last completed accepted stay at a place (checkout before hotel today) */
 export interface PriorStaySummary {
   checkInDate: string;
   checkOutDate: string;
@@ -99,8 +100,17 @@ export interface PriorStaySummary {
 }
 
 export interface BidForPlaceResponse {
+  /** Set only when ?bidId= is passed — receipt / detail context */
   bid: Bid | null;
+  /** Active PENDING/ACCEPTED stays with checkout after hotel today */
+  activeBids: Bid[];
   priorStay: PriorStaySummary | null;
+  /** @deprecated Prefer upcomingStays — first upcoming accepted stay */
+  upcomingStay: PriorStaySummary | null;
+  /** All upcoming accepted stays at this place, earliest check-in first */
+  upcomingStays: PriorStaySummary[];
+  /** When ?checkIn=&checkOut= overlap an active booking */
+  overlappingBid: Bid | null;
   /** IANA timezone used for stay status (e.g. America/Los_Angeles) */
   hotelTimezone?: string;
   /** Hotel-local calendar date (yyyy-MM-dd) used for active vs completed stay */

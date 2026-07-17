@@ -2,9 +2,34 @@ import * as React from "react";
 
 import { cn } from "./utils";
 
+/** React onWheel is passive — trackpad scroll still changes type=number values without this. */
+function useBlockWheelOnFocusedNumberInput(
+  ref: React.RefObject<HTMLInputElement | null>,
+  type?: string,
+) {
+  React.useEffect(() => {
+    if (type !== "number") return;
+    const el = ref.current;
+    if (!el) return;
+
+    const blockWheel = (e: WheelEvent) => {
+      if (document.activeElement === el) {
+        e.preventDefault();
+      }
+    };
+
+    el.addEventListener("wheel", blockWheel, { passive: false });
+    return () => el.removeEventListener("wheel", blockWheel);
+  }, [ref, type]);
+}
+
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+  const ref = React.useRef<HTMLInputElement>(null);
+  useBlockWheelOnFocusedNumberInput(ref, type);
+
   return (
     <input
+      ref={ref}
       type={type}
       data-slot="input"
       className={cn(

@@ -1,15 +1,17 @@
 import crypto from "crypto";
 import { prisma } from "../config/prisma"; // adjust to your prisma client path
 
-const INVITE_EXPIRY_MINUTES = 15;
+export const HOTEL_INVITE_EXPIRY_DAYS = 30;
 
 /**
  * Creates (or replaces) a hotel invite token for the given email.
- * Expires in 15 minutes and can only be used once.
+ * Expires in 30 days and can only be used once.
  */
 export async function createHotelInviteToken(email: string): Promise<string> {
   const token = crypto.randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + INVITE_EXPIRY_MINUTES * 60 * 1000);
+  const expiresAt = new Date(
+    Date.now() + HOTEL_INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
+  );
 
   // Upsert: replace any existing pending invite for this email
   await prisma.hotelInviteToken.upsert({

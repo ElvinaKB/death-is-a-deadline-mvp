@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { formatBookingDate } from "../../../utils/dateHelpers";
 import {
   Dialog,
   DialogContent,
@@ -137,13 +138,13 @@ export function PayoutModal({ bid, open, onOpenChange }: PayoutModalProps) {
               <div>
                 <span className="text-muted">Check-in:</span>
                 <p className="font-medium text-fg">
-                  {format(new Date(bid.checkInDate), "MMM d, yyyy")}
+                  {formatBookingDate(bid.checkInDate, "MMM d, yyyy")}
                 </p>
               </div>
               <div>
                 <span className="text-muted">Check-out:</span>
                 <p className="font-medium text-fg">
-                  {format(new Date(bid.checkOutDate), "MMM d, yyyy")}
+                  {formatBookingDate(bid.checkOutDate, "MMM d, yyyy")}
                 </p>
               </div>
             </div>

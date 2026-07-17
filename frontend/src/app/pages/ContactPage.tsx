@@ -149,7 +149,7 @@ export function ContactPage() {
   return (
     <div className="min-h-screen bg-bg flex flex-col">
       <HomeHeader variant="dark" />
-      <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 w-full min-w-0">
+      <main id="main-content" className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 w-full min-w-0" tabIndex={-1}>
         <Link
           to={ROUTES.HOME}
           className="text-sm text-gold hover:text-gold-light mb-4 sm:mb-6 inline-block"

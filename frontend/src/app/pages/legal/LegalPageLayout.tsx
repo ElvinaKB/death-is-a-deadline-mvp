@@ -12,7 +12,7 @@ export function LegalPageLayout({ title, children }: LegalPageLayoutProps) {
   return (
     <div className="min-h-screen bg-bg flex flex-col">
       <HomeHeader variant="dark" />
-      <main className="flex-1 max-w-6xl mx-auto px-6 py-10 w-full">
+      <main id="main-content" className="flex-1 max-w-6xl mx-auto px-6 py-10 w-full" tabIndex={-1}>
         <Link
           to={ROUTES.HOME}
           className="text-sm text-gold hover:text-gold-light mb-6 inline-block"

@@ -7,9 +7,12 @@ import {
   updatePlaceSchema,
   updatePlaceStatusSchema,
   placeIdParamSchema,
+  placeRefParamSchema,
   listPlacesQuerySchema,
   publicPlacesQuerySchema,
   resendHotelInviteSchema,
+  unavailableNightsQuerySchema,
+  stayMinimumQuerySchema,
 } from "../validations/places/places.validation";
 import { UserRole } from "../types/auth.types";
 
@@ -39,17 +42,33 @@ router.get(
 // Public route - get price range of LIVE places (for filters)
 router.get("/public/price-range", placesController.getPriceRange);
 
+// Public route - sold-out nights for calendar (must be before /public/:id)
+router.get(
+  "/public/:id/unavailable-nights",
+  validate(placeRefParamSchema, "params"),
+  validate(unavailableNightsQuerySchema, "query"),
+  placesController.getPublicPlaceUnavailableNights,
+);
+
+// Public route - stay minimum total for bid validation hint
+router.get(
+  "/public/:id/stay-minimum",
+  validate(placeRefParamSchema, "params"),
+  validate(stayMinimumQuerySchema, "query"),
+  placesController.getPublicPlaceStayMinimum,
+);
+
 router.post(
   "/resend-invite",
   validate(resendHotelInviteSchema),
-  authenticate(UserRole.HOTEL_OWNER),
+  authenticate(UserRole.ADMIN),
   placesController.resendHotelInvite,
 );
 
 // Public route - get single place by ID (for students - includes inventory status)
 router.get(
   "/public/:id",
-  validate(placeIdParamSchema, "params"),
+  validate(placeRefParamSchema, "params"),
   placesController.getPublicPlace,
 );
 
