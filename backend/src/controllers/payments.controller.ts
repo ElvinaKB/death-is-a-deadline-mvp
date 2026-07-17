@@ -48,20 +48,23 @@ async function checkInventoryForBidDates(
     end: new Date(checkOutDate.getTime() - 24 * 60 * 60 * 1000), // Exclude checkout date
   });
 
-  for (const date of dates) {
-    const dateStr = date.toISOString().split("T")[0];
+  // Single query for all accepted bids that could overlap this stay, instead
+  // of one query per night — avoids a sequential round trip per night.
+  const overlappingBids = await prisma.bid.findMany({
+    where: {
+      placeId,
+      status: bid_status.ACCEPTED,
+      checkInDate: { lt: checkOutDate },
+      checkOutDate: { gt: checkInDate },
+      ...(excludeBidId && { id: { not: excludeBidId } }),
+    },
+    select: { checkInDate: true, checkOutDate: true },
+  });
 
-    // Count accepted bids that overlap with this date
-    const acceptedBidsCount = await prisma.bid.count({
-      where: {
-        placeId,
-        status: bid_status.ACCEPTED,
-        checkInDate: { lte: date },
-        checkOutDate: { gt: date },
-        // Exclude the current bid if provided (for updates)
-        ...(excludeBidId && { id: { not: excludeBidId } }),
-      },
-    });
+  for (const date of dates) {
+    const acceptedBidsCount = overlappingBids.filter(
+      (bid) => bid.checkInDate <= date && bid.checkOutDate > date,
+    ).length;
 
     const availableSlots = maxInventory - acceptedBidsCount;
 
@@ -474,52 +477,41 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
     );
   }
 
+  // Fast path: the webhook already captured this payment in our DB, so we
+  // already have ground truth and don't need to also ask Stripe.
+  if (payment.status === payment_status.CAPTURED) {
+    return res.status(200).json({
+      message: "Payment successful. Your booking is confirmed.",
+      data: {
+        payment: formatPayment(payment),
+        stripeStatus: "succeeded",
+        pendingWebhook: false,
+      },
+    });
+  }
+
   const paymentIntent = await stripe.paymentIntents.retrieve(
     payment.stripePaymentIntentId,
   );
 
-  const currentPayment = await prisma.payment.findUnique({
-    where: { id },
-    include: {
-      bid: {
-        include: {
-          place: {
-            include: { images: { orderBy: { order: "asc" }, take: 1 } },
-          },
-        },
-      },
-    },
-  });
-
-  if (!currentPayment) {
-    throw new CustomError(
-      "Payment not found",
-      404,
-      null,
-      ErrorCode.PAYMENT_NOT_FOUND,
-    );
-  }
-
   const pendingWebhook =
     paymentIntent.status === "succeeded" &&
-    currentPayment.status !== payment_status.CAPTURED;
+    payment.status !== payment_status.CAPTURED;
 
   let message: string;
-  if (currentPayment.status === payment_status.CAPTURED) {
-    message = "Payment successful. Your booking is confirmed.";
-  } else if (pendingWebhook) {
+  if (pendingWebhook) {
     message =
       "Payment received. Your booking is being confirmed — this usually takes a few seconds.";
   } else if (paymentIntent.status === "requires_action") {
     message = "Additional authentication is required to complete payment.";
   } else {
-    message = `Payment status: ${currentPayment.status}`;
+    message = `Payment status: ${payment.status}`;
   }
 
   res.status(200).json({
     message,
     data: {
-      payment: formatPayment(currentPayment),
+      payment: formatPayment(payment),
       stripeStatus: paymentIntent.status,
       pendingWebhook,
     },

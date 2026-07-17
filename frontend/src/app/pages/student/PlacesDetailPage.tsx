@@ -64,9 +64,9 @@ const FAQ_DATA = [
   },
   {
     id: "edu-email",
-    question: "Why do I need a .edu email?",
+    question: "Why do I need to get verified by email?",
     answer:
-      "We require a .edu email to verify that you're a current student. This helps us maintain the exclusive student-only pricing that hotels offer through our platform.",
+      "Deadline is not open to the public. You must be a member to bid. Members are verified by their email addresses.",
   },
   {
     id: "charged",
@@ -346,11 +346,11 @@ export function PlaceDetailPage() {
                   <StudentBidBadgeIcon className="h-[54px] w-[54px] shrink-0 text-gold" />
                   <div className="min-w-0 pt-0.5">
                     <p className="text-sm font-semibold text-fg leading-snug">
-                      .edu or student ID required to bid
+                      .edu or .gov or corporate email required
                     </p>
                     <p className="mt-1.5 text-sm text-[hsl(0_0%_72%)] leading-relaxed">
-                      Deadline is a private bidding marketplace for students
-                      and faculty.
+                      Deadline is a private bidding marketplace. You must be
+                      verified to bid on hotels.
                     </p>
                   </div>
                 </div>
