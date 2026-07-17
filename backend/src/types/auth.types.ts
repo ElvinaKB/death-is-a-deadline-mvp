@@ -42,5 +42,7 @@ export interface RawUser extends SupabaseUser {
     approvalStatus: ApprovalStatus;
     studentIdUrl?: string;
     rejectionReason?: string;
+    banned?: boolean;
+    banReason?: string | null;
   };
 }

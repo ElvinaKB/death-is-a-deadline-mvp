@@ -27,7 +27,7 @@ export function useAdminSidebar(): SidebarItem[] {
       icon: LayoutDashboard,
     },
     {
-      title: "Students",
+      title: "Travelers",
       path: ROUTES.ADMIN_STUDENTS,
       icon: Users,
     },

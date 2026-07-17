@@ -23,6 +23,71 @@ import { ArrowLeft, Check, X, MailCheck, MailX } from "lucide-react";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
 import { Timeline, type TimelineItem } from "../../components/ui/timeline";
+import { useBids } from "../../../hooks/useBids";
+import { Bid, BidStatus } from "../../../types/bid.types";
+import { DataTable } from "../../components/common/DataTable";
+import { TableColumn } from "../../../types/api.types";
+import { formatBookingDate } from "../../../utils/dateHelpers";
+
+const BID_STATUS_COLORS: Record<BidStatus, string> = {
+  [BidStatus.PENDING]: "bg-warning/20 text-warning hover:bg-warning/30",
+  [BidStatus.ACCEPTED]: "bg-success/20 text-success hover:bg-success/30",
+  [BidStatus.REJECTED]: "bg-danger/20 text-danger hover:bg-danger/30",
+};
+
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+
+const bidHistoryColumns: TableColumn<Bid>[] = [
+  {
+    header: "Place",
+    field: "placeId",
+    render: (row) => row.place?.name || "N/A",
+  },
+  {
+    header: "Dates",
+    field: "checkInDate",
+    render: (row) => (
+      <span className="text-sm">
+        {formatBookingDate(row.checkInDate, "MMM d")} –{" "}
+        {formatBookingDate(row.checkOutDate, "MMM d, yyyy")}
+      </span>
+    ),
+  },
+  {
+    header: "Bid",
+    field: "bidPerNight",
+    render: (row) => (
+      <div className="text-sm">
+        <p className="font-medium text-fg">{formatCurrency(row.totalAmount)}</p>
+        <p className="text-muted">{formatCurrency(row.bidPerNight)}/night</p>
+      </div>
+    ),
+  },
+  {
+    header: "Result",
+    field: "status",
+    render: (row) => (
+      <div>
+        <Badge className={BID_STATUS_COLORS[row.status]}>
+          {row.status === BidStatus.ACCEPTED ? "Won" : row.status === BidStatus.REJECTED ? "Unsuccessful" : "Pending"}
+        </Badge>
+        {row.status === BidStatus.REJECTED && row.rejectionReason && (
+          <p className="text-xs text-muted mt-1">{row.rejectionReason}</p>
+        )}
+      </div>
+    ),
+  },
+  {
+    header: "Placed",
+    field: "createdAt",
+    render: (row) => (
+      <span className="text-sm text-muted">
+        {new Date(row.createdAt).toLocaleDateString()}
+      </span>
+    ),
+  },
+];
 
 function buildTimeline(student: {
   createdAt: string;
@@ -89,6 +154,13 @@ export function StudentDetailPage() {
     queryKey: [QUERY_KEYS.STUDENT_DETAIL, id],
     endpoint: getEndpoint(ENDPOINTS.STUDENT_DETAIL, { id: id! }),
     enabled: !!id,
+  });
+
+  // Full bid history — both accepted and rejected, so the record isn't
+  // just winners.
+  const { data: bidsData, isLoading: bidsLoading } = useBids({
+    studentId: id,
+    limit: 100,
   });
 
   const approveMutation = useApiMutation<void, ApproveStudentRequest>({
@@ -165,12 +237,12 @@ export function StudentDetailPage() {
   if (!data?.student) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Student not found</p>
+        <p className="text-muted-foreground">Traveler not found</p>
         <Button
           onClick={() => navigate(ROUTES.ADMIN_STUDENTS)}
           className="mt-4"
         >
-          Back to Students
+          Back to Travelers
         </Button>
       </div>
     );
@@ -200,7 +272,7 @@ export function StudentDetailPage() {
           Back
         </Button>
         <div>
-          <h1 className="text-3xl font-bold text-fg">Student Details</h1>
+          <h1 className="text-3xl font-bold text-fg">Traveler Details</h1>
         </div>
       </div>
 
@@ -255,7 +327,7 @@ export function StudentDetailPage() {
           {student.studentIdUrl && (
             <Card className="glass-2 border-white/10">
               <CardHeader>
-                <CardTitle className="text-fg">Student ID Card</CardTitle>
+                <CardTitle className="text-fg">Verification ID</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="border border-white/10 rounded-lg overflow-hidden bg-white/5">
@@ -268,6 +340,31 @@ export function StudentDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          <Card className="glass-2 border-white/10">
+            <CardHeader>
+              <CardTitle className="text-fg">
+                Bid History
+                {bidsData && (
+                  <span className="ml-2 text-sm font-normal text-muted">
+                    ({bidsData.total} total —{" "}
+                    {bidsData.bids.filter((b) => b.status === BidStatus.ACCEPTED).length}{" "}
+                    won,{" "}
+                    {bidsData.bids.filter((b) => b.status === BidStatus.REJECTED).length}{" "}
+                    unsuccessful)
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={bidHistoryColumns}
+                data={bidsData?.bids || []}
+                loading={bidsLoading}
+                emptyMessage="No bids placed yet"
+              />
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-6">

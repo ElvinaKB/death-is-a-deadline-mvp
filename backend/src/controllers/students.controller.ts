@@ -17,6 +17,8 @@ export const getRawStudent = (item: RawUser) => ({
   updatedAt: item.updated_at,
   rejectionReason: item.raw_user_meta_data?.rejectionReason,
   emailConfirmedAt: item.email_confirmed_at ?? null,
+  banned: item.raw_user_meta_data?.banned ?? false,
+  banReason: item.raw_user_meta_data?.banReason ?? null,
 });
 
 export const getStudentDetails = async (id: string) => {
@@ -118,6 +120,36 @@ export async function rejectStudent(req: Request, res: Response) {
   });
 
   res.status(200).json({ message: "Student rejected" });
+}
+
+export async function banStudent(req: Request, res: Response) {
+  const { id } = req.params;
+  const { reason } = req.body;
+
+  const student = await getStudentDetails(id);
+  if (!student) throw new CustomError("Student not found", 404);
+
+  const { error } = await supabase.rpc("ban_student", {
+    student_id: id,
+    reason: reason ?? null,
+  });
+  if (error) throw new CustomError(error.message, 400);
+
+  res.status(200).json({ message: "Traveler banned" });
+}
+
+export async function unbanStudent(req: Request, res: Response) {
+  const { id } = req.params;
+
+  const student = await getStudentDetails(id);
+  if (!student) throw new CustomError("Student not found", 404);
+
+  const { error } = await supabase.rpc("unban_student", {
+    student_id: id,
+  });
+  if (error) throw new CustomError(error.message, 400);
+
+  res.status(200).json({ message: "Traveler unbanned" });
 }
 
 export async function getStudentsStats(req: Request, res: Response) {

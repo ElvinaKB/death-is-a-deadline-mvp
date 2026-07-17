@@ -61,6 +61,7 @@ export const bidForPlaceQuerySchema = z.object({
 export const listBidsQuerySchema = z.object({
   status: bidStatusSchema.optional(),
   placeId: z.string().optional(),
+  studentId: z.string().optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(100).optional().default(10),
 });

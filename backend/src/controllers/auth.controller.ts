@@ -219,6 +219,13 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     password,
   });
 
+  if (data.user?.user_metadata?.banned) {
+    throw new CustomError(
+      "This account has been banned. Contact support if you believe this is a mistake.",
+      403,
+    );
+  }
+
   if (
     data.user?.user_metadata?.approvalStatus === ApprovalStatus.PENDING &&
     data.user?.role === UserRole.STUDENT

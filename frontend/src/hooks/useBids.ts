@@ -62,6 +62,7 @@ export const useBid = (id: string) => {
 export const useBids = (params?: {
   status?: BidStatus;
   placeId?: string;
+  studentId?: string;
   page?: number;
   limit?: number;
 }) => {

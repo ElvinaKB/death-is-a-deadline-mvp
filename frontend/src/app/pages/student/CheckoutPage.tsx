@@ -98,7 +98,7 @@ function CheckoutForm({
               ? "Payment complete! Your booking is confirmed."
               : "Payment received. Your booking will update shortly.",
           );
-          onSuccess();
+          onSuccess(sync.payment);
         } else {
           setErrorMessage(
             "Payment could not be confirmed. Please check My Bids.",
