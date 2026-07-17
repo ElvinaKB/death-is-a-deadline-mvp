@@ -121,10 +121,10 @@ export function LoginPage() {
     <div className="min-h-screen bg-bg diad-vignette">
       <main id="main-content" className="flex flex-col lg:flex-row min-h-screen" tabIndex={-1}>
         {/* Explainer — below form on mobile */}
-        <div className="order-2 lg:order-1 lg:w-2/5 flex flex-col justify-center px-4 sm:px-8 lg:px-16 py-10 lg:py-0">
+        <div className="order-2 lg:order-1 lg:w-1/2 flex flex-col justify-start px-4 sm:px-8 lg:px-16 pt-8 lg:pt-12 pb-10">
           <div className="max-w-lg mx-auto lg:mx-0">
             {/* Logo/Brand */}
-            <Link to={ROUTES.HOME} className="inline-block mb-8">
+            <Link to={ROUTES.HOME} className="inline-block mb-6">
               <span className="font-serif text-lg sm:text-xl tracking-[0.14em] text-gold leading-none">
                 DEADLINE
               </span>
@@ -134,23 +134,20 @@ export function LoginPage() {
             <h1 className="text-3xl lg:text-4xl font-bold text-fg mb-4">
               Welcome Back, Traveler
             </h1>
-            <p className="text-lg text-muted mb-8">
+            <p className="text-lg text-muted mb-6">
               Your next adventure awaits. Log in to continue bidding
             </p>
-
-            <h2 className="text-xl font-semibold text-fg mb-4">
-              How it Works
-            </h2>
-            <img
-              src={howItWorksGif}
-              alt="How It Works - animated walkthrough of placing a bid"
-              className="w-full h-auto rounded-2xl border border-line"
-            />
           </div>
+
+          <img
+            src={howItWorksGif}
+            alt="How It Works - animated walkthrough of placing a bid"
+            className="w-full max-w-2xl h-auto rounded-2xl border border-line mx-auto lg:mx-0"
+          />
         </div>
 
         {/* Login form — first on mobile, the main focus of the page */}
-        <div className="order-1 lg:order-2 lg:w-3/5 flex items-center justify-center px-4 py-8 sm:py-10 lg:py-0 bg-glass/30">
+        <div className="order-1 lg:order-2 lg:w-1/2 flex items-center justify-center px-4 py-8 sm:py-10 lg:py-0 bg-glass/30">
           <Card className="w-full max-w-xl bg-glass-2 border-line shadow-glass relative z-10">
             <CardHeader className="space-y-2 pt-10">
               <CardTitle className="text-4xl font-bold text-center text-fg">

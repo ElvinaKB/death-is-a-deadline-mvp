@@ -135,7 +135,7 @@ export function SignupPage() {
       {/* Mobile: form first; desktop: benefits / video / form */}
       <main id="main-content" className="flex flex-col lg:flex-row min-h-screen" tabIndex={-1}>
         {/* Why create an account — below form/video on mobile */}
-        <div className="order-3 lg:order-1 lg:w-[38%] flex flex-col justify-between px-4 sm:px-8 lg:pl-16 lg:pr-8 pt-8 lg:pt-16 pb-16">
+        <div className="order-3 lg:order-1 lg:w-[38%] flex flex-col justify-start px-4 sm:px-8 lg:pl-16 lg:pr-8 pt-8 lg:pt-16 pb-16">
           <div className="max-w-lg mx-auto lg:mx-0">
             <Link to={ROUTES.HOME} className="inline-block mb-6">
               <span className="font-serif text-lg sm:text-xl tracking-[0.14em] text-gold leading-none">
@@ -152,7 +152,7 @@ export function SignupPage() {
             </p>
           </div>
 
-          <div className="max-w-lg w-full mx-auto lg:mx-0 divide-y divide-line">
+          <div className="max-w-lg w-full mx-auto lg:mx-0 mt-8 divide-y divide-line">
             <div className="flex items-start gap-4 py-8 first:pt-0">
               <div className="w-12 h-12 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
                 <GraduationCap className="w-6 h-6 text-brand" />

@@ -33,7 +33,7 @@ export function HowItWorksModal({ triggerClassName }: HowItWorksModalProps) {
           <img
             src={howItWorksImg}
             alt="How It Works - The Grim Keeper explains the bidding process"
-            className="max-w-full max-h-full w-auto h-auto object-contain"
+            className="w-full h-full object-contain"
           />
         </DialogContent>
       </Dialog>
