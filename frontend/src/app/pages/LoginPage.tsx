@@ -30,7 +30,7 @@ import { PendingApprovalAlert } from "../components/common/PendingApprovalAlert"
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { useState } from "react";
-import howItWorksImg from "../../assets/how-it-works.png";
+import howItWorksGif from "../../assets/login-how-it-works.gif";
 
 import { useHotel } from "../../hooks/useHotel";
 interface LocationState {
@@ -142,8 +142,8 @@ export function LoginPage() {
               How it Works
             </h2>
             <img
-              src={howItWorksImg}
-              alt="How It Works - The Grim Keeper explains the bidding process"
+              src={howItWorksGif}
+              alt="How It Works - animated walkthrough of placing a bid"
               className="w-full h-auto rounded-2xl border border-line"
             />
           </div>
