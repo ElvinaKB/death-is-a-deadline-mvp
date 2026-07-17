@@ -494,9 +494,10 @@ export async function confirmPaymentStatus(req: Request, res: Response) {
     payment.stripePaymentIntentId,
   );
 
-  const pendingWebhook =
-    paymentIntent.status === "succeeded" &&
-    payment.status !== payment_status.CAPTURED;
+  // payment.status is guaranteed not CAPTURED here (handled by the early
+  // return above), so a "succeeded" Stripe status always means the webhook
+  // just hasn't landed yet.
+  const pendingWebhook = paymentIntent.status === "succeeded";
 
   let message: string;
   if (pendingWebhook) {
