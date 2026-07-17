@@ -135,7 +135,7 @@ export function SignupPage() {
       {/* Mobile: form first; desktop: benefits / video / form */}
       <main id="main-content" className="flex flex-col lg:flex-row min-h-screen" tabIndex={-1}>
         {/* Why create an account — below form/video on mobile */}
-        <div className="order-3 lg:order-1 lg:w-[38%] flex flex-col justify-start px-4 sm:px-8 lg:pl-16 lg:pr-8 pt-8 lg:pt-16 pb-10">
+        <div className="order-3 lg:order-1 lg:w-[38%] flex flex-col justify-between px-4 sm:px-8 lg:pl-16 lg:pr-8 pt-8 lg:pt-16 pb-16">
           <div className="max-w-lg mx-auto lg:mx-0">
             <Link to={ROUTES.HOME} className="inline-block mb-6">
               <span className="font-serif text-lg sm:text-xl tracking-[0.14em] text-gold leading-none">
@@ -146,50 +146,50 @@ export function SignupPage() {
             <h1 className="text-3xl lg:text-4xl font-bold text-fg mb-4">
               Why Create an Account?
             </h1>
-            <p className="text-lg text-muted mb-8">
+            <p className="text-lg text-muted">
               We verify travelers to unlock exclusive hotel rates that aren't
               available anywhere else.
             </p>
+          </div>
 
-            <div className="divide-y divide-line">
-              <div className="flex items-start gap-4 py-4 first:pt-0">
-                <div className="w-12 h-12 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
-                  <GraduationCap className="w-6 h-6 text-brand" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-fg mb-1">
-                    Verified Travelers Only
-                  </h3>
-                  <p className="text-sm text-muted">
-                    Exclusive marketplace access
-                  </p>
-                </div>
+          <div className="max-w-lg w-full mx-auto lg:mx-0 divide-y divide-line">
+            <div className="flex items-start gap-4 py-8 first:pt-0">
+              <div className="w-12 h-12 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
+                <GraduationCap className="w-6 h-6 text-brand" />
               </div>
-
-              <div className="flex items-start gap-4 py-4">
-                <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center shrink-0">
-                  <DollarSign className="w-6 h-6 text-success" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-fg mb-1">
-                    No Risk Bidding
-                  </h3>
-                  <p className="text-sm text-muted">
-                    Instant decisions. No charge for low bids
-                  </p>
-                </div>
+              <div>
+                <h3 className="font-semibold text-fg mb-1">
+                  Verified Travelers Only
+                </h3>
+                <p className="text-sm text-muted">
+                  Exclusive marketplace access
+                </p>
               </div>
+            </div>
 
-              <div className="flex items-start gap-4 py-4 last:pb-0">
-                <div className="w-12 h-12 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
-                  <Shield className="w-6 h-6 text-brand" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-fg mb-1">
-                    Curated Marketplace
-                  </h3>
-                  <p className="text-sm text-muted">Hyperlocal Indie hotels</p>
-                </div>
+            <div className="flex items-start gap-4 py-8">
+              <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center shrink-0">
+                <DollarSign className="w-6 h-6 text-success" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-fg mb-1">
+                  No Risk Bidding
+                </h3>
+                <p className="text-sm text-muted">
+                  Instant decisions. No charge for low bids
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4 py-8 last:pb-0">
+              <div className="w-12 h-12 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
+                <Shield className="w-6 h-6 text-brand" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-fg mb-1">
+                  Curated Marketplace
+                </h3>
+                <p className="text-sm text-muted">Hyperlocal Indie hotels</p>
               </div>
             </div>
           </div>

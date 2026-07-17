@@ -31,6 +31,7 @@ import { ResubmitPage } from "./pages/ResubmitPage";
 import { PlaceFormPage } from "./pages/admin/PlaceFormPage";
 import { PlacesListPage } from "./pages/admin/PlacesListPage";
 import { BidsListPage } from "./pages/admin/BidsListPage";
+import { NewsletterSubscribersPage } from "./pages/admin/NewsletterSubscribersPage";
 import { PlaceTestimonialsPage } from "./pages/admin/PlaceTestimonialsPage";
 import { HotelBidsPage } from "./pages/hotel/HotelBidsListPage";
 import { HotelPlaceFormPage } from "./pages/hotel/HotelPlaceFormPage";
@@ -109,6 +110,7 @@ const protectedRoutes = [
         element: <PlaceTestimonialsPage />,
       },
       { path: ROUTES.ADMIN_BIDS, element: <BidsListPage /> },
+      { path: ROUTES.ADMIN_NEWSLETTER, element: <NewsletterSubscribersPage /> },
     ],
   },
 ];

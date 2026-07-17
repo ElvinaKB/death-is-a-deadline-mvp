@@ -70,6 +70,7 @@ export const ENDPOINTS = {
 
   // Newsletter
   NEWSLETTER_SUBSCRIBE: "/api/newsletter/subscribe",
+  NEWSLETTER_SUBSCRIBERS: "/api/newsletter",
 
   // Review Platforms
   REVIEW_PLATFORMS_LIST: "/api/testimonials/review-platforms",

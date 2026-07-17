@@ -13,3 +13,17 @@ export async function subscribeNewsletter(req: Request, res: Response) {
 
   res.json({ success: true, message: "You're on the list!" });
 }
+
+/** Admin-only: list newsletter subscribers, newest first. */
+export async function listNewsletterSubscribers(_req: Request, res: Response) {
+  const subscribers = await prisma.newsletterSubscriber.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+
+  res.json({
+    data: {
+      subscribers,
+      total: subscribers.length,
+    },
+  });
+}
