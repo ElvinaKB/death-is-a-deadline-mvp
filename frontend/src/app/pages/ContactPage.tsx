@@ -57,9 +57,9 @@ const contactSchema = Yup.object({
 const CONTACT_EMAIL = "deadline@podshare.com";
 
 const hotelBenefits = [
-  "Reach verified students, faculty, and staff",
-  "Blind-bidding model — you set your floor, guests name their price",
-  "No public rate shopping — premium positioning for your property",
+  "How many rooms would you list?",
+  "Blind-bidding model — you set your secret floor, guests can overbid",
+  "No public rates — and we never reveal your secret price",
   "Dedicated onboarding and partner support",
 ];
 
@@ -164,10 +164,15 @@ export function ContactPage() {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gold-light mb-3">
             Contact Us
           </h1>
-          <p className="text-[hsl(0_0%_78%)] text-sm md:text-base max-w-2xl leading-relaxed mx-auto md:mx-0">
-            Questions, feedback, or partnership ideas — send us a message. Hotels
-            interested in listing on Deadline can use the form or the dedicated
-            section below.
+          <p className="text-[hsl(0_0%_78%)] text-base md:text-lg max-w-3xl leading-relaxed mx-auto md:mx-0">
+            Deadline is a private marketplace where verified travelers submit
+            blind bids on upcoming unsold hotel inventory. Hotels set a
+            confidential price that is never shown publicly, protecting their
+            brand while generating incremental revenue from rooms that would
+            otherwise go empty. If a bid meets the hotel&apos;s private
+            price, the reservation is instantly confirmed. We&apos;re
+            building the private distribution channel—and eventually the AI
+            operating system—for unsold hotel inventory.
           </p>
         </div>
 
@@ -378,8 +383,13 @@ export function ContactPage() {
               List Your Hotel
             </h2>
             <p className="text-sm text-[hsl(0_0%_78%)] mb-6 leading-relaxed">
-              Join Deadline Travel&apos;s verified student marketplace. Tell us
-              about your property and our team will reach out about onboarding.
+              We are curating an independent lodging database and respectful
+              travelers on Deadline. Protect your business from high risk
+              guests, and fill last minute inventory.
+              <br />
+              <br />
+              Tell us about your property and our team will reach out about
+              onboarding.
             </p>
             <ul className="space-y-3 mb-8 flex-1">
               {hotelBenefits.map((item) => (
