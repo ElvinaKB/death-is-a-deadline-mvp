@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ROUTES } from "../../../config/routes.config";
+import { getPublicPlaceUrl } from "../../../utils/placeUrl";
 import { useMyBids } from "../../../hooks/useBids";
 import { Button } from "../../components/ui/button";
 import {
@@ -20,7 +20,7 @@ import {
   XCircle,
   CreditCard,
 } from "lucide-react";
-import { format } from "date-fns";
+import { formatBookingDate } from "../../../utils/dateHelpers";
 import { HomeHeader } from "../../components/home";
 import {
   isDbPaymentAwaitingCapture,
@@ -85,9 +85,9 @@ export function MyBidsPage() {
     return (
       <div className="min-h-screen bg-bg">
         <HomeHeader />
-        <div className="flex items-center justify-center h-64">
+        <main id="main-content" className="flex items-center justify-center h-64" tabIndex={-1}>
           <Loader2 className="w-8 h-8 animate-spin text-brand" />
-        </div>
+        </main>
       </div>
     );
   }
@@ -96,7 +96,7 @@ export function MyBidsPage() {
     return (
       <div className="min-h-screen bg-bg">
         <HomeHeader />
-        <div className="container mx-auto px-4 py-8">
+        <main id="main-content" className="container mx-auto px-4 py-8" tabIndex={-1}>
           <h1 className="text-2xl font-bold text-fg mb-6">My Bids</h1>
           <Card className="bg-glass-2 border-line">
             <CardContent className="py-12 text-center">
@@ -108,7 +108,7 @@ export function MyBidsPage() {
               </Button>
             </CardContent>
           </Card>
-        </div>
+        </main>
       </div>
     );
   }
@@ -116,7 +116,7 @@ export function MyBidsPage() {
   return (
     <div className="min-h-screen bg-bg">
       <HomeHeader />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8" tabIndex={-1}>
         <h1 className="text-xl sm:text-2xl font-bold text-fg mb-4 sm:mb-6">
           My Bids
         </h1>
@@ -187,14 +187,14 @@ export function MyBidsPage() {
                       <Calendar className="w-4 h-4 text-muted shrink-0" />
                       <span className="text-fg text-xs sm:text-sm">
                         <strong>In:</strong>{" "}
-                        {format(new Date(bid.checkInDate), "MMM d, yyyy")}
+                        {formatBookingDate(bid.checkInDate, "MMM d, yyyy")}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-4 h-4 text-muted shrink-0" />
                       <span className="text-fg text-xs sm:text-sm">
                         <strong>Out:</strong>{" "}
-                        {format(new Date(bid.checkOutDate), "MMM d, yyyy")}
+                        {formatBookingDate(bid.checkOutDate, "MMM d, yyyy")}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs sm:text-sm">
@@ -252,9 +252,9 @@ export function MyBidsPage() {
                       className="border-line text-fg hover:bg-glass h-8 text-xs sm:text-sm ml-auto"
                     >
                       <Link
-                        to={ROUTES.PUBLIC_PLACE_DETAIL.replace(
-                          ":id",
-                          bid.placeId,
+                        to={getPublicPlaceUrl(
+                          bid.place ?? { slug: bid.placeId },
+                          { bidId: bid.id },
                         )}
                       >
                         View Place
@@ -266,7 +266,7 @@ export function MyBidsPage() {
             );
           })}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

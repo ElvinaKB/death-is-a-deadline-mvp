@@ -11,7 +11,8 @@ import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ENDPOINTS } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
-import { ROUTES, getRoute } from "../../../config/routes.config";
+import { ROUTES } from "../../../config/routes.config";
+import { getPublicPlacePath } from "../../../utils/placeUrl";
 import { useApiQuery } from "../../../hooks/useApi";
 import { usePublicPlace } from "../../../hooks/usePlaces";
 import { useAppSelector } from "../../../store/hooks";
@@ -89,17 +90,13 @@ const isPlaceImage = (image: PlaceImage | File): image is PlaceImage => {
 
 export function PlaceDetailPage() {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const { slug: slugParam } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
-  const searchDateFromStore = useAppSelector((state) => state.search.selectedDate);
   const { isAuthenticated } = useAppSelector((state) => state.auth);
-  const initialInventoryDate =
-    toApiDateOnly(searchParams.get("date")) ??
-    toApiDateOnly(searchDateFromStore);
 
-  const [inventoryDate, setInventoryDate] = useState<string | undefined>(
-    initialInventoryDate,
-  );
+  /** Check-in date for single-night inventory API — only after user picks in bid form. */
+  const [inventoryDate, setInventoryDate] = useState<string | undefined>();
+  const [userPickedCheckIn, setUserPickedCheckIn] = useState(false);
   const [showSoldOutModal, setShowSoldOutModal] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
@@ -107,56 +104,72 @@ export function PlaceDetailPage() {
   const [bookingCheckIn, setBookingCheckIn] = useState<Date | undefined>();
   const [bookingCheckOut, setBookingCheckOut] = useState<Date | undefined>();
 
-  // Keep inventory date in sync when navigating from list with ?date= or search bar changes
-  useEffect(() => {
-    const fromUrl = toApiDateOnly(searchParams.get("date"));
-    const fromStore = toApiDateOnly(searchDateFromStore);
-    setInventoryDate(fromUrl ?? fromStore);
-  }, [searchParams, searchDateFromStore]);
-
-  // Scroll to top when id changes
+  // Scroll to top when slug changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setHeroImageIndex(0);
-  }, [id]);
+    setInventoryDate(undefined);
+    setUserPickedCheckIn(false);
+    setShowSoldOutModal(false);
+  }, [slugParam]);
 
   // Use public endpoint for students - includes inventory status when date is provided
-  const { data, isLoading } = usePublicPlace(id || "", inventoryDate);
+  const { data, isLoading } = usePublicPlace(slugParam || "", inventoryDate);
   const place = data?.place;
+  const placeId = place?.id;
   const inventoryMessage = data?.inventoryMessage;
 
-  const { data: placeBidContext } = useBidForPlace(id || "", {
-    enabled: isAuthenticated && !!id,
+  const contextBidId = searchParams.get("bidId");
+
+  const { data: placeBidContext } = useBidForPlace(placeId || "", {
+    enabled: isAuthenticated && !!placeId,
+    bidId: contextBidId,
   });
   const heroPriorStay =
     placeBidContext?.priorStay && !placeBidContext.bid
       ? placeBidContext.priorStay
       : null;
+  const heroUpcomingStays =
+    !contextBidId && placeBidContext?.upcomingStays?.length
+      ? placeBidContext.upcomingStays
+      : !contextBidId && placeBidContext?.upcomingStay
+        ? [placeBidContext.upcomingStay]
+        : [];
 
-  // Show sold out modal when inventory is exhausted
+  // Sold-out modal only after the user picks a check-in date (not from ?date= on load)
   useEffect(() => {
-    if (inventoryMessage && inventoryDate) {
+    if (inventoryMessage && userPickedCheckIn && inventoryDate) {
       setShowSoldOutModal(true);
     }
-  }, [inventoryMessage, inventoryDate]);
+  }, [inventoryMessage, inventoryDate, userPickedCheckIn]);
+
+  // Canonical slug URL (redirect legacy UUID links)
+  useEffect(() => {
+    if (!place?.slug || !slugParam || slugParam === place.slug) return;
+
+    const query = searchParams.toString();
+    navigate(`${getPublicPlacePath(place)}${query ? `?${query}` : ""}`, {
+      replace: true,
+    });
+  }, [place?.slug, slugParam, searchParams, navigate]);
 
   // Fetch similar places in the same city (limit 4, excluding current place)
-  const { data: reviewPlatformsData } = useReviewPlatforms(id || "");
+  const { data: reviewPlatformsData } = useReviewPlatforms(placeId || "");
   const reviewPlatforms = Array.isArray(reviewPlatformsData)
     ? reviewPlatformsData
     : [];
   const heroReview = pickPreferredReviewPlatform(reviewPlatforms);
 
   const { data: similarData } = useApiQuery<PlacesResponse>({
-    queryKey: [QUERY_KEYS.PLACES, "similar", id, place?.city],
+    queryKey: [QUERY_KEYS.PLACES, "similar", placeId, place?.city],
     endpoint: ENDPOINTS.PLACES_PUBLIC,
     params: { limit: 4, city: place?.city },
-    enabled: !!id && !!place?.city,
+    enabled: !!placeId && !!place?.city,
   });
 
   // Filter out current place and limit to 3
   const similarPlaces = (similarData?.places ?? [])
-    .filter((p) => p.id !== id)
+    .filter((p) => p.id !== placeId)
     .slice(0, 3);
 
   const openGallery = (index: number) => {
@@ -176,7 +189,7 @@ export function PlaceDetailPage() {
     );
   }
 
-  if (!place || !id) {
+  if (!place || !slugParam) {
     return (
       <div className="min-h-screen bg-bg">
         <HomeHeader />
@@ -223,7 +236,7 @@ export function PlaceDetailPage() {
         onClose={() => setGalleryOpen(false)}
       />
 
-      <div className="mx-auto max-w-[1400px] px-4 py-2 sm:py-4 md:px-8 md:py-6 min-w-0">
+      <main id="main-content" className="mx-auto max-w-[1400px] px-4 py-2 sm:py-4 md:px-8 md:py-6 min-w-0" tabIndex={-1}>
         <div
           className={`listing-detail-grid gap-3 lg:gap-7${amenities.length === 0 ? " listing-detail-grid--no-amenities" : ""}`}
         >
@@ -255,6 +268,7 @@ export function PlaceDetailPage() {
                   type="button"
                   onClick={() => openGallery(heroSlideIndex)}
                   className="absolute bottom-4 right-4 z-10 rounded-lg bg-black/70 px-3 py-1.5 text-xs text-fg backdrop-blur-sm hover:bg-black/80"
+                  aria-label={`Open photo gallery, image ${heroSlideIndex + 1} of ${allImages.length}`}
                 >
                   {heroSlideIndex + 1} / {allImages.length}
                 </button>
@@ -266,10 +280,19 @@ export function PlaceDetailPage() {
                 <h1 className="font-serif text-2xl sm:text-3xl text-fg md:text-4xl leading-tight">
                   {place.name}
                 </h1>
+                {heroUpcomingStays.length > 0 && (
+                  <PriorStayBanner
+                    upcomingStays={heroUpcomingStays}
+                    variant="pill"
+                    kind="upcoming"
+                    className="mt-3 w-fit"
+                  />
+                )}
                 {heroPriorStay && (
                   <PriorStayBanner
                     priorStay={heroPriorStay}
                     variant="pill"
+                    kind="completed"
                     className="mt-3 w-fit"
                   />
                 )}
@@ -298,10 +321,12 @@ export function PlaceDetailPage() {
             <BidForm
               variant="listing"
               place={place}
-              placeId={id}
-              onDateChange={(date) =>
-                setInventoryDate(toApiDateOnly(date))
-              }
+              placeId={place.id}
+              contextBidId={contextBidId}
+              onDateChange={(date) => {
+                setUserPickedCheckIn(true);
+                setInventoryDate(toApiDateOnly(date));
+              }}
               onBookingDatesChange={(checkIn, checkOut) => {
                 setBookingCheckIn(checkIn);
                 setBookingCheckOut(checkOut);
@@ -368,7 +393,7 @@ export function PlaceDetailPage() {
           </div>
         </div>
 
-          <Testimonials placeId={id} />
+          <Testimonials placeId={place.id} />
 
           {/* FAQ Accordion */}
           <div className="mt-8 sm:mt-12">
@@ -454,13 +479,7 @@ export function PlaceDetailPage() {
                     <Card
                       key={listing.id}
                       className="cursor-pointer group gap-0 gold-card border-gold/20 hover:border-gold/40 transition-colors"
-                      onClick={() =>
-                        navigate(
-                          getRoute(ROUTES.PUBLIC_PLACE_DETAIL, {
-                            id: listing.id,
-                          }),
-                        )
-                      }
+                      onClick={() => navigate(getPublicPlacePath(listing))}
                     >
                       {/* Image */}
                       <div className="relative aspect-[4/3] rounded-lg overflow-hidden mb-3">
@@ -495,11 +514,7 @@ export function PlaceDetailPage() {
                           className="btn-bid mt-3 w-full text-sm p-1"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(
-                              getRoute(ROUTES.PUBLIC_PLACE_DETAIL, {
-                                id: listing.id,
-                              }),
-                            );
+                            navigate(getPublicPlacePath(listing));
                           }}
                         >
                           ⏳ PLACE BID
@@ -511,7 +526,7 @@ export function PlaceDetailPage() {
               </div>
             </div>
           )}
-      </div>
+      </main>
 
       {/* Sold Out Modal - SweetAlert Style */}
       <Dialog open={showSoldOutModal} onOpenChange={setShowSoldOutModal}>

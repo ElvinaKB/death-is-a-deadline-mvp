@@ -41,6 +41,7 @@ import { TermsPage } from "./pages/legal/TermsPage";
 import { PrivacyPage } from "./pages/legal/PrivacyPage";
 import { AccessibilityPage } from "./pages/legal/AccessibilityPage";
 import { ContactPage } from "./pages/ContactPage";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 // Auth routes (redirect to protected base if already authenticated)
 const authRoutes = [
@@ -149,6 +150,8 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
 }
 
 export function AppRouter() {
+  useDocumentTitle();
+
   return (
     <Routes>
       {/* Auth routes with wrapper */}

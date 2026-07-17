@@ -9,6 +9,7 @@ import {
   ACCOMMODATION_TYPE_LABELS,
   PlacesResponse,
   PlaceStatus,
+  ThresholdPricingMode,
 } from "../../../types/place.types";
 import { DataTable } from "../../components/common/DataTable";
 import { TableColumn } from "../../../types/api.types";
@@ -111,14 +112,30 @@ export function HotelPlacesListPage() {
     {
       header: "Min Bid",
       field: "minimumBid",
-      render: (row) => (
-        <div className="text-sm">
-          <p className="font-medium text-fg">
-            {formatCurrency(row.minimumBid)}
-          </p>
-          <p className="text-xs text-muted">per night</p>
-        </div>
-      ),
+      render: (row) => {
+        const isPerWeekday =
+          row.thresholdPricingMode === ThresholdPricingMode.PER_WEEKDAY &&
+          row.minimumBidByDayOfWeek?.length === 7;
+        const label = isPerWeekday
+          ? (() => {
+              const vals = row.minimumBidByDayOfWeek!;
+              const min = Math.min(...vals);
+              const max = Math.max(...vals);
+              return min === max
+                ? formatCurrency(min)
+                : `${formatCurrency(min)}–${formatCurrency(max)}`;
+            })()
+          : formatCurrency(row.minimumBid);
+
+        return (
+          <div className="text-sm">
+            <p className="font-medium text-fg">{label}</p>
+            <p className="text-xs text-muted">
+              {isPerWeekday ? "by weekday" : "per night"}
+            </p>
+          </div>
+        );
+      },
     },
     {
       header: "Availability",

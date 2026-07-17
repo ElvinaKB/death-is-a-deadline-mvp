@@ -9,6 +9,7 @@ import {
   placeIdParamSchema,
   listBidsQuerySchema,
   myBidsQuerySchema,
+  bidForPlaceQuerySchema,
 } from "../validations/bids/bids.validation";
 import {
   createBid,
@@ -54,6 +55,7 @@ router.get(
   "/place/:placeId",
   authenticate(UserRole.STUDENT),
   validate(placeIdParamSchema, "params"),
+  validate(bidForPlaceQuerySchema, "query"),
   getBidForPlace,
 );
 

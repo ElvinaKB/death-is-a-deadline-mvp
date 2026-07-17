@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Calendar, DollarSign, ChevronDown } from "lucide-react";
+import { Search, Calendar, ChevronDown } from "lucide-react";
 import { addDays, format } from "date-fns";
 import { parseApiDate, toApiDateOnly } from "../../../utils/dateHelpers";
 import { Button } from "../ui/button";
@@ -67,12 +67,23 @@ export function SearchBar({ onSearch }: SearchBarProps) {
   };
 
   return (
-    <div className="marketplace-search-bar flex flex-col sm:flex-row items-stretch sm:items-center w-full min-w-0">
-      {/* Location Search */}
+    <form
+      className="marketplace-search-bar flex flex-col sm:flex-row items-stretch sm:items-center w-full min-w-0"
+      role="search"
+      aria-label="Search hotel listings"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSearch?.();
+      }}
+    >
       <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 flex-1 min-w-0 relative">
-        <Search className="h-4 w-4 text-gold shrink-0" />
+        <label htmlFor="marketplace-location" className="sr-only">
+          Location
+        </label>
+        <Search className="h-4 w-4 text-gold shrink-0" aria-hidden />
         <input
-          type="text"
+          id="marketplace-location"
+          type="search"
           placeholder="Los Angeles"
           value={searchQuery}
           onChange={(e) => dispatch(setSearchQuery(e.target.value))}
@@ -86,28 +97,34 @@ export function SearchBar({ onSearch }: SearchBarProps) {
             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-glass transition-colors"
             onClick={() => dispatch(setSearchQuery(""))}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         )}
       </div>
 
-      {/* Divider */}
-      <div className="h-8 w-px bg-line shrink-0" />
+      <div className="h-8 w-px bg-line shrink-0" aria-hidden />
 
-      {/* Date Picker */}
       <Popover open={isDateOpen} onOpenChange={setIsDateOpen}>
         <PopoverTrigger asChild>
           <button
+            id="marketplace-date"
             type="button"
+            aria-haspopup="dialog"
+            aria-expanded={isDateOpen}
+            aria-label={
+              parsedDate
+                ? `Stay date: ${getDateLabel()}`
+                : "Select stay date"
+            }
             className="flex items-center justify-between sm:justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-3 w-full sm:w-auto sm:min-w-[120px] hover:bg-glass transition-colors rounded-lg"
           >
-            <Calendar className="h-4 w-4 text-gold shrink-0" />
+            <Calendar className="h-4 w-4 text-gold shrink-0" aria-hidden />
             <span className="text-sm text-fg whitespace-nowrap">
               {getDateLabel()}
             </span>
-            <ChevronDown className="h-4 w-4 text-muted shrink-0" />
+            <ChevronDown className="h-4 w-4 text-muted shrink-0" aria-hidden />
           </button>
         </PopoverTrigger>
         <PopoverContent
@@ -115,8 +132,10 @@ export function SearchBar({ onSearch }: SearchBarProps) {
           align="start"
         >
           {!showCalendar ? (
-            <div className="py-1">
+            <div className="py-1" role="menu">
               <button
+                type="button"
+                role="menuitem"
                 className={`w-full px-4 py-2 text-left text-sm hover:bg-glass ${
                   dateOption === "tonight"
                     ? "bg-brand/10 text-brand"
@@ -127,6 +146,8 @@ export function SearchBar({ onSearch }: SearchBarProps) {
                 Tonight
               </button>
               <button
+                type="button"
+                role="menuitem"
                 className={`w-full px-4 py-2 text-left text-sm hover:bg-glass ${
                   dateOption === "tomorrow"
                     ? "bg-brand/10 text-brand"
@@ -137,6 +158,8 @@ export function SearchBar({ onSearch }: SearchBarProps) {
                 Tomorrow
               </button>
               <button
+                type="button"
+                role="menuitem"
                 className={`w-full px-4 py-2 text-left text-sm hover:bg-glass ${
                   dateOption === "custom" ? "bg-brand/10 text-brand" : "text-fg"
                 }`}
@@ -148,6 +171,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
           ) : (
             <div className="p-2">
               <button
+                type="button"
                 className="text-sm text-brand hover:underline mb-2"
                 onClick={() => setShowCalendar(false)}
               >
@@ -165,14 +189,14 @@ export function SearchBar({ onSearch }: SearchBarProps) {
         </PopoverContent>
       </Popover>
 
-      {/* Search Button */}
       <Button
+        type="submit"
         size="icon"
         className="marketplace-search-btn rounded-full h-10 w-10 shrink-0 mr-1.5"
-        onClick={onSearch}
+        aria-label="Search listings"
       >
-        <Search className="h-4 w-4 text-gold" />
+        <Search className="h-4 w-4 text-gold" aria-hidden />
       </Button>
-    </div>
+    </form>
   );
 }

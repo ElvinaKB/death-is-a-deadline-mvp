@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { formatBookingDate } from "../../../utils/dateHelpers";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -146,19 +147,19 @@ export function HotelBidInvoiceModal({
               <div className="px-4 py-3 text-center">
                 <p className="text-xs text-muted mb-1">Check-in</p>
                 <p className="text-sm font-medium text-fg">
-                  {format(new Date(bid.checkInDate), "MMM d")}
+                  {formatBookingDate(bid.checkInDate, "MMM d")}
                 </p>
                 <p className="text-xs text-muted">
-                  {format(new Date(bid.checkInDate), "yyyy")}
+                  {formatBookingDate(bid.checkInDate, "yyyy")}
                 </p>
               </div>
               <div className="px-4 py-3 text-center">
                 <p className="text-xs text-muted mb-1">Check-out</p>
                 <p className="text-sm font-medium text-fg">
-                  {format(new Date(bid.checkOutDate), "MMM d")}
+                  {formatBookingDate(bid.checkOutDate, "MMM d")}
                 </p>
                 <p className="text-xs text-muted">
-                  {format(new Date(bid.checkOutDate), "yyyy")}
+                  {formatBookingDate(bid.checkOutDate, "yyyy")}
                 </p>
               </div>
               <div className="px-4 py-3 text-center">

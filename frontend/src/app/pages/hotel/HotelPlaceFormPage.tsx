@@ -4,7 +4,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { usePlace, useUpdatePlace } from "../../../hooks/usePlaces";
-import { ACCOMMODATION_TYPE_LABELS } from "../../../types/place.types";
+import { ACCOMMODATION_TYPE_LABELS, ThresholdPricingMode } from "../../../types/place.types";
+import {
+  buildUniformWeekdayMins,
+  ThresholdPricingFields,
+} from "../../components/places/ThresholdPricingFields";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
@@ -104,6 +108,11 @@ export function HotelPlaceFormPage() {
   const [allowedDaysOfWeek, setAllowedDaysOfWeek] = useState<number[]>([
     0, 1, 2, 3, 4, 5, 6,
   ]);
+  const [useSameThresholdForAllDays, setUseSameThresholdForAllDays] =
+    useState(true);
+  const [minimumBidByDayOfWeek, setMinimumBidByDayOfWeek] = useState<number[]>(
+    buildUniformWeekdayMins(0),
+  );
   const [isUploading, setIsUploading] = useState(false);
 
   const formik = useFormik({
@@ -130,13 +139,42 @@ export function HotelPlaceFormPage() {
           toast.error("At least one image is required");
           return;
         }
+
+        const retailPrice = existingPlace?.retailPrice ?? 0;
+        const thresholdPayload = useSameThresholdForAllDays
+          ? {
+              minimumBid: values.minimumBid,
+              thresholdPricingMode: ThresholdPricingMode.UNIFORM,
+              minimumBidByDayOfWeek: buildUniformWeekdayMins(values.minimumBid),
+            }
+          : {
+              minimumBid: Math.min(...minimumBidByDayOfWeek),
+              thresholdPricingMode: ThresholdPricingMode.PER_WEEKDAY,
+              minimumBidByDayOfWeek,
+            };
+
+        if (
+          useSameThresholdForAllDays &&
+          thresholdPayload.minimumBid >= retailPrice
+        ) {
+          toast.error("Minimum bid must be less than retail price");
+          return;
+        }
+        if (
+          !useSameThresholdForAllDays &&
+          minimumBidByDayOfWeek.some((v) => v < 0 || v >= retailPrice)
+        ) {
+          toast.error("Each weekday minimum must be less than retail price");
+          return;
+        }
+
         await updatePlace.mutateAsync({
           id,
           name: values.name,
           shortDescription: values.shortDescription,
           fullDescription: values.fullDescription,
           maxInventory: values.maxInventory,
-          minimumBid: values.minimumBid,
+          ...thresholdPayload,
           blackoutDates: blackoutDates.map((d) => toApiDateOnly(d)!),
           allowedDaysOfWeek,
           imageUrls: allImageUrls,
@@ -159,6 +197,15 @@ export function HotelPlaceFormPage() {
       setBlackoutDates(existingPlace.blackoutDates.map((d) => new Date(d)));
       setAllowedDaysOfWeek(
         existingPlace.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
+      );
+      const isUniform =
+        !existingPlace.thresholdPricingMode ||
+        existingPlace.thresholdPricingMode === ThresholdPricingMode.UNIFORM;
+      setUseSameThresholdForAllDays(isUniform);
+      setMinimumBidByDayOfWeek(
+        existingPlace.minimumBidByDayOfWeek?.length === 7
+          ? existingPlace.minimumBidByDayOfWeek
+          : buildUniformWeekdayMins(existingPlace.minimumBid ?? 0),
       );
     }
   }, [existingPlace]);
@@ -441,64 +488,87 @@ export function HotelPlaceFormPage() {
           </CardContent>
         </Card>
 
-        {/* Inventory & Minimum Bid */}
+        {/* Inventory */}
         <Card className="glass-2 border-line">
           <CardHeader className="px-4 sm:px-6">
             <CardTitle className="text-fg text-base sm:text-lg">
-              Inventory & Bidding
+              Inventory
             </CardTitle>
             <CardDescription className="text-muted text-sm">
-              Control how many rooms/beds are available and your minimum
-              acceptable bid
+              Control how many rooms/beds are available per night
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 px-4 sm:px-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="maxInventory" className="text-fg text-sm">
-                  Inventory (rooms/beds for DIAD) *
-                </Label>
-                <p className="text-xs text-muted mb-1.5">
-                  Max bookings available per night via the platform
+            <div>
+              <Label htmlFor="maxInventory" className="text-fg text-sm">
+                Inventory (rooms/beds for DIAD) *
+              </Label>
+              <p className="text-xs text-muted mb-1.5">
+                Max bookings available per night via the platform
+              </p>
+              <Input
+                id="maxInventory"
+                type="number"
+                {...formik.getFieldProps("maxInventory")}
+                placeholder="1"
+                min="1"
+                step="1"
+                className="w-full sm:w-32"
+              />
+              {formik.touched.maxInventory && formik.errors.maxInventory && (
+                <p className="text-xs text-error mt-1">
+                  {formik.errors.maxInventory}
                 </p>
-                <Input
-                  id="maxInventory"
-                  type="number"
-                  {...formik.getFieldProps("maxInventory")}
-                  placeholder="1"
-                  min="1"
-                  step="1"
-                  className="w-full sm:w-32"
-                />
-                {formik.touched.maxInventory && formik.errors.maxInventory && (
-                  <p className="text-xs text-error mt-1">
-                    {formik.errors.maxInventory}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="minimumBid" className="text-fg text-sm">
-                  Minimum Acceptable Bid (per night) *
-                </Label>
-                <p className="text-xs text-muted mb-1.5">
-                  Bids below this amount will be automatically rejected
-                </p>
-                <Input
-                  id="minimumBid"
-                  type="number"
-                  {...formik.getFieldProps("minimumBid")}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                />
-                {formik.touched.minimumBid && formik.errors.minimumBid && (
-                  <p className="text-xs text-error mt-1">
-                    {formik.errors.minimumBid}
-                  </p>
-                )}
-              </div>
+              )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Pricing threshold */}
+        <Card className="glass-2 border-line">
+          <CardHeader className="px-4 sm:px-6">
+            <CardTitle className="text-fg text-base sm:text-lg">
+              Pricing Threshold
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 sm:px-6">
+            <ThresholdPricingFields
+              compact
+              retailPrice={existingPlace?.retailPrice}
+              useSameThresholdForAllDays={useSameThresholdForAllDays}
+              onUseSameThresholdChange={(checked) => {
+                if (checked) {
+                  setUseSameThresholdForAllDays(true);
+                  formik.setFieldValue(
+                    "minimumBid",
+                    formik.values.minimumBid ||
+                      Math.max(...minimumBidByDayOfWeek),
+                  );
+                } else {
+                  setUseSameThresholdForAllDays(false);
+                  setMinimumBidByDayOfWeek(
+                    buildUniformWeekdayMins(formik.values.minimumBid),
+                  );
+                }
+              }}
+              minimumBid={formik.values.minimumBid}
+              onMinimumBidChange={(value) =>
+                formik.setFieldValue("minimumBid", value)
+              }
+              minimumBidByDayOfWeek={minimumBidByDayOfWeek}
+              onWeekdayMinimumChange={(dayIndex, value) => {
+                setMinimumBidByDayOfWeek((prev) => {
+                  const next = [...prev];
+                  next[dayIndex] = value;
+                  return next;
+                });
+              }}
+              minimumBidError={
+                formik.touched.minimumBid && formik.errors.minimumBid
+                  ? String(formik.errors.minimumBid)
+                  : undefined
+              }
+            />
           </CardContent>
         </Card>
 

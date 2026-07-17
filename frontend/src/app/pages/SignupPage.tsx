@@ -3,7 +3,7 @@ import { supabase } from "../../utils/supabaseClient";
 import { useFormik } from "formik";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { signupSchema } from "../../utils/validationSchemas";
-import { getFieldError } from "../../utils/formikHelpers";
+import { getFieldError, getFieldDescribedBy, getFieldErrorId } from "../../utils/formikHelpers";
 import { isAutoVerifiedEmail } from "../../utils/emailValidator";
 import { ANALYTICS_EVENTS, trackEvent } from "../../utils/analytics";
 import { useApiMutation } from "../../hooks/useApi";
@@ -133,7 +133,7 @@ export function SignupPage() {
   return (
     <div className="min-h-screen bg-bg diad-vignette">
       {/* Mobile: form first; desktop: benefits / video / form */}
-      <div className="flex flex-col lg:flex-row min-h-screen">
+      <main id="main-content" className="flex flex-col lg:flex-row min-h-screen" tabIndex={-1}>
         {/* Why create an account — below form/video on mobile */}
         <div className="order-3 lg:order-1 lg:w-[38%] flex flex-col justify-start px-4 sm:px-8 lg:pl-16 lg:pr-8 pt-8 lg:pt-16 pb-10">
           <div className="max-w-lg mx-auto lg:mx-0">
@@ -220,7 +220,7 @@ export function SignupPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={formik.handleSubmit} className="space-y-4">
+              <form onSubmit={formik.handleSubmit} className="space-y-4" noValidate>
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-fg">
                     Full Name
@@ -229,13 +229,20 @@ export function SignupPage() {
                     id="name"
                     type="text"
                     placeholder="John Doe"
+                    autoComplete="name"
+                    aria-invalid={!!getFieldError("name", formik)}
+                    aria-describedby={getFieldDescribedBy("name", formik)}
                     {...formik.getFieldProps("name")}
                     className={`bg-glass border-line text-fg placeholder:text-muted ${
                       getFieldError("name", formik) ? "border-danger" : ""
                     }`}
                   />
                   {getFieldError("name", formik) && (
-                    <p className="text-sm text-danger">
+                    <p
+                      id={getFieldErrorId("name")}
+                      className="text-sm text-danger"
+                      role="alert"
+                    >
                       {getFieldError("name", formik)}
                     </p>
                   )}
@@ -249,6 +256,9 @@ export function SignupPage() {
                     id="email"
                     type="email"
                     placeholder="you@university.edu"
+                    autoComplete="email"
+                    aria-invalid={!!getFieldError("email", formik)}
+                    aria-describedby={getFieldDescribedBy("email", formik)}
                     {...formik.getFieldProps("email")}
                     onBlur={(e) => {
                       formik.handleBlur(e);
@@ -258,7 +268,11 @@ export function SignupPage() {
                     }`}
                   />
                   {getFieldError("email", formik) && (
-                    <p className="text-sm text-danger">
+                    <p
+                      id={getFieldErrorId("email")}
+                      className="text-sm text-danger"
+                      role="alert"
+                    >
                       {getFieldError("email", formik)}
                     </p>
                   )}
@@ -291,38 +305,47 @@ export function SignupPage() {
                     <Label htmlFor="studentIdCard" className="text-fg">
                       Student ID Card
                     </Label>
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-line rounded-lg p-6 text-center cursor-pointer hover:border-brand transition-colors bg-glass"
+                    <label
+                      htmlFor="studentIdCard"
+                      className="border-2 border-dashed border-line rounded-lg p-6 text-center cursor-pointer hover:border-brand transition-colors bg-glass block"
                     >
                       {selectedFile ? (
                         <img
                           src={URL.createObjectURL(selectedFile)}
-                          alt="Student ID Card"
-                          className="h-full w-full"
+                          alt="Preview of uploaded student ID card"
+                          className="h-full w-full max-h-48 object-contain mx-auto"
                         />
                       ) : (
                         <>
-                          <Upload className="h-8 w-8 mx-auto mb-2 text-muted" />
+                          <Upload className="h-8 w-8 mx-auto mb-2 text-muted" aria-hidden />
                           <p className="text-sm text-muted">
-                            {"Click to upload student ID card"}
+                            Click or press Enter to upload student ID card
                           </p>
                           <p className="text-xs text-muted mt-1">
                             PNG, JPG up to 5MB
                           </p>
                         </>
                       )}
-                    </div>
+                    </label>
                     <input
                       ref={fileInputRef}
                       id="studentIdCard"
                       type="file"
                       accept="image/*"
                       onChange={handleFileChange}
-                      className="hidden"
+                      className="sr-only"
+                      aria-invalid={!!getFieldError("studentIdCard", formik)}
+                      aria-describedby={getFieldDescribedBy(
+                        "studentIdCard",
+                        formik,
+                      )}
                     />
                     {getFieldError("studentIdCard", formik) && (
-                      <p className="text-sm text-danger">
+                      <p
+                        id={getFieldErrorId("studentIdCard")}
+                        className="text-sm text-danger"
+                        role="alert"
+                      >
                         {getFieldError("studentIdCard", formik)}
                       </p>
                     )}
@@ -336,13 +359,20 @@ export function SignupPage() {
                   <PasswordInput
                     id="password"
                     placeholder="••••••••"
+                    autoComplete="new-password"
+                    aria-invalid={!!getFieldError("password", formik)}
+                    aria-describedby={getFieldDescribedBy("password", formik)}
                     {...formik.getFieldProps("password")}
                     className={`bg-glass border-line text-fg placeholder:text-muted ${
                       getFieldError("password", formik) ? "border-danger" : ""
                     }`}
                   />
                   {getFieldError("password", formik) && (
-                    <p className="text-sm text-danger">
+                    <p
+                      id={getFieldErrorId("password")}
+                      className="text-sm text-danger"
+                      role="alert"
+                    >
                       {getFieldError("password", formik)}
                     </p>
                   )}
@@ -355,6 +385,12 @@ export function SignupPage() {
                   <PasswordInput
                     id="confirmPassword"
                     placeholder="••••••••"
+                    autoComplete="new-password"
+                    aria-invalid={!!getFieldError("confirmPassword", formik)}
+                    aria-describedby={getFieldDescribedBy(
+                      "confirmPassword",
+                      formik,
+                    )}
                     {...formik.getFieldProps("confirmPassword")}
                     className={`bg-glass border-line text-fg placeholder:text-muted ${
                       getFieldError("confirmPassword", formik)
@@ -363,7 +399,11 @@ export function SignupPage() {
                     }`}
                   />
                   {getFieldError("confirmPassword", formik) && (
-                    <p className="text-sm text-danger">
+                    <p
+                      id={getFieldErrorId("confirmPassword")}
+                      className="text-sm text-danger"
+                      role="alert"
+                    >
                       {getFieldError("confirmPassword", formik)}
                     </p>
                   )}
@@ -395,7 +435,7 @@ export function SignupPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

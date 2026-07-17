@@ -27,6 +27,7 @@ import { Badge } from "../../components/ui/badge";
 import { ROUTES } from "../../../config/routes.config";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
 import { format } from "date-fns";
+import { formatBookingDate } from "../../../utils/dateHelpers";
 import {
   CheckCircle,
   XCircle,
@@ -126,9 +127,9 @@ function CheckoutForm({
       <PaymentElement />
 
       {errorMessage && (
-        <div className="glass rounded-lg p-4 border border-danger/50">
+        <div className="glass rounded-lg p-4 border border-danger/50" role="alert" aria-live="polite">
           <div className="flex gap-2">
-            <AlertCircle className="h-5 w-5 text-danger flex-shrink-0" />
+            <AlertCircle className="h-5 w-5 text-danger flex-shrink-0" aria-hidden />
             <p className="text-sm text-danger">{errorMessage}</p>
           </div>
         </div>
@@ -460,7 +461,7 @@ export function CheckoutPage() {
   return (
     <div className="min-h-screen bg-bg">
       <HomeHeader />
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <main id="main-content" className="max-w-4xl mx-auto px-6 py-12" tabIndex={-1}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Order Summary */}
           <Card className="glass-2 border-line">
@@ -493,13 +494,13 @@ export function CheckoutPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted">Check-in:</span>
                   <span className="font-medium text-fg">
-                    {format(new Date(bid.checkInDate), "MMM dd, yyyy")}
+                    {formatBookingDate(bid.checkInDate, "MMM dd, yyyy")}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted">Check-out:</span>
                   <span className="font-medium text-fg">
-                    {format(new Date(bid.checkOutDate), "MMM dd, yyyy")}
+                    {formatBookingDate(bid.checkOutDate, "MMM dd, yyyy")}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -578,7 +579,7 @@ export function CheckoutPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

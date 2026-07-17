@@ -119,10 +119,12 @@ function BidPaymentConfirm({
   }, [runAutoConfirm]);
 
   return (
-    <form onSubmit={handlePay} className="space-y-3">
+    <form onSubmit={handlePay} className="space-y-3" aria-label="Payment confirmation">
       <PaymentElement />
       {errorMessage && (
-        <p className="text-xs text-urgent">{errorMessage}</p>
+        <p className="text-xs text-urgent" role="alert" aria-live="polite">
+          {errorMessage}
+        </p>
       )}
       {!autoConfirm && (
         <Button

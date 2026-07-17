@@ -90,6 +90,8 @@ export function HomeHeader({
               <button
                 type="button"
                 className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-glass transition-colors"
+                aria-label={`Account menu for ${user?.name ?? "user"}`}
+                aria-haspopup="menu"
               >
                 <Avatar className="h-9 w-9">
                   <AvatarFallback className="bg-gold/25 text-gold text-xs font-semibold">
@@ -148,7 +150,10 @@ export function HomeHeader({
 
   return (
     <header className="bg-bg border-b border-line sticky top-0 z-50">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between px-3 sm:px-4 py-2 sm:py-3 gap-2 md:gap-4">
+      <nav
+        className="flex flex-col md:flex-row md:items-center md:justify-between px-3 sm:px-4 py-2 sm:py-3 gap-2 md:gap-4"
+        aria-label="Primary"
+      >
         {/* Brand — full width on mobile; auto width on desktop so search/auth fit */}
         <div
           className={cn(
@@ -201,7 +206,7 @@ export function HomeHeader({
             )}
           />
         </div>
-      </div>
+      </nav>
     </header>
   );
 }
