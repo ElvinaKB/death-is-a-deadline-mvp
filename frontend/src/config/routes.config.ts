@@ -2,6 +2,7 @@ export const ROUTES = {
   // Auth routes
   LOGIN: "/login",
   SIGNUP: "/signup",
+  SIGNUP_SUCCESS: "/signup/success",
   HOTEL_SIGNUP: "/hotel/signup",
   RESUBMIT: "/resubmit",
   FORGOT_PASSWORD: "/forgot-password",

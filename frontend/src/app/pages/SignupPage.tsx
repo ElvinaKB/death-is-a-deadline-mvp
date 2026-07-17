@@ -9,14 +9,7 @@ import { ANALYTICS_EVENTS, trackEvent } from "../../utils/analytics";
 import { useApiMutation } from "../../hooks/useApi";
 import { ENDPOINTS } from "../../config/endpoints.config";
 import { ROUTES } from "../../config/routes.config";
-import {
-  SignupRequest,
-  AuthResponse,
-  ApprovalStatus,
-} from "../../types/auth.types";
-import { useAppDispatch } from "../../store/hooks";
-import { setCredentials } from "../../store/slices/authSlice";
-import { setAuthToken } from "../../utils/tokenHelpers";
+import { SignupRequest, AuthResponse } from "../../types/auth.types";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { PasswordInput } from "../components/ui/password-input";
@@ -29,16 +22,7 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { Alert, AlertDescription } from "../components/ui/alert";
-import { PendingApprovalAlert } from "../components/common/PendingApprovalAlert";
-import {
-  Upload,
-  AlertCircle,
-  GraduationCap,
-  Shield,
-  Zap,
-  DollarSign,
-  Hourglass,
-} from "lucide-react";
+import { Upload, AlertCircle, GraduationCap, Shield, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { SUPABASE_BUCKET } from "../../lib/constants";
 import { useDebounce } from "../../hooks/useDebounce";
@@ -50,7 +34,6 @@ interface LocationState {
 export function SignupPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const dispatch = useAppDispatch();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [needsIdUpload, setNeedsIdUpload] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -64,15 +47,10 @@ export function SignupPage() {
     endpoint: ENDPOINTS.SIGNUP,
     showErrorToast: true,
     onSuccess: (data) => {
-      const isNotApproved =
-        data?.user?.approvalStatus !== ApprovalStatus.APPROVED;
-      const notApproved =
-        "NOTE: If you are a student with an academic email, you will be logged in automatically once your email is verified.";
-      toast.success(
-        "Account created successfully! Verify your email to continue." +
-          (isNotApproved ? notApproved : ""),
-      );
       trackEvent(ANALYTICS_EVENTS.SIGNUP_COMPLETED);
+      navigate(ROUTES.SIGNUP_SUCCESS, {
+        state: { email: data?.user?.email ?? formik.values.email },
+      });
     },
   });
 
@@ -134,10 +112,6 @@ export function SignupPage() {
     return publicUrlData?.publicUrl;
   };
 
-  const isPending =
-    signupMutation.isSuccess &&
-    signupMutation.data?.user?.approvalStatus === ApprovalStatus.PENDING;
-
   const isImageUploaded = !!needsIdUpload ? !!selectedFile : true;
   const emailDebounced = useDebounce(formik.values.email, 300);
 
@@ -158,114 +132,94 @@ export function SignupPage() {
 
   return (
     <div className="min-h-screen bg-bg diad-vignette">
-      {/* Mobile: form first; desktop: explainer left, form right */}
+      {/* Mobile: form first; desktop: benefits / video / form */}
       <div className="flex flex-col lg:flex-row min-h-screen">
-        {/* Explainer — below form on mobile */}
-        <div className="order-2 lg:order-1 lg:w-1/2 flex flex-col justify-center px-4 sm:px-8 lg:px-16 py-10 lg:py-0">
+        {/* Why create an account — below form/video on mobile */}
+        <div className="order-3 lg:order-1 lg:w-[38%] flex flex-col justify-start px-4 sm:px-8 lg:pl-16 lg:pr-8 pt-8 lg:pt-16 pb-10">
           <div className="max-w-lg mx-auto lg:mx-0">
-            {/* Logo/Brand */}
-            <div className="flex items-center gap-2 mb-8">
-              <Link to={ROUTES.HOME} className="text-xl font-bold text-fg">
-                Death is a Deadline
-              </Link>
-            </div>
+            <Link to={ROUTES.HOME} className="inline-block mb-6">
+              <span className="font-serif text-lg sm:text-xl tracking-[0.14em] text-gold leading-none">
+                DEADLINE
+              </span>
+            </Link>
 
-            {/* Main Headline */}
             <h1 className="text-3xl lg:text-4xl font-bold text-fg mb-4">
               Why Create an Account?
             </h1>
             <p className="text-lg text-muted mb-8">
-              We verify student status to unlock exclusive hotel rates that
-              aren't available anywhere else.
+              We verify travelers to unlock exclusive hotel rates that aren't
+              available anywhere else.
             </p>
 
-            {/* Benefits List */}
-            <div className="space-y-6 mb-8">
-              <div className="flex items-start gap-4">
+            <div className="divide-y divide-line">
+              <div className="flex items-start gap-4 py-4 first:pt-0">
                 <div className="w-12 h-12 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
                   <GraduationCap className="w-6 h-6 text-brand" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-fg mb-1">Students Only</h3>
+                  <h3 className="font-semibold text-fg mb-1">
+                    Verified Travelers Only
+                  </h3>
                   <p className="text-sm text-muted">
-                    Hotels offer special rates exclusively for verified
-                    students. Your .edu email or student ID unlocks these deals.
+                    Exclusive marketplace access
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-4 py-4">
                 <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center shrink-0">
                   <DollarSign className="w-6 h-6 text-success" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-fg mb-1">Save Up to 60%</h3>
-                  <p className="text-sm text-muted">
-                    Name your price and get instant decisions. No haggling, no
-                    waiting — just real savings.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
-                  <Shield className="w-6 h-6 text-brand" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-fg mb-1">
                     No Risk Bidding
                   </h3>
                   <p className="text-sm text-muted">
-                    Your card is only charged if your bid is accepted. Rejected?
-                    No charge. Try again.
+                    Instant decisions. No charge for low bids
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-warning/20 flex items-center justify-center shrink-0">
-                  <Zap className="w-6 h-6 text-warning" />
+              <div className="flex items-start gap-4 py-4 last:pb-0">
+                <div className="w-12 h-12 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
+                  <Shield className="w-6 h-6 text-brand" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-fg mb-1">
-                    Instant Decisions
+                    Curated Marketplace
                   </h3>
-                  <p className="text-sm text-muted">
-                    Know immediately if your bid is accepted. No waiting for
-                    approval — book and go.
-                  </p>
+                  <p className="text-sm text-muted">Hyperlocal Indie hotels</p>
                 </div>
               </div>
-            </div>
-
-            {/* Quote */}
-            <div className="border-l-2 border-brand pl-4">
-              <p className="text-muted italic">
-                "Checkout is never guaranteed."
-              </p>
-              <p className="text-sm text-muted mt-1">— The Grim Keeper</p>
             </div>
           </div>
         </div>
 
+        {/* Video — between benefits and form on desktop, second on mobile */}
+        <div className="order-2 lg:order-2 lg:w-[27%] flex items-start justify-center px-4 py-6 lg:pt-16">
+          <div className="w-full max-w-xs aspect-[9/16] rounded-2xl overflow-hidden border border-line bg-glass shadow-glass">
+            <iframe
+              className="w-full h-full"
+              src="https://www.youtube.com/embed/QuKxi1AETqc"
+              title="How Deadline works"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+
         {/* Signup form — first on mobile */}
-        <div className="order-1 lg:order-2 lg:w-1/2 flex items-center justify-center px-4 py-8 sm:py-10 lg:py-0 bg-glass/30">
+        <div className="order-1 lg:order-3 lg:w-[35%] flex items-start justify-center px-4 py-8 sm:py-10 lg:pt-16 lg:pb-10 bg-glass/30">
           <Card className="w-full max-w-md bg-glass-2 border-line shadow-glass relative z-10">
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl font-bold text-center text-fg">
                 Create Account
               </CardTitle>
               <CardDescription className="text-center text-muted">
-                Sign up to start bidding on student accommodations
+                Sign up to continue bidding
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isPending && (
-                <div className="mb-4">
-                  <PendingApprovalAlert />
-                </div>
-              )}
-
               <form onSubmit={formik.handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-fg">
@@ -419,10 +373,7 @@ export function SignupPage() {
                   type={!isImageUploaded ? "button" : "submit"}
                   className="w-full btn-bid"
                   disabled={
-                    signupMutation.isPending ||
-                    isPending ||
-                    !isImageUploaded ||
-                    fileUpload
+                    signupMutation.isPending || !isImageUploaded || fileUpload
                   }
                 >
                   {signupMutation.isPending || fileUpload

@@ -8,6 +8,7 @@ import { StudentLayout } from "./layouts/StudentLayout";
 // Pages
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
+import { SignupSuccessPage } from "./pages/SignupSuccessPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { HomePage } from "./pages/HomePage";
@@ -55,6 +56,7 @@ const authRoutes = [
 const publicRoutes = [
   { path: ROUTES.UNAUTHORIZED, element: <UnauthorizedPage /> },
   { path: ROUTES.REDIRECT, element: <RedirectPage /> },
+  { path: ROUTES.SIGNUP_SUCCESS, element: <SignupSuccessPage /> },
   { path: ROUTES.TERMS, element: <TermsPage /> },
   { path: ROUTES.PRIVACY, element: <PrivacyPage /> },
   { path: ROUTES.ACCESSIBILITY, element: <AccessibilityPage /> },
