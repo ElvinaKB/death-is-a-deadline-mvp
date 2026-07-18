@@ -1079,6 +1079,15 @@
       padding: 0.875rem 1rem 1rem;
       padding-top: 3rem;
     }
+
+    /* Short hero on narrow screens: keep prev/next arrows clear of both
+       the pause button (top-right) and the bottom-anchored title/pill
+       text, instead of vertically centering into that text zone. */
+    .listing-detail-hero .listing-hero-carousel__nav--prev,
+    .listing-detail-hero .listing-hero-carousel__nav--next {
+      top: 3.5rem;
+      transform: none;
+    }
   }
 
   @media (min-width: 1024px) {
