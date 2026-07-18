@@ -971,8 +971,8 @@ function BidFormInner({
               // PAYMENT_FLOW_V2 START — trust Stripe confirm; poll best-effort
               try {
                 await pollPaymentUntilCaptured(paymentResult.payment.id, {
-                  maxPolls: 6,
-                  intervalMs: 800,
+                  maxPolls: 2,
+                  intervalMs: 500,
                 });
               } catch {
                 /* Stripe succeeded; webhook may still be catching up */
@@ -2746,8 +2746,8 @@ function OrphanBidPaymentRetry({
       }
       try {
         await pollPaymentUntilCaptured(paymentResult.payment.id, {
-          maxPolls: 6,
-          intervalMs: 800,
+          maxPolls: 2,
+          intervalMs: 500,
         });
       } catch {
         /* Stripe charge ok; webhook may lag */
