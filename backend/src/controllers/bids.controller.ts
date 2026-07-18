@@ -627,7 +627,7 @@ export async function updatePayout(req: Request, res: Response) {
           payoutMethod: bid.payoutMethod || null,
           payoutNotes: bid.payoutNotes || null,
           paidAt: format(new Date(), "MMM dd, yyyy 'at' h:mm a"),
-          appName: "Death Is A Deadline",
+          appName: "Deadline",
         },
       });
     } catch (emailError) {

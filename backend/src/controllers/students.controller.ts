@@ -115,7 +115,7 @@ export async function approveStudent(req: Request, res: Response) {
     subject: "Your student account has been approved!",
     variables: {
       name: student.name || student.email,
-      appName: process.env.EMAIL_NAME,
+      appName: "Deadline",
       loginUrl: `${process.env.CLIENT_URL}/login`,
     },
   });
@@ -151,7 +151,7 @@ export async function rejectStudent(req: Request, res: Response) {
     subject: "Your student account has been rejected!",
     variables: {
       name: student.name || student.email,
-      appName: process.env.EMAIL_NAME,
+      appName: "Deadline",
       loginUrl: `${process.env.CLIENT_URL}/resubmit?token=${token}`,
       rejectionReason: student.rejectionReason || reason || "",
     },

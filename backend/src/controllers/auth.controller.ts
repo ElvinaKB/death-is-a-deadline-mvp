@@ -236,7 +236,7 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
       type: EmailType.ACCOUNT_REVIEW,
       to: email,
       subject: "Your account is under review",
-      variables: { name, appName: "Student Bidding" },
+      variables: { name, appName: "Deadline" },
     });
   }
 
@@ -485,7 +485,7 @@ export async function linkedinComplete(req: Request, res: Response) {
     type: EmailType.ACCOUNT_REVIEW,
     to: email,
     subject: "Your account is under review",
-    variables: { name, appName: process.env.EMAIL_NAME || "Deadline" },
+    variables: { name, appName: "Deadline" },
   });
 
   res.status(201).json({

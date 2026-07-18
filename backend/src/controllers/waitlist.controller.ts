@@ -16,8 +16,6 @@ async function sendWaitlistWelcomeEmail(email: string) {
       marketplaceUrl: process.env.CLIENT_URL,
       referHotelUrl: `${process.env.CLIENT_URL}/contact`,
       instagramUrl: INSTAGRAM_URL,
-      tiktokUrl: "https://www.tiktok.com/@podshare",
-      linkedinUrl: "https://www.linkedin.com/company/deadline-travel",
     },
   });
 }
