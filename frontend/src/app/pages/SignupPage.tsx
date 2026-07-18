@@ -308,10 +308,7 @@ export function SignupPage() {
                   )}
                 </div>
 
-                {!(
-                  formik.values.email &&
-                  isAutoVerifiedEmail(formik.values.email)
-                ) && (
+                {needsIdUpload && (
                   <div className="space-y-3">
                     <Button
                       type="button"
@@ -330,7 +327,7 @@ export function SignupPage() {
                     </Button>
                     <div className="flex items-center gap-3 text-xs text-muted">
                       <div className="flex-1 h-px bg-line" />
-                      or continue below
+                      or upload an ID
                       <div className="flex-1 h-px bg-line" />
                     </div>
                   </div>
