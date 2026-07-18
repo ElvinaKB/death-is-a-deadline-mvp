@@ -8,6 +8,8 @@ export const ENDPOINTS = {
   RESUBMIT_ID: "/api/auth/resubmit",
   FORGOT_PASSWORD: "/api/auth/forgot-password",
   RESET_PASSWORD: "/api/auth/reset-password",
+  LINKEDIN_AUTHORIZE: "/api/auth/linkedin/authorize",
+  LINKEDIN_CALLBACK: "/api/auth/linkedin/callback",
 
   // Students
   STUDENTS_LIST: "/api/students",

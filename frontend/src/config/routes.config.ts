@@ -3,6 +3,7 @@ export const ROUTES = {
   LOGIN: "/login",
   SIGNUP: "/signup",
   SIGNUP_SUCCESS: "/signup/success",
+  LINKEDIN_CALLBACK: "/auth/linkedin/callback",
   HOTEL_SIGNUP: "/hotel/signup",
   RESUBMIT: "/resubmit",
   FORGOT_PASSWORD: "/forgot-password",

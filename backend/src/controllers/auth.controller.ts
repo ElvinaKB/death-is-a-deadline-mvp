@@ -11,11 +11,15 @@ import {
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import axios from "axios";
 import { prisma } from "../libs/config/prisma";
 import {
   consumeHotelInviteToken,
   validateHotelInviteToken,
 } from "../libs/utils/inviteToken";
+
+const LINKEDIN_REDIRECT_URI = `${process.env.CLIENT_URL}/auth/linkedin/callback`;
 
 export async function hotelSignup(
   req: Request,
@@ -261,6 +265,151 @@ export async function login(req: Request, res: Response, next: NextFunction) {
         refresh_token: data.refresh_token,
         expires_in: data.expires_in,
         token_type: data.token_type,
+      },
+    },
+  });
+}
+
+/**
+ * Redirect the browser to LinkedIn's OAuth consent screen. Kept server-side
+ * so the client ID/redirect URI live in one place (env vars) rather than
+ * being duplicated in frontend config.
+ */
+export async function linkedinAuthorize(req: Request, res: Response) {
+  if (!process.env.LINKEDIN_CLIENT_ID) {
+    throw new CustomError("LinkedIn sign-in is not configured yet.", 503);
+  }
+
+  const returnUrl =
+    typeof req.query.returnUrl === "string" ? req.query.returnUrl : "/";
+  const state = Buffer.from(JSON.stringify({ returnUrl })).toString(
+    "base64url",
+  );
+
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: process.env.LINKEDIN_CLIENT_ID,
+    redirect_uri: LINKEDIN_REDIRECT_URI,
+    scope: "openid profile email",
+    state,
+  });
+
+  res.redirect(`https://www.linkedin.com/oauth/v2/authorization?${params}`);
+}
+
+/**
+ * Exchange the LinkedIn authorization code for a verified email, then
+ * create-and-log-in (new accounts) using the same "pre-trusted email, skip
+ * confirmation" pattern as hotelSignup above. A verified LinkedIn account
+ * substitutes for the .edu/.gov/ID-upload requirement.
+ */
+export async function linkedinCallback(req: Request, res: Response) {
+  const { code } = req.body as { code: string };
+
+  if (!process.env.LINKEDIN_CLIENT_ID || !process.env.LINKEDIN_CLIENT_SECRET) {
+    throw new CustomError("LinkedIn sign-in is not configured yet.", 503);
+  }
+
+  let linkedinAccessToken: string;
+  try {
+    const tokenResponse = await axios.post(
+      "https://www.linkedin.com/oauth/v2/accessToken",
+      new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: LINKEDIN_REDIRECT_URI,
+        client_id: process.env.LINKEDIN_CLIENT_ID,
+        client_secret: process.env.LINKEDIN_CLIENT_SECRET,
+      }),
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" } },
+    );
+    linkedinAccessToken = tokenResponse.data.access_token;
+  } catch (error: any) {
+    throw new CustomError(
+      error?.response?.data?.error_description ||
+        "Could not verify your LinkedIn account. Please try again.",
+      400,
+    );
+  }
+
+  const { data: profile } = await axios.get(
+    "https://api.linkedin.com/v2/userinfo",
+    { headers: { Authorization: `Bearer ${linkedinAccessToken}` } },
+  );
+
+  const { email, email_verified: emailVerified, name } = profile as {
+    email?: string;
+    email_verified?: boolean;
+    name?: string;
+  };
+
+  if (!email || !emailVerified) {
+    throw new CustomError(
+      "Your LinkedIn account must have a verified email to sign up this way.",
+      400,
+    );
+  }
+
+  const { data: existingUser } = await supabase.rpc("get_user_by_email", {
+    email,
+  });
+  if (existingUser?.id) {
+    throw new CustomError(
+      "An account with this email already exists. Please log in with your email and password instead.",
+      409,
+    );
+  }
+
+  // Random password — never surfaced to the user; this account is only
+  // ever accessed via LinkedIn sign-in.
+  const password = crypto.randomBytes(24).toString("hex");
+
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp(
+    { email, password, options: { data: { name: name || email } } },
+  );
+  if (signUpError) throw new CustomError(signUpError.message, 400);
+
+  const userId = signUpData?.user?.id;
+  if (!userId) throw new CustomError("Failed to create account", 500);
+
+  const { error: metaError } = await supabase.auth.admin.updateUserById(
+    userId,
+    {
+      email_confirm: true,
+      user_metadata: {
+        name: name || email,
+        approvalStatus: ApprovalStatus.APPROVED,
+        verifiedVia: "linkedin",
+      },
+      role: UserRole.STUDENT,
+    },
+  );
+  if (metaError) {
+    await supabase.auth.admin.deleteUser(userId);
+    throw new CustomError(metaError.message, 400);
+  }
+
+  const { data: sessionData, error: sessionError } =
+    await supabase.auth.signInWithPassword({ email, password });
+  if (sessionError) throw new CustomError(sessionError.message, 400);
+
+  const session = sessionData?.session;
+
+  res.status(200).json({
+    message: "Signed in with LinkedIn",
+    data: {
+      user: {
+        id: userId,
+        email,
+        name: name || email,
+        role: UserRole.STUDENT,
+        approvalStatus: ApprovalStatus.APPROVED,
+      },
+      token: {
+        access_token: session?.access_token,
+        refresh_token: session?.refresh_token,
+        expires_in: session?.expires_in,
+        token_type: session?.token_type,
       },
     },
   });

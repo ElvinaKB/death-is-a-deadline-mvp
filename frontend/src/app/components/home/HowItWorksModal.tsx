@@ -24,7 +24,7 @@ export function HowItWorksModal({ triggerClassName }: HowItWorksModalProps) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           isClose
-          className="max-w-none w-screen h-screen !p-0 overflow-hidden !bg-black !border-none !shadow-none !rounded-none z-[100] flex items-center justify-center"
+          className="!max-w-none !w-screen !h-screen !p-0 overflow-hidden !bg-black !border-none !shadow-none !rounded-none z-[100] flex items-center justify-center"
         >
           <DialogTitle className="sr-only">How It Works</DialogTitle>
           <DialogDescription className="sr-only">
