@@ -152,7 +152,7 @@ export function SignupPage() {
             </Link>
 
             <h1 className="text-3xl lg:text-4xl font-bold text-fg mb-4">
-              Why Create an Account?
+              Members Only
             </h1>
             <p className="text-lg text-muted">
               We verify travelers to unlock exclusive hotel rates that aren't
@@ -167,7 +167,7 @@ export function SignupPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-fg mb-1">
-                  Verified Travelers Only
+                  Verified Travelers
                 </h3>
                 <p className="text-sm text-muted">
                   Exclusive marketplace access
@@ -308,28 +308,33 @@ export function SignupPage() {
                   )}
                 </div>
 
-                <div className="space-y-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full border-line bg-glass"
-                    onClick={() => {
-                      const params = new URLSearchParams();
-                      if (returnUrl) params.set("returnUrl", returnUrl);
-                      window.location.href = `${API_BASE_URL}${ENDPOINTS.LINKEDIN_AUTHORIZE}${
-                        params.toString() ? `?${params}` : ""
-                      }`;
-                    }}
-                  >
-                    <Linkedin className="w-4 h-4 mr-2" />
-                    Sign in with LinkedIn — skip ID upload
-                  </Button>
-                  <div className="flex items-center gap-3 text-xs text-muted">
-                    <div className="flex-1 h-px bg-line" />
-                    or continue below
-                    <div className="flex-1 h-px bg-line" />
+                {!(
+                  formik.values.email &&
+                  isAutoVerifiedEmail(formik.values.email)
+                ) && (
+                  <div className="space-y-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full border-line bg-glass"
+                      onClick={() => {
+                        const params = new URLSearchParams();
+                        if (returnUrl) params.set("returnUrl", returnUrl);
+                        window.location.href = `${API_BASE_URL}${ENDPOINTS.LINKEDIN_AUTHORIZE}${
+                          params.toString() ? `?${params}` : ""
+                        }`;
+                      }}
+                    >
+                      <Linkedin className="w-4 h-4 mr-2" />
+                      Sign in with LinkedIn — skip ID upload
+                    </Button>
+                    <div className="flex items-center gap-3 text-xs text-muted">
+                      <div className="flex-1 h-px bg-line" />
+                      or continue below
+                      <div className="flex-1 h-px bg-line" />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {needsIdUpload && (
                   <div className="space-y-2">
