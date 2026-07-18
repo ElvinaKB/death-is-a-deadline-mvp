@@ -42,6 +42,7 @@ const formatPlace = (
   slug: place.slug,
   name: place.name,
   email: place.email,
+  reservationPhone: place.reservationPhone,
   shortDescription: place.shortDescription,
   fullDescription: place.fullDescription,
   keywords: place.keywords || [],
@@ -499,6 +500,7 @@ export async function createPlace(req: Request, res: Response) {
       country: data.country,
       address: data.address,
       email: data.email ?? null,
+      reservationPhone: data.reservationPhone ?? null,
       latitude: data.latitude ?? null,
       longitude: data.longitude ?? null,
       accommodationType: data.accommodationType,
@@ -649,6 +651,9 @@ export async function updatePlace(req: Request, res: Response) {
       ...(data.country && { country: data.country }),
       ...(data.address && { address: data.address }),
       ...(data.email !== undefined && { email: data.email }),
+      ...(data.reservationPhone !== undefined && {
+        reservationPhone: data.reservationPhone,
+      }),
       ...(data.latitude !== undefined && { latitude: data.latitude }),
       ...(data.longitude !== undefined && { longitude: data.longitude }),
       ...(data.accommodationType && {

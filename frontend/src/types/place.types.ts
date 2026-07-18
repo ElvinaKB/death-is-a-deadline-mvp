@@ -25,6 +25,7 @@ export interface Place {
   country: string;
   address: string;
   email?: string | null;
+  reservationPhone?: string | null;
   keywords?: string[];
   latitude?: number;
   longitude?: number;
@@ -75,6 +76,7 @@ export interface CreatePlaceRequest {
   country: string;
   address: string;
   email?: string | null;
+  reservationPhone?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   images: File[];
@@ -121,6 +123,7 @@ export interface CreatePlacePayload {
   country: string;
   address: string;
   email?: string | null;
+  reservationPhone?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   images: { url: string; order: number }[];

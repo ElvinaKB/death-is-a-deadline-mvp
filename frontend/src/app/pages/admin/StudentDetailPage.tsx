@@ -390,54 +390,54 @@ export function StudentDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <Card className="glass-2 border-white/10">
-            <CardHeader>
-              <CardTitle className="text-fg">Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {student.approvalStatus === ApprovalStatus.PENDING && (
-                <>
-                  <Button
-                    className="w-full bg-success hover:bg-success/90 disabled:opacity-50"
-                    onClick={handleApprove}
-                    disabled={approveMutation.isPending || !student.emailConfirmedAt}
-                    title={!student.emailConfirmedAt ? "Student must verify their email before approval" : undefined}
-                  >
-                    <Check className="h-4 w-4 mr-2" />
-                    Approve Student
-                  </Button>
-                  {!student.emailConfirmedAt && (
-                    <p className="text-xs text-error text-center">
-                      Approval blocked — student has not verified their email
-                    </p>
-                  )}
-                  <Button
-                    variant="destructive"
-                    className="w-full"
-                    onClick={handleReject}
-                    disabled={rejectMutation.isPending}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Reject Student
-                  </Button>
-                </>
-              )}
-              {student.approvalStatus === ApprovalStatus.APPROVED && (
-                <div className="text-center py-4 text-sm text-muted">
-                  Student has been approved
-                </div>
-              )}
-              {student.approvalStatus === ApprovalStatus.REJECTED && (
+          {student.approvalStatus === ApprovalStatus.PENDING && (
+            <Card className="glass-2 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-fg">Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button
+                  className="w-full bg-success hover:bg-success/90 disabled:opacity-50"
+                  onClick={handleApprove}
+                  disabled={approveMutation.isPending || !student.emailConfirmedAt}
+                  title={!student.emailConfirmedAt ? "Student must verify their email before approval" : undefined}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Approve Student
+                </Button>
+                {!student.emailConfirmedAt && (
+                  <p className="text-xs text-error text-center">
+                    Approval blocked — student has not verified their email
+                  </p>
+                )}
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={handleReject}
+                  disabled={rejectMutation.isPending}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Reject Student
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {student.approvalStatus === ApprovalStatus.REJECTED && (
+            <Card className="glass-2 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-fg">Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="text-center py-4 text-sm text-muted">
                   Student has been rejected
-                  {/* show reason */}
                   {student.rejectionReason && (
                     <p className="mt-2 text-fg">{student.rejectionReason}</p>
                   )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="glass-2 border-white/10">
             <CardHeader>
