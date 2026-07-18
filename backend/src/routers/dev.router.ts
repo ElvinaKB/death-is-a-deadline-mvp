@@ -46,6 +46,8 @@ const defaultVariables: Record<EmailType, Record<string, any>> = {
     marketplaceUrl: "http://localhost:5173",
     referHotelUrl: "http://localhost:5173/contact",
     instagramUrl: "https://instagram.com/podshare",
+    tiktokUrl: "https://www.tiktok.com/@podshare",
+    linkedinUrl: "https://www.linkedin.com/company/142898679/admin/dashboard/",
   },
 };
 
