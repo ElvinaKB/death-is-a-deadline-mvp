@@ -109,7 +109,7 @@ export function SignupPage() {
     if (error) {
       setFileUpload(false);
       console.log(error);
-      toast.error(error.message || "Failed to upload student ID card");
+      toast.error(error.message || "Failed to upload supporting documentation");
       throw error;
     }
     // Get public URL
@@ -299,8 +299,8 @@ export function SignupPage() {
                           <AlertDescription className="text-brand-2 text-sm">
                             Instantly verify with .edu, .gov, and approved
                             partner organizations. Others need manual
-                            verification — upload your ID card or verify
-                            with LinkedIn below.
+                            verification — upload supporting documentation
+                            or verify with LinkedIn below.
                           </AlertDescription>
                         </Alert>
                       )}
@@ -336,7 +336,7 @@ export function SignupPage() {
                 {needsIdUpload && (
                   <div className="space-y-2">
                     <Label htmlFor="studentIdCard" className="text-fg">
-                      Government ID
+                      Upload Supporting Documentation
                     </Label>
                     <label
                       htmlFor="studentIdCard"
@@ -345,16 +345,22 @@ export function SignupPage() {
                       {selectedFile ? (
                         <img
                           src={URL.createObjectURL(selectedFile)}
-                          alt="Preview of uploaded government ID"
+                          alt="Preview of uploaded supporting documentation"
                           className="h-full w-full max-h-48 object-contain mx-auto"
                         />
                       ) : (
                         <>
                           <Upload className="h-8 w-8 mx-auto mb-2 text-muted" aria-hidden />
                           <p className="text-sm text-muted">
-                            Click or press Enter to upload government ID
+                            Click or press Enter to upload:
                           </p>
-                          <p className="text-xs text-muted mt-1">
+                          <ul className="text-sm text-muted mt-1 list-disc list-inside text-left inline-block">
+                            <li>Employee ID</li>
+                            <li>Student ID</li>
+                            <li>Government ID</li>
+                            <li>Professional license</li>
+                          </ul>
+                          <p className="text-xs text-muted mt-2">
                             PNG, JPG up to 5MB
                           </p>
                         </>
