@@ -41,6 +41,12 @@ const defaultVariables: Record<EmailType, Record<string, any>> = {
   [EmailType.PAYOUT_SENT]: { name: "Test User", appName: "EduBid", amount: "100.00" },
   [EmailType.HOTEL_INVITE]: { name: "Test Hotel", appName: "EduBid", inviteLink: "http://localhost:3000/invite" },
   [EmailType.HOTEL_PLACE_CREATED]: { name: "Test Hotel", appName: "EduBid", placeName: "Test Place" },
+  [EmailType.WAITLIST_WELCOME]: {
+    appName: "Deadline",
+    marketplaceUrl: "http://localhost:5173",
+    referHotelUrl: "http://localhost:5173/contact",
+    instagramUrl: "https://instagram.com/podshare",
+  },
 };
 
 router.post("/email", async (req: Request, res: Response) => {

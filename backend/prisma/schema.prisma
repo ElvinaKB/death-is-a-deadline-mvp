@@ -58,12 +58,14 @@ model NewsletterSubscriber {
 }
 
 model WaitlistSignup {
-  id        String   @id @default(uuid())
-  fullName  String   @map("full_name")
-  email     String   @unique
-  phone     String?
-  source    String?
-  createdAt DateTime @default(now()) @map("created_at")
+  id                String    @id @default(uuid())
+  fullName          String    @map("full_name")
+  email             String    @unique
+  phone             String?
+  source            String?
+  marketingConsent  Boolean   @default(true) @map("marketing_consent")
+  welcomeEmailSentAt DateTime? @map("welcome_email_sent_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
 
   @@map("waitlist_signups")
   @@schema("public")

@@ -7,6 +7,7 @@ import { ROUTES } from "../../config/routes.config";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { Checkbox } from "../components/ui/checkbox";
 import { isValidEmail } from "../../utils/emailValidator";
 import waitlistBackground from "../../assets/waitlist-background.jpg";
 
@@ -15,6 +16,7 @@ interface WaitlistRequest {
   email: string;
   phone?: string;
   source?: string;
+  marketingConsent: boolean;
 }
 
 export function WaitlistPage() {
@@ -22,6 +24,7 @@ export function WaitlistPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [source, setSource] = useState("");
+  const [marketingConsent, setMarketingConsent] = useState(true);
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -56,6 +59,7 @@ export function WaitlistPage() {
       email: email.trim(),
       phone: phone.trim() || undefined,
       source: source || undefined,
+      marketingConsent,
     });
   };
 
@@ -165,6 +169,22 @@ export function WaitlistPage() {
                   onChange={(e) => setSource(e.target.value)}
                   className="bg-glass border-line text-fg placeholder:text-muted"
                 />
+              </div>
+
+              <div className="flex items-start gap-2 pt-1">
+                <Checkbox
+                  id="marketingConsent"
+                  checked={marketingConsent}
+                  onCheckedChange={(checked) => setMarketingConsent(checked === true)}
+                  className="mt-0.5"
+                />
+                <Label
+                  htmlFor="marketingConsent"
+                  className="text-xs font-normal leading-snug text-muted"
+                >
+                  I&apos;d like to receive Deadline launch updates and exclusive
+                  hotel offers by email.
+                </Label>
               </div>
 
               {formError && (
