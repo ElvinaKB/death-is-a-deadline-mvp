@@ -10,6 +10,8 @@ export interface Student {
   createdAt: string;
   updatedAt: string;
   emailConfirmedAt?: string | null;
+  banned?: boolean;
+  banReason?: string | null;
 }
 
 export interface StudentsListResponse {

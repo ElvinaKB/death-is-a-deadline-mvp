@@ -8,6 +8,7 @@ import { StudentLayout } from "./layouts/StudentLayout";
 // Pages
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
+import { SignupSuccessPage } from "./pages/SignupSuccessPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { HomePage } from "./pages/HomePage";
@@ -30,6 +31,7 @@ import { ResubmitPage } from "./pages/ResubmitPage";
 import { PlaceFormPage } from "./pages/admin/PlaceFormPage";
 import { PlacesListPage } from "./pages/admin/PlacesListPage";
 import { BidsListPage } from "./pages/admin/BidsListPage";
+import { NewsletterSubscribersPage } from "./pages/admin/NewsletterSubscribersPage";
 import { PlaceTestimonialsPage } from "./pages/admin/PlaceTestimonialsPage";
 import { HotelBidsPage } from "./pages/hotel/HotelBidsListPage";
 import { HotelPlaceFormPage } from "./pages/hotel/HotelPlaceFormPage";
@@ -56,6 +58,7 @@ const authRoutes = [
 const publicRoutes = [
   { path: ROUTES.UNAUTHORIZED, element: <UnauthorizedPage /> },
   { path: ROUTES.REDIRECT, element: <RedirectPage /> },
+  { path: ROUTES.SIGNUP_SUCCESS, element: <SignupSuccessPage /> },
   { path: ROUTES.TERMS, element: <TermsPage /> },
   { path: ROUTES.PRIVACY, element: <PrivacyPage /> },
   { path: ROUTES.ACCESSIBILITY, element: <AccessibilityPage /> },
@@ -107,6 +110,7 @@ const protectedRoutes = [
         element: <PlaceTestimonialsPage />,
       },
       { path: ROUTES.ADMIN_BIDS, element: <BidsListPage /> },
+      { path: ROUTES.ADMIN_NEWSLETTER, element: <NewsletterSubscribersPage /> },
     ],
   },
 ];

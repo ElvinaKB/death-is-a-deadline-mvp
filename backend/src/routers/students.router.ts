@@ -40,4 +40,18 @@ router.post(
   studentsController.rejectStudent
 );
 
+// POST /api/students/:id/ban
+router.post(
+  "/:id/ban",
+  validate(studentApproveRejectSchema, "params"),
+  studentsController.banStudent
+);
+
+// POST /api/students/:id/unban
+router.post(
+  "/:id/unban",
+  validate(studentApproveRejectSchema, "params"),
+  studentsController.unbanStudent
+);
+
 export { router };

@@ -14,6 +14,8 @@ export const ENDPOINTS = {
   STUDENT_DETAIL: "/api/students/:id",
   STUDENT_APPROVE: "/api/students/:id/approve",
   STUDENT_REJECT: "/api/students/:id/reject",
+  STUDENT_BAN: "/api/students/:id/ban",
+  STUDENT_UNBAN: "/api/students/:id/unban",
   STUDENT_UPLOAD_ID: "/api/students/upload-id",
   STUDENTS_STATS: "/api/students/stats",
 
@@ -67,6 +69,10 @@ export const ENDPOINTS = {
 
   // Contact
   CONTACT: "/api/contact",
+
+  // Newsletter
+  NEWSLETTER_SUBSCRIBE: "/api/newsletter/subscribe",
+  NEWSLETTER_SUBSCRIBERS: "/api/newsletter",
 
   // Review Platforms
   REVIEW_PLATFORMS_LIST: "/api/testimonials/review-platforms",

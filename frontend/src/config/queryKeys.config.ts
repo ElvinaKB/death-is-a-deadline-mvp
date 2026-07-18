@@ -18,6 +18,9 @@ export const QUERY_KEYS = {
   // Testimonials & Review Platforms
   TESTIMONIALS: "testimonials",
   REVIEW_PLATFORMS: "reviewPlatforms",
+
+  // Newsletter
+  NEWSLETTER_SUBSCRIBERS: "newsletterSubscribers",
 } as const;
 
 export const createQueryKey = (
