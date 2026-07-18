@@ -10,6 +10,7 @@ import { useApiMutation } from "../../hooks/useApi";
 import { ENDPOINTS } from "../../config/endpoints.config";
 import { ROUTES } from "../../config/routes.config";
 import { SignupRequest, AuthResponse } from "../../types/auth.types";
+import { API_BASE_URL } from "../../lib/apiClient";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { PasswordInput } from "../components/ui/password-input";
@@ -22,7 +23,14 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { Alert, AlertDescription } from "../components/ui/alert";
-import { Upload, AlertCircle, GraduationCap, Shield, DollarSign } from "lucide-react";
+import {
+  Upload,
+  AlertCircle,
+  GraduationCap,
+  Shield,
+  DollarSign,
+  Linkedin,
+} from "lucide-react";
 import { toast } from "sonner";
 import { SUPABASE_BUCKET } from "../../lib/constants";
 import { useDebounce } from "../../hooks/useDebounce";
@@ -291,12 +299,36 @@ export function SignupPage() {
                           <AlertDescription className="text-brand-2 text-sm">
                             Instantly verify with .edu, .gov, and approved
                             partner organizations. Others need manual
-                            verification — please upload your ID card.
+                            verification — please upload your ID card, or
+                            sign in with LinkedIn below for instant approval.
                           </AlertDescription>
                         </Alert>
                       )}
                     </>
                   )}
+                </div>
+
+                <div className="space-y-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-line bg-glass"
+                    onClick={() => {
+                      const params = new URLSearchParams();
+                      if (returnUrl) params.set("returnUrl", returnUrl);
+                      window.location.href = `${API_BASE_URL}${ENDPOINTS.LINKEDIN_AUTHORIZE}${
+                        params.toString() ? `?${params}` : ""
+                      }`;
+                    }}
+                  >
+                    <Linkedin className="w-4 h-4 mr-2" />
+                    Sign in with LinkedIn — skip ID upload
+                  </Button>
+                  <div className="flex items-center gap-3 text-xs text-muted">
+                    <div className="flex-1 h-px bg-line" />
+                    or continue below
+                    <div className="flex-1 h-px bg-line" />
+                  </div>
                 </div>
 
                 {needsIdUpload && (

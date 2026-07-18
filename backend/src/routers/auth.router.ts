@@ -6,6 +6,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   hotelSignupSchema,
+  linkedinCallbackSchema,
 } from "../validations/auth/auth.validation";
 import {
   signup,
@@ -14,6 +15,8 @@ import {
   forgotPassword,
   resetPassword,
   hotelSignup,
+  linkedinAuthorize,
+  linkedinCallback,
 } from "../controllers/auth.controller";
 import { validate } from "../libs/middlewares/validate";
 
@@ -25,5 +28,11 @@ router.post("/login", validate(loginSchema), login);
 router.post("/resubmit", validate(resubmitSchema), resubmit);
 router.post("/forgot-password", validate(forgotPasswordSchema), forgotPassword);
 router.post("/reset-password", validate(resetPasswordSchema), resetPassword);
+router.get("/linkedin/authorize", linkedinAuthorize);
+router.post(
+  "/linkedin/callback",
+  validate(linkedinCallbackSchema),
+  linkedinCallback,
+);
 
 export { router };
