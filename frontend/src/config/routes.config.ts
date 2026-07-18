@@ -35,7 +35,6 @@ export const ROUTES = {
   ADMIN_PLACES_TESTIMONIALS: "/admin/places/:id/testimonials",
   ADMIN_BIDS: "/admin/bids",
   ADMIN_NEWSLETTER: "/admin/newsletter",
-  ADMIN_WAITLIST: "/admin/waitlist",
 
   // Legal
   TERMS: "/terms",

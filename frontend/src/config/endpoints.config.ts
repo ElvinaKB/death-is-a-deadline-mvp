@@ -81,7 +81,6 @@ export const ENDPOINTS = {
 
   // Waitlist
   WAITLIST_JOIN: "/api/waitlist",
-  WAITLIST_SIGNUPS: "/api/waitlist",
 
   // Review Platforms
   REVIEW_PLATFORMS_LIST: "/api/testimonials/review-platforms",

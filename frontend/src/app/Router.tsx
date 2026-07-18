@@ -44,7 +44,6 @@ import { PrivacyPage } from "./pages/legal/PrivacyPage";
 import { AccessibilityPage } from "./pages/legal/AccessibilityPage";
 import { ContactPage } from "./pages/ContactPage";
 import { WaitlistPage } from "./pages/WaitlistPage";
-import { WaitlistSignupsPage } from "./pages/admin/WaitlistSignupsPage";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 // Auth routes (redirect to protected base if already authenticated)
@@ -116,7 +115,6 @@ const protectedRoutes = [
       },
       { path: ROUTES.ADMIN_BIDS, element: <BidsListPage /> },
       { path: ROUTES.ADMIN_NEWSLETTER, element: <NewsletterSubscribersPage /> },
-      { path: ROUTES.ADMIN_WAITLIST, element: <WaitlistSignupsPage /> },
     ],
   },
 ];

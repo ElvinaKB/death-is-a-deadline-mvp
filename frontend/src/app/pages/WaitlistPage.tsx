@@ -7,14 +7,8 @@ import { ROUTES } from "../../config/routes.config";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
 import { isValidEmail } from "../../utils/emailValidator";
+import waitlistBackground from "../../assets/waitlist-background.jpg";
 
 interface WaitlistRequest {
   fullName: string;
@@ -22,17 +16,6 @@ interface WaitlistRequest {
   phone?: string;
   source?: string;
 }
-
-const HEAR_ABOUT_OPTIONS = [
-  { value: "instagram", label: "Instagram" },
-  { value: "tiktok", label: "TikTok" },
-  { value: "linkedin", label: "LinkedIn" },
-  { value: "friend_referral", label: "Friend or referral" },
-  { value: "hotel_partner", label: "A hotel partner" },
-  { value: "conference_event", label: "Conference or event" },
-  { value: "google_search", label: "Google search" },
-  { value: "other", label: "Other" },
-];
 
 export function WaitlistPage() {
   const [fullName, setFullName] = useState("");
@@ -98,50 +81,51 @@ export function WaitlistPage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg diad-vignette flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full">
-        <Link to={ROUTES.HOME} className="flex justify-center mb-8">
-          <span className="font-serif text-xl tracking-[0.14em] text-gold leading-none">
+    <div
+      className="relative min-h-screen h-screen overflow-y-auto bg-cover bg-center bg-fixed flex items-center justify-center px-4 py-4"
+      style={{ backgroundImage: `url(${waitlistBackground})` }}
+    >
+      <div className="absolute inset-0 bg-black/60 pointer-events-none" />
+      <div className="relative max-w-md w-full">
+        <Link to={ROUTES.HOME} className="flex justify-center mb-3">
+          <span className="font-serif text-lg tracking-[0.14em] text-gold leading-none">
             DEADLINE
           </span>
         </Link>
 
         {!submitted ? (
-          <div className="bg-glass-2 border border-line rounded-2xl shadow-glass p-6 sm:p-8">
-            <h1 className="text-3xl font-bold text-fg text-center mb-6">
+          <div className="bg-glass-2 border border-line rounded-2xl shadow-glass p-4 sm:p-6">
+            <h1 className="text-2xl font-bold text-fg text-center mb-2">
               Join the Waitlist
             </h1>
 
-            <div className="text-center mb-8 space-y-2">
-              <p className="text-xl font-bold">
+            <div className="text-center mb-4 space-y-1">
+              <p className="text-lg font-bold">
                 <span className="text-fg">Guess the price. </span>
                 <span className="text-gold">Win the room.</span>
               </p>
-              <p className="text-muted">
+              <p className="text-muted text-sm">
                 Be the first to access private hotel pricing from
                 independent hotels.
               </p>
-              <p className="text-muted">
-                Join thousands of verified travelers waiting for launch.
-              </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              <div className="space-y-2">
+            <form onSubmit={handleSubmit} className="space-y-3" noValidate>
+              <div className="space-y-1">
                 <Label htmlFor="fullName" className="text-fg">
                   Full Name
                 </Label>
                 <Input
                   id="fullName"
                   type="text"
-                  placeholder="John Doe"
+                  placeholder="Carrie Bradshaw"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="bg-glass border-line text-fg placeholder:text-muted"
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="email" className="text-fg">
                   Email
                 </Label>
@@ -155,7 +139,7 @@ export function WaitlistPage() {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="phone" className="text-fg">
                   Phone # <span className="text-muted font-normal">(optional)</span>
                 </Label>
@@ -169,22 +153,18 @@ export function WaitlistPage() {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="source" className="text-fg">
                   Where did you hear about us?
                 </Label>
-                <Select value={source} onValueChange={setSource}>
-                  <SelectTrigger id="source" className="bg-glass border-line text-fg">
-                    <SelectValue placeholder="Select one" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {HEAR_ABOUT_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="source"
+                  type="text"
+                  placeholder="Instagram, a friend, Google..."
+                  value={source}
+                  onChange={(e) => setSource(e.target.value)}
+                  className="bg-glass border-line text-fg placeholder:text-muted"
+                />
               </div>
 
               {formError && (
