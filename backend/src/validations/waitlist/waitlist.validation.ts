@@ -5,6 +5,7 @@ export const waitlistSignupSchema = z.object({
   email: z.string().email("Valid email is required"),
   phone: z.string().max(30).optional(),
   source: z.string().max(200).optional(),
+  marketingConsent: z.boolean().optional().default(true),
 });
 
 export type WaitlistSignupRequest = z.infer<typeof waitlistSignupSchema>;
