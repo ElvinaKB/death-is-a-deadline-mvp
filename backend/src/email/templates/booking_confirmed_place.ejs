@@ -1,75 +1,29 @@
-<%- include('./partials/layout-start', {
+<%- include('./partials/deadline-head', {
   title: 'New Booking Received',
-  appName: appName,
-  badgeBg: '#eff6ff',
-  badgeColor: '#1d4ed8',
-  badgeText: 'New Booking',
   heading: 'You have a new guest!',
-  preheader: 'New booking at ' + placeName + ' from ' + studentName + '.'
+  badgeText: 'New Booking'
 }) %>
 
-<p style="margin: 0 0 16px;">Hello,</p>
-<p style="margin: 0 0 16px;">
-  Great news — you have received a new confirmed booking for
-  <strong style="color: #111111;"><%= placeName %></strong>.
-  The guest's payment has been pre-authorized and will be captured upon check-in.
-</p>
+<p class="intro">Hello,</p>
 
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 8px 0 24px; border: 1px solid #f0ebe3; border-radius: 10px; overflow: hidden;">
-  <tr>
-    <td colspan="2" class="details-header" style="background-color: #faf8f4; padding: 14px 20px; border-bottom: 1px solid #f0ebe3;">
-      <p style="margin: 0; font-size: 13px; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: 0.6px;">
-        Booking Details
-      </p>
-    </td>
-  </tr>
-  <tr>
-    <td class="detail-label" style="padding: 13px 20px; font-size: 14px; color: #6b7280; border-bottom: 1px solid #f5f0e8; width: 42%;">Guest</td>
-    <td class="detail-value" style="padding: 13px 20px; font-size: 14px; color: #374151; font-weight: 500; border-bottom: 1px solid #f5f0e8; text-align: right; word-break: break-word;"><%= studentName %></td>
-  </tr>
-  <tr>
-    <td class="detail-label" style="padding: 13px 20px; font-size: 14px; color: #6b7280; border-bottom: 1px solid #f5f0e8;">Guest Email</td>
-    <td class="detail-value" style="padding: 13px 20px; font-size: 14px; color: #374151; font-weight: 500; border-bottom: 1px solid #f5f0e8; text-align: right; word-break: break-all;"><%= studentEmail %></td>
-  </tr>
-  <tr>
-    <td class="detail-label" style="padding: 13px 20px; font-size: 14px; color: #6b7280; border-bottom: 1px solid #f5f0e8;">Check-in</td>
-    <td class="detail-value" style="padding: 13px 20px; font-size: 14px; color: #374151; font-weight: 500; border-bottom: 1px solid #f5f0e8; text-align: right;"><%= checkInDate %></td>
-  </tr>
-  <tr>
-    <td class="detail-label" style="padding: 13px 20px; font-size: 14px; color: #6b7280; border-bottom: 1px solid #f5f0e8;">Check-out</td>
-    <td class="detail-value" style="padding: 13px 20px; font-size: 14px; color: #374151; font-weight: 500; border-bottom: 1px solid #f5f0e8; text-align: right;"><%= checkOutDate %></td>
-  </tr>
-  <tr>
-    <td class="detail-label" style="padding: 13px 20px; font-size: 14px; color: #6b7280; border-bottom: 1px solid #f5f0e8;">Total Nights</td>
-    <td class="detail-value" style="padding: 13px 20px; font-size: 14px; color: #374151; font-weight: 500; border-bottom: 1px solid #f5f0e8; text-align: right;"><%= totalNights %></td>
-  </tr>
-  <tr>
-    <td class="detail-label" style="padding: 13px 20px; font-size: 14px; color: #6b7280; border-bottom: 1px solid #f5f0e8;">Price per Night</td>
-    <td class="detail-value" style="padding: 13px 20px; font-size: 14px; color: #374151; font-weight: 500; border-bottom: 1px solid #f5f0e8; text-align: right;">$<%= bidPerNight %></td>
-  </tr>
-  <tr>
-    <td class="detail-label detail-label-last" style="padding: 13px 20px; font-size: 14px; color: #6b7280;">Total Amount</td>
-    <td class="detail-value detail-value-last" style="padding: 13px 20px; font-size: 16px; color: #e5a823; font-weight: 700; text-align: right;">$<%= totalAmount %></td>
-  </tr>
+<p>Great news &mdash; you have received a new confirmed booking for <strong><%= placeName %></strong>. The guest's payment has been pre-authorized and will be captured upon check-in.</p>
+
+<table class="detail-table" role="presentation" cellpadding="0" cellspacing="0" border="0">
+  <tr><td class="label">Guest</td><td class="value"><%= studentName %></td></tr>
+  <tr><td class="label">Guest Email</td><td class="value"><%= studentEmail %></td></tr>
+  <tr><td class="label">Check-in</td><td class="value"><%= checkInDate %></td></tr>
+  <tr><td class="label">Check-out</td><td class="value"><%= checkOutDate %></td></tr>
+  <tr><td class="label">Total Nights</td><td class="value"><%= totalNights %></td></tr>
+  <tr><td class="label">Price per Night</td><td class="value">$<%= bidPerNight %></td></tr>
+  <tr class="total-row"><td>Total Amount</td><td class="value">$<%= totalAmount %></td></tr>
 </table>
 
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 0 0 28px; background-color: #ecfdf5; border-left: 4px solid #16a34a; border-radius: 0 8px 8px 0;">
-  <tr>
-    <td class="callout-cell" style="padding: 16px 20px;">
-      <p style="margin: 0 0 6px; font-size: 13px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.4px;">
-        Payment Status
-      </p>
-      <p style="margin: 0; font-size: 14px; color: #14532d; line-height: 1.55;">
-        Pre-authorized. Payment will be captured upon guest check-in.
-      </p>
-    </td>
-  </tr>
-</table>
+<div class="success-box">
+  <strong>Payment Status:</strong> Pre-authorized. Payment will be captured upon guest check-in.
+</div>
 
-<%- include('./partials/cta-button', { url: dashboardUrl, label: 'View Dashboard' }) %>
+<%- include('./partials/deadline-button', { url: dashboardUrl, label: 'View Dashboard' }) %>
 
-<p style="margin: 0; font-size: 15px; color: #6b7280; text-align: center;">
-  Thank you for partnering with <%= appName %>!
-</p>
+<p style="text-align: center; color: #6b7280;">Thank you for partnering with <%= appName %>!</p>
 
-<%- include('./partials/layout-end', { appName: appName }) %>
+<%- include('./partials/deadline-foot', { appName: appName }) %>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+        .header {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            padding: 48px 40px;
+            text-align: center;
+            color: #ffffff;
+        }
+        .header .badge {
+            display: inline-block;
+            margin-bottom: 14px;
+            padding: 5px 14px;
+            border-radius: 100px;
+            background-color: rgba(255, 255, 255, 0.18);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1.25;
+        }
+        .content {
+            padding: 40px;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+        .content p {
+            margin: 0 0 16px;
+        }
+        .content h3 {
+            font-size: 17px;
+            font-weight: 700;
+            color: #111827;
+            margin: 28px 0 12px;
+        }
+        .intro {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 24px;
+        }
+        .feature-box {
+            background-color: #f3f4f6;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+        .reason-box {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            border-radius: 0 8px 8px 0;
+            padding: 16px 20px;
+            margin: 24px 0;
+            color: #991b1b;
+        }
+        .success-box {
+            background-color: #ecfdf5;
+            border-left: 4px solid #10b981;
+            border-radius: 0 8px 8px 0;
+            padding: 16px 20px;
+            margin: 24px 0;
+            color: #065f46;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+            margin: 24px 0;
+        }
+        .checklist li {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+        .check-icon {
+            color: #10b981;
+            margin-right: 12px;
+            font-weight: bold;
+        }
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 24px 0;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .detail-table th {
+            background-color: #f9fafb;
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #6b7280;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .detail-table td {
+            padding: 12px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid #f3f4f6;
+            color: #374151;
+        }
+        .detail-table tr:last-child td {
+            border-bottom: none;
+        }
+        .detail-table .label {
+            color: #6b7280;
+            width: 42%;
+        }
+        .detail-table .value {
+            text-align: right;
+            font-weight: 500;
+            word-break: break-word;
+        }
+        .detail-table .total-row td {
+            font-weight: 700;
+            color: #111827;
+            font-size: 16px;
+            background-color: #f9fafb;
+        }
+        .property-card {
+            background-color: #f3f4f6;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin: 24px 0;
+        }
+        .property-card .label {
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        .property-card .name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 2px;
+        }
+        .property-card .location {
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .signature {
+            margin-top: 40px;
+            font-size: 16px;
+            color: #1f2937;
+        }
+        .signature .sign-off {
+            margin: 0 0 4px;
+        }
+        .signature .sign-name {
+            margin: 0;
+            font-style: italic;
+            color: #4b5563;
+        }
+        .cta-wrapper {
+            text-align: center;
+            padding: 8px 0 4px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #6366f1;
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 700;
+            margin: 12px 0;
+        }
+        .divider {
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 32px 0;
+        }
+        .footer {
+            background-color: #0d0d0d;
+            padding: 40px;
+            text-align: center;
+        }
+        .footer-wordmark {
+            font-size: 30px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            color: #ffffff;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+        .footer-social {
+            margin: 20px 0;
+        }
+        .footer-social a {
+            display: inline-block;
+            margin: 0 8px;
+        }
+        .footer-social img {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+        }
+        .footer p {
+            font-size: 13px;
+            color: #9ca3af;
+            line-height: 1.6;
+            margin: 4px 0;
+        }
+        @media only screen and (max-width: 600px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            .header, .content, .footer {
+                padding: 32px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <% if (typeof badgeText !== 'undefined' && badgeText) { %>
+            <div class="badge"><%= badgeText %></div>
+            <% } %>
+            <h1><%= heading %></h1>
+        </div>
+        <div class="content">

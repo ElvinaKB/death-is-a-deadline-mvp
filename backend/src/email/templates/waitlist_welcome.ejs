@@ -1,202 +1,49 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to <%= appName %></title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            background-color: #f9fafb;
-            color: #1f2937;
-        }
-        .container {
-            max-width: 600px;
-            margin: 40px auto;
-            background-color: #ffffff;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        }
-        .header {
-            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            padding: 48px 40px;
-            text-align: center;
-            color: #ffffff;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 32px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-        }
-        .content {
-            padding: 40px;
-            line-height: 1.6;
-            font-size: 16px;
-        }
-        .intro {
-            font-size: 18px;
-            font-weight: 500;
-            margin-bottom: 24px;
-        }
-        .feature-box {
-            background-color: #f3f4f6;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-        }
-        .checklist {
-            list-style: none;
-            padding: 0;
-            margin: 24px 0;
-        }
-        .checklist li {
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-        }
-        .check-icon {
-            color: #10b981;
-            margin-right: 12px;
-            font-weight: bold;
-        }
-        .button {
-            display: inline-block;
-            background-color: #6366f1;
-            color: #ffffff;
-            text-decoration: none;
-            padding: 16px 32px;
-            border-radius: 8px;
-            font-weight: 700;
-            margin: 12px 0;
-        }
-        .signature {
-            margin-top: 48px;
-            font-size: 16px;
-            color: #1f2937;
-        }
-        .signature .sign-off {
-            margin: 0 0 4px;
-        }
-        .signature .sign-name {
-            margin: 0;
-            font-style: italic;
-            color: #4b5563;
-        }
-        .divider {
-            height: 1px;
-            background-color: #e5e7eb;
-            margin: 32px 0;
-        }
-        .footer {
-            background-color: #0d0d0d;
-            padding: 40px;
-            text-align: center;
-        }
-        .footer-wordmark {
-            font-size: 30px;
-            font-weight: 900;
-            letter-spacing: -0.5px;
-            color: #ffffff;
-            text-transform: uppercase;
-            margin-bottom: 16px;
-        }
-        .footer-social {
-            margin: 20px 0;
-        }
-        .footer-social a {
-            display: inline-block;
-            margin: 0 8px;
-        }
-        .footer-social img {
-            width: 20px;
-            height: 20px;
-            vertical-align: middle;
-        }
-        .footer p {
-            font-size: 13px;
-            color: #9ca3af;
-            line-height: 1.6;
-            margin: 4px 0;
-        }
-        @media only screen and (max-width: 600px) {
-            .container {
-                margin: 0;
-                border-radius: 0;
-            }
-            .header, .content, .footer {
-                padding: 32px 24px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>You're officially on the list.</h1>
-        </div>
+<%- include('./partials/deadline-head', {
+  title: "You're in. Welcome to " + appName + ".",
+  heading: "You're officially on the list."
+}) %>
 
-        <!-- Content -->
-        <div class="content">
-            <p class="intro">Thanks for joining <%= appName %>.</p>
+<p class="intro">Thanks for joining <%= appName %>.</p>
 
-            <p>We're building a <strong>private marketplace</strong> where verified travelers guess the hotel's secret price to win the room.</p>
+<p>We're building a <strong>private marketplace</strong> where verified travelers guess the hotel's secret price to win the room.</p>
 
-            <p>Unlike public discounts, hotels never reveal their minimum price—so they can fill empty rooms without hurting their brand.</p>
+<p>Unlike public discounts, hotels never reveal their minimum price—so they can fill empty rooms without hurting their brand.</p>
 
-            <div class="feature-box">
-                Today, a handful of independent hotels are already accepting bids, and we're adding more every week.
-            </div>
+<div class="feature-box">
+  Today, a handful of independent hotels are already accepting bids, and we're adding more every week.
+</div>
 
-            <p>As we grow, you'll be the first to know when:</p>
-            <ul class="checklist">
-                <li><span class="check-icon">✓</span> New hotels join</li>
-                <li><span class="check-icon">✓</span> Launch parties</li>
-                <li><span class="check-icon">✓</span> Exclusive discounts</li>
-            </ul>
+<p>As we grow, you'll be the first to know when:</p>
+<ul class="checklist">
+  <li><span class="check-icon">✓</span> New hotels join</li>
+  <li><span class="check-icon">✓</span> Launch parties</li>
+  <li><span class="check-icon">✓</span> Exclusive discounts</li>
+</ul>
 
-            <div class="divider"></div>
+<p>In the meantime&hellip;</p>
 
-            <p><strong>Ready to play?</strong></p>
-            <p>Browse the hotels already accepting bids.</p>
-            <a href="<%= marketplaceUrl %>" class="button">→ Start Bidding</a>
+<div class="divider"></div>
 
-            <div class="divider"></div>
+<p><strong>Ready to play?</strong></p>
+<p>Browse the hotels already accepting bids.</p>
+<%- include('./partials/deadline-button', { url: marketplaceUrl, label: 'Start Bidding' }) %>
 
-            <h3>Follow the journey</h3>
-            <p>We're documenting the launch in real time.</p>
-            <a href="<%= instagramUrl %>" class="button">→ Follow us on Instagram</a>
+<div class="divider"></div>
 
-            <div class="divider"></div>
+<h3>Follow the journey</h3>
+<p>We're documenting the launch in real time.</p>
+<%- include('./partials/deadline-button', { url: instagramUrl, label: 'Follow us on Instagram' }) %>
 
-            <h3>One favor</h3>
-            <p>Is there an indie hotel you'd love to see on here?</p>
-            <p>Simply forward this email to the owner or GM—or introduce us directly. Every hotel that joins makes the marketplace better for everyone.</p>
-            <a href="<%= referHotelUrl %>" class="button">→ Refer a Hotel</a>
+<div class="divider"></div>
 
-            <div class="signature">
-                <p class="sign-off">Let's goooo!</p>
-                <p class="sign-name">- Elvina</p>
-            </div>
-        </div>
+<h3>One favor</h3>
+<p>Is there an indie hotel you'd love to see on here?</p>
+<p>Simply forward this email to the owner or GM&mdash;or introduce us directly. Every hotel that joins makes the marketplace better for everyone.</p>
+<%- include('./partials/deadline-button', { url: referHotelUrl, label: 'Refer a Hotel' }) %>
 
-        <!-- Footer -->
-        <div class="footer">
-            <div class="footer-wordmark">Deadline</div>
-            <div class="footer-social">
-                <a href="<%= tiktokUrl %>"><img src="https://cdn.simpleicons.org/tiktok/ffffff" alt="TikTok" /></a>
-                <a href="<%= instagramUrl %>"><img src="https://cdn.simpleicons.org/instagram/ffffff" alt="Instagram" /></a>
-                <a href="<%= linkedinUrl %>" style="display: inline-block; margin: 0 8px; vertical-align: middle;">
-                  <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LinkedIn"><path fill="#ffffff" d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-                </a>
-            </div>
-            <p><%= new Date().getFullYear() %> Deadline, all rights reserved.</p>
-            <p>1617 Cosmo Street Suite 102<br>Los Angeles, CA 90028</p>
-        </div>
-    </div>
-</body>
-</html>
+<div class="signature">
+  <p class="sign-off">Let's goooo!</p>
+  <p class="sign-name">- Elvina</p>
+</div>
+
+<%- include('./partials/deadline-foot', { appName: appName }) %>

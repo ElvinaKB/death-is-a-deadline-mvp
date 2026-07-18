@@ -574,6 +574,7 @@ async function notifyHotelOnPlaceCreated({
         placeCity,
         placeCountry,
         dashboardUrl: `${APP_URL}/hotel/dashboard`,
+        appName: "Deadline",
       },
     });
   } else {
@@ -584,13 +585,14 @@ async function notifyHotelOnPlaceCreated({
     await sendEmail({
       type: EmailType.HOTEL_INVITE,
       to: placeEmail,
-      subject: `You're invited to list ${placeName} on Death is a Deadline`,
+      subject: `You're invited to list ${placeName} on Deadline`,
       variables: {
         placeName,
         placeCity,
         placeCountry,
         inviteUrl,
         expiryDays: HOTEL_INVITE_EXPIRY_DAYS,
+        appName: "Deadline",
       },
     });
   }
@@ -814,13 +816,14 @@ export async function resendHotelInvite(req: Request, res: Response) {
   await sendEmail({
     type: EmailType.HOTEL_INVITE,
     to: place.email,
-    subject: `You're invited to list ${place.name} on Death is a Deadline`,
+    subject: `You're invited to list ${place.name} on Deadline`,
     variables: {
       placeName: place.name,
       placeCity: place.city,
       placeCountry: place.country,
       inviteUrl,
       expiryDays: HOTEL_INVITE_EXPIRY_DAYS,
+      appName: "Deadline",
     },
   });
 

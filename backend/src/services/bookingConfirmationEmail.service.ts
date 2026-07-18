@@ -26,7 +26,7 @@ export async function sendBookingConfirmationEmails(
   const place = bid.place;
   const student = payment.student;
 
-  const appName = process.env.EMAIL_NAME || "Death is a Deadline";
+  const appName = "Deadline";
   const clientUrl = process.env.CLIENT_URL || "";
   const placeFullAddress = [place.address, place.city, place.country]
     .filter(Boolean)
