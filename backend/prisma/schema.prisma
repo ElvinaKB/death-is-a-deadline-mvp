@@ -54,6 +54,18 @@ model NewsletterSubscriber {
   @@schema("public")
 }
 
+model WaitlistSignup {
+  id        String   @id @default(uuid())
+  fullName  String   @map("full_name")
+  email     String   @unique
+  phone     String?
+  source    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("waitlist_signups")
+  @@schema("public")
+}
+
 model Testimonial {
   id         String   @id @default(uuid())
   place      Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
