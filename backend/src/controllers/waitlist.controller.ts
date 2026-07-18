@@ -13,11 +13,12 @@ export async function joinWaitlist(req: Request, res: Response) {
   });
 
   // Waitlist signups are also newsletter subscribers — one list to email,
-  // instead of maintaining two separate subscriber sets.
+  // instead of maintaining two separate subscriber sets. Carry the extra
+  // waitlist fields over so they're visible from the Newsletter admin view.
   await prisma.newsletterSubscriber.upsert({
     where: { email: normalizedEmail },
-    update: {},
-    create: { email: normalizedEmail },
+    update: { fullName, phone, source },
+    create: { email: normalizedEmail, fullName, phone, source },
   });
 
   res.json({ success: true, message: "You're on the list!" });
