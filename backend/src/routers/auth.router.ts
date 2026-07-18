@@ -7,6 +7,7 @@ import {
   resetPasswordSchema,
   hotelSignupSchema,
   linkedinCallbackSchema,
+  linkedinCompleteSchema,
 } from "../validations/auth/auth.validation";
 import {
   signup,
@@ -17,6 +18,7 @@ import {
   hotelSignup,
   linkedinAuthorize,
   linkedinCallback,
+  linkedinComplete,
 } from "../controllers/auth.controller";
 import { validate } from "../libs/middlewares/validate";
 
@@ -33,6 +35,11 @@ router.post(
   "/linkedin/callback",
   validate(linkedinCallbackSchema),
   linkedinCallback,
+);
+router.post(
+  "/linkedin/complete",
+  validate(linkedinCompleteSchema),
+  linkedinComplete,
 );
 
 export { router };

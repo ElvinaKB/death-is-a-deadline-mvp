@@ -299,8 +299,8 @@ export function SignupPage() {
                           <AlertDescription className="text-brand-2 text-sm">
                             Instantly verify with .edu, .gov, and approved
                             partner organizations. Others need manual
-                            verification — please upload your ID card, or
-                            sign in with LinkedIn below for instant approval.
+                            verification — upload your ID card or verify
+                            with LinkedIn below.
                           </AlertDescription>
                         </Alert>
                       )}
@@ -323,7 +323,7 @@ export function SignupPage() {
                       }}
                     >
                       <Linkedin className="w-4 h-4 mr-2" />
-                      Sign in with LinkedIn — skip ID upload
+                      Verify with LinkedIn instead
                     </Button>
                     <div className="flex items-center gap-3 text-xs text-muted">
                       <div className="flex-1 h-px bg-line" />

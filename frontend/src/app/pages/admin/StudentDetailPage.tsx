@@ -324,6 +324,28 @@ export function StudentDetailPage() {
             </CardContent>
           </Card>
 
+          {student.linkedinProfileUrl && (
+            <Card className="glass-2 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-fg">LinkedIn Verification</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted mb-3">
+                  LinkedIn confirmed this person owns the email above.
+                  Click through to review their profile before approving.
+                </p>
+                <a
+                  href={student.linkedinProfileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 text-brand hover:underline font-medium break-all"
+                >
+                  {student.linkedinProfileUrl}
+                </a>
+              </CardContent>
+            </Card>
+          )}
+
           {student.studentIdUrl && (
             <Card className="glass-2 border-white/10">
               <CardHeader>

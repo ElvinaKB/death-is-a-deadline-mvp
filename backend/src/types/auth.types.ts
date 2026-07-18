@@ -44,5 +44,7 @@ export interface RawUser extends SupabaseUser {
     rejectionReason?: string;
     banned?: boolean;
     banReason?: string | null;
+    linkedinProfileUrl?: string | null;
+    verifiedVia?: string;
   };
 }

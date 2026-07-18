@@ -12,6 +12,8 @@ export interface Student {
   emailConfirmedAt?: string | null;
   banned?: boolean;
   banReason?: string | null;
+  linkedinProfileUrl?: string | null;
+  verifiedVia?: string | null;
 }
 
 export interface StudentsListResponse {
