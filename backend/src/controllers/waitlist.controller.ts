@@ -12,10 +12,12 @@ async function sendWaitlistWelcomeEmail(email: string) {
     to: email,
     subject: "🎉 You're in. Welcome to Deadline.",
     variables: {
-      appName: process.env.EMAIL_NAME || "Deadline",
+      appName: "Deadline",
       marketplaceUrl: process.env.CLIENT_URL,
       referHotelUrl: `${process.env.CLIENT_URL}/contact`,
       instagramUrl: INSTAGRAM_URL,
+      tiktokUrl: "https://www.tiktok.com/@podshare",
+      linkedinUrl: "https://www.linkedin.com/company/142898679/admin/dashboard/",
     },
   });
 }
