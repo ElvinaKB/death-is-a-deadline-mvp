@@ -91,4 +91,23 @@ export async function sendBookingConfirmationEmails(
       console.error("Failed to send place confirmation email:", error);
     }
   }
+
+  // Internal copy of every confirmed booking — a backstop in case a hotel's
+  // email is missing, wrong, or gets missed, so someone at Deadline always
+  // has a record and can follow up directly if needed.
+  const internalCopyInbox =
+    process.env.BOOKING_COPY_INBOX_EMAIL || "deadline@podshare.com";
+  try {
+    await sendEmail({
+      type: EmailType.BOOKING_CONFIRMED_PLACE,
+      to: internalCopyInbox,
+      subject: `[Booking Copy] ${place.name} — ${student.email || "guest"}`,
+      variables: {
+        ...baseVariables,
+        dashboardUrl: `${clientUrl}/admin/bids`,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to send internal booking copy email:", error);
+  }
 }

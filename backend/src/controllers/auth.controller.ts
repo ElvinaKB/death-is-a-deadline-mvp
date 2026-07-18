@@ -21,6 +21,41 @@ import {
 
 const LINKEDIN_REDIRECT_URI = `${process.env.CLIENT_URL}/auth/linkedin/callback`;
 
+// LinkedIn proves someone owns this email and has a LinkedIn account —
+// it does NOT prove employment or that the email isn't a free consumer
+// provider (LinkedIn accounts can be made with any Gmail address). Block
+// the same free-domain providers here that would otherwise require ID
+// verification, so LinkedIn can't be used to bypass that policy.
+const FREE_EMAIL_DOMAINS = [
+  "gmail.com",
+  "googlemail.com",
+  "yahoo.com",
+  "yahoo.co.uk",
+  "hotmail.com",
+  "outlook.com",
+  "live.com",
+  "msn.com",
+  "aol.com",
+  "icloud.com",
+  "me.com",
+  "mac.com",
+  "comcast.net",
+  "verizon.net",
+  "att.net",
+  "sbcglobal.net",
+  "protonmail.com",
+  "proton.me",
+  "gmx.com",
+  "mail.com",
+  "yandex.com",
+  "zoho.com",
+];
+
+function isFreeEmailDomain(email: string): boolean {
+  const domain = email.toLowerCase().split("@")[1] ?? "";
+  return FREE_EMAIL_DOMAINS.includes(domain);
+}
+
 export async function hotelSignup(
   req: Request,
   res: Response,
@@ -346,6 +381,13 @@ export async function linkedinCallback(req: Request, res: Response) {
   if (!email || !emailVerified) {
     throw new CustomError(
       "Your LinkedIn account must have a verified email to sign up this way.",
+      400,
+    );
+  }
+
+  if (isFreeEmailDomain(email)) {
+    throw new CustomError(
+      "LinkedIn sign-in is for work/professional emails only. Personal email providers (Gmail, Yahoo, etc.) still require ID verification — please sign up with your email and upload a government ID instead.",
       400,
     );
   }
