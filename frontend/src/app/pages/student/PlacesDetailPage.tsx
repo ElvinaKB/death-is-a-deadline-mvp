@@ -262,33 +262,26 @@ export function PlaceDetailPage() {
                   </span>
                 </button>
               )}
-              <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2">
-                <div className="rounded-lg bg-black/70 px-3 py-2 text-right backdrop-blur-sm">
-                  <p className="flex items-center justify-end gap-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-muted">
-                    Retail price
-                    <Info className="h-3 w-3 text-gold/80" aria-hidden />
+              <button
+                type="button"
+                onClick={() => openGallery(heroSlideIndex)}
+                className="absolute bottom-4 right-4 z-10 rounded-lg bg-black/70 px-4 py-2 text-right backdrop-blur-sm hover:bg-black/80"
+                aria-label="Open photo gallery"
+              >
+                <p className="flex items-center justify-end gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                  Retail price
+                  <Info className="h-3 w-3 text-gold/80" aria-hidden />
+                </p>
+                <p className="font-serif text-2xl leading-tight text-fg sm:text-3xl md:text-4xl">
+                  {formatCurrency(place.retailPrice)}
+                </p>
+                {bookingNights > 0 && (
+                  <p className="hidden text-xs text-muted sm:block">
+                    {formatCurrency(retailTotal)} for {bookingNights} night
+                    {bookingNights !== 1 ? "s" : ""}
                   </p>
-                  <p className="text-lg font-semibold leading-tight text-fg sm:text-xl">
-                    {formatCurrency(place.retailPrice)}
-                  </p>
-                  {bookingNights > 0 && (
-                    <p className="hidden text-[10px] text-muted sm:block">
-                      {formatCurrency(retailTotal)} for {bookingNights} night
-                      {bookingNights !== 1 ? "s" : ""}
-                    </p>
-                  )}
-                </div>
-                {allImages.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => openGallery(heroSlideIndex)}
-                    className="rounded-lg bg-black/70 px-3 py-1.5 text-xs text-fg backdrop-blur-sm hover:bg-black/80"
-                    aria-label={`Open photo gallery, image ${heroSlideIndex + 1} of ${allImages.length}`}
-                  >
-                    {heroSlideIndex + 1} / {allImages.length}
-                  </button>
                 )}
-              </div>
+              </button>
               <div className="listing-hero-overlay pointer-events-none absolute inset-0 flex flex-col justify-end p-4 pt-14 sm:p-5 sm:pt-16 md:p-6 md:pt-20">
                 <span className="listing-type-pill w-fit mb-3">
                   {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
