@@ -289,10 +289,9 @@ export function SignupPage() {
                         <Alert className="border-brand/30 bg-brand/10">
                           <AlertCircle className="h-4 w-4 text-brand" />
                           <AlertDescription className="text-brand-2 text-sm">
-                            Certain domains (.edu, .gov, and approved partner
-                            organizations) are approved automatically. Others
-                            need manual verification — please upload your ID
-                            card.
+                            Instantly verify with .edu, .gov, and approved
+                            partner organizations. Others need manual
+                            verification — please upload your ID card.
                           </AlertDescription>
                         </Alert>
                       )}
@@ -303,7 +302,7 @@ export function SignupPage() {
                 {needsIdUpload && (
                   <div className="space-y-2">
                     <Label htmlFor="studentIdCard" className="text-fg">
-                      Student ID Card
+                      Government ID
                     </Label>
                     <label
                       htmlFor="studentIdCard"
@@ -312,14 +311,14 @@ export function SignupPage() {
                       {selectedFile ? (
                         <img
                           src={URL.createObjectURL(selectedFile)}
-                          alt="Preview of uploaded student ID card"
+                          alt="Preview of uploaded government ID"
                           className="h-full w-full max-h-48 object-contain mx-auto"
                         />
                       ) : (
                         <>
                           <Upload className="h-8 w-8 mx-auto mb-2 text-muted" aria-hidden />
                           <p className="text-sm text-muted">
-                            Click or press Enter to upload student ID card
+                            Click or press Enter to upload government ID
                           </p>
                           <p className="text-xs text-muted mt-1">
                             PNG, JPG up to 5MB
