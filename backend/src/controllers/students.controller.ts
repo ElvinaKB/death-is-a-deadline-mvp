@@ -19,6 +19,8 @@ export const getRawStudent = (item: RawUser) => ({
   emailConfirmedAt: item.email_confirmed_at ?? null,
   banned: item.raw_user_meta_data?.banned ?? false,
   banReason: item.raw_user_meta_data?.banReason ?? null,
+  linkedinProfileUrl: item.raw_user_meta_data?.linkedinProfileUrl ?? null,
+  verifiedVia: item.raw_user_meta_data?.verifiedVia ?? null,
 });
 
 export const getStudentDetails = async (id: string) => {

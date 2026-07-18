@@ -11,7 +11,6 @@ import {
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
 import jwt from "jsonwebtoken";
-import crypto from "crypto";
 import axios from "axios";
 import { prisma } from "../libs/config/prisma";
 import {
@@ -333,10 +332,11 @@ export async function linkedinAuthorize(req: Request, res: Response) {
 }
 
 /**
- * Exchange the LinkedIn authorization code for a verified email, then
- * create-and-log-in (new accounts) using the same "pre-trusted email, skip
- * confirmation" pattern as hotelSignup above. A verified LinkedIn account
- * substitutes for the .edu/.gov/ID-upload requirement.
+ * Exchange the LinkedIn authorization code for a verified email/name.
+ * Doesn't create an account yet — LinkedIn proves email ownership, not
+ * identity or employment, so this still goes through the same manual
+ * admin review as an ID-upload signup. Returns a short-lived signed
+ * token carrying the verified email/name for the completion step below.
  */
 export async function linkedinCallback(req: Request, res: Response) {
   const { code } = req.body as { code: string };
@@ -402,12 +402,59 @@ export async function linkedinCallback(req: Request, res: Response) {
     );
   }
 
-  // Random password — never surfaced to the user; this account is only
-  // ever accessed via LinkedIn sign-in.
-  const password = crypto.randomBytes(24).toString("hex");
+  const verificationToken = jwt.sign(
+    { email, name: name || email },
+    process.env.JWT_SECRET ?? "jwt_secret",
+    { expiresIn: "15m" },
+  );
+
+  res.status(200).json({
+    message: "LinkedIn account verified",
+    data: { email, name: name || email, verificationToken },
+  });
+}
+
+/**
+ * Second step: set a password and submit a LinkedIn profile URL (LinkedIn's
+ * API doesn't hand us a public profile link, so we ask for it directly).
+ * Creates the account PENDING, same as an ID-upload signup — an admin
+ * reviews the profile link and approves/rejects it from the dashboard.
+ */
+export async function linkedinComplete(req: Request, res: Response) {
+  const { verificationToken, password, linkedinProfileUrl } = req.body as {
+    verificationToken: string;
+    password: string;
+    linkedinProfileUrl: string;
+  };
+
+  let email: string;
+  let name: string;
+  try {
+    const decoded = jwt.verify(
+      verificationToken,
+      process.env.JWT_SECRET ?? "jwt_secret",
+    ) as { email: string; name: string };
+    email = decoded.email;
+    name = decoded.name;
+  } catch {
+    throw new CustomError(
+      "Your LinkedIn verification has expired. Please try again.",
+      400,
+    );
+  }
+
+  const { data: existingUser } = await supabase.rpc("get_user_by_email", {
+    email,
+  });
+  if (existingUser?.id) {
+    throw new CustomError(
+      "An account with this email already exists. Please log in with your email and password instead.",
+      409,
+    );
+  }
 
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp(
-    { email, password, options: { data: { name: name || email } } },
+    { email, password, options: { data: { name } } },
   );
   if (signUpError) throw new CustomError(signUpError.message, 400);
 
@@ -417,10 +464,13 @@ export async function linkedinCallback(req: Request, res: Response) {
   const { error: metaError } = await supabase.auth.admin.updateUserById(
     userId,
     {
+      // Email ownership already proven via LinkedIn OAuth — skip Supabase's
+      // own confirmation email, but admin approval is still required.
       email_confirm: true,
       user_metadata: {
-        name: name || email,
-        approvalStatus: ApprovalStatus.APPROVED,
+        name,
+        approvalStatus: ApprovalStatus.PENDING,
+        linkedinProfileUrl,
         verifiedVia: "linkedin",
       },
       role: UserRole.STUDENT,
@@ -431,29 +481,16 @@ export async function linkedinCallback(req: Request, res: Response) {
     throw new CustomError(metaError.message, 400);
   }
 
-  const { data: sessionData, error: sessionError } =
-    await supabase.auth.signInWithPassword({ email, password });
-  if (sessionError) throw new CustomError(sessionError.message, 400);
+  await sendEmail({
+    type: EmailType.ACCOUNT_REVIEW,
+    to: email,
+    subject: "Your account is under review",
+    variables: { name, appName: process.env.EMAIL_NAME || "Deadline" },
+  });
 
-  const session = sessionData?.session;
-
-  res.status(200).json({
-    message: "Signed in with LinkedIn",
-    data: {
-      user: {
-        id: userId,
-        email,
-        name: name || email,
-        role: UserRole.STUDENT,
-        approvalStatus: ApprovalStatus.APPROVED,
-      },
-      token: {
-        access_token: session?.access_token,
-        refresh_token: session?.refresh_token,
-        expires_in: session?.expires_in,
-        token_type: session?.token_type,
-      },
-    },
+  res.status(201).json({
+    message: "Account created. Verify your LinkedIn profile to continue.",
+    data: { user: { approvalStatus: ApprovalStatus.PENDING } },
   });
 }
 
