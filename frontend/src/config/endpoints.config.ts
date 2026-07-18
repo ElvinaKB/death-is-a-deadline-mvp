@@ -77,6 +77,10 @@ export const ENDPOINTS = {
   NEWSLETTER_SUBSCRIBE: "/api/newsletter/subscribe",
   NEWSLETTER_SUBSCRIBERS: "/api/newsletter",
 
+  // Waitlist
+  WAITLIST_JOIN: "/api/waitlist",
+  WAITLIST_SIGNUPS: "/api/waitlist",
+
   // Review Platforms
   REVIEW_PLATFORMS_LIST: "/api/testimonials/review-platforms",
   REVIEW_PLATFORM_CREATE: "/api/testimonials/review-platforms",

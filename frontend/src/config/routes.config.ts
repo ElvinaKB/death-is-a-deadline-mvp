@@ -10,6 +10,7 @@ export const ROUTES = {
   RESET_PASSWORD: "/reset-password",
 
   HOME: "/",
+  WAITLIST: "/waitlist",
   PUBLIC_PLACE_DETAIL: "/student/marketplace/:slug",
 
   // Student routes
@@ -34,6 +35,7 @@ export const ROUTES = {
   ADMIN_PLACES_TESTIMONIALS: "/admin/places/:id/testimonials",
   ADMIN_BIDS: "/admin/bids",
   ADMIN_NEWSLETTER: "/admin/newsletter",
+  ADMIN_WAITLIST: "/admin/waitlist",
 
   // Legal
   TERMS: "/terms",

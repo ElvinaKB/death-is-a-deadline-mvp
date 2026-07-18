@@ -21,6 +21,9 @@ export const QUERY_KEYS = {
 
   // Newsletter
   NEWSLETTER_SUBSCRIBERS: "newsletterSubscribers",
+
+  // Waitlist
+  WAITLIST_SIGNUPS: "waitlistSignups",
 } as const;
 
 export const createQueryKey = (
