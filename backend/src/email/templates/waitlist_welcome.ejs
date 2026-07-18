@@ -1,179 +1,185 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>You're in. Welcome to Deadline.</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: Georgia, 'Times New Roman', serif;
-      background-color: #0d0d0d;
-      color: #e8e2d9;
-      padding: 40px 16px;
-    }
-    .wrapper {
-      max-width: 560px;
-      margin: 0 auto;
-      background-color: #141414;
-      border: 1px solid #2a2a2a;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .header {
-      background-color: #1a1a1a;
-      border-bottom: 1px solid #2a2a2a;
-      padding: 32px 40px;
-      text-align: center;
-    }
-    .header .brand {
-      font-size: 15px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: #c9a96e;
-      margin-bottom: 12px;
-    }
-    .header h1 {
-      font-size: 22px;
-      font-weight: normal;
-      color: #f0ebe3;
-      line-height: 1.3;
-    }
-    .body {
-      padding: 36px 40px;
-    }
-    .body p {
-      font-size: 15px;
-      line-height: 1.7;
-      color: #b0a899;
-      margin-bottom: 16px;
-    }
-    .body h2 {
-      font-size: 17px;
-      font-weight: normal;
-      color: #f0ebe3;
-      margin: 28px 0 12px;
-    }
-    .checklist {
-      list-style: none;
-      margin: 0 0 16px;
-      padding: 0;
-    }
-    .checklist li {
-      font-size: 15px;
-      line-height: 1.9;
-      color: #d8d1c5;
-    }
-    .cta-wrapper {
-      text-align: center;
-      margin: 28px 0;
-    }
-    .cta {
-      display: inline-block;
-      background-color: #c9a96e;
-      color: #0d0d0d;
-      font-family: Georgia, serif;
-      font-size: 14px;
-      font-weight: bold;
-      letter-spacing: 0.05em;
-      text-decoration: none;
-      padding: 14px 36px;
-      border-radius: 4px;
-    }
-    .cta.secondary {
-      background-color: transparent;
-      color: #c9a96e;
-      border: 1px solid #c9a96e;
-    }
-    .divider {
-      border: none;
-      border-top: 1px solid #2a2a2a;
-      margin: 28px 0;
-    }
-    .footer {
-      padding: 20px 40px 28px;
-      text-align: center;
-    }
-    .footer p {
-      font-size: 12px;
-      color: #4a4540;
-      line-height: 1.6;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to <%= appName %></title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+        .header {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            padding: 48px 40px;
+            text-align: center;
+            color: #ffffff;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        .logo-text {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 12px;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 40px;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+        .intro {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 24px;
+        }
+        .feature-box {
+            background-color: #f3f4f6;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+            margin: 24px 0;
+        }
+        .checklist li {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+        .check-icon {
+            color: #10b981;
+            margin-right: 12px;
+            font-weight: bold;
+        }
+        .cta-section {
+            text-align: center;
+            padding: 20px 0;
+            border-top: 1px solid #f3f4f6;
+            margin-top: 32px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #6366f1;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 700;
+            margin: 12px 0;
+            transition: transform 0.2s ease;
+        }
+        .button-secondary {
+            background-color: transparent;
+            border: 2px solid #6366f1;
+            color: #6366f1;
+        }
+        .footer {
+            background-color: #f9fafb;
+            padding: 32px 40px;
+            text-align: center;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .divider {
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 32px 0;
+        }
+        .social-links {
+            margin-top: 16px;
+        }
+        .social-links a {
+            color: #6b7280;
+            text-decoration: underline;
+            margin: 0 8px;
+        }
+        @media only screen and (max-width: 600px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            .header, .content, .footer {
+                padding: 32px 24px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="wrapper">
-    <div class="header">
-      <p class="brand">Deadline</p>
-      <h1>You&rsquo;re officially on the list.</h1>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-text"><%= appName %></div>
+            <h1>You're officially on the list.</h1>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <p class="intro">Thanks for joining <%= appName %>.</p>
+
+            <p>We're building a <strong>private marketplace</strong> where verified travelers guess the hotel's secret price to win the room.</p>
+
+            <p>Unlike public discounts, hotels never reveal their minimum price—so they can fill empty rooms without hurting their brand.</p>
+
+            <div class="feature-box">
+                Today, a handful of independent hotels are already accepting bids, and we're adding more every week.
+            </div>
+
+            <p>As we grow, you'll be the first to know when:</p>
+            <ul class="checklist">
+                <li><span class="check-icon">✓</span> New hotels join</li>
+                <li><span class="check-icon">✓</span> Launch parties</li>
+                <li><span class="check-icon">✓</span> Exclusive discounts</li>
+            </ul>
+
+            <div class="divider"></div>
+
+            <p><strong>Ready to play?</strong></p>
+            <p>Browse the hotels already accepting bids.</p>
+            <a href="<%= marketplaceUrl %>" class="button">→ Start Bidding</a>
+
+            <div class="divider"></div>
+
+            <h3>Follow the journey</h3>
+            <p>We're documenting the launch in real time.</p>
+            <a href="<%= instagramUrl %>" class="button button-secondary">→ Follow us on Instagram</a>
+
+            <div class="divider"></div>
+
+            <h3>One favor</h3>
+            <p>Is there an independent hotel you'd love to see on <%= appName %>?</p>
+            <p>Simply forward this email to the owner or GM—or introduce us directly. Every hotel that joins makes the marketplace better for everyone.</p>
+            <a href="<%= referHotelUrl %>" class="button button-secondary">→ Refer a Hotel</a>
+
+            <p style="margin-top: 48px; font-size: 18px; font-weight: 600;">Let's goooo!<br>Elvina</p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><%= appName %> — Life is short. Travel now.</p>
+            <div class="social-links">
+                <a href="<%= marketplaceUrl %>">Website</a>
+                <a href="<%= instagramUrl %>">Instagram</a>
+            </div>
+        </div>
     </div>
-
-    <div class="body">
-      <p>Thanks for joining Deadline.</p>
-
-      <p>
-        We&rsquo;re building a private marketplace where verified travelers guess
-        the hotel&rsquo;s secret price to win the room.
-      </p>
-
-      <p>
-        Unlike public discounts, hotels never reveal their minimum price&mdash;so
-        they can fill empty rooms without hurting their brand.
-      </p>
-
-      <p>
-        Today, a handful of independent hotels are already accepting bids, and
-        we&rsquo;re adding more every week.
-      </p>
-
-      <p>As we grow, you&rsquo;ll be the first to know when:</p>
-
-      <ul class="checklist">
-        <li>&#9989; New hotels join</li>
-        <li>&#9989; Launch parties</li>
-        <li>&#9989; Exclusive discounts</li>
-      </ul>
-
-      <p>In the meantime&hellip;</p>
-
-      <h2>Ready to play?</h2>
-      <p>Browse the hotels already accepting bids.</p>
-
-      <div class="cta-wrapper">
-        <a href="<%= marketplaceUrl %>" class="cta">Start Bidding</a>
-      </div>
-
-      <hr class="divider" />
-
-      <h2>Follow the journey</h2>
-      <p>We&rsquo;re documenting the launch in real time.</p>
-
-      <div class="cta-wrapper">
-        <a href="<%= instagramUrl %>" class="cta secondary">Follow us on Instagram</a>
-      </div>
-
-      <hr class="divider" />
-
-      <h2>One favor</h2>
-      <p>Is there an independent hotel you&rsquo;d love to see on Deadline?</p>
-      <p>
-        Simply forward this email to the owner or GM&mdash;or introduce us
-        directly. Every hotel that joins makes the marketplace better for
-        everyone.
-      </p>
-
-      <div class="cta-wrapper">
-        <a href="<%= referHotelUrl %>" class="cta secondary">Refer a Hotel</a>
-      </div>
-
-      <hr class="divider" />
-
-      <p>Let&rsquo;s goooo!</p>
-    </div>
-
-    <div class="footer">
-      <p><%= appName %> &mdash; Life is short. Travel now.</p>
-    </div>
-  </div>
 </body>
 </html>
