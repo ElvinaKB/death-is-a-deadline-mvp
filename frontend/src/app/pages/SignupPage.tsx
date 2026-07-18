@@ -236,7 +236,7 @@ export function SignupPage() {
                   <Input
                     id="name"
                     type="text"
-                    placeholder="John Doe"
+                    placeholder="Carrie Bradshaw"
                     autoComplete="name"
                     aria-invalid={!!getFieldError("name", formik)}
                     aria-describedby={getFieldDescribedBy("name", formik)}
