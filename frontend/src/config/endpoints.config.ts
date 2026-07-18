@@ -16,6 +16,7 @@ export const ENDPOINTS = {
   STUDENTS_LIST: "/api/students",
   STUDENT_CREATE: "/api/students",
   STUDENT_DETAIL: "/api/students/:id",
+  STUDENT_LOGIN_EVENTS: "/api/students/:id/login-events",
   STUDENT_APPROVE: "/api/students/:id/approve",
   STUDENT_REJECT: "/api/students/:id/reject",
   STUDENT_BAN: "/api/students/:id/ban",

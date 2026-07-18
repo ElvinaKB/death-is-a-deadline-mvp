@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { supabase } from "../libs/config/supabase";
+import { prisma } from "../libs/config/prisma";
 import { CustomError } from "../libs/utils/CustomError";
 import { User } from "@supabase/supabase-js";
 import { RawUser } from "../types/auth.types";
@@ -58,6 +59,39 @@ export async function getStudentDetail(req: Request, res: Response) {
   const { id } = req.params;
   const student = await getStudentDetails(id);
   res.status(200).json({ data: { student } });
+}
+
+/**
+ * Admin-only: every successful login for this student, pulled from the
+ * existing request audit log (no separate tracking needed — the login
+ * endpoint's response already carries the user id, IP, and user agent).
+ */
+export async function getStudentLoginEvents(req: Request, res: Response) {
+  const { id } = req.params;
+
+  const events = await prisma.auditLog.findMany({
+    where: {
+      path: "/api/auth/login",
+      statusCode: 200,
+      responseBody: {
+        path: ["data", "user", "id"],
+        equals: id,
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true, ipAddress: true, userAgent: true },
+    take: 50,
+  });
+
+  res.status(200).json({
+    data: {
+      events: events.map((e) => ({
+        loggedInAt: e.createdAt,
+        ipAddress: e.ipAddress,
+        userAgent: e.userAgent,
+      })),
+    },
+  });
 }
 
 export async function approveStudent(req: Request, res: Response) {

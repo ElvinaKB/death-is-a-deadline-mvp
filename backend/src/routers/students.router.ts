@@ -30,6 +30,13 @@ router.get(
   studentsController.getStudentDetail
 );
 
+// GET /api/students/:id/login-events
+router.get(
+  "/:id/login-events",
+  validate(studentIdParamSchema, "params"),
+  studentsController.getStudentLoginEvents
+);
+
 // POST /api/students/:id/approve
 router.post(
   "/:id/approve",
