@@ -3,9 +3,11 @@ import { supabase } from "../libs/config/supabase";
 import { CustomError } from "../libs/utils/CustomError";
 import { User } from "@supabase/supabase-js";
 import { RawUser } from "../types/auth.types";
+import { ApprovalStatus, UserRole } from "../types/auth.types";
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 export const getRawStudent = (item: RawUser) => ({
   id: item.id,
@@ -152,6 +154,78 @@ export async function unbanStudent(req: Request, res: Response) {
   if (error) throw new CustomError(error.message, 400);
 
   res.status(200).json({ message: "Traveler unbanned" });
+}
+
+/**
+ * Admin-only: manually add an already-verified traveler (e.g. a friend
+ * bypassing normal ID/LinkedIn verification). Creates the account
+ * pre-approved and sends them a password-setup email — same flow as a
+ * self-service "forgot password" — so they can actually log in.
+ */
+export async function addStudent(req: Request, res: Response) {
+  const { name, email, linkedinProfileUrl } = req.body as {
+    name: string;
+    email: string;
+    linkedinProfileUrl?: string;
+  };
+
+  const { data: existingUser } = await supabase.rpc("get_user_by_email", {
+    email,
+  });
+  if (existingUser?.id) {
+    throw new CustomError("An account with this email already exists.", 409);
+  }
+
+  const password = crypto.randomBytes(24).toString("hex");
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp(
+    { email, password, options: { data: { name } } },
+  );
+  if (signUpError) throw new CustomError(signUpError.message, 400);
+
+  const userId = signUpData?.user?.id;
+  if (!userId) throw new CustomError("Failed to create account", 500);
+
+  const { error: metaError } = await supabase.auth.admin.updateUserById(
+    userId,
+    {
+      email_confirm: true,
+      user_metadata: {
+        name,
+        approvalStatus: ApprovalStatus.APPROVED,
+        linkedinProfileUrl: linkedinProfileUrl || null,
+        verifiedVia: "admin",
+      },
+      role: UserRole.STUDENT,
+    },
+  );
+  if (metaError) {
+    await supabase.auth.admin.deleteUser(userId);
+    throw new CustomError(metaError.message, 400);
+  }
+
+  const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+    email,
+    { redirectTo: `${process.env.CLIENT_URL}/reset-password` },
+  );
+  if (resetError) {
+    console.error("Failed to send password setup email:", resetError.message);
+  }
+
+  res.status(201).json({ message: "Traveler added and pre-approved" });
+}
+
+/**
+ * Admin-only: permanently delete a traveler account. Their bids/payments
+ * cascade-delete with them (foreign key ON DELETE CASCADE) — this is for
+ * test accounts or bounced/invalid signups, not a substitute for Ban.
+ */
+export async function deleteStudent(req: Request, res: Response) {
+  const { id } = req.params;
+
+  const { error } = await supabase.auth.admin.deleteUser(id);
+  if (error) throw new CustomError(error.message, 400);
+
+  res.status(200).json({ message: "Traveler deleted" });
 }
 
 export async function getStudentsStats(req: Request, res: Response) {
