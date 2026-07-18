@@ -1069,15 +1069,6 @@
   }
 
   @media (max-width: 767px) {
-    .listing-retail-split {
-      grid-template-columns: 1fr;
-    }
-
-    .listing-retail-split > *:first-child {
-      border-right: none;
-      border-bottom: 1px solid hsl(0 0% 22%);
-    }
-
     .listing-detail-amenities {
       gap: 0.375rem 1rem;
       padding-top: 0.125rem;
@@ -1137,25 +1128,6 @@
     .listing-detail-grid--no-amenities .listing-detail-bid {
       grid-row: 1 / 4;
     }
-  }
-
-  .listing-retail-split {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    border: 1px solid hsl(0 0% 22%);
-    border-radius: 12px;
-    overflow: hidden;
-    background: hsl(0 0% 6%);
-  }
-
-  .listing-retail-split > *:first-child {
-    border-right: 1px solid hsl(0 0% 22%);
-    padding: 1.25rem 1.5rem;
-  }
-
-  .listing-retail-split > *:last-child {
-    padding: 1.25rem 1.5rem;
   }
 
   /* —— Listing bid sidebar —— */
@@ -1276,17 +1248,6 @@
   @media (max-width: 380px) {
     .listing-dates-box .listing-date-field {
       font-size: 0.625rem !important;
-    }
-  }
-
-  @media (max-width: 1023px) {
-    .listing-retail-split {
-      grid-template-columns: 1fr;
-    }
-
-    .listing-retail-split > *:first-child {
-      border-right: none;
-      border-bottom: 1px solid hsl(0 0% 22%);
     }
   }
 

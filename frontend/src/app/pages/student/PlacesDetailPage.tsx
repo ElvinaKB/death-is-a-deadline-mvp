@@ -32,7 +32,6 @@ import { SkeletonLoader } from "../../components/common/SkeletonLoader";
 import { HomeHeader } from "../../components/home/HomeHeader";
 import { useReviewPlatforms } from "../../../hooks/useTestimonials";
 import { pickPreferredReviewPlatform } from "../../../utils/reviewPlatform";
-import { StudentBidBadgeIcon } from "../../components/listing/StudentBidBadgeIcon";
 import { ListingHeroCarousel } from "../../components/listing/ListingHeroCarousel";
 import { PrivateThresholdBadgeIcon } from "../../components/listing/PrivateThresholdBadgeIcon";
 import { Testimonials } from "../../components/places/Testimonials";
@@ -263,16 +262,33 @@ export function PlaceDetailPage() {
                   </span>
                 </button>
               )}
-              {allImages.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => openGallery(heroSlideIndex)}
-                  className="absolute bottom-4 right-4 z-10 rounded-lg bg-black/70 px-3 py-1.5 text-xs text-fg backdrop-blur-sm hover:bg-black/80"
-                  aria-label={`Open photo gallery, image ${heroSlideIndex + 1} of ${allImages.length}`}
-                >
-                  {heroSlideIndex + 1} / {allImages.length}
-                </button>
-              )}
+              <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2">
+                <div className="rounded-lg bg-black/70 px-3 py-2 text-right backdrop-blur-sm">
+                  <p className="flex items-center justify-end gap-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-muted">
+                    Retail price
+                    <Info className="h-3 w-3 text-gold/80" aria-hidden />
+                  </p>
+                  <p className="text-lg font-semibold leading-tight text-fg sm:text-xl">
+                    {formatCurrency(place.retailPrice)}
+                  </p>
+                  {bookingNights > 0 && (
+                    <p className="hidden text-[10px] text-muted sm:block">
+                      {formatCurrency(retailTotal)} for {bookingNights} night
+                      {bookingNights !== 1 ? "s" : ""}
+                    </p>
+                  )}
+                </div>
+                {allImages.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => openGallery(heroSlideIndex)}
+                    className="rounded-lg bg-black/70 px-3 py-1.5 text-xs text-fg backdrop-blur-sm hover:bg-black/80"
+                    aria-label={`Open photo gallery, image ${heroSlideIndex + 1} of ${allImages.length}`}
+                  >
+                    {heroSlideIndex + 1} / {allImages.length}
+                  </button>
+                )}
+              </div>
               <div className="listing-hero-overlay pointer-events-none absolute inset-0 flex flex-col justify-end p-4 pt-14 sm:p-5 sm:pt-16 md:p-6 md:pt-20">
                 <span className="listing-type-pill w-fit mb-3">
                   {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
@@ -335,51 +351,20 @@ export function PlaceDetailPage() {
             />
           </aside>
 
-          <div className="listing-detail-retail listing-retail-split">
-              <div>
-                <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] text-muted uppercase">
-                  Retail price
-                  <Info className="h-3.5 w-3.5 text-gold/80" aria-hidden />
-                </p>
-                <p className="text-4xl font-semibold text-fg">
-                  {formatCurrency(place.retailPrice)}
-                </p>
-                {bookingNights > 0 && (
-                  <p className="mt-1 text-xs text-muted">
-                    Total before taxes and fees · {formatCurrency(retailTotal)}{" "}
-                    for {bookingNights} night
-                    {bookingNights !== 1 ? "s" : ""}
+          <div className="listing-detail-retail">
+              <div className="listing-edu-panel flex gap-3 items-start rounded-xl border border-line bg-glass-2 p-5">
+                <PrivateThresholdBadgeIcon className="h-[54px] w-[54px] shrink-0 text-gold" />
+                <div className="min-w-0 pt-0.5">
+                  <p className="text-sm font-semibold text-fg leading-snug">
+                    Private hotel threshold
                   </p>
-                )}
+                  <p className="mt-1.5 text-sm text-[hsl(0_0%_72%)] leading-relaxed">
+                    Hotels set hidden minimum prices for each night. If your bid
+                    meets the hotel&apos;s private threshold, you instantly win the
+                    room.
+                  </p>
+                </div>
               </div>
-              {isAuthenticated ? (
-                <div className="listing-edu-panel flex gap-3 items-start">
-                  <PrivateThresholdBadgeIcon className="h-[54px] w-[54px] shrink-0 text-gold" />
-                  <div className="min-w-0 pt-0.5">
-                    <p className="text-sm font-semibold text-fg leading-snug">
-                      Private hotel threshold
-                    </p>
-                    <p className="mt-1.5 text-sm text-[hsl(0_0%_72%)] leading-relaxed">
-                      Hotels set hidden minimum prices for each night. If your bid
-                      meets the hotel&apos;s private threshold, you instantly win the
-                      room.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="listing-edu-panel flex gap-3 items-start">
-                  <StudentBidBadgeIcon className="h-[54px] w-[54px] shrink-0 text-gold" />
-                  <div className="min-w-0 pt-0.5">
-                    <p className="text-sm font-semibold text-fg leading-snug">
-                      .edu or .gov or corporate email required
-                    </p>
-                    <p className="mt-1.5 text-sm text-[hsl(0_0%_72%)] leading-relaxed">
-                      Deadline is a private bidding marketplace. You must be
-                      verified to bid on hotels.
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
 
           <div

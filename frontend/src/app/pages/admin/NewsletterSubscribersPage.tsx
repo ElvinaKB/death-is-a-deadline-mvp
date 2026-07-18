@@ -10,6 +10,9 @@ import { Download } from "lucide-react";
 interface NewsletterSubscriber {
   id: string;
   email: string;
+  fullName: string | null;
+  phone: string | null;
+  source: string | null;
   createdAt: string;
 }
 
@@ -20,8 +23,14 @@ interface NewsletterSubscribersResponse {
 
 function downloadCsv(subscribers: NewsletterSubscriber[]) {
   const rows = [
-    ["Email", "Signed up"],
-    ...subscribers.map((s) => [s.email, new Date(s.createdAt).toISOString()]),
+    ["Full Name", "Email", "Phone", "Heard about us via", "Signed up"],
+    ...subscribers.map((s) => [
+      s.fullName ?? "",
+      s.email,
+      s.phone ?? "",
+      s.source ?? "",
+      new Date(s.createdAt).toISOString(),
+    ]),
   ];
   const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
@@ -43,8 +52,23 @@ export function NewsletterSubscribersPage() {
 
   const columns: TableColumn<NewsletterSubscriber>[] = [
     {
+      header: "Full Name",
+      field: "fullName",
+      render: (row) => row.fullName || <span className="text-muted">—</span>,
+    },
+    {
       header: "Email",
       field: "email",
+    },
+    {
+      header: "Phone",
+      field: "phone",
+      render: (row) => row.phone || <span className="text-muted">—</span>,
+    },
+    {
+      header: "Heard about us via",
+      field: "source",
+      render: (row) => row.source || <span className="text-muted">—</span>,
     },
     {
       header: "Signed up",

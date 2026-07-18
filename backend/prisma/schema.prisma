@@ -48,6 +48,9 @@ model Place {
 model NewsletterSubscriber {
   id        String   @id @default(uuid())
   email     String   @unique
+  fullName  String?  @map("full_name")
+  phone     String?
+  source    String?
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("newsletter_subscribers")
