@@ -4,11 +4,20 @@ import { WaitlistSignupRequest } from "../validations/waitlist/waitlist.validati
 
 export async function joinWaitlist(req: Request, res: Response) {
   const { fullName, email, phone, source } = req.body as WaitlistSignupRequest;
+  const normalizedEmail = email.toLowerCase();
 
   await prisma.waitlistSignup.upsert({
-    where: { email: email.toLowerCase() },
+    where: { email: normalizedEmail },
     update: { fullName, phone, source },
-    create: { fullName, email: email.toLowerCase(), phone, source },
+    create: { fullName, email: normalizedEmail, phone, source },
+  });
+
+  // Waitlist signups are also newsletter subscribers — one list to email,
+  // instead of maintaining two separate subscriber sets.
+  await prisma.newsletterSubscriber.upsert({
+    where: { email: normalizedEmail },
+    update: {},
+    create: { email: normalizedEmail },
   });
 
   res.json({ success: true, message: "You're on the list!" });

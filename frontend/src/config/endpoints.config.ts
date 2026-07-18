@@ -14,11 +14,13 @@ export const ENDPOINTS = {
 
   // Students
   STUDENTS_LIST: "/api/students",
+  STUDENT_CREATE: "/api/students",
   STUDENT_DETAIL: "/api/students/:id",
   STUDENT_APPROVE: "/api/students/:id/approve",
   STUDENT_REJECT: "/api/students/:id/reject",
   STUDENT_BAN: "/api/students/:id/ban",
   STUDENT_UNBAN: "/api/students/:id/unban",
+  STUDENT_DELETE: "/api/students/:id",
   STUDENT_UPLOAD_ID: "/api/students/upload-id",
   STUDENTS_STATS: "/api/students/stats",
 
