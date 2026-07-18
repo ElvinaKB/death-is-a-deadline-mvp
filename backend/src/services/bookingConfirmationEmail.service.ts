@@ -50,7 +50,7 @@ export async function sendBookingConfirmationEmails(
     placeCountry: place.country,
     placeFullAddress,
     placeContactEmail: place.email || null,
-    placeContactPhone: null as string | null,
+    placeContactPhone: place.reservationPhone || null,
     mapsUrl,
     checkInDate: formatBookingDate(bid.checkInDate, "MMMM d, yyyy"),
     checkOutDate: formatBookingDate(bid.checkOutDate, "MMMM d, yyyy"),

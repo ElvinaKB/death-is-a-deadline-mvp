@@ -21,6 +21,7 @@ model Place {
   address                String
   timezone               String?           @db.VarChar(64)
   email                  String?
+  reservationPhone       String?           @map("reservation_phone")
   keywords               String[]          @default([])
   latitude               Float?
   longitude              Float?
