@@ -89,14 +89,42 @@ const bidHistoryColumns: TableColumn<Bid>[] = [
   },
 ];
 
-function buildTimeline(student: {
-  createdAt: string;
-  emailConfirmedAt?: string | null;
-  approvalStatus: ApprovalStatus;
-  updatedAt: string;
-  rejectionReason?: string;
-}): TimelineItem[] {
-  const items: TimelineItem[] = [
+interface LoginEvent {
+  loggedInAt: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+}
+
+function describeLoginDevice(userAgent: string | null): string {
+  if (!userAgent) return "Unknown device";
+  const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+  let browser = "Unknown browser";
+  if (/Edg\//.test(userAgent)) browser = "Edge";
+  else if (/OPR\//.test(userAgent)) browser = "Opera";
+  else if (/Chrome\//.test(userAgent) && !/Chromium/.test(userAgent))
+    browser = "Chrome";
+  else if (/Firefox\//.test(userAgent)) browser = "Firefox";
+  else if (/Safari\//.test(userAgent) && !/Chrome/.test(userAgent))
+    browser = "Safari";
+  return `${browser} · ${isMobile ? "Mobile" : "Desktop"}`;
+}
+
+function describeLoginEvent(event: LoginEvent): string {
+  const device = describeLoginDevice(event.userAgent);
+  return event.ipAddress ? `${device} · ${event.ipAddress}` : device;
+}
+
+function buildTimeline(
+  student: {
+    createdAt: string;
+    emailConfirmedAt?: string | null;
+    approvalStatus: ApprovalStatus;
+    updatedAt: string;
+    rejectionReason?: string;
+  },
+  loginEvents: LoginEvent[] = [],
+): TimelineItem[] {
+  const dated: (TimelineItem & { timestamp: string })[] = [
     {
       id: "registered",
       title: "Registered",
@@ -104,19 +132,20 @@ function buildTimeline(student: {
       timestamp: student.createdAt,
       status: "completed",
     },
-    {
-      id: "email-verified",
-      title: "Email Verified",
-      description: student.emailConfirmedAt
-        ? "Email address confirmed"
-        : "Awaiting email verification",
-      timestamp: student.emailConfirmedAt ?? undefined,
-      status: student.emailConfirmedAt ? "completed" : "pending",
-    },
   ];
 
+  if (student.emailConfirmedAt) {
+    dated.push({
+      id: "email-verified",
+      title: "Email Verified",
+      description: "Email address confirmed",
+      timestamp: student.emailConfirmedAt,
+      status: "completed",
+    });
+  }
+
   if (student.approvalStatus === ApprovalStatus.APPROVED) {
-    items.push({
+    dated.push({
       id: "approved",
       title: "Account Approved",
       description: "Admin approved the student",
@@ -124,14 +153,41 @@ function buildTimeline(student: {
       status: "completed",
     });
   } else if (student.approvalStatus === ApprovalStatus.REJECTED) {
-    items.push({
+    dated.push({
       id: "rejected",
       title: "Account Rejected",
       description: student.rejectionReason ?? "Admin rejected the student",
       timestamp: student.updatedAt,
       status: "error",
     });
-  } else {
+  }
+
+  loginEvents.forEach((event, index) => {
+    dated.push({
+      id: `login-${index}`,
+      title: "Logged in",
+      description: describeLoginEvent(event),
+      timestamp: event.loggedInAt,
+      status: "completed",
+    });
+  });
+
+  dated.sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  );
+
+  const items: TimelineItem[] = [...dated];
+
+  if (!student.emailConfirmedAt) {
+    items.push({
+      id: "email-verified",
+      title: "Email Verified",
+      description: "Awaiting email verification",
+      status: "pending",
+    });
+  }
+
+  if (student.approvalStatus === ApprovalStatus.PENDING) {
     items.push({
       id: "approval-pending",
       title: "Awaiting Admin Approval",
@@ -161,6 +217,12 @@ export function StudentDetailPage() {
   const { data: bidsData, isLoading: bidsLoading } = useBids({
     studentId: id,
     limit: 100,
+  });
+
+  const { data: loginEventsData } = useApiQuery<{ events: LoginEvent[] }>({
+    queryKey: [QUERY_KEYS.STUDENT_LOGIN_EVENTS, id],
+    endpoint: getEndpoint(ENDPOINTS.STUDENT_LOGIN_EVENTS, { id: id! }),
+    enabled: !!id,
   });
 
   const approveMutation = useApiMutation<void, ApproveStudentRequest>({
@@ -445,7 +507,7 @@ export function StudentDetailPage() {
             </CardHeader>
             <CardContent>
               <Timeline
-                items={buildTimeline(student)}
+                items={buildTimeline(student, loginEventsData?.events ?? [])}
                 variant="compact"
                 showTimestamps={true}
                 timestampPosition="top"
