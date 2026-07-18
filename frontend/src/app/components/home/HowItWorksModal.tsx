@@ -24,7 +24,8 @@ export function HowItWorksModal({ triggerClassName }: HowItWorksModalProps) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           isClose
-          className="!max-w-none !w-screen !h-screen !p-0 overflow-hidden !bg-transparent !border-none !shadow-none !rounded-none z-[100] flex items-center justify-center"
+          className="!max-w-none !w-screen !h-screen !p-0 overflow-hidden !bg-transparent !border-none !shadow-none !rounded-none z-[100] flex items-center justify-center cursor-pointer"
+          onClick={() => setOpen(false)}
         >
           <DialogTitle className="sr-only">How It Works</DialogTitle>
           <DialogDescription className="sr-only">
@@ -33,7 +34,8 @@ export function HowItWorksModal({ triggerClassName }: HowItWorksModalProps) {
           <img
             src={howItWorksImg}
             alt="How It Works - The Grim Keeper explains the bidding process"
-            className="h-[85vh] w-auto max-w-[95vw] object-contain"
+            className="h-[85vh] w-auto max-w-[95vw] object-contain cursor-default"
+            onClick={(e) => e.stopPropagation()}
           />
         </DialogContent>
       </Dialog>
