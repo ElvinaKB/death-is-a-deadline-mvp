@@ -65,7 +65,8 @@ export const ENDPOINTS = {
 
   // Profile
   PROFILE: "/api/profile",
-  UPDATE_PROFILE: "/api/profile/update",
+  UPDATE_PROFILE: "/api/profile",
+  PROFILE_REFERRAL_CODE: "/api/profile/referral-code",
 
   // Testimonials
   TESTIMONIALS_LIST: "/api/testimonials",

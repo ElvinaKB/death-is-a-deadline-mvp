@@ -17,6 +17,7 @@ export const ROUTES = {
   STUDENT_DASHBOARD: "/student/dashboard",
   STUDENT_MY_BIDS: "/student/my-bids",
   STUDENT_CHECKOUT: "/student/checkout/:bidId",
+  STUDENT_PROFILE: "/student/profile",
 
   // Hotel Owner routes
   HOTEL_DASHBOARD: "/hotel/dashboard",

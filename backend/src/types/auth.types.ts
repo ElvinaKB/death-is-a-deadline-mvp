@@ -34,6 +34,7 @@ export interface SignupRequest {
   password: string;
   confirmPassword: string;
   studentIdUrl?: string;
+  referralCode?: string;
 }
 
 export interface RawUser extends SupabaseUser {

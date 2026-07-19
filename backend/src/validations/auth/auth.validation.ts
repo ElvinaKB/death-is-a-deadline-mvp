@@ -5,6 +5,7 @@ export const signupSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   studentIdUrl: z.string().optional(),
+  referralCode: z.string().optional(),
 });
 
 export const hotelSignupSchema = z.object({
