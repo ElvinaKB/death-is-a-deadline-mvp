@@ -182,6 +182,7 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
     password,
     name,
     studentIdUrl = "",
+    referralCode,
   } = req.body as SignupRequest;
 
   const approvalStatus = studentIdUrl
@@ -218,11 +219,31 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
     }
   }
 
+  // Credit whoever referred this signup, if their code is valid — before
+  // approvalStatus is even known, since the referral itself doesn't
+  // depend on the new account being approved.
+  let referredBy: string | undefined;
+  if (referralCode) {
+    const referrer = await prisma.users.findFirst({
+      where: { raw_user_meta_data: { path: ["referralCode"], equals: referralCode } },
+    });
+    if (referrer) {
+      referredBy = referralCode;
+      const referrerMeta = (referrer.raw_user_meta_data ?? {}) as Record<string, any>;
+      await supabase.auth.admin.updateUserById(referrer.id, {
+        user_metadata: {
+          ...referrerMeta,
+          referralCredit: (referrerMeta.referralCredit ?? 0) + 10,
+        },
+      });
+    }
+  }
+
   // update user_metadata
   const { error: metaError } = await supabase.auth.admin.updateUserById(
     data?.user?.id ?? "",
     {
-      user_metadata: { studentIdUrl, approvalStatus },
+      user_metadata: { studentIdUrl, approvalStatus, ...(referredBy && { referredBy }) },
       role: UserRole.STUDENT,
     },
   );

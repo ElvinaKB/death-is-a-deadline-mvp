@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "../../utils/supabaseClient";
 import { useFormik } from "formik";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useNavigate, Link, useLocation, useSearchParams } from "react-router-dom";
 import { signupSchema } from "../../utils/validationSchemas";
 import { getFieldError, getFieldDescribedBy, getFieldErrorId } from "../../utils/formikHelpers";
 import { isAutoVerifiedEmail } from "../../utils/emailValidator";
@@ -56,6 +56,8 @@ function readSignupDraft(): { name: string; email: string } {
 export function SignupPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get("ref") || undefined;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [needsIdUpload, setNeedsIdUpload] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -95,6 +97,7 @@ export function SignupPage() {
         password: values.password,
         confirmPassword: values.confirmPassword,
         studentIdUrl,
+        ...(referralCode && { referralCode }),
       };
       signupMutation.mutate(payload);
     },

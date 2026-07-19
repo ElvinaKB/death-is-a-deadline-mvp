@@ -16,6 +16,7 @@ import { HomePage } from "./pages/HomePage";
 import { PlaceDetailPage as StudentPlacesDetailPage } from "./pages/student/PlacesDetailPage";
 import { MyBidsPage } from "./pages/student/MyBidsPage";
 import { CheckoutPage } from "./pages/student/CheckoutPage";
+import { ProfilePage } from "./pages/student/ProfilePage";
 import { HotelDashboardPage } from "./pages/hotel/HotelDashboardPage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { StudentsListPage } from "./pages/admin/StudentsListPage";
@@ -86,6 +87,7 @@ const protectedRoutes = [
     children: [
       { path: ROUTES.STUDENT_MY_BIDS, element: <MyBidsPage /> },
       { path: ROUTES.STUDENT_CHECKOUT, element: <CheckoutPage /> },
+      { path: ROUTES.STUDENT_PROFILE, element: <ProfilePage /> },
     ],
   },
   {

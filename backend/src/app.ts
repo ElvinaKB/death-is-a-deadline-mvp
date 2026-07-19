@@ -19,6 +19,7 @@ import { router as testimonialsRouter } from "./routers/testimonials.router";
 import { router as contactRouter } from "./routers/contact.router";
 import { router as newsletterRouter } from "./routers/newsletter.router";
 import { router as waitlistRouter } from "./routers/waitlist.router";
+import { router as profileRouter } from "./routers/profile.router";
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use("/api/testimonials", testimonialsRouter);
 app.use("/api/contact", contactRouter);
 app.use("/api/newsletter", newsletterRouter);
 app.use("/api/waitlist", waitlistRouter);
+app.use("/api/profile", profileRouter);
 
 // Dev-only routes
 // if (process.env.NODE_ENV === "development") {

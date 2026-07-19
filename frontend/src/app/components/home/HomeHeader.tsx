@@ -108,12 +108,21 @@ export function HomeHeader({
               className="w-56 bg-bg md:bg-glass-2 border-line"
               align="end"
             >
-              <DropdownMenuLabel>
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium text-fg">{user?.name}</p>
-                  <p className="text-xs text-muted">{user?.email}</p>
-                </div>
-              </DropdownMenuLabel>
+              {user?.role === UserRole.STUDENT ? (
+                <DropdownMenuItem asChild>
+                  <Link to={ROUTES.STUDENT_PROFILE} className="flex flex-col items-start gap-1 cursor-pointer">
+                    <p className="text-sm font-medium text-fg">{user?.name}</p>
+                    <p className="text-xs text-muted">{user?.email}</p>
+                  </Link>
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium text-fg">{user?.name}</p>
+                    <p className="text-xs text-muted">{user?.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+              )}
               <DropdownMenuSeparator className="block md:hidden bg-line" />
               <DropdownMenuItem>
                 <DashboardLink className={"block md:hidden"} />

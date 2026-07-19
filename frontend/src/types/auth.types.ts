@@ -42,6 +42,7 @@ export interface SignupRequest {
   confirmPassword: string;
   studentIdCard?: File;
   approvalStatus?: ApprovalStatus;
+  referralCode?: string;
 }
 
 export interface AuthResponse {
