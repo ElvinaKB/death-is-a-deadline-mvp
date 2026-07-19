@@ -1,6 +1,5 @@
 import {
   AlertTriangle,
-  Info,
   MapPin,
   Star,
 } from "lucide-react";
@@ -265,14 +264,13 @@ export function PlaceDetailPage() {
               <button
                 type="button"
                 onClick={() => openGallery(heroSlideIndex)}
-                className="absolute bottom-4 right-4 z-10 rounded-lg bg-black/70 px-4 py-2 text-right backdrop-blur-sm hover:bg-black/80"
+                className="absolute bottom-4 right-4 z-10 rounded-lg bg-black/70 px-5 py-3 text-right backdrop-blur-sm hover:bg-black/80"
                 aria-label="Open photo gallery"
               >
-                <p className="flex items-center justify-end gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
                   Retail price
-                  <Info className="h-3 w-3 text-gold/80" aria-hidden />
                 </p>
-                <p className="font-serif text-2xl leading-tight text-fg sm:text-3xl md:text-4xl">
+                <p className="font-serif text-3xl leading-tight text-fg sm:text-4xl md:text-5xl">
                   {formatCurrency(place.retailPrice)}
                 </p>
                 {bookingNights > 0 && (
