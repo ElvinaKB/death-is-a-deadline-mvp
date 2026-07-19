@@ -39,6 +39,20 @@ interface LocationState {
   returnUrl?: string;
 }
 
+const SIGNUP_DRAFT_KEY = "deadline_signup_draft";
+
+function readSignupDraft(): { name: string; email: string } {
+  try {
+    const raw = sessionStorage.getItem(SIGNUP_DRAFT_KEY);
+    sessionStorage.removeItem(SIGNUP_DRAFT_KEY);
+    if (!raw) return { name: "", email: "" };
+    const parsed = JSON.parse(raw);
+    return { name: parsed.name || "", email: parsed.email || "" };
+  } catch {
+    return { name: "", email: "" };
+  }
+}
+
 export function SignupPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,6 +60,7 @@ export function SignupPage() {
   const [needsIdUpload, setNeedsIdUpload] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileUpload, setFileUpload] = useState<boolean>(false);
+  const [signupDraft] = useState(readSignupDraft);
 
   // Get return URL from location state
   const locationState = location.state as LocationState | null;
@@ -64,8 +79,8 @@ export function SignupPage() {
 
   const formik = useFormik<SignupRequest>({
     initialValues: {
-      name: "",
-      email: "",
+      name: signupDraft.name,
+      email: signupDraft.email,
       password: "",
       confirmPassword: "",
       studentIdCard: undefined,
@@ -315,6 +330,17 @@ export function SignupPage() {
                       variant="outline"
                       className="w-full border-line bg-glass"
                       onClick={() => {
+                        try {
+                          sessionStorage.setItem(
+                            SIGNUP_DRAFT_KEY,
+                            JSON.stringify({
+                              name: formik.values.name,
+                              email: formik.values.email,
+                            }),
+                          );
+                        } catch {
+                          /* sessionStorage unavailable — not worth blocking on */
+                        }
                         const params = new URLSearchParams();
                         if (returnUrl) params.set("returnUrl", returnUrl);
                         window.location.href = `${API_BASE_URL}${ENDPOINTS.LINKEDIN_AUTHORIZE}${

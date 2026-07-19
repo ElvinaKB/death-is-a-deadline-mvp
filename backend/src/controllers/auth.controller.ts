@@ -230,15 +230,10 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
     throw new CustomError(metaError.message, 400);
   }
 
-  // send email to user that their account is under review if status is pending
-  if (approvalStatus === ApprovalStatus.PENDING && !!studentIdUrl) {
-    await sendEmail({
-      type: EmailType.ACCOUNT_REVIEW,
-      to: email,
-      subject: "Your account is under review",
-      variables: { name, appName: "Deadline" },
-    });
-  }
+  // No separate "under review" email here — this signup path already
+  // triggers Supabase's own confirmation email (emailRedirectTo above),
+  // and that template now carries the "you'll be reviewed" messaging
+  // too, so the user gets one email instead of two back-to-back.
 
   // Return user info and session (token)
   return res.status(201).json({
