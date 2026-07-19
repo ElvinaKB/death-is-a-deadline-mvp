@@ -145,6 +145,7 @@ export function PlaceFormPage() {
       country: existingPlace?.country || "",
       address: existingPlace?.address || "",
       email: existingPlace?.email || "",
+      reservationPhone: existingPlace?.reservationPhone || "",
       keywords: (existingPlace?.keywords ?? []) as PlaceKeywordId[],
       latitude: existingPlace?.latitude ?? null,
       longitude: existingPlace?.longitude ?? null,
@@ -391,6 +392,25 @@ export function PlaceFormPage() {
                 )}
                 <p className="text-sm text-muted mt-1">
                   Booking confirmations will be sent to this email
+                </p>
+
+                <Label htmlFor="reservationPhone" className="text-fg mt-4 block">
+                  Reservation Phone Number (for customers)
+                </Label>
+                <Input
+                  id="reservationPhone"
+                  type="tel"
+                  {...formik.getFieldProps("reservationPhone")}
+                  placeholder="e.g., (555) 555-5555"
+                />
+                {formik.touched.reservationPhone &&
+                  formik.errors.reservationPhone && (
+                    <p className="text-sm text-error mt-1">
+                      {formik.errors.reservationPhone}
+                    </p>
+                  )}
+                <p className="text-sm text-muted mt-1">
+                  Shown to travelers in their booking confirmation email
                 </p>
               </div>
 

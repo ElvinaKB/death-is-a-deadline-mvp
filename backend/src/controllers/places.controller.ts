@@ -42,6 +42,7 @@ const formatPlace = (
   slug: place.slug,
   name: place.name,
   email: place.email,
+  reservationPhone: place.reservationPhone,
   shortDescription: place.shortDescription,
   fullDescription: place.fullDescription,
   keywords: place.keywords || [],
@@ -499,6 +500,7 @@ export async function createPlace(req: Request, res: Response) {
       country: data.country,
       address: data.address,
       email: data.email ?? null,
+      reservationPhone: data.reservationPhone ?? null,
       latitude: data.latitude ?? null,
       longitude: data.longitude ?? null,
       accommodationType: data.accommodationType,
@@ -572,6 +574,7 @@ async function notifyHotelOnPlaceCreated({
         placeCity,
         placeCountry,
         dashboardUrl: `${APP_URL}/hotel/dashboard`,
+        appName: "Deadline",
       },
     });
   } else {
@@ -582,13 +585,14 @@ async function notifyHotelOnPlaceCreated({
     await sendEmail({
       type: EmailType.HOTEL_INVITE,
       to: placeEmail,
-      subject: `You're invited to list ${placeName} on Death is a Deadline`,
+      subject: `You're invited to list ${placeName} on Deadline`,
       variables: {
         placeName,
         placeCity,
         placeCountry,
         inviteUrl,
         expiryDays: HOTEL_INVITE_EXPIRY_DAYS,
+        appName: "Deadline",
       },
     });
   }
@@ -649,6 +653,9 @@ export async function updatePlace(req: Request, res: Response) {
       ...(data.country && { country: data.country }),
       ...(data.address && { address: data.address }),
       ...(data.email !== undefined && { email: data.email }),
+      ...(data.reservationPhone !== undefined && {
+        reservationPhone: data.reservationPhone,
+      }),
       ...(data.latitude !== undefined && { latitude: data.latitude }),
       ...(data.longitude !== undefined && { longitude: data.longitude }),
       ...(data.accommodationType && {
@@ -809,13 +816,14 @@ export async function resendHotelInvite(req: Request, res: Response) {
   await sendEmail({
     type: EmailType.HOTEL_INVITE,
     to: place.email,
-    subject: `You're invited to list ${place.name} on Death is a Deadline`,
+    subject: `You're invited to list ${place.name} on Deadline`,
     variables: {
       placeName: place.name,
       placeCity: place.city,
       placeCountry: place.country,
       inviteUrl,
       expiryDays: HOTEL_INVITE_EXPIRY_DAYS,
+      appName: "Deadline",
     },
   });
 

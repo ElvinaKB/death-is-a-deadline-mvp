@@ -7,6 +7,7 @@ import { PlacesResponse } from "../../types/place.types";
 import { useAppSelector } from "../../store/hooks";
 import { HomeHeader, MarketplaceHero, PlacesMap, PlacesSidebar } from "../components/home";
 import { HowItWorksModal } from "../components/home/HowItWorksModal";
+import { NewsletterSignupModal } from "../components/home/NewsletterSignupModal";
 import { useQueryClient } from "@tanstack/react-query";
 import { toApiDateOnly } from "../../utils/dateHelpers";
 
@@ -51,6 +52,7 @@ export function HomePage() {
     <div className="flex-1 min-h-0 bg-bg flex flex-col overflow-hidden min-w-0">
       {/* Header with Search Bar */}
       <HomeHeader showSearchBar onSearch={handleSearch} />
+      <NewsletterSignupModal />
 
       {/* Main Content */}
       <main id="main-content" className="flex-1 flex min-h-0 min-w-0" tabIndex={-1}>
@@ -71,7 +73,6 @@ export function HomePage() {
         {/* Right Side - Map */}
         <div className="hidden md:flex w-1/2 flex-1 relative">
           <HowItWorksModal
-            showOnFirstVisit
             triggerClassName="absolute top-4 right-4 z-10 text-sm font-medium text-fg hover:text-fg/80 transition-colors"
           />
           <PlacesMap

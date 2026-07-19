@@ -1,12 +1,17 @@
-<html>
-  <body>
-    <h2>Account Under Review</h2>
-    <p>Hello <%= name %>,</p>
-    <p>
-      Your account is currently under review. We will notify you once it is
-      approved.
-    </p>
-    <p>If you have any questions, please contact support.</p>
-    <p>Thank you,<br /><%= appName %> Team</p>
-  </body>
-</html>
+<%- include('./partials/deadline-head', {
+  title: 'Account Under Review',
+  heading: "You're under review.",
+  badgeText: 'Pending Review'
+}) %>
+
+<p class="intro">Hi <%= name %>,</p>
+
+<p>Thanks for signing up for <%= appName %>. Your account is currently under review &mdash; we'll email you as soon as it's approved.</p>
+
+<div class="feature-box">
+  Most accounts are reviewed within one business day. No action is needed from you right now.
+</div>
+
+<p>If you have any questions in the meantime, just reply to this email.</p>
+
+<%- include('./partials/deadline-foot', { appName: appName }) %>

@@ -82,6 +82,7 @@ export const placeValidationSchema = yup.object({
     .required("Email is required")
     .email("Invalid email address")
     .nullable(),
+  reservationPhone: yup.string().max(30, "Phone number is too long").nullable(),
   latitude: yup.number().nullable(),
   longitude: yup.number().nullable(),
   accommodationType: yup.string().required("Accommodation type is required"),

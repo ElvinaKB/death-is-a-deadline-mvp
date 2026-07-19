@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ROUTES } from "../../../config/routes.config";
 import { getPublicPlaceUrl } from "../../../utils/placeUrl";
 import { useMyBids } from "../../../hooks/useBids";
 import { Button } from "../../components/ui/button";

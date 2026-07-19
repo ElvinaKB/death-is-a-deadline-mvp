@@ -15,14 +15,12 @@ export async function findStripeCustomerIdForStudent(
 export async function getOrCreateStripeCustomerForStudent(
   studentId: string,
 ): Promise<string> {
+  // Trust the cached customer ID without a live Stripe round trip on every
+  // payment — Stripe customers are essentially never deleted out-of-band. If
+  // one ever is, paymentIntents.create will surface a clear Stripe error.
   const existingId = await findStripeCustomerIdForStudent(studentId);
   if (existingId) {
-    try {
-      await stripe.customers.retrieve(existingId);
-      return existingId;
-    } catch {
-      // Stripe customer removed — create a new one
-    }
+    return existingId;
   }
 
   const user = await prisma.users.findUnique({

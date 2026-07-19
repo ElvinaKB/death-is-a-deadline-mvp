@@ -1069,15 +1069,6 @@
   }
 
   @media (max-width: 767px) {
-    .listing-retail-split {
-      grid-template-columns: 1fr;
-    }
-
-    .listing-retail-split > *:first-child {
-      border-right: none;
-      border-bottom: 1px solid hsl(0 0% 22%);
-    }
-
     .listing-detail-amenities {
       gap: 0.375rem 1rem;
       padding-top: 0.125rem;
@@ -1087,6 +1078,15 @@
     .listing-detail-hero .listing-hero-overlay {
       padding: 0.875rem 1rem 1rem;
       padding-top: 3rem;
+    }
+
+    /* Short hero on narrow screens: keep prev/next arrows clear of both
+       the pause button (top-right) and the bottom-anchored title/pill
+       text, instead of vertically centering into that text zone. */
+    .listing-detail-hero .listing-hero-carousel__nav--prev,
+    .listing-detail-hero .listing-hero-carousel__nav--next {
+      top: 3.5rem;
+      transform: none;
     }
   }
 
@@ -1137,25 +1137,6 @@
     .listing-detail-grid--no-amenities .listing-detail-bid {
       grid-row: 1 / 4;
     }
-  }
-
-  .listing-retail-split {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    border: 1px solid hsl(0 0% 22%);
-    border-radius: 12px;
-    overflow: hidden;
-    background: hsl(0 0% 6%);
-  }
-
-  .listing-retail-split > *:first-child {
-    border-right: 1px solid hsl(0 0% 22%);
-    padding: 1.25rem 1.5rem;
-  }
-
-  .listing-retail-split > *:last-child {
-    padding: 1.25rem 1.5rem;
   }
 
   /* —— Listing bid sidebar —— */
@@ -1276,17 +1257,6 @@
   @media (max-width: 380px) {
     .listing-dates-box .listing-date-field {
       font-size: 0.625rem !important;
-    }
-  }
-
-  @media (max-width: 1023px) {
-    .listing-retail-split {
-      grid-template-columns: 1fr;
-    }
-
-    .listing-retail-split > *:first-child {
-      border-right: none;
-      border-bottom: 1px solid hsl(0 0% 22%);
     }
   }
 

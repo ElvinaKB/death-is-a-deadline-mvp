@@ -1,0 +1,49 @@
+<%- include('./partials/deadline-head', {
+  title: "You're in. Welcome to " + appName + ".",
+  heading: "You're officially on the list."
+}) %>
+
+<p class="intro">Thanks for joining <%= appName %>.</p>
+
+<p>We're building a <strong>private marketplace</strong> where verified travelers guess the hotel's secret price to win the room.</p>
+
+<p>Unlike public discounts, hotels never reveal their minimum price—so they can fill empty rooms without hurting their brand.</p>
+
+<div class="feature-box">
+  Today, a handful of independent hotels are already accepting bids, and we're adding more every week.
+</div>
+
+<p>As we grow, you'll be the first to know when:</p>
+<ul class="checklist">
+  <li><span class="check-icon">✓</span> New hotels join</li>
+  <li><span class="check-icon">✓</span> Launch parties</li>
+  <li><span class="check-icon">✓</span> Exclusive discounts</li>
+</ul>
+
+<p>In the meantime&hellip;</p>
+
+<div class="divider"></div>
+
+<p><strong>Ready to play?</strong></p>
+<p>Browse the hotels already accepting bids.</p>
+<%- include('./partials/deadline-button', { url: marketplaceUrl, label: 'Start Bidding' }) %>
+
+<div class="divider"></div>
+
+<h3>Follow the journey</h3>
+<p>We're documenting the launch in real time.</p>
+<%- include('./partials/deadline-button', { url: instagramUrl, label: 'Follow us on Instagram' }) %>
+
+<div class="divider"></div>
+
+<h3>One favor</h3>
+<p>Is there an indie hotel you'd love to see on here?</p>
+<p>Simply forward this email to the owner or GM&mdash;or introduce us directly. Every hotel that joins makes the marketplace better for everyone.</p>
+<%- include('./partials/deadline-button', { url: referHotelUrl, label: 'Refer a Hotel' }) %>
+
+<div class="signature">
+  <p class="sign-off">Let's goooo!</p>
+  <p class="sign-name">- Elvina</p>
+</div>
+
+<%- include('./partials/deadline-foot', { appName: appName }) %>
