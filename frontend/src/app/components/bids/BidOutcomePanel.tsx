@@ -106,24 +106,24 @@ export function BidOutcomePanel({
     return (
       <>
         <AcceptedOutcomeSparkles />
-        <div className="outcome-panel outcome-panel--accepted rounded-xl p-5 space-y-5 bg-[hsl(0_0%_4%)]">
-          <div className="text-center pt-2">
-            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/20 border-2 border-emerald-500">
-              <CheckCircle className="h-8 w-8 text-emerald-400" />
+        <div className="outcome-panel outcome-panel--accepted rounded-xl p-4 space-y-3 bg-[hsl(0_0%_4%)]">
+          <div className="text-center">
+            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20 border-2 border-emerald-500">
+              <CheckCircle className="h-6 w-6 text-emerald-400" />
             </div>
-            <h2 className="text-xl font-bold text-fg">You&apos;re All Set!</h2>
-            <p className="text-sm text-muted mt-1">Your bid was accepted.</p>
+            <h2 className="text-lg font-bold text-fg">You&apos;re All Set!</h2>
+            <p className="text-xs text-muted mt-0.5">Your bid was accepted.</p>
           </div>
 
-          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-center">
+          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-center">
             <p className="text-sm font-semibold text-emerald-400 flex items-center justify-center gap-2">
               <Lock className="h-4 w-4" />
               Reservation Confirmed
             </p>
-            <p className="text-xs text-muted mt-1">Your room is secured.</p>
+            <p className="text-xs text-muted">Your room is secured.</p>
           </div>
 
-          <div className="space-y-2 text-sm border-t border-line/60 pt-4">
+          <div className="space-y-1.5 text-sm border-t border-line/60 pt-3">
           <div className="flex justify-between text-muted">
             <span>Check-in</span>
             <span className="text-fg">{format(checkIn, "EEE, MMM d, yyyy")}</span>
@@ -142,13 +142,13 @@ export function BidOutcomePanel({
             <span>Your Bid</span>
             <span className="text-fg">{formatCurrency(bidPerNight)}/night</span>
           </div>
-          <div className="flex justify-between pt-2 border-t border-line/60 font-semibold text-fg text-base">
+          <div className="flex justify-between pt-1.5 border-t border-line/60 font-semibold text-fg text-base">
             <span>Total Paid</span>
             <span>{formatCurrency(totalAmount)}</span>
           </div>
         </div>
 
-        <div className="flex items-center justify-between rounded-lg border border-line/60 bg-bg/50 px-3 py-2 text-sm">
+        <div className="flex items-center justify-between rounded-lg border border-line/60 bg-bg/50 px-3 py-1.5 text-sm">
           <div className="flex items-center gap-2 text-muted">
             <CreditCard className="h-4 w-4" />
             <span className="text-fg">Card charged</span>
@@ -158,18 +158,18 @@ export function BidOutcomePanel({
           </span>
         </div>
 
-        <div className="rounded-lg border border-line/60 bg-bg/30 px-3 py-3 text-sm">
+        <div className="rounded-lg border border-line/60 bg-bg/30 px-3 py-2 text-sm">
           <p className="font-medium text-emerald-400 flex items-center gap-2">
             <Mail className="h-4 w-4" />
             Confirmation Sent
           </p>
-          <p className="text-xs text-muted mt-1">
+          <p className="text-xs text-muted">
             We&apos;ve sent the details to {userEmail}.
           </p>
         </div>
 
         <Button
-          className="w-full btn-bid h-11"
+          className="w-full btn-bid h-10"
           onClick={() => navigate(ROUTES.STUDENT_MY_BIDS)}
         >
           <Calendar className="mr-2 h-4 w-4" />
@@ -177,7 +177,7 @@ export function BidOutcomePanel({
         </Button>
         <Button
           variant="outline"
-          className="w-full border-line text-fg hover:bg-glass"
+          className="w-full border-line text-fg hover:bg-glass h-10"
           onClick={() => navigate(ROUTES.HOME)}
         >
           <Search className="mr-2 h-4 w-4" />
