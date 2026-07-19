@@ -53,12 +53,9 @@ export function Testimonials({ placeId }: TestimonialsProps) {
   return (
     <div className="mt-12">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-fg mb-3">
-          What Students Are Saying
+        <h2 className="text-2xl font-bold uppercase tracking-wide text-fg">
+          Reviews
         </h2>
-        <p className="text-base text-muted">
-          Real stays. Real savings. Verified students only.
-        </p>
       </div>
 
       <div className="relative">

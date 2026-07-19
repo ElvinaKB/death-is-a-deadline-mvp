@@ -324,7 +324,7 @@ export function PlaceDetailPage() {
             </div>
           )}
 
-          <aside className="listing-detail-bid self-start lg:sticky lg:top-24">
+          <aside className="listing-detail-bid self-start lg:sticky lg:top-6">
             <BidForm
               variant="listing"
               place={place}
@@ -487,13 +487,13 @@ export function PlaceDetailPage() {
 
                         {/* Bid Button */}
                         <button
-                          className="btn-bid mt-3 w-full text-sm p-1"
+                          className="btn-bid mt-3 w-full h-11 text-sm font-semibold uppercase tracking-wide"
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(getPublicPlacePath(listing));
                           }}
                         >
-                          ⏳ PLACE BID
+                          Place Bid
                         </button>
                       </div>
                     </Card>
