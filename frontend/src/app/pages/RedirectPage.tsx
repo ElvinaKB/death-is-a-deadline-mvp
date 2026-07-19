@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import Cookies from "js-cookie";
 import { useAppDispatch } from "../../store/hooks";
 import { setCredentials } from "../../store/slices/authSlice";
@@ -11,6 +11,7 @@ import {
   ANALYTICS_EVENTS,
   trackEvent,
 } from "../../utils/analytics";
+import hotelCheckinBackground from "../../assets/hotel-checkin.jpg";
 
 function parseHashParams(hash: string) {
   const params: Record<string, string> = {};
@@ -27,7 +28,9 @@ function parseHashParams(hash: string) {
 export function RedirectPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<
+    { message: string; subMessage?: string } | null
+  >(null);
 
   useEffect(() => {
     const params = parseHashParams(window.location.hash);
@@ -64,7 +67,7 @@ export function RedirectPage() {
     // Fetch user details from Supabase
     supabase.auth.getUser(access_token).then(({ data, error }) => {
       if (error || !data.user) {
-        setError(error?.message || "Failed to fetch user data");
+        setStatus({ message: error?.message || "Failed to fetch user data" });
         resetCookies();
         return;
       }
@@ -80,9 +83,11 @@ export function RedirectPage() {
 
       if (user.approvalStatus !== ApprovalStatus.APPROVED) {
         resetCookies();
-        return setError(
-          "Your account is under approval by our team. You will be notified once it's approved."
-        );
+        setStatus({
+          message: "Your account is under review by our team.",
+          subMessage: "We will notify you via email once your access is approved.",
+        });
+        return;
       }
 
       dispatch(
@@ -99,23 +104,58 @@ export function RedirectPage() {
   }, [dispatch, navigate]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-bg">
-      <div className="glass-2 shadow-lg rounded-lg p-8 flex flex-col items-center gap-4 min-w-[320px]">
-        {error ? (
-          <>
-            <div className="text-error text-lg font-semibold text-center">
-              {error}
-            </div>
-            <button
-              className="btn-bid mt-2"
-              onClick={() => (window.location.href = "/login")}
-            >
-              Go to Login Page
-            </button>
-          </>
-        ) : (
-          <div className="text-fg text-lg font-medium">Redirecting...</div>
-        )}
+    <div
+      className="relative min-h-screen bg-cover bg-center bg-fixed flex flex-col items-center justify-center px-5 py-16 text-center text-white"
+      style={{ backgroundImage: `url(${hotelCheckinBackground})` }}
+    >
+      <div className="absolute inset-0 bg-black/65" />
+
+      <div className="relative flex flex-col items-center">
+        <span className="text-4xl sm:text-6xl font-extrabold uppercase tracking-[0.08em] mb-12">
+          Deadline
+        </span>
+
+        <div className="max-w-xl w-full">
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight mb-3">
+            Thank you!
+          </h1>
+          <p className="text-lg sm:text-2xl text-gold tracking-wide mb-10">
+            Your email is confirmed.
+          </p>
+
+          <div className="mb-10">
+            {status ? (
+              <>
+                <p className="text-base sm:text-lg leading-relaxed">
+                  {status.message}
+                </p>
+                {status.subMessage && (
+                  <p className="text-sm sm:text-base text-white/60 mt-2">
+                    {status.subMessage}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-base sm:text-lg leading-relaxed">
+                Redirecting&hellip;
+              </p>
+            )}
+          </div>
+
+          <Link
+            to={ROUTES.LOGIN}
+            className="inline-flex items-center justify-center gap-3 bg-white text-black px-10 py-4 rounded font-bold uppercase tracking-[0.15em] text-sm hover:bg-gold transition-colors"
+          >
+            Go to Login Page <span className="text-lg">&rarr;</span>
+          </Link>
+        </div>
+      </div>
+
+      <div className="relative sm:absolute sm:bottom-10 mt-16 sm:mt-0 flex items-center gap-6 text-sm text-white/60">
+        <span>&copy; {new Date().getFullYear()} Deadline</span>
+        <Link to={ROUTES.CONTACT} className="text-white/80 hover:text-white hover:underline">
+          Need help? Contact us
+        </Link>
       </div>
     </div>
   );
