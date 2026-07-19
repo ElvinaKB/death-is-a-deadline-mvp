@@ -63,7 +63,7 @@ export function ListingBidPanelHeader({ className = "" }: { className?: string }
         <div className="listing-bid-timer-row__label">
           <Clock className="h-4 w-4 shrink-0 text-fg" strokeWidth={1.5} />
           <span className="text-xs text-fg leading-snug">
-            Auction closes at midnight hotel time
+            Game Over at Midnight - hotel time
           </span>
         </div>
         <span className="listing-bid-panel-timer shrink-0">
@@ -87,7 +87,7 @@ export function SidebarAuctionTimer({ className = "" }: { className?: string }) 
     <div className={cn("gold-border rounded-lg p-4 text-center", className)}>
       <Clock className="mx-auto mb-2 h-6 w-6 text-gold" strokeWidth={1.5} />
       <p className="text-xs text-muted mb-1">
-        Auction closes at midnight hotel time
+        Game Over at Midnight - hotel time
       </p>
       <p className="timer-gold-lg">{formatHMS(remaining)}</p>
     </div>

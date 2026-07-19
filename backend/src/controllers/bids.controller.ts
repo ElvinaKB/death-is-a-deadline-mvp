@@ -165,6 +165,22 @@ export async function createBid(req: Request, res: Response) {
 
   // Total Stay Threshold: sum of each night's minimum vs total bid
   if (!isBidAboveStayThreshold(place, checkInDate, checkOutDate, data.bidPerNight)) {
+    // Record the losing attempt (price, dates, who) instead of discarding
+    // it — this is the pricing signal future smart-pricing needs.
+    await prisma.bid.create({
+      data: {
+        placeId: data.placeId,
+        studentId,
+        checkInDate,
+        checkOutDate,
+        bidPerNight: data.bidPerNight,
+        totalNights,
+        totalAmount,
+        status: bid_status.REJECTED,
+        rejectionReason: "Bid below hotel's private threshold",
+      },
+    });
+
     throw new CustomError(
       `Your bid is very low, try again by increasing it.`,
       400,
@@ -277,7 +293,9 @@ export async function getBidForPlace(req: Request, res: Response) {
       select: { timezone: true, city: true, country: true },
     }),
     prisma.bid.findMany({
-      where: { studentId, placeId },
+      // Exclude REJECTED so a run of "try again" guesses can't crowd a
+      // real ACCEPTED/PENDING booking out of the most-recent-20 window.
+      where: { studentId, placeId, status: { not: bid_status.REJECTED } },
       orderBy: [{ checkOutDate: "desc" }, { createdAt: "desc" }],
       take: 20,
       include: {
@@ -448,6 +466,7 @@ export async function listBids(req: Request, res: Response) {
   const {
     status,
     placeId,
+    studentId,
     page = 1,
     limit = 10,
   } = req.query as unknown as ListBidsQuery;
@@ -456,6 +475,7 @@ export async function listBids(req: Request, res: Response) {
   const where: Prisma.BidWhereInput = {
     ...(status && { status }),
     ...(placeId && { placeId }),
+    ...(studentId && { studentId }),
   };
 
   const [bids, total] = await Promise.all([
@@ -607,7 +627,7 @@ export async function updatePayout(req: Request, res: Response) {
           payoutMethod: bid.payoutMethod || null,
           payoutNotes: bid.payoutNotes || null,
           paidAt: format(new Date(), "MMM dd, yyyy 'at' h:mm a"),
-          appName: "Death Is A Deadline",
+          appName: "Deadline",
         },
       });
     } catch (emailError) {

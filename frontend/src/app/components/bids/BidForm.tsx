@@ -2111,13 +2111,13 @@ function BidFormInner({
                   disabled={isInventoryExhausted}
                 >
                   <ArrowRight className="mr-2 h-4 w-4" />
-                  Verify .edu &amp; Submit Bid
+                  Get Verified to Submit Bid
                 </Button>
                 <p className="flex items-start gap-2 text-xs text-muted leading-relaxed">
                   <Lock className="h-3.5 w-3.5 shrink-0 mt-0.5 text-fg" />
-                  Once you place your bid, you will need to verify your student
-                  status, and enter your credit card details. Your card will not
-                  be charged at this time.
+                  Once you place your bid, you will need to be verified, and
+                  enter your credit card details. Your card will not be
+                  charged at this time.
                 </p>
               </>
             )}
@@ -2605,7 +2605,7 @@ function BidFormInner({
               {bidStep === "review"
                 ? isAuthenticated
                   ? "Continue to payment"
-                  : "Verify .edu to bid"
+                  : "Get Verified to Bid"
                 : "Continue"}
             </Button>
           </div>
@@ -2640,7 +2640,7 @@ function BidFormInner({
             }}
           >
             <LogIn className="w-4 h-4 mr-2" />
-            Verify .edu to continue
+            Get Verified to Continue
           </Button>
         )}
 

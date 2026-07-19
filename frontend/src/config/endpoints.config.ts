@@ -8,12 +8,20 @@ export const ENDPOINTS = {
   RESUBMIT_ID: "/api/auth/resubmit",
   FORGOT_PASSWORD: "/api/auth/forgot-password",
   RESET_PASSWORD: "/api/auth/reset-password",
+  LINKEDIN_AUTHORIZE: "/api/auth/linkedin/authorize",
+  LINKEDIN_CALLBACK: "/api/auth/linkedin/callback",
+  LINKEDIN_COMPLETE: "/api/auth/linkedin/complete",
 
   // Students
   STUDENTS_LIST: "/api/students",
+  STUDENT_CREATE: "/api/students",
   STUDENT_DETAIL: "/api/students/:id",
+  STUDENT_LOGIN_EVENTS: "/api/students/:id/login-events",
   STUDENT_APPROVE: "/api/students/:id/approve",
   STUDENT_REJECT: "/api/students/:id/reject",
+  STUDENT_BAN: "/api/students/:id/ban",
+  STUDENT_UNBAN: "/api/students/:id/unban",
+  STUDENT_DELETE: "/api/students/:id",
   STUDENT_UPLOAD_ID: "/api/students/upload-id",
   STUDENTS_STATS: "/api/students/stats",
 
@@ -67,6 +75,14 @@ export const ENDPOINTS = {
 
   // Contact
   CONTACT: "/api/contact",
+
+  // Newsletter
+  NEWSLETTER_SUBSCRIBE: "/api/newsletter/subscribe",
+  NEWSLETTER_SUBSCRIBERS: "/api/newsletter",
+
+  // Waitlist
+  WAITLIST_JOIN: "/api/waitlist",
+  WAITLIST_SEND_WELCOME_EMAILS: "/api/waitlist/send-welcome-emails",
 
   // Review Platforms
   REVIEW_PLATFORMS_LIST: "/api/testimonials/review-platforms",

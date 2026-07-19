@@ -1,25 +1,15 @@
-<html>
-  <body>
-    <h2>Account Approved</h2>
-    <p>Hello <%= name %>,</p>
-    <p>
-      Your student account has been approved! You can now log in and start using
-      the platform.
-    </p>
-    <p>
-      <a
-        href="<%= loginUrl %>"
-        style="
-          background: #2563eb;
-          color: #fff;
-          padding: 10px 20px;
-          border-radius: 6px;
-          text-decoration: none;
-          font-weight: bold;
-        "
-        >Login Now</a
-      >
-    </p>
-    <p>Thank you,<br /><%= appName %> Team</p>
-  </body>
-</html>
+<%- include('./partials/deadline-head', {
+  title: 'Account Approved',
+  heading: "You're approved!",
+  badgeText: '✓ Approved'
+}) %>
+
+<p class="intro">Hi <%= name %>,</p>
+
+<p>Great news &mdash; your <%= appName %> account has been approved. You can now bid on hotels and lock in rooms at your price.</p>
+
+<%- include('./partials/deadline-button', { url: loginUrl, label: 'Login Now' }) %>
+
+<p style="text-align: center; color: #6b7280;">Thanks for joining <%= appName %>!</p>
+
+<%- include('./partials/deadline-foot', { appName: appName }) %>

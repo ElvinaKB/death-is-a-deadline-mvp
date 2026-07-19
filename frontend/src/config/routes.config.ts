@@ -2,12 +2,15 @@ export const ROUTES = {
   // Auth routes
   LOGIN: "/login",
   SIGNUP: "/signup",
+  SIGNUP_SUCCESS: "/signup/success",
+  LINKEDIN_CALLBACK: "/auth/linkedin/callback",
   HOTEL_SIGNUP: "/hotel/signup",
   RESUBMIT: "/resubmit",
   FORGOT_PASSWORD: "/forgot-password",
   RESET_PASSWORD: "/reset-password",
 
   HOME: "/",
+  WAITLIST: "/waitlist",
   PUBLIC_PLACE_DETAIL: "/student/marketplace/:slug",
 
   // Student routes
@@ -31,6 +34,7 @@ export const ROUTES = {
   ADMIN_PLACES_EDIT: "/admin/places/:id/edit",
   ADMIN_PLACES_TESTIMONIALS: "/admin/places/:id/testimonials",
   ADMIN_BIDS: "/admin/bids",
+  ADMIN_NEWSLETTER: "/admin/newsletter",
 
   // Legal
   TERMS: "/terms",

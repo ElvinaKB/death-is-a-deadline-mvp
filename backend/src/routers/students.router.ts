@@ -5,6 +5,7 @@ import { validate } from "../libs/middlewares/validate";
 import {
   studentIdParamSchema,
   studentApproveRejectSchema,
+  addStudentSchema,
 } from "../validations/students/students.validation";
 import { UserRole } from "../types/auth.types";
 
@@ -16,6 +17,9 @@ router.use(authenticate(UserRole.ADMIN));
 // GET /api/students
 router.get("/", studentsController.listStudents);
 
+// POST /api/students — admin manually adds a pre-approved traveler
+router.post("/", validate(addStudentSchema), studentsController.addStudent);
+
 // GET /api/students/stats
 router.get("/stats", studentsController.getStudentsStats);
 
@@ -24,6 +28,13 @@ router.get(
   "/:id",
   validate(studentIdParamSchema, "params"),
   studentsController.getStudentDetail
+);
+
+// GET /api/students/:id/login-events
+router.get(
+  "/:id/login-events",
+  validate(studentIdParamSchema, "params"),
+  studentsController.getStudentLoginEvents
 );
 
 // POST /api/students/:id/approve
@@ -38,6 +49,27 @@ router.post(
   "/:id/reject",
   validate(studentApproveRejectSchema, "params"),
   studentsController.rejectStudent
+);
+
+// POST /api/students/:id/ban
+router.post(
+  "/:id/ban",
+  validate(studentApproveRejectSchema, "params"),
+  studentsController.banStudent
+);
+
+// POST /api/students/:id/unban
+router.post(
+  "/:id/unban",
+  validate(studentApproveRejectSchema, "params"),
+  studentsController.unbanStudent
+);
+
+// DELETE /api/students/:id
+router.delete(
+  "/:id",
+  validate(studentIdParamSchema, "params"),
+  studentsController.deleteStudent
 );
 
 export { router };

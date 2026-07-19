@@ -23,15 +23,108 @@ import { ArrowLeft, Check, X, MailCheck, MailX } from "lucide-react";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
 import { Timeline, type TimelineItem } from "../../components/ui/timeline";
+import { useBids } from "../../../hooks/useBids";
+import { Bid, BidStatus } from "../../../types/bid.types";
+import { DataTable } from "../../components/common/DataTable";
+import { TableColumn } from "../../../types/api.types";
+import { formatBookingDate } from "../../../utils/dateHelpers";
 
-function buildTimeline(student: {
-  createdAt: string;
-  emailConfirmedAt?: string | null;
-  approvalStatus: ApprovalStatus;
-  updatedAt: string;
-  rejectionReason?: string;
-}): TimelineItem[] {
-  const items: TimelineItem[] = [
+const BID_STATUS_COLORS: Record<BidStatus, string> = {
+  [BidStatus.PENDING]: "bg-warning/20 text-warning hover:bg-warning/30",
+  [BidStatus.ACCEPTED]: "bg-success/20 text-success hover:bg-success/30",
+  [BidStatus.REJECTED]: "bg-danger/20 text-danger hover:bg-danger/30",
+};
+
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+
+const bidHistoryColumns: TableColumn<Bid>[] = [
+  {
+    header: "Place",
+    field: "placeId",
+    render: (row) => row.place?.name || "N/A",
+  },
+  {
+    header: "Dates",
+    field: "checkInDate",
+    render: (row) => (
+      <span className="text-sm">
+        {formatBookingDate(row.checkInDate, "MMM d")} –{" "}
+        {formatBookingDate(row.checkOutDate, "MMM d, yyyy")}
+      </span>
+    ),
+  },
+  {
+    header: "Bid",
+    field: "bidPerNight",
+    render: (row) => (
+      <div className="text-sm">
+        <p className="font-medium text-fg">{formatCurrency(row.totalAmount)}</p>
+        <p className="text-muted">{formatCurrency(row.bidPerNight)}/night</p>
+      </div>
+    ),
+  },
+  {
+    header: "Result",
+    field: "status",
+    render: (row) => (
+      <div>
+        <Badge className={BID_STATUS_COLORS[row.status]}>
+          {row.status === BidStatus.ACCEPTED ? "Won" : row.status === BidStatus.REJECTED ? "Unsuccessful" : "Pending"}
+        </Badge>
+        {row.status === BidStatus.REJECTED && row.rejectionReason && (
+          <p className="text-xs text-muted mt-1">{row.rejectionReason}</p>
+        )}
+      </div>
+    ),
+  },
+  {
+    header: "Placed",
+    field: "createdAt",
+    render: (row) => (
+      <span className="text-sm text-muted">
+        {new Date(row.createdAt).toLocaleDateString()}
+      </span>
+    ),
+  },
+];
+
+interface LoginEvent {
+  loggedInAt: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+}
+
+function describeLoginDevice(userAgent: string | null): string {
+  if (!userAgent) return "Unknown device";
+  const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+  let browser = "Unknown browser";
+  if (/Edg\//.test(userAgent)) browser = "Edge";
+  else if (/OPR\//.test(userAgent)) browser = "Opera";
+  else if (/Chrome\//.test(userAgent) && !/Chromium/.test(userAgent))
+    browser = "Chrome";
+  else if (/Firefox\//.test(userAgent)) browser = "Firefox";
+  else if (/Safari\//.test(userAgent) && !/Chrome/.test(userAgent))
+    browser = "Safari";
+  return `${browser} · ${isMobile ? "Mobile" : "Desktop"}`;
+}
+
+function describeLoginEvent(event: LoginEvent): string {
+  const device = describeLoginDevice(event.userAgent);
+  return event.ipAddress ? `${device} · ${event.ipAddress}` : device;
+}
+
+function buildTimeline(
+  student: {
+    createdAt: string;
+    emailConfirmedAt?: string | null;
+    approvalStatus: ApprovalStatus;
+    updatedAt: string;
+    rejectionReason?: string;
+  },
+  loginEvents: LoginEvent[] = [],
+): TimelineItem[] {
+  const dated: (TimelineItem & { timestamp: string })[] = [
     {
       id: "registered",
       title: "Registered",
@@ -39,19 +132,20 @@ function buildTimeline(student: {
       timestamp: student.createdAt,
       status: "completed",
     },
-    {
-      id: "email-verified",
-      title: "Email Verified",
-      description: student.emailConfirmedAt
-        ? "Email address confirmed"
-        : "Awaiting email verification",
-      timestamp: student.emailConfirmedAt ?? undefined,
-      status: student.emailConfirmedAt ? "completed" : "pending",
-    },
   ];
 
+  if (student.emailConfirmedAt) {
+    dated.push({
+      id: "email-verified",
+      title: "Email Verified",
+      description: "Email address confirmed",
+      timestamp: student.emailConfirmedAt,
+      status: "completed",
+    });
+  }
+
   if (student.approvalStatus === ApprovalStatus.APPROVED) {
-    items.push({
+    dated.push({
       id: "approved",
       title: "Account Approved",
       description: "Admin approved the student",
@@ -59,14 +153,41 @@ function buildTimeline(student: {
       status: "completed",
     });
   } else if (student.approvalStatus === ApprovalStatus.REJECTED) {
-    items.push({
+    dated.push({
       id: "rejected",
       title: "Account Rejected",
       description: student.rejectionReason ?? "Admin rejected the student",
       timestamp: student.updatedAt,
       status: "error",
     });
-  } else {
+  }
+
+  loginEvents.forEach((event, index) => {
+    dated.push({
+      id: `login-${index}`,
+      title: "Logged in",
+      description: describeLoginEvent(event),
+      timestamp: event.loggedInAt,
+      status: "completed",
+    });
+  });
+
+  dated.sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  );
+
+  const items: TimelineItem[] = [...dated];
+
+  if (!student.emailConfirmedAt) {
+    items.push({
+      id: "email-verified",
+      title: "Email Verified",
+      description: "Awaiting email verification",
+      status: "pending",
+    });
+  }
+
+  if (student.approvalStatus === ApprovalStatus.PENDING) {
     items.push({
       id: "approval-pending",
       title: "Awaiting Admin Approval",
@@ -88,6 +209,19 @@ export function StudentDetailPage() {
   const { data, isLoading } = useApiQuery<StudentDetailResponse>({
     queryKey: [QUERY_KEYS.STUDENT_DETAIL, id],
     endpoint: getEndpoint(ENDPOINTS.STUDENT_DETAIL, { id: id! }),
+    enabled: !!id,
+  });
+
+  // Full bid history — both accepted and rejected, so the record isn't
+  // just winners.
+  const { data: bidsData, isLoading: bidsLoading } = useBids({
+    studentId: id,
+    limit: 100,
+  });
+
+  const { data: loginEventsData } = useApiQuery<{ events: LoginEvent[] }>({
+    queryKey: [QUERY_KEYS.STUDENT_LOGIN_EVENTS, id],
+    endpoint: getEndpoint(ENDPOINTS.STUDENT_LOGIN_EVENTS, { id: id! }),
     enabled: !!id,
   });
 
@@ -165,12 +299,12 @@ export function StudentDetailPage() {
   if (!data?.student) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Student not found</p>
+        <p className="text-muted-foreground">Traveler not found</p>
         <Button
           onClick={() => navigate(ROUTES.ADMIN_STUDENTS)}
           className="mt-4"
         >
-          Back to Students
+          Back to Travelers
         </Button>
       </div>
     );
@@ -200,7 +334,7 @@ export function StudentDetailPage() {
           Back
         </Button>
         <div>
-          <h1 className="text-3xl font-bold text-fg">Student Details</h1>
+          <h1 className="text-3xl font-bold text-fg">Traveler Details</h1>
         </div>
       </div>
 
@@ -252,10 +386,32 @@ export function StudentDetailPage() {
             </CardContent>
           </Card>
 
+          {student.linkedinProfileUrl && (
+            <Card className="glass-2 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-fg">LinkedIn Verification</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted mb-3">
+                  LinkedIn confirmed this person owns the email above.
+                  Click through to review their profile before approving.
+                </p>
+                <a
+                  href={student.linkedinProfileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 text-brand hover:underline font-medium break-all"
+                >
+                  {student.linkedinProfileUrl}
+                </a>
+              </CardContent>
+            </Card>
+          )}
+
           {student.studentIdUrl && (
             <Card className="glass-2 border-white/10">
               <CardHeader>
-                <CardTitle className="text-fg">Student ID Card</CardTitle>
+                <CardTitle className="text-fg">Verification ID</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="border border-white/10 rounded-lg overflow-hidden bg-white/5">
@@ -268,57 +424,82 @@ export function StudentDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          <Card className="glass-2 border-white/10">
+            <CardHeader>
+              <CardTitle className="text-fg">
+                Bid History
+                {bidsData && (
+                  <span className="ml-2 text-sm font-normal text-muted">
+                    ({bidsData.total} total —{" "}
+                    {bidsData.bids.filter((b) => b.status === BidStatus.ACCEPTED).length}{" "}
+                    won,{" "}
+                    {bidsData.bids.filter((b) => b.status === BidStatus.REJECTED).length}{" "}
+                    unsuccessful)
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={bidHistoryColumns}
+                data={bidsData?.bids || []}
+                loading={bidsLoading}
+                emptyMessage="No bids placed yet"
+              />
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-6">
-          <Card className="glass-2 border-white/10">
-            <CardHeader>
-              <CardTitle className="text-fg">Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {student.approvalStatus === ApprovalStatus.PENDING && (
-                <>
-                  <Button
-                    className="w-full bg-success hover:bg-success/90 disabled:opacity-50"
-                    onClick={handleApprove}
-                    disabled={approveMutation.isPending || !student.emailConfirmedAt}
-                    title={!student.emailConfirmedAt ? "Student must verify their email before approval" : undefined}
-                  >
-                    <Check className="h-4 w-4 mr-2" />
-                    Approve Student
-                  </Button>
-                  {!student.emailConfirmedAt && (
-                    <p className="text-xs text-error text-center">
-                      Approval blocked — student has not verified their email
-                    </p>
-                  )}
-                  <Button
-                    variant="destructive"
-                    className="w-full"
-                    onClick={handleReject}
-                    disabled={rejectMutation.isPending}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Reject Student
-                  </Button>
-                </>
-              )}
-              {student.approvalStatus === ApprovalStatus.APPROVED && (
-                <div className="text-center py-4 text-sm text-muted">
-                  Student has been approved
-                </div>
-              )}
-              {student.approvalStatus === ApprovalStatus.REJECTED && (
+          {student.approvalStatus === ApprovalStatus.PENDING && (
+            <Card className="glass-2 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-fg">Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button
+                  className="w-full bg-success hover:bg-success/90 disabled:opacity-50"
+                  onClick={handleApprove}
+                  disabled={approveMutation.isPending || !student.emailConfirmedAt}
+                  title={!student.emailConfirmedAt ? "Student must verify their email before approval" : undefined}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Approve Student
+                </Button>
+                {!student.emailConfirmedAt && (
+                  <p className="text-xs text-error text-center">
+                    Approval blocked — student has not verified their email
+                  </p>
+                )}
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={handleReject}
+                  disabled={rejectMutation.isPending}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Reject Student
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {student.approvalStatus === ApprovalStatus.REJECTED && (
+            <Card className="glass-2 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-fg">Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="text-center py-4 text-sm text-muted">
                   Student has been rejected
-                  {/* show reason */}
                   {student.rejectionReason && (
                     <p className="mt-2 text-fg">{student.rejectionReason}</p>
                   )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="glass-2 border-white/10">
             <CardHeader>
@@ -326,7 +507,7 @@ export function StudentDetailPage() {
             </CardHeader>
             <CardContent>
               <Timeline
-                items={buildTimeline(student)}
+                items={buildTimeline(student, loginEventsData?.events ?? [])}
                 variant="compact"
                 showTimestamps={true}
                 timestampPosition="top"

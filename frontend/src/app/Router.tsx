@@ -8,6 +8,8 @@ import { StudentLayout } from "./layouts/StudentLayout";
 // Pages
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
+import { SignupSuccessPage } from "./pages/SignupSuccessPage";
+import { LinkedInCallbackPage } from "./pages/LinkedInCallbackPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { HomePage } from "./pages/HomePage";
@@ -30,6 +32,7 @@ import { ResubmitPage } from "./pages/ResubmitPage";
 import { PlaceFormPage } from "./pages/admin/PlaceFormPage";
 import { PlacesListPage } from "./pages/admin/PlacesListPage";
 import { BidsListPage } from "./pages/admin/BidsListPage";
+import { NewsletterSubscribersPage } from "./pages/admin/NewsletterSubscribersPage";
 import { PlaceTestimonialsPage } from "./pages/admin/PlaceTestimonialsPage";
 import { HotelBidsPage } from "./pages/hotel/HotelBidsListPage";
 import { HotelPlaceFormPage } from "./pages/hotel/HotelPlaceFormPage";
@@ -40,6 +43,7 @@ import { TermsPage } from "./pages/legal/TermsPage";
 import { PrivacyPage } from "./pages/legal/PrivacyPage";
 import { AccessibilityPage } from "./pages/legal/AccessibilityPage";
 import { ContactPage } from "./pages/ContactPage";
+import { WaitlistPage } from "./pages/WaitlistPage";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 // Auth routes (redirect to protected base if already authenticated)
@@ -56,10 +60,13 @@ const authRoutes = [
 const publicRoutes = [
   { path: ROUTES.UNAUTHORIZED, element: <UnauthorizedPage /> },
   { path: ROUTES.REDIRECT, element: <RedirectPage /> },
+  { path: ROUTES.SIGNUP_SUCCESS, element: <SignupSuccessPage /> },
+  { path: ROUTES.LINKEDIN_CALLBACK, element: <LinkedInCallbackPage /> },
   { path: ROUTES.TERMS, element: <TermsPage /> },
   { path: ROUTES.PRIVACY, element: <PrivacyPage /> },
   { path: ROUTES.ACCESSIBILITY, element: <AccessibilityPage /> },
   { path: ROUTES.CONTACT, element: <ContactPage /> },
+  { path: ROUTES.WAITLIST, element: <WaitlistPage /> },
 ];
 
 const publicLayoutRoutes = [
@@ -107,6 +114,7 @@ const protectedRoutes = [
         element: <PlaceTestimonialsPage />,
       },
       { path: ROUTES.ADMIN_BIDS, element: <BidsListPage /> },
+      { path: ROUTES.ADMIN_NEWSLETTER, element: <NewsletterSubscribersPage /> },
     ],
   },
 ];

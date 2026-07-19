@@ -49,3 +49,19 @@ export interface AuthResponse {
   token: Session;
   message?: string;
 }
+
+export interface LinkedInVerifyResponse {
+  email: string;
+  name: string;
+  verificationToken: string;
+}
+
+export interface LinkedInCompleteRequest {
+  verificationToken: string;
+  password: string;
+  linkedinProfileUrl: string;
+}
+
+export interface LinkedInCompleteResponse {
+  user: { approvalStatus: ApprovalStatus };
+}

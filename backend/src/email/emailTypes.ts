@@ -7,5 +7,6 @@ export enum EmailType {
   PAYOUT_SENT = "payout_sent",
   HOTEL_PLACE_CREATED = "hotel_place_created",
   HOTEL_INVITE = "hotel_invite",
+  WAITLIST_WELCOME = "waitlist_welcome",
   // Add more types as needed
 }

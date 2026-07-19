@@ -26,7 +26,7 @@ export async function sendBookingConfirmationEmails(
   const place = bid.place;
   const student = payment.student;
 
-  const appName = process.env.EMAIL_NAME || "Death is a Deadline";
+  const appName = "Deadline";
   const clientUrl = process.env.CLIENT_URL || "";
   const placeFullAddress = [place.address, place.city, place.country]
     .filter(Boolean)
@@ -50,7 +50,7 @@ export async function sendBookingConfirmationEmails(
     placeCountry: place.country,
     placeFullAddress,
     placeContactEmail: place.email || null,
-    placeContactPhone: null as string | null,
+    placeContactPhone: place.reservationPhone || null,
     mapsUrl,
     checkInDate: formatBookingDate(bid.checkInDate, "MMMM d, yyyy"),
     checkOutDate: formatBookingDate(bid.checkOutDate, "MMMM d, yyyy"),
@@ -60,35 +60,51 @@ export async function sendBookingConfirmationEmails(
     appName,
   };
 
-  if (student.email) {
-    try {
-      await sendEmail({
-        type: EmailType.BOOKING_CONFIRMED_STUDENT,
-        to: student.email,
-        subject: `Booking Confirmed - ${place.name}`,
-        variables: {
-          ...baseVariables,
-          dashboardUrl: `${clientUrl}/student/my-bids`,
-        },
-      });
-    } catch (error) {
-      console.error("Failed to send student confirmation email:", error);
-    }
-  }
+  // Internal copy of every confirmed booking — a backstop in case a hotel's
+  // email is missing, wrong, or gets missed, so someone at Deadline always
+  // has a record and can follow up directly if needed.
+  const internalCopyInbox =
+    process.env.BOOKING_COPY_INBOX_EMAIL || "deadline@podshare.com";
 
-  if (place.email) {
-    try {
-      await sendEmail({
-        type: EmailType.BOOKING_CONFIRMED_PLACE,
-        to: place.email,
-        subject: `New Booking - ${place.name}`,
-        variables: {
-          ...baseVariables,
-          dashboardUrl: `${clientUrl}/hotel/bids`,
-        },
-      });
-    } catch (error) {
-      console.error("Failed to send place confirmation email:", error);
-    }
-  }
+  // These three don't depend on each other, so send them concurrently
+  // instead of one-at-a-time — each still fails independently.
+  await Promise.allSettled([
+    student.email
+      ? sendEmail({
+          type: EmailType.BOOKING_CONFIRMED_STUDENT,
+          to: student.email,
+          subject: `Booking Confirmed - ${place.name}`,
+          variables: {
+            ...baseVariables,
+            dashboardUrl: `${clientUrl}/student/my-bids`,
+          },
+        }).catch((error) =>
+          console.error("Failed to send student confirmation email:", error),
+        )
+      : Promise.resolve(),
+    place.email
+      ? sendEmail({
+          type: EmailType.BOOKING_CONFIRMED_PLACE,
+          to: place.email,
+          subject: `New Booking - ${place.name}`,
+          variables: {
+            ...baseVariables,
+            dashboardUrl: `${clientUrl}/hotel/bids`,
+          },
+        }).catch((error) =>
+          console.error("Failed to send place confirmation email:", error),
+        )
+      : Promise.resolve(),
+    sendEmail({
+      type: EmailType.BOOKING_CONFIRMED_PLACE,
+      to: internalCopyInbox,
+      subject: `[Booking Copy] ${place.name} — ${student.email || "guest"}`,
+      variables: {
+        ...baseVariables,
+        dashboardUrl: `${clientUrl}/admin/bids`,
+      },
+    }).catch((error) =>
+      console.error("Failed to send internal booking copy email:", error),
+    ),
+  ]);
 }

@@ -30,3 +30,18 @@ export const forgotPasswordSchema = z.object({
 export const resetPasswordSchema = z.object({
   password: z.string().min(6),
 });
+
+export const linkedinCallbackSchema = z.object({
+  code: z.string().min(1),
+});
+
+export const linkedinCompleteSchema = z.object({
+  verificationToken: z.string().min(1),
+  password: z.string().min(6),
+  linkedinProfileUrl: z
+    .string()
+    .url("Enter a valid URL")
+    .refine((url) => /linkedin\.com/i.test(url), {
+      message: "Enter your LinkedIn profile URL",
+    }),
+});
