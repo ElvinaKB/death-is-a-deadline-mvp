@@ -83,6 +83,11 @@ const defaultVariables: Record<EmailType, Record<string, any>> = {
     referHotelUrl: "http://localhost:5173/contact",
     instagramUrl: "https://instagram.com/podshare",
   },
+  [EmailType.STUDENT_WELCOME]: {
+    name: "Test User",
+    appName: "Deadline",
+    passwordSetupUrl: "http://localhost:5173/reset-password?token=test",
+  },
 };
 
 router.post("/email", async (req: Request, res: Response) => {

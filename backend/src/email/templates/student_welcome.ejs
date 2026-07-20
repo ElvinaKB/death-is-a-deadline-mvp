@@ -1,0 +1,22 @@
+<%- include('./partials/deadline-head', {
+  title: 'Welcome to ' + appName,
+  heading: "You're in, " + name + "!",
+  badgeText: '✓ Verified Traveler'
+}) %>
+
+<p class="intro">Hi <%= name %>,</p>
+
+<p>You've been added to <%= appName %> as a verified traveler — no waitlist, no ID upload needed. You're ready to start bidding on hotels at your price.</p>
+
+<p>First, set your password to log in:</p>
+
+<%- include('./partials/deadline-button', { url: passwordSetupUrl, label: 'Set Your Password' }) %>
+
+<p style="text-align: center; color: #6b7280; font-size: 13px;">This link expires soon, so set your password today.</p>
+
+<div class="signature">
+  <p class="sign-off">Welcome aboard!</p>
+  <p class="sign-name">- Elvina</p>
+</div>
+
+<%- include('./partials/deadline-foot', { appName: appName }) %>

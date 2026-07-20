@@ -8,5 +8,6 @@ export enum EmailType {
   HOTEL_PLACE_CREATED = "hotel_place_created",
   HOTEL_INVITE = "hotel_invite",
   WAITLIST_WELCOME = "waitlist_welcome",
+  STUDENT_WELCOME = "student_welcome",
   // Add more types as needed
 }

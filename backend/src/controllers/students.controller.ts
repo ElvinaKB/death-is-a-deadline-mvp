@@ -193,8 +193,8 @@ export async function unbanStudent(req: Request, res: Response) {
 /**
  * Admin-only: manually add an already-verified traveler (e.g. a friend
  * bypassing normal ID/LinkedIn verification). Creates the account
- * pre-approved and sends them a password-setup email — same flow as a
- * self-service "forgot password" — so they can actually log in.
+ * pre-approved and sends a branded welcome email with a password-setup
+ * link so they can actually log in.
  */
 export async function addStudent(req: Request, res: Response) {
   const { name, email, linkedinProfileUrl } = req.body as {
@@ -237,12 +237,30 @@ export async function addStudent(req: Request, res: Response) {
     throw new CustomError(metaError.message, 400);
   }
 
-  const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-    email,
-    { redirectTo: `${process.env.CLIENT_URL}/reset-password` },
-  );
-  if (resetError) {
-    console.error("Failed to send password setup email:", resetError.message);
+  const { data: linkData, error: linkError } =
+    await supabase.auth.admin.generateLink({
+      type: "recovery",
+      email,
+      options: { redirectTo: `${process.env.CLIENT_URL}/reset-password` },
+    });
+  const passwordSetupUrl = linkData?.properties?.action_link;
+  if (linkError || !passwordSetupUrl) {
+    console.error("Failed to generate password setup link:", linkError?.message);
+  } else {
+    try {
+      await sendEmail({
+        type: EmailType.STUDENT_WELCOME,
+        to: email,
+        subject: "Welcome to Deadline — set your password",
+        variables: {
+          name,
+          appName: "Deadline",
+          passwordSetupUrl,
+        },
+      });
+    } catch (emailError: any) {
+      console.error("Failed to send welcome email:", emailError.message);
+    }
   }
 
   res.status(201).json({ message: "Traveler added and pre-approved" });
