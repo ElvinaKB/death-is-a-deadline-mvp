@@ -210,32 +210,28 @@ export async function addStudent(req: Request, res: Response) {
     throw new CustomError("An account with this email already exists.", 409);
   }
 
+  // Created via the admin API (not auth.signUp) so Supabase doesn't fire its
+  // own "confirm your signup" email — that flow also logs the browser
+  // straight into a session on click, before the traveler ever sets a real
+  // password. The random password below is never given to anyone; the
+  // welcome email's link is the only way in until they set their own.
   const password = crypto.randomBytes(24).toString("hex");
-  const { data: signUpData, error: signUpError } = await supabase.auth.signUp(
-    { email, password, options: { data: { name } } },
-  );
-  if (signUpError) throw new CustomError(signUpError.message, 400);
-
-  const userId = signUpData?.user?.id;
-  if (!userId) throw new CustomError("Failed to create account", 500);
-
-  const { error: metaError } = await supabase.auth.admin.updateUserById(
-    userId,
-    {
-      email_confirm: true,
-      user_metadata: {
-        name,
-        approvalStatus: ApprovalStatus.APPROVED,
-        linkedinProfileUrl: linkedinProfileUrl || null,
-        verifiedVia: "admin",
-      },
-      role: UserRole.STUDENT,
+  const { data: createData, error: createError } = await supabase.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: {
+      name,
+      approvalStatus: ApprovalStatus.APPROVED,
+      linkedinProfileUrl: linkedinProfileUrl || null,
+      verifiedVia: "admin",
     },
-  );
-  if (metaError) {
-    await supabase.auth.admin.deleteUser(userId);
-    throw new CustomError(metaError.message, 400);
-  }
+    role: UserRole.STUDENT,
+  });
+  if (createError) throw new CustomError(createError.message, 400);
+
+  const userId = createData?.user?.id;
+  if (!userId) throw new CustomError("Failed to create account", 500);
 
   const { data: linkData, error: linkError } =
     await supabase.auth.admin.generateLink({
