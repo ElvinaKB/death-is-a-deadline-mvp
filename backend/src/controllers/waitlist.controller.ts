@@ -79,5 +79,5 @@ export async function sendWaitlistWelcomeEmails(_req: Request, res: Response) {
     });
   }
 
-  res.json({ success: true, sent: pending.length });
+  res.json({ data: { success: true, sent: pending.length } });
 }
