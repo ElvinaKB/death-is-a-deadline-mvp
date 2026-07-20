@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useFormik } from "formik";
 import { toast } from "sonner";
-import { CheckCircle2, Copy, Share2, Sparkles } from "lucide-react";
+import { CheckCircle2, Copy, Plus, Share2, Sparkles, X } from "lucide-react";
 import { useApiQuery, useApiMutation } from "../../../hooks/useApi";
 import { ENDPOINTS } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
@@ -18,8 +18,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
+import { HomeHeader } from "../../components/home";
 
-const DESTINATIONS = ["Los Angeles", "Tokyo", "New York", "Palm Springs", "Napa"];
 const TRIP_TYPES = [
   "Weekend getaway",
   "Beach",
@@ -54,16 +54,6 @@ const INTERESTS = [
   "Fashion",
   "Art",
 ];
-const WISHLIST_DESTINATIONS = [
-  "Tokyo",
-  "Iceland",
-  "Paris",
-  "Yosemite",
-  "Hawaii",
-  "London",
-  "Patagonia",
-  "Anywhere Warm",
-];
 
 interface ProfileData {
   name: string;
@@ -75,7 +65,6 @@ interface ProfileData {
   referralCode: string | null;
   referralCredit: number;
   travelPreferences: {
-    destinations: string[];
     tripTypes: string[];
     hotelStyle: string[];
     budget: string | null;
@@ -87,7 +76,7 @@ interface ProfileData {
   hotelsUnlocked: number;
   citiesVisited: number;
   friendsReferred: number;
-  earlyAccessStatus: string;
+  earlyAccessStatus: { name: string; description: string };
 }
 
 function ToggleGrid({
@@ -122,11 +111,84 @@ function ToggleGrid({
   );
 }
 
-function StatTile({ label, value }: { label: string; value: string | number }) {
+function StatTile({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+}) {
   return (
     <div className="rounded-lg border border-line/60 bg-bg/40 px-4 py-3">
       <p className="text-2xl font-bold text-gold">{value}</p>
       <p className="text-xs text-muted mt-0.5">{label}</p>
+      {hint && <p className="text-[11px] text-muted/80 mt-1">{hint}</p>}
+    </div>
+  );
+}
+
+function TagInput({
+  values,
+  onAdd,
+  onRemove,
+  placeholder,
+}: {
+  values: string[];
+  onAdd: (value: string) => void;
+  onRemove: (value: string) => void;
+  placeholder?: string;
+}) {
+  const [draft, setDraft] = useState("");
+
+  const submit = () => {
+    const trimmed = draft.trim();
+    if (!trimmed) return;
+    onAdd(trimmed);
+    setDraft("");
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          placeholder={placeholder}
+          className="bg-glass border-line text-fg placeholder:text-muted"
+        />
+        <Button type="button" variant="outline" size="sm" className="border-line shrink-0" onClick={submit}>
+          <Plus className="h-3.5 w-3.5 mr-1" />
+          Add
+        </Button>
+      </div>
+      {values.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {values.map((v) => (
+            <span
+              key={v}
+              className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs font-medium text-gold"
+            >
+              {v}
+              <button
+                type="button"
+                onClick={() => onRemove(v)}
+                className="hover:text-fg"
+                aria-label={`Remove ${v}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -162,7 +224,6 @@ export function ProfilePage() {
       linkedinProfileUrl: "",
       instagramHandle: "",
       referralCode: null as string | null,
-      destinations: [] as string[],
       tripTypes: [] as string[],
       hotelStyle: [] as string[],
       budget: null as string | null,
@@ -177,7 +238,6 @@ export function ProfilePage() {
         linkedinProfileUrl: values.linkedinProfileUrl,
         instagramHandle: values.instagramHandle,
         travelPreferences: {
-          destinations: values.destinations,
           tripTypes: values.tripTypes,
           hotelStyle: values.hotelStyle,
           budget: values.budget,
@@ -197,7 +257,6 @@ export function ProfilePage() {
       linkedinProfileUrl: profile.linkedinProfileUrl,
       instagramHandle: profile.instagramHandle,
       referralCode: profile.referralCode,
-      destinations: profile.travelPreferences?.destinations ?? [],
       tripTypes: profile.travelPreferences?.tripTypes ?? [],
       hotelStyle: profile.travelPreferences?.hotelStyle ?? [],
       budget: profile.travelPreferences?.budget ?? null,
@@ -207,7 +266,7 @@ export function ProfilePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
-  const toggleIn = (field: "destinations" | "tripTypes" | "hotelStyle" | "interests", value: string) => {
+  const toggleIn = (field: "tripTypes" | "hotelStyle" | "interests", value: string) => {
     const current = formik.values[field];
     const next = current.includes(value)
       ? current.filter((v) => v !== value)
@@ -215,10 +274,12 @@ export function ProfilePage() {
     formik.setFieldValue(field, next);
   };
 
-  const toggleWishlist = (value: string) => {
-    setWishlist((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
-    );
+  const addWishlistDestination = (value: string) => {
+    setWishlist((prev) => (prev.some((v) => v.toLowerCase() === value.toLowerCase()) ? prev : [...prev, value]));
+  };
+
+  const removeWishlistDestination = (value: string) => {
+    setWishlist((prev) => prev.filter((v) => v !== value));
   };
 
   const referralCode = formik.values.referralCode;
@@ -256,14 +317,19 @@ export function ProfilePage() {
 
   if (isLoading || !profile) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-10">
-        <p className="text-muted">Loading your profile…</p>
+      <div className="min-h-screen bg-bg">
+        <HomeHeader />
+        <main className="max-w-4xl mx-auto px-4 py-10">
+          <p className="text-muted">Loading your profile…</p>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+    <div className="min-h-screen bg-bg">
+      <HomeHeader />
+      <main id="main-content" className="max-w-4xl mx-auto px-4 py-8 space-y-6" tabIndex={-1}>
       <div>
         <h1 className="text-3xl font-bold text-fg">Your Profile</h1>
         <p className="text-muted mt-1">
@@ -392,11 +458,6 @@ export function ProfilePage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <Label className="text-fg mb-2 block">Destinations</Label>
-              <p className="text-xs text-muted mb-3">Select all that interest you</p>
-              <ToggleGrid options={DESTINATIONS} selected={formik.values.destinations} onToggle={(v) => toggleIn("destinations", v)} />
-            </div>
-            <div>
               <Label className="text-fg mb-2 block">Trip Types</Label>
               <p className="text-xs text-muted mb-3">Select all that apply</p>
               <ToggleGrid options={TRIP_TYPES} selected={formik.values.tripTypes} onToggle={(v) => toggleIn("tripTypes", v)} />
@@ -459,11 +520,23 @@ export function ProfilePage() {
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <StatTile label="Member since" value={new Date(profile.memberSince).toLocaleDateString("en-US", { month: "short", year: "numeric" })} />
-              <StatTile label="Successful stays" value={profile.successfulStays} />
-              <StatTile label="Hotels unlocked" value={profile.hotelsUnlocked} />
+              <StatTile
+                label="Successful stays"
+                value={profile.successfulStays}
+                hint="Stays you've completed and paid for"
+              />
+              <StatTile
+                label="Hotels unlocked"
+                value={profile.hotelsUnlocked}
+                hint="Distinct properties you've been accepted at"
+              />
               <StatTile label="Cities visited" value={profile.citiesVisited} />
               <StatTile label="Friends referred" value={profile.friendsReferred} />
-              <StatTile label="Early access status" value={profile.earlyAccessStatus} />
+              <StatTile
+                label="Early access status"
+                value={profile.earlyAccessStatus.name}
+                hint={profile.earlyAccessStatus.description}
+              />
             </div>
             {profile.referralCredit > 0 && (
               <p className="text-sm text-success">
@@ -473,12 +546,14 @@ export function ProfilePage() {
 
             <div>
               <Label className="text-fg mb-2 block">Where do you want to go next?</Label>
-              <p className="text-xs text-muted mb-3">Pick your dream destinations.</p>
-              <ToggleGrid
-                options={WISHLIST_DESTINATIONS}
-                selected={wishlist}
-                onToggle={toggleWishlist}
-                columns="sm:grid-cols-4"
+              <p className="text-xs text-muted mb-3">
+                Type a destination and hit Add — we use these to decide where to sign new hotels.
+              </p>
+              <TagInput
+                values={wishlist}
+                onAdd={addWishlistDestination}
+                onRemove={removeWishlistDestination}
+                placeholder="e.g. Lisbon, Tulum, Big Sur…"
               />
             </div>
           </CardContent>
@@ -488,6 +563,7 @@ export function ProfilePage() {
           {updateMutation.isPending ? "Saving..." : "Save Changes"}
         </Button>
       </form>
+      </main>
     </div>
   );
 }

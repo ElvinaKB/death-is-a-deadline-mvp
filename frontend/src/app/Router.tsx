@@ -1,5 +1,5 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { ROUTES } from "../config/routes.config";
+import { Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
+import { ROUTES, getRoute } from "../config/routes.config";
 import { UserRole } from "../types/auth.types";
 
 // Layouts
@@ -34,6 +34,7 @@ import { PlaceFormPage } from "./pages/admin/PlaceFormPage";
 import { PlacesListPage } from "./pages/admin/PlacesListPage";
 import { BidsListPage } from "./pages/admin/BidsListPage";
 import { NewsletterSubscribersPage } from "./pages/admin/NewsletterSubscribersPage";
+import { WishlistTallyPage } from "./pages/admin/WishlistTallyPage";
 import { PlaceTestimonialsPage } from "./pages/admin/PlaceTestimonialsPage";
 import { HotelBidsPage } from "./pages/hotel/HotelBidsListPage";
 import { HotelPlaceFormPage } from "./pages/hotel/HotelPlaceFormPage";
@@ -68,7 +69,23 @@ const publicRoutes = [
   { path: ROUTES.ACCESSIBILITY, element: <AccessibilityPage /> },
   { path: ROUTES.CONTACT, element: <ContactPage /> },
   { path: ROUTES.WAITLIST, element: <WaitlistPage /> },
+  // Old /student links (e.g. already-sent booking confirmation emails)
+  // redirect to their new /member equivalents.
+  { path: ROUTES.LEGACY_STUDENT_MY_BIDS, element: <Navigate to={ROUTES.STUDENT_MY_BIDS} replace /> },
+  { path: ROUTES.LEGACY_STUDENT_PROFILE, element: <Navigate to={ROUTES.STUDENT_PROFILE} replace /> },
+  { path: ROUTES.LEGACY_STUDENT_CHECKOUT, element: <LegacyCheckoutRedirect /> },
+  { path: ROUTES.LEGACY_STUDENT_MARKETPLACE_DETAIL, element: <LegacyMarketplaceRedirect /> },
 ];
+
+function LegacyCheckoutRedirect() {
+  const { bidId } = useParams();
+  return <Navigate to={getRoute(ROUTES.STUDENT_CHECKOUT, { bidId: bidId! })} replace />;
+}
+
+function LegacyMarketplaceRedirect() {
+  const { slug } = useParams();
+  return <Navigate to={`/${slug}`} replace />;
+}
 
 const publicLayoutRoutes = [
   { path: ROUTES.HOME, element: <HomePage /> },
@@ -81,7 +98,7 @@ const publicLayoutRoutes = [
 // Protected routes (require auth, role-based)
 const protectedRoutes = [
   {
-    path: "/student",
+    path: "/member",
     allowedRoles: [UserRole.STUDENT],
     element: <StudentLayout />,
     children: [
@@ -117,6 +134,7 @@ const protectedRoutes = [
       },
       { path: ROUTES.ADMIN_BIDS, element: <BidsListPage /> },
       { path: ROUTES.ADMIN_NEWSLETTER, element: <NewsletterSubscribersPage /> },
+      { path: ROUTES.ADMIN_WISHLIST, element: <WishlistTallyPage /> },
     ],
   },
 ];

@@ -5,6 +5,7 @@ import {
   MapPin,
   Gavel,
   Mail,
+  Compass,
 } from "lucide-react";
 import { ROUTES } from "../config/routes.config";
 import { useLocation } from "react-router-dom";
@@ -45,6 +46,11 @@ export function useAdminSidebar(): SidebarItem[] {
       title: "Newsletter",
       path: ROUTES.ADMIN_NEWSLETTER,
       icon: Mail,
+    },
+    {
+      title: "Destination Requests",
+      path: ROUTES.ADMIN_WISHLIST,
+      icon: Compass,
     },
     // Add more modules here as needed
   ];
