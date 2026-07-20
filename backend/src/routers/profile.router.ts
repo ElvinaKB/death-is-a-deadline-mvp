@@ -5,14 +5,14 @@ import {
   getProfile,
   updateProfile,
   getOrCreateReferralCode,
+  getWishlistTally,
 } from "../controllers/profile.controller";
 
 const router = Router();
 
-router.use(authenticate(UserRole.STUDENT));
-
-router.get("/", getProfile);
-router.put("/", updateProfile);
-router.post("/referral-code", getOrCreateReferralCode);
+router.get("/", authenticate(UserRole.STUDENT), getProfile);
+router.put("/", authenticate(UserRole.STUDENT), updateProfile);
+router.post("/referral-code", authenticate(UserRole.STUDENT), getOrCreateReferralCode);
+router.get("/wishlist-tally", authenticate(UserRole.ADMIN), getWishlistTally);
 
 export { router };

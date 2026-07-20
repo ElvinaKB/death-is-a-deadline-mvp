@@ -1,6 +1,7 @@
 import { payment_status, Prisma } from "@prisma/client";
 import Stripe from "stripe";
 import { prisma } from "../libs/config/prisma";
+import { supabase } from "../libs/config/supabase";
 import { STRIPE_CONFIG } from "../libs/config/stripe";
 import { sendBookingConfirmationEmails } from "./bookingConfirmationEmail.service";
 
@@ -71,10 +72,16 @@ async function applyBidCommission(
   });
 }
 
+interface PaymentSucceededResult {
+  paymentId: string;
+  studentId: string;
+  referralCreditAppliedCents: number;
+}
+
 async function handlePaymentIntentSucceeded(
   paymentIntent: Stripe.PaymentIntent,
   tx: Prisma.TransactionClient,
-): Promise<string | null> {
+): Promise<PaymentSucceededResult | null> {
   const payment = await tx.payment.findFirst({
     where: { stripePaymentIntentId: paymentIntent.id },
     include: { bid: true },
@@ -116,7 +123,47 @@ async function handlePaymentIntentSucceeded(
     );
   }
 
-  return succeededPayment.id;
+  const metadata = (succeededPayment.metadata ?? {}) as Record<string, any>;
+  const referralCreditAppliedCents = Number(metadata.referralCreditAppliedCents) || 0;
+
+  return {
+    paymentId: succeededPayment.id,
+    studentId: succeededPayment.studentId,
+    referralCreditAppliedCents,
+  };
+}
+
+/** Only actually deducts the traveler's stored credit once a charge has
+ * genuinely captured — reserved-but-unused credit (failed/canceled
+ * payments) is never touched here. */
+async function deductReferralCredit(
+  studentId: string,
+  creditAppliedCents: number,
+): Promise<void> {
+  if (creditAppliedCents <= 0) return;
+
+  const { data, error } = await supabase.auth.admin.getUserById(studentId);
+  if (error || !data.user) {
+    console.error(
+      `[stripe-webhook] Failed to load user ${studentId} to deduct referral credit:`,
+      error,
+    );
+    return;
+  }
+
+  const meta = (data.user.user_metadata ?? {}) as Record<string, any>;
+  const currentCredit = Number(meta.referralCredit) || 0;
+  const newCredit = Math.max(0, currentCredit - creditAppliedCents / 100);
+
+  const { error: updateError } = await supabase.auth.admin.updateUserById(studentId, {
+    user_metadata: { ...meta, referralCredit: newCredit },
+  });
+  if (updateError) {
+    console.error(
+      `[stripe-webhook] Failed to deduct referral credit for ${studentId}:`,
+      updateError,
+    );
+  }
 }
 
 async function handlePaymentIntentFailed(
@@ -197,23 +244,28 @@ export async function processStripeWebhookEvent(event: Stripe.Event): Promise<vo
   const intent =
     paymentIntent ?? ({ id: paymentIntentId } as Stripe.PaymentIntent);
 
-  let emailPaymentId: string | null = null;
+  const succeededResult = await prisma.$transaction(
+    async (tx): Promise<PaymentSucceededResult | null> => {
+      switch (event.type) {
+        case "payment_intent.succeeded":
+          return handlePaymentIntentSucceeded(intent, tx);
+        case "payment_intent.payment_failed":
+          await handlePaymentIntentFailed(intent, tx);
+          return null;
+        case "payment_intent.canceled":
+          await handlePaymentIntentCanceled(intent, tx);
+          return null;
+        default:
+          return null;
+      }
+    },
+  );
 
-  await prisma.$transaction(async (tx) => {
-    switch (event.type) {
-      case "payment_intent.succeeded":
-        emailPaymentId = await handlePaymentIntentSucceeded(intent, tx);
-        break;
-      case "payment_intent.payment_failed":
-        await handlePaymentIntentFailed(intent, tx);
-        break;
-      case "payment_intent.canceled":
-        await handlePaymentIntentCanceled(intent, tx);
-        break;
-    }
-  });
-
-  if (emailPaymentId) {
-    await sendBookingConfirmationEmails(emailPaymentId);
+  if (succeededResult) {
+    await sendBookingConfirmationEmails(succeededResult.paymentId);
+    await deductReferralCredit(
+      succeededResult.studentId,
+      succeededResult.referralCreditAppliedCents,
+    );
   }
 }

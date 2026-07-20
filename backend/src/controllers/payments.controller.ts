@@ -293,8 +293,25 @@ export async function createPaymentIntent(req: Request, res: Response) {
   const amountInCents = Math.round(Number(bid.totalAmount) * 100);
   const stripeCustomerId = await getOrCreateStripeCustomerForStudent(studentId);
 
+  // Apply any available referral credit as a discount, capped so the
+  // charge never drops below Stripe's minimum. The credit balance itself
+  // isn't deducted here — only once the webhook confirms the charge
+  // actually captured, so a failed/abandoned payment doesn't burn credit.
+  const studentRecord = await prisma.users.findUnique({
+    where: { id: studentId },
+    select: { raw_user_meta_data: true },
+  });
+  const studentMeta = (studentRecord?.raw_user_meta_data ?? {}) as Record<string, any>;
+  const availableCreditCents = Math.round((studentMeta.referralCredit ?? 0) * 100);
+  const STRIPE_MIN_CHARGE_CENTS = 50;
+  const creditAppliedCents = Math.max(
+    0,
+    Math.min(availableCreditCents, amountInCents - STRIPE_MIN_CHARGE_CENTS),
+  );
+  const chargeAmountInCents = amountInCents - creditAppliedCents;
+
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: amountInCents,
+    amount: chargeAmountInCents,
     currency: STRIPE_CONFIG.CURRENCY,
     customer: stripeCustomerId,
     setup_future_usage: "off_session",
@@ -307,6 +324,7 @@ export async function createPaymentIntent(req: Request, res: Response) {
         bid.checkInDate.toISOString(),
       [STRIPE_CONFIG.METADATA_KEYS.CHECK_OUT_DATE]:
         bid.checkOutDate.toISOString(),
+      referralCreditAppliedCents: String(creditAppliedCents),
     },
     description: `Bid for ${bid.place.name} - ${bid.totalNights} nights`,
   });
@@ -323,6 +341,7 @@ export async function createPaymentIntent(req: Request, res: Response) {
       stripeClientSecret: paymentIntent.client_secret,
       stripeCustomerId,
       status: payment_status.PENDING,
+      metadata: { referralCreditAppliedCents: creditAppliedCents },
     },
     update: {
       stripePaymentIntentId: paymentIntent.id,
@@ -331,6 +350,7 @@ export async function createPaymentIntent(req: Request, res: Response) {
       status: payment_status.PENDING,
       failureReason: null,
       failedAt: null,
+      metadata: { referralCreditAppliedCents: creditAppliedCents },
     },
     include: {
       bid: {

@@ -3,17 +3,15 @@ import crypto from "crypto";
 import { supabase } from "../libs/config/supabase";
 import { prisma } from "../libs/config/prisma";
 import { CustomError } from "../libs/utils/CustomError";
-import { bid_status } from "@prisma/client";
+import { bid_status, payment_status } from "@prisma/client";
 
 interface TravelPreferences {
-  destinations: string[];
   tripTypes: string[];
   hotelStyle: string[];
   budget: string | null;
 }
 
 const EMPTY_PREFERENCES: TravelPreferences = {
-  destinations: [],
   tripTypes: [],
   hotelStyle: [],
   budget: null,
@@ -30,10 +28,15 @@ function generateReferralCode(name?: string | null): string {
   return `${base}${suffix}`;
 }
 
-function earlyAccessStatus(successfulStays: number): string {
-  if (successfulStays >= 5) return "Insider";
-  if (successfulStays >= 1) return "Member";
-  return "Explorer";
+const TIERS = [
+  { name: "Explorer", min: 0, description: "Just getting started — book your first stay to level up." },
+  { name: "Insider", min: 1, description: "You've completed at least one stay." },
+  { name: "Icon", min: 5, description: "5+ completed stays — our most active travelers." },
+] as const;
+
+function earlyAccessStatus(successfulStays: number): { name: string; description: string } {
+  const tier = [...TIERS].reverse().find((t) => successfulStays >= t.min)!;
+  return { name: tier.name, description: tier.description };
 }
 
 export async function getProfile(req: Request, res: Response) {
@@ -44,14 +47,30 @@ export async function getProfile(req: Request, res: Response) {
   const meta = (data.user.user_metadata ?? {}) as Record<string, any>;
   const referralCode: string | null = meta.referralCode ?? null;
 
-  const [successfulStays, wonPlaces, friendsReferred] = await Promise.all([
+  const [successfulStays, unlockedPlaces, paidStays, friendsReferred] = await Promise.all([
+    // A "successful stay" is a booking that actually happened — accepted
+    // and paid — not just an accepted bid still awaiting payment.
     prisma.bid.count({
-      where: { studentId: userId, status: bid_status.ACCEPTED },
+      where: {
+        studentId: userId,
+        status: bid_status.ACCEPTED,
+        payment: { status: payment_status.CAPTURED },
+      },
     }),
+    // "Hotels unlocked" is broader: every distinct property where a bid
+    // was ever accepted, whether or not the stay was completed/paid.
     prisma.bid.findMany({
       where: { studentId: userId, status: bid_status.ACCEPTED },
-      select: { placeId: true, place: { select: { city: true } } },
+      select: { placeId: true },
       distinct: ["placeId"],
+    }),
+    prisma.bid.findMany({
+      where: {
+        studentId: userId,
+        status: bid_status.ACCEPTED,
+        payment: { status: payment_status.CAPTURED },
+      },
+      select: { place: { select: { city: true } } },
     }),
     referralCode
       ? prisma.users.count({
@@ -61,7 +80,7 @@ export async function getProfile(req: Request, res: Response) {
   ]);
 
   const citiesVisited = new Set(
-    wonPlaces.map((b) => b.place?.city).filter(Boolean),
+    paidStays.map((b) => b.place?.city).filter(Boolean),
   ).size;
 
   res.status(200).json({
@@ -80,7 +99,7 @@ export async function getProfile(req: Request, res: Response) {
         wishlistDestinations: (meta.wishlistDestinations as string[]) ?? [],
         memberSince: data.user.created_at,
         successfulStays,
-        hotelsUnlocked: wonPlaces.length,
+        hotelsUnlocked: unlockedPlaces.length,
         citiesVisited,
         friendsReferred,
         earlyAccessStatus: earlyAccessStatus(successfulStays),
@@ -143,4 +162,32 @@ export async function getOrCreateReferralCode(req: Request, res: Response) {
   if (updateError) throw new CustomError(updateError.message, 400);
 
   res.status(200).json({ data: { referralCode: code } });
+}
+
+/** Admin-only: tally of every traveler's free-text "where to next" wishlist entries. */
+export async function getWishlistTally(_req: Request, res: Response) {
+  const users = await prisma.users.findMany({
+    where: { role: "STUDENT" },
+    select: { raw_user_meta_data: true },
+  });
+
+  const tally = new Map<string, { destination: string; count: number }>();
+  for (const u of users) {
+    const meta = (u.raw_user_meta_data ?? {}) as Record<string, any>;
+    const wishlist = Array.isArray(meta.wishlistDestinations)
+      ? (meta.wishlistDestinations as unknown[])
+      : [];
+    for (const raw of wishlist) {
+      const destination = String(raw).trim();
+      if (!destination) continue;
+      const key = destination.toLowerCase();
+      const existing = tally.get(key);
+      if (existing) existing.count += 1;
+      else tally.set(key, { destination, count: 1 });
+    }
+  }
+
+  const destinations = Array.from(tally.values()).sort((a, b) => b.count - a.count);
+
+  res.status(200).json({ data: { destinations } });
 }
