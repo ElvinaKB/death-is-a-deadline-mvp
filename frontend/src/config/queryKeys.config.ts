@@ -11,6 +11,7 @@ export const QUERY_KEYS = {
   HOTEL_DASHBOARD_STATS: "hotel-dashboard-stats",
   // Profile
   PROFILE: "profile",
+  PROFILE_WISHLIST_TALLY: "profileWishlistTally",
 
   // places
   PLACES: ["places"],

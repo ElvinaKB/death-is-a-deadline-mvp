@@ -33,7 +33,7 @@ const defaultVariables: Record<EmailType, Record<string, any>> = {
     totalNights: 5,
     bidPerNight: "120.00",
     totalAmount: "600.00",
-    dashboardUrl: "http://localhost:5173/student/my-bids",
+    dashboardUrl: "http://localhost:5173/member/my-bids",
   },
   [EmailType.BOOKING_CONFIRMED_PLACE]: {
     studentName: "Test User",

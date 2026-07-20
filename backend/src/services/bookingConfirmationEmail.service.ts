@@ -76,7 +76,7 @@ export async function sendBookingConfirmationEmails(
           subject: `Booking Confirmed - ${place.name}`,
           variables: {
             ...baseVariables,
-            dashboardUrl: `${clientUrl}/student/my-bids`,
+            dashboardUrl: `${clientUrl}/member/my-bids`,
           },
         }).catch((error) =>
           console.error("Failed to send student confirmation email:", error),

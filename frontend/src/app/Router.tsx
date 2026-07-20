@@ -1,5 +1,5 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { ROUTES } from "../config/routes.config";
+import { Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
+import { ROUTES, getRoute } from "../config/routes.config";
 import { UserRole } from "../types/auth.types";
 
 // Layouts
@@ -17,6 +17,8 @@ import { PlaceDetailPage as StudentPlacesDetailPage } from "./pages/student/Plac
 import { MyBidsPage } from "./pages/student/MyBidsPage";
 import { CheckoutPage } from "./pages/student/CheckoutPage";
 import { ProfilePage } from "./pages/student/ProfilePage";
+import { ComingSoonPage } from "./pages/student/ComingSoonPage";
+import { Heart, Bookmark, CreditCard, UserPlus, Settings as SettingsIcon } from "lucide-react";
 import { HotelDashboardPage } from "./pages/hotel/HotelDashboardPage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { StudentsListPage } from "./pages/admin/StudentsListPage";
@@ -34,6 +36,7 @@ import { PlaceFormPage } from "./pages/admin/PlaceFormPage";
 import { PlacesListPage } from "./pages/admin/PlacesListPage";
 import { BidsListPage } from "./pages/admin/BidsListPage";
 import { NewsletterSubscribersPage } from "./pages/admin/NewsletterSubscribersPage";
+import { WishlistTallyPage } from "./pages/admin/WishlistTallyPage";
 import { PlaceTestimonialsPage } from "./pages/admin/PlaceTestimonialsPage";
 import { HotelBidsPage } from "./pages/hotel/HotelBidsListPage";
 import { HotelPlaceFormPage } from "./pages/hotel/HotelPlaceFormPage";
@@ -68,7 +71,23 @@ const publicRoutes = [
   { path: ROUTES.ACCESSIBILITY, element: <AccessibilityPage /> },
   { path: ROUTES.CONTACT, element: <ContactPage /> },
   { path: ROUTES.WAITLIST, element: <WaitlistPage /> },
+  // Old /student links (e.g. already-sent booking confirmation emails)
+  // redirect to their new /member equivalents.
+  { path: ROUTES.LEGACY_STUDENT_MY_BIDS, element: <Navigate to={ROUTES.STUDENT_MY_BIDS} replace /> },
+  { path: ROUTES.LEGACY_STUDENT_PROFILE, element: <Navigate to={ROUTES.STUDENT_PROFILE} replace /> },
+  { path: ROUTES.LEGACY_STUDENT_CHECKOUT, element: <LegacyCheckoutRedirect /> },
+  { path: ROUTES.LEGACY_STUDENT_MARKETPLACE_DETAIL, element: <LegacyMarketplaceRedirect /> },
 ];
+
+function LegacyCheckoutRedirect() {
+  const { bidId } = useParams();
+  return <Navigate to={getRoute(ROUTES.STUDENT_CHECKOUT, { bidId: bidId! })} replace />;
+}
+
+function LegacyMarketplaceRedirect() {
+  const { slug } = useParams();
+  return <Navigate to={`/${slug}`} replace />;
+}
 
 const publicLayoutRoutes = [
   { path: ROUTES.HOME, element: <HomePage /> },
@@ -81,13 +100,63 @@ const publicLayoutRoutes = [
 // Protected routes (require auth, role-based)
 const protectedRoutes = [
   {
-    path: "/student",
+    path: "/member",
     allowedRoles: [UserRole.STUDENT],
     element: <StudentLayout />,
     children: [
       { path: ROUTES.STUDENT_MY_BIDS, element: <MyBidsPage /> },
       { path: ROUTES.STUDENT_CHECKOUT, element: <CheckoutPage /> },
       { path: ROUTES.STUDENT_PROFILE, element: <ProfilePage /> },
+      {
+        path: ROUTES.STUDENT_SAVED_HOTELS,
+        element: (
+          <ComingSoonPage
+            title="Saved Hotels"
+            description="Bookmark hotels you're eyeing and find them here later."
+            icon={Heart}
+          />
+        ),
+      },
+      {
+        path: ROUTES.STUDENT_WISHLIST,
+        element: (
+          <ComingSoonPage
+            title="Wishlist"
+            description="A dedicated view of the destinations you've told us you want to visit next."
+            icon={Bookmark}
+          />
+        ),
+      },
+      {
+        path: ROUTES.STUDENT_PAYMENT_METHODS,
+        element: (
+          <ComingSoonPage
+            title="Payment Methods"
+            description="Manage the cards on file for your bookings."
+            icon={CreditCard}
+          />
+        ),
+      },
+      {
+        path: ROUTES.STUDENT_INVITE_FRIENDS,
+        element: (
+          <ComingSoonPage
+            title="Invite Friends"
+            description="Your rewards code and sharing tools live on your Profile for now — a dedicated page is on its way."
+            icon={UserPlus}
+          />
+        ),
+      },
+      {
+        path: ROUTES.STUDENT_SETTINGS,
+        element: (
+          <ComingSoonPage
+            title="Settings"
+            description="Account and notification settings are coming soon."
+            icon={SettingsIcon}
+          />
+        ),
+      },
     ],
   },
   {
@@ -117,6 +186,7 @@ const protectedRoutes = [
       },
       { path: ROUTES.ADMIN_BIDS, element: <BidsListPage /> },
       { path: ROUTES.ADMIN_NEWSLETTER, element: <NewsletterSubscribersPage /> },
+      { path: ROUTES.ADMIN_WISHLIST, element: <WishlistTallyPage /> },
     ],
   },
 ];
