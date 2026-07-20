@@ -18,6 +18,11 @@ export const ROUTES = {
   STUDENT_MY_BIDS: "/member/my-bids",
   STUDENT_CHECKOUT: "/member/checkout/:bidId",
   STUDENT_PROFILE: "/member/profile",
+  STUDENT_SAVED_HOTELS: "/member/saved-hotels",
+  STUDENT_WISHLIST: "/member/wishlist",
+  STUDENT_PAYMENT_METHODS: "/member/payment-methods",
+  STUDENT_INVITE_FRIENDS: "/member/invite-friends",
+  STUDENT_SETTINGS: "/member/settings",
 
   // Legacy paths kept only to redirect old links (e.g. already-sent
   // booking confirmation emails) to their new /member equivalents.

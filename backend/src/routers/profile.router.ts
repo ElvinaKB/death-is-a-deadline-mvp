@@ -4,6 +4,7 @@ import { UserRole } from "../types/auth.types";
 import {
   getProfile,
   updateProfile,
+  updateAvatar,
   getOrCreateReferralCode,
   getWishlistTally,
 } from "../controllers/profile.controller";
@@ -12,6 +13,7 @@ const router = Router();
 
 router.get("/", authenticate(UserRole.STUDENT), getProfile);
 router.put("/", authenticate(UserRole.STUDENT), updateProfile);
+router.put("/avatar", authenticate(UserRole.STUDENT), updateAvatar);
 router.post("/referral-code", authenticate(UserRole.STUDENT), getOrCreateReferralCode);
 router.get("/wishlist-tally", authenticate(UserRole.ADMIN), getWishlistTally);
 

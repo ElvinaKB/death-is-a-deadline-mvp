@@ -92,6 +92,7 @@ export async function getProfile(req: Request, res: Response) {
         occupation: meta.occupation ?? "",
         linkedinProfileUrl: meta.linkedinProfileUrl ?? "",
         instagramHandle: meta.instagramHandle ?? "",
+        avatarUrl: meta.avatarUrl ?? null,
         referralCode,
         referralCredit: meta.referralCredit ?? 0,
         travelPreferences: (meta.travelPreferences as TravelPreferences) ?? EMPTY_PREFERENCES,
@@ -142,6 +143,27 @@ export async function updateProfile(req: Request, res: Response) {
   if (error) throw new CustomError(error.message, 400);
 
   res.status(200).json({ message: "Profile updated" });
+}
+
+/** Saves the public URL of a photo the traveler already uploaded to Supabase Storage. */
+export async function updateAvatar(req: Request, res: Response) {
+  const userId = req.user!.id;
+  const { avatarUrl } = req.body;
+  if (!avatarUrl || typeof avatarUrl !== "string") {
+    throw new CustomError("avatarUrl is required", 400);
+  }
+
+  const { data: existing, error: fetchError } =
+    await supabase.auth.admin.getUserById(userId);
+  if (fetchError || !existing.user) throw new CustomError("User not found", 404);
+  const meta = (existing.user.user_metadata ?? {}) as Record<string, any>;
+
+  const { error } = await supabase.auth.admin.updateUserById(userId, {
+    user_metadata: { ...meta, avatarUrl },
+  });
+  if (error) throw new CustomError(error.message, 400);
+
+  res.status(200).json({ data: { avatarUrl } });
 }
 
 /** Returns the existing referral code, generating one on first request. */

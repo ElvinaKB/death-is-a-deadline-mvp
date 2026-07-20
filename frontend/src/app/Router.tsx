@@ -17,6 +17,8 @@ import { PlaceDetailPage as StudentPlacesDetailPage } from "./pages/student/Plac
 import { MyBidsPage } from "./pages/student/MyBidsPage";
 import { CheckoutPage } from "./pages/student/CheckoutPage";
 import { ProfilePage } from "./pages/student/ProfilePage";
+import { ComingSoonPage } from "./pages/student/ComingSoonPage";
+import { Heart, Bookmark, CreditCard, UserPlus, Settings as SettingsIcon } from "lucide-react";
 import { HotelDashboardPage } from "./pages/hotel/HotelDashboardPage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { StudentsListPage } from "./pages/admin/StudentsListPage";
@@ -105,6 +107,56 @@ const protectedRoutes = [
       { path: ROUTES.STUDENT_MY_BIDS, element: <MyBidsPage /> },
       { path: ROUTES.STUDENT_CHECKOUT, element: <CheckoutPage /> },
       { path: ROUTES.STUDENT_PROFILE, element: <ProfilePage /> },
+      {
+        path: ROUTES.STUDENT_SAVED_HOTELS,
+        element: (
+          <ComingSoonPage
+            title="Saved Hotels"
+            description="Bookmark hotels you're eyeing and find them here later."
+            icon={Heart}
+          />
+        ),
+      },
+      {
+        path: ROUTES.STUDENT_WISHLIST,
+        element: (
+          <ComingSoonPage
+            title="Wishlist"
+            description="A dedicated view of the destinations you've told us you want to visit next."
+            icon={Bookmark}
+          />
+        ),
+      },
+      {
+        path: ROUTES.STUDENT_PAYMENT_METHODS,
+        element: (
+          <ComingSoonPage
+            title="Payment Methods"
+            description="Manage the cards on file for your bookings."
+            icon={CreditCard}
+          />
+        ),
+      },
+      {
+        path: ROUTES.STUDENT_INVITE_FRIENDS,
+        element: (
+          <ComingSoonPage
+            title="Invite Friends"
+            description="Your rewards code and sharing tools live on your Profile for now — a dedicated page is on its way."
+            icon={UserPlus}
+          />
+        ),
+      },
+      {
+        path: ROUTES.STUDENT_SETTINGS,
+        element: (
+          <ComingSoonPage
+            title="Settings"
+            description="Account and notification settings are coming soon."
+            icon={SettingsIcon}
+          />
+        ),
+      },
     ],
   },
   {
