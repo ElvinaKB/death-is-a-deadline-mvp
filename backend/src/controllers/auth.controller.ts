@@ -595,8 +595,56 @@ export async function resetPassword(
     throw new CustomError(error.message, 400);
   }
 
-  return res.status(200).json({
+  const genericSuccessResponse = {
     message:
       "Password reset successfully. You can now login with your new password.",
+  };
+
+  const email = userData.user.email;
+  if (!email) {
+    return res.status(200).json(genericSuccessResponse);
+  }
+
+  // Log them straight in with the password they just set — same session
+  // shape as /api/auth/login — instead of sending them to a login form to
+  // retype what they just typed. Re-run the same banned/pending gating as
+  // a normal login so this shortcut can't bypass those checks.
+  const data = await supabasePasswordLogin({ email, password });
+
+  if (data.user?.user_metadata?.banned) {
+    return res.status(200).json(genericSuccessResponse);
+  }
+
+  if (
+    data.user?.user_metadata?.approvalStatus === ApprovalStatus.PENDING &&
+    data.user?.role === UserRole.STUDENT
+  ) {
+    return res.status(200).json(genericSuccessResponse);
+  }
+
+  let places: { id: string }[] = [];
+  if (data.user?.role === UserRole.HOTEL_OWNER) {
+    places = await prisma.place.findMany({
+      where: { email },
+      select: { id: true, name: true },
+    });
+  }
+
+  return res.status(200).json({
+    ...genericSuccessResponse,
+    data: {
+      user: {
+        ...data.user,
+        approvalStatus: data.user?.user_metadata?.approvalStatus,
+        name: data.user?.user_metadata?.name,
+        places,
+      },
+      token: {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_in: data.expires_in,
+        token_type: data.token_type,
+      },
+    },
   });
 }

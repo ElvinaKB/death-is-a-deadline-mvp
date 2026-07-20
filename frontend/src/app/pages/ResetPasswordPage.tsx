@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useFormik } from "formik";
 import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
+import Cookies from "js-cookie";
 import { ENDPOINTS } from "../../config/endpoints.config";
 import { ROUTES } from "../../config/routes.config";
 import { Button } from "../components/ui/button";
@@ -18,6 +19,11 @@ import { toast } from "sonner";
 import { Hourglass, Lock, CheckCircle, AlertCircle } from "lucide-react";
 import * as Yup from "yup";
 import { supabase } from "../../utils/supabaseClient";
+import { useAppDispatch } from "../../store/hooks";
+import { setCredentials } from "../../store/slices/authSlice";
+import { setAuthToken } from "../../utils/tokenHelpers";
+import { UserRole } from "../../types/auth.types";
+import { useHotel } from "../../hooks/useHotel";
 
 const API_BASE_URL =
   (import.meta as any).env.VITE_API_BASE_URL || "http://localhost:4000";
@@ -37,10 +43,28 @@ interface ResetPasswordRequest {
 
 interface ResetPasswordResponse {
   message: string;
+  data?: {
+    user: {
+      id: string;
+      email: string;
+      role: UserRole;
+      approvalStatus?: string;
+      name?: string;
+      places?: { id: string; name: string }[];
+    };
+    token: {
+      access_token: string;
+      refresh_token: string;
+      expires_in: number;
+      token_type: string;
+    };
+  };
 }
 
 export function ResetPasswordPage() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { setHotel } = useHotel();
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
 
@@ -92,13 +116,47 @@ export function ResetPasswordPage() {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Password reset successfully!");
-      // Sign out from Supabase to clear the recovery session
+      // Sign out of the short-lived recovery session — the real session
+      // (if any) comes from the backend's response below instead.
       supabase.auth.signOut();
+
+      const auth = data.data;
+      if (!auth) {
+        // Banned/pending accounts (or edge cases with no email) don't get
+        // auto-logged in — same gating as a normal login.
+        setTimeout(() => navigate(ROUTES.LOGIN), 2000);
+        return;
+      }
+
+      dispatch(
+        setCredentials({
+          user: auth.user as any,
+          token: auth.token.access_token,
+        }),
+      );
+      Cookies.set("access_token", auth.token.access_token);
+      Cookies.set("refresh_token", auth.token.refresh_token);
+      Cookies.set("token_type", auth.token.token_type);
+      Cookies.set("expires_in", auth.token.expires_in.toString());
+      setAuthToken(auth.token.access_token);
+
       setTimeout(() => {
-        navigate(ROUTES.LOGIN);
-      }, 2000);
+        switch (auth.user.role) {
+          case UserRole.ADMIN:
+            navigate(ROUTES.ADMIN_DASHBOARD);
+            break;
+          case UserRole.HOTEL_OWNER:
+            if (auth.user.places && auth.user.places.length > 0) {
+              setHotel(auth.user.places[0]);
+            }
+            navigate(ROUTES.HOTEL_DASHBOARD);
+            break;
+          default:
+            navigate(ROUTES.HOME);
+        }
+      }, 1000);
     },
     onError: (error) => {
       toast.error(error.message || "Failed to reset password");
@@ -204,8 +262,8 @@ export function ResetPasswordPage() {
                 <div>
                   <h3 className="font-semibold text-fg mb-1">Almost There</h3>
                   <p className="text-sm text-muted">
-                    Once you set your new password, you'll be redirected to
-                    login with your new credentials.
+                    Once you set your new password, you'll be signed in
+                    automatically.
                   </p>
                 </div>
               </div>
@@ -242,8 +300,8 @@ export function ResetPasswordPage() {
                     Password Reset!
                   </h3>
                   <p className="text-muted mb-6">
-                    Your password has been successfully reset. Redirecting you
-                    to login...
+                    Your password has been successfully reset. Signing you
+                    in...
                   </p>
                 </div>
               ) : (
