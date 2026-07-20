@@ -32,6 +32,7 @@ const templateMap: Record<EmailType, string> = {
   [EmailType.HOTEL_INVITE]: "hotel_invite.ejs",
   [EmailType.HOTEL_PLACE_CREATED]: "hotel_place_created.ejs",
   [EmailType.WAITLIST_WELCOME]: "waitlist_welcome.ejs",
+  [EmailType.STUDENT_WELCOME]: "student_welcome.ejs",
 };
 
 export async function sendEmail({
