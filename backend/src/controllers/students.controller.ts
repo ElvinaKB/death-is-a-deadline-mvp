@@ -243,8 +243,9 @@ export async function addStudent(req: Request, res: Response) {
       email,
       options: { redirectTo: `${process.env.CLIENT_URL}/reset-password` },
     });
-  if (linkError) {
-    console.error("Failed to generate password setup link:", linkError.message);
+  const passwordSetupUrl = linkData?.properties?.action_link;
+  if (linkError || !passwordSetupUrl) {
+    console.error("Failed to generate password setup link:", linkError?.message);
   } else {
     try {
       await sendEmail({
@@ -254,7 +255,7 @@ export async function addStudent(req: Request, res: Response) {
         variables: {
           name,
           appName: "Deadline",
-          passwordSetupUrl: linkData.properties.action_link,
+          passwordSetupUrl,
         },
       });
     } catch (emailError: any) {
