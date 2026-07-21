@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { ROUTES } from "../../config/routes.config";
-import logo from "../../assets/logo.png";
 import headerBg from "../../assets/hotel-checkin.jpg";
 import elvinaPhoto from "../../assets/Elvina.png";
 
@@ -17,7 +16,6 @@ export function HotelsLandingPage() {
         <div className="max-w-5xl mx-auto">
           {/* Logo */}
           <Link to={ROUTES.HOME} className="flex items-center mb-12">
-            <img src={logo} alt="Deadline" className="h-14 w-14 mr-4" />
             <h1 className="text-4xl font-black tracking-tighter uppercase text-[#c5a059]">
               Deadline
             </h1>
@@ -98,7 +96,8 @@ export function HotelsLandingPage() {
                       Set your minimum rate.
                     </h4>
                     <p className="text-gray-700">
-                      You choose the lowest rate you're willing to accept.
+                      Choose the lowest rate you're willing to accept and on
+                      which days of the week.
                     </p>
                   </div>
                 </div>
@@ -111,11 +110,11 @@ export function HotelsLandingPage() {
                   </div>
                   <div>
                     <h4 className="text-xl font-black uppercase">
-                      Verified students bid.
+                      Verified travelers bid.
                     </h4>
                     <p className="text-gray-700">
-                      Verified .edu students submit blind bids that meet your
-                      rate.
+                      Our private marketplace requires travelers to provide
+                      proof of employment or education.
                     </p>
                   </div>
                 </div>
@@ -204,14 +203,19 @@ export function HotelsLandingPage() {
               </h3>
 
               <div className="flex flex-col items-center text-center">
-                <div className="w-48 rounded-2xl border-4 border-[#c5a059] overflow-hidden mb-4 shadow-lg">
+                <a
+                  href="https://www.linkedin.com/in/elvinabeck/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-48 rounded-2xl border-4 border-[#c5a059] overflow-hidden mb-4 shadow-lg block"
+                >
                   <img
                     src={elvinaPhoto}
                     alt="Elvina Beck — Hospitality Expert"
                     className="w-full h-full object-cover"
                   />
-                </div>
-                <p className="text-gray-300 italic">
+                </a>
+                <p className="text-gray-300 italic text-balance max-w-[260px]">
                   Elvina Beck has operated PodShare properties since 2012.
                 </p>
               </div>
