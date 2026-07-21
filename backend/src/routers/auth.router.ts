@@ -21,15 +21,35 @@ import {
   linkedinComplete,
 } from "../controllers/auth.controller";
 import { validate } from "../libs/middlewares/validate";
+import { rateLimit } from "../libs/middlewares/rateLimit";
 
 const router = Router();
 
-router.post("/signup", validate(signupSchema), signup);
-router.post("/signup/hotel", validate(hotelSignupSchema), hotelSignup);
-router.post("/login", validate(loginSchema), login);
-router.post("/resubmit", validate(resubmitSchema), resubmit);
-router.post("/forgot-password", validate(forgotPasswordSchema), forgotPassword);
-router.post("/reset-password", validate(resetPasswordSchema), resetPassword);
+// Brute-force / signup-abuse protection — these all run before a user is
+// authenticated, so they're keyed by IP.
+const authRateLimit = rateLimit({ window: "5 m", max: 5, keyPrefix: "auth" });
+
+router.post("/signup", authRateLimit, validate(signupSchema), signup);
+router.post(
+  "/signup/hotel",
+  authRateLimit,
+  validate(hotelSignupSchema),
+  hotelSignup,
+);
+router.post("/login", authRateLimit, validate(loginSchema), login);
+router.post("/resubmit", authRateLimit, validate(resubmitSchema), resubmit);
+router.post(
+  "/forgot-password",
+  authRateLimit,
+  validate(forgotPasswordSchema),
+  forgotPassword,
+);
+router.post(
+  "/reset-password",
+  authRateLimit,
+  validate(resetPasswordSchema),
+  resetPassword,
+);
 router.get("/linkedin/authorize", linkedinAuthorize);
 router.post(
   "/linkedin/callback",

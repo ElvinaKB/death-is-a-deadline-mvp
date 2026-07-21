@@ -1,7 +1,12 @@
 import { Router } from "express";
 import { validate } from "../libs/middlewares/validate";
 import { authenticate } from "../libs/middlewares/authenticate";
+import { rateLimit } from "../libs/middlewares/rateLimit";
 import { UserRole } from "../types/auth.types";
+
+// Money-adjacent endpoints — keyed by authenticated user once `authenticate`
+// has run.
+const bidRateLimit = rateLimit({ window: "1 m", max: 10, keyPrefix: "bids" });
 import {
   createBidSchema,
   updateBidStatusSchema,
@@ -40,6 +45,7 @@ router.get(
 router.post(
   "/",
   authenticate(UserRole.STUDENT),
+  bidRateLimit,
   validate(createBidSchema, "body"),
   createBid,
 );
@@ -99,6 +105,7 @@ router.patch(
 router.patch(
   "/:id/cancel",
   authenticate(UserRole.ADMIN),
+  bidRateLimit,
   validate(bidIdParamSchema, "params"),
   validate(cancelBidSchema, "body"),
   cancelBid,

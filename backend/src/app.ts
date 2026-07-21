@@ -10,6 +10,7 @@ import cors from "cors";
 import morgan from "morgan";
 import { errorHandler } from "./libs/middlewares/errorHandler";
 import { auditLogger } from "./libs/middlewares/auditLogger";
+import { rateLimit } from "./libs/middlewares/rateLimit";
 import { router as authRouter } from "./routers/auth.router";
 import { router as studentsRouter } from "./routers/students.router";
 import { router as placesRouter } from "./routers/places.router";
@@ -23,6 +24,11 @@ import { router as profileRouter } from "./routers/profile.router";
 import { router as myallocatorRouter } from "./routers/myallocator.router";
 
 const app = express();
+
+// Vercel puts the real client IP in X-Forwarded-For — without this,
+// req.ip resolves to Vercel's proxy for every request, which would
+// collapse IP-keyed rate limiting into one shared bucket for all visitors.
+app.set("trust proxy", 1);
 
 app.use(cors());
 
@@ -38,6 +44,18 @@ app.use(auditLogger);
 
 app.get("/", (req, res) => {
   res.json({ status: "ok" });
+});
+
+// General API floor — a backstop against scraping/abuse, not a tight limit.
+// Excludes the Stripe webhook (Stripe's own retry behavior shouldn't be
+// throttled) and the myallocator callbacks (Cloudbeds' polling cadence is
+// contractual, and that router already fails closed on shared_secret).
+const apiRateLimit = rateLimit({ window: "1 m", max: 60, keyPrefix: "api" });
+app.use("/api", (req, res, next) => {
+  if (req.path.startsWith("/payments/webhook") || req.path.startsWith("/myallocator")) {
+    return next();
+  }
+  return apiRateLimit(req, res, next);
 });
 
 // Routers

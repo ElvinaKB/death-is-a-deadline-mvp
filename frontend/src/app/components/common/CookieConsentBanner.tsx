@@ -3,20 +3,35 @@ import { Link } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { Button } from "../ui/button";
 import {
-  COOKIE_CONSENT_KEY,
+  getCookieConsentChoice,
+  hasGpcSignal,
   setCookieConsentAccepted,
+  setCookieConsentRejected,
 } from "../../../utils/cookieConsent";
 
 export function CookieConsentBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(COOKIE_CONSENT_KEY);
-    if (!stored) setVisible(true);
+    if (getCookieConsentChoice()) return;
+
+    // Global Privacy Control is a legally binding opt-out signal under
+    // CCPA/CPRA — honor it silently rather than asking again.
+    if (hasGpcSignal()) {
+      setCookieConsentRejected();
+      return;
+    }
+
+    setVisible(true);
   }, []);
 
   const accept = () => {
     setCookieConsentAccepted();
+    setVisible(false);
+  };
+
+  const reject = () => {
+    setCookieConsentRejected();
     setVisible(false);
   };
 
@@ -32,7 +47,7 @@ export function CookieConsentBanner() {
         <p className="text-sm text-fg mb-3 leading-relaxed">
           We use cookies and similar technologies for analytics (Google Analytics,
           Microsoft Clarity, Meta Pixel) to improve your experience and measure
-          conversions. See our{" "}
+          conversions. You can accept or reject non-essential cookies below. See our{" "}
           <Link to={ROUTES.PRIVACY} className="text-gold hover:underline">
             Privacy Policy
           </Link>{" "}
@@ -49,10 +64,10 @@ export function CookieConsentBanner() {
           <Button
             variant="outline"
             size="sm"
-            className="border-line text-muted"
-            onClick={accept}
+            className="border-line text-fg"
+            onClick={reject}
           >
-            Dismiss
+            Reject
           </Button>
         </div>
       </div>
