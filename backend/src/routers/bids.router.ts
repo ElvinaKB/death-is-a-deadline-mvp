@@ -5,6 +5,7 @@ import { UserRole } from "../types/auth.types";
 import {
   createBidSchema,
   updateBidStatusSchema,
+  cancelBidSchema,
   bidIdParamSchema,
   placeIdParamSchema,
   listBidsQuerySchema,
@@ -19,6 +20,7 @@ import {
   listBids,
   updateBidStatus,
   updatePayout,
+  cancelBid,
   listHotelBids,
 } from "../controllers/bids.controller";
 
@@ -91,6 +93,15 @@ router.patch(
   authenticate(UserRole.ADMIN),
   validate(bidIdParamSchema, "params"),
   updatePayout,
+);
+
+// Cancel an accepted, charged bid with a full refund (admin only)
+router.patch(
+  "/:id/cancel",
+  authenticate(UserRole.ADMIN),
+  validate(bidIdParamSchema, "params"),
+  validate(cancelBidSchema, "body"),
+  cancelBid,
 );
 
 export { router };

@@ -1,7 +1,12 @@
 import { z } from "zod";
 
 // Enum schema
-export const bidStatusSchema = z.enum(["PENDING", "ACCEPTED", "REJECTED"]);
+export const bidStatusSchema = z.enum([
+  "PENDING",
+  "ACCEPTED",
+  "REJECTED",
+  "CANCELLED",
+]);
 
 // Create bid schema
 export const createBidSchema = z
@@ -36,6 +41,12 @@ export const updateBidStatusSchema = z
     }
   );
 
+// Cancel bid schema (admin only) — cancels an accepted, charged bid with a
+// full refund and reason is required for the audit trail / guest email.
+export const cancelBidSchema = z.object({
+  reason: z.string().min(1, "Cancellation reason is required"),
+});
+
 // Param schemas
 export const bidIdParamSchema = z.object({
   id: z.string().uuid({ message: "Invalid bid ID" }),
@@ -62,6 +73,16 @@ export const listBidsQuerySchema = z.object({
   status: bidStatusSchema.optional(),
   placeId: z.string().optional(),
   studentId: z.string().optional(),
+  // Matches guest email or hotel name (case-insensitive contains).
+  search: z.string().optional(),
+  checkInFrom: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid check-in from date")
+    .optional(),
+  checkInTo: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid check-in to date")
+    .optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(100).optional().default(10),
 });
@@ -76,6 +97,7 @@ export const myBidsQuerySchema = z.object({
 // Type exports
 export type CreateBidInput = z.infer<typeof createBidSchema>;
 export type UpdateBidStatusInput = z.infer<typeof updateBidStatusSchema>;
+export type CancelBidInput = z.infer<typeof cancelBidSchema>;
 export type ListBidsQuery = z.infer<typeof listBidsQuerySchema>;
 export type MyBidsQuery = z.infer<typeof myBidsQuerySchema>;
 export type BidForPlaceQuery = z.infer<typeof bidForPlaceQuerySchema>;

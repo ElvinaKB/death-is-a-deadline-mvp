@@ -1,16 +1,20 @@
 import { Request, Response } from "express";
 import { prisma } from "../libs/config/prisma";
+import { stripe } from "../libs/config/stripe";
 import { CustomError } from "../libs/utils/CustomError";
-import { PlaceStatus, Prisma, bid_status } from "@prisma/client";
+import { PlaceStatus, Prisma, bid_status, payment_status } from "@prisma/client";
 import { differenceInDays, parseISO, format } from "date-fns";
 import {
   CreateBidInput,
   ListBidsQuery,
   MyBidsQuery,
+  CancelBidInput,
 } from "../validations/bids/bids.validation";
 import { UserRole } from "../types/auth.types";
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
+import { sendBookingCancellationEmail } from "../services/bookingCancellationEmail.service";
+import { notifyBookingCancelled } from "../services/myallocatorNotify.service";
 import {
   deriveBookingStatus,
   BOOKING_STATUS_LABELS,
@@ -467,6 +471,9 @@ export async function listBids(req: Request, res: Response) {
     status,
     placeId,
     studentId,
+    search,
+    checkInFrom,
+    checkInTo,
     page = 1,
     limit = 10,
   } = req.query as unknown as ListBidsQuery;
@@ -476,6 +483,18 @@ export async function listBids(req: Request, res: Response) {
     ...(status && { status }),
     ...(placeId && { placeId }),
     ...(studentId && { studentId }),
+    ...(search && {
+      OR: [
+        { users: { email: { contains: search, mode: "insensitive" } } },
+        { place: { name: { contains: search, mode: "insensitive" } } },
+      ],
+    }),
+    ...((checkInFrom || checkInTo) && {
+      checkInDate: {
+        ...(checkInFrom && { gte: new Date(checkInFrom) }),
+        ...(checkInTo && { lte: new Date(checkInTo) }),
+      },
+    }),
   };
 
   const [bids, total] = await Promise.all([
@@ -638,6 +657,90 @@ export async function updatePayout(req: Request, res: Response) {
 
   res.status(200).json({
     message: "Payout updated successfully",
+    data: { bid: formatBid(bid) },
+  });
+}
+
+// Cancel an accepted, charged bid with a full refund (admin only).
+// Reverses `updatePayout`'s territory: this only applies to bids that were
+// already confirmed and paid — pending/rejected bids have nothing to refund.
+export async function cancelBid(req: Request, res: Response) {
+  const { id } = req.params;
+  const { reason } = req.body as CancelBidInput;
+
+  const existingBid = await prisma.bid.findUnique({
+    where: { id },
+    include: { payment: true, place: true },
+  });
+
+  if (!existingBid) {
+    throw new CustomError("Bid not found", 404);
+  }
+
+  if (existingBid.status !== bid_status.ACCEPTED) {
+    throw new CustomError("Only accepted bids can be cancelled", 400);
+  }
+
+  if (
+    !existingBid.payment ||
+    existingBid.payment.status !== payment_status.CAPTURED
+  ) {
+    throw new CustomError(
+      "Can only cancel bids with a captured payment. For uncaptured payments, use the payment cancel endpoint instead.",
+      400,
+    );
+  }
+
+  if (!existingBid.payment.stripePaymentIntentId) {
+    throw new CustomError("No payment intent found for this bid", 400);
+  }
+
+  let refund;
+  try {
+    refund = await stripe.refunds.create({
+      payment_intent: existingBid.payment.stripePaymentIntentId,
+    });
+  } catch (error: any) {
+    throw new CustomError(`Failed to refund payment: ${error.message}`, 500);
+  }
+
+  const bid = await prisma.$transaction(async (tx) => {
+    await tx.payment.update({
+      where: { id: existingBid.payment!.id },
+      data: {
+        status: payment_status.REFUNDED,
+        refundedAt: new Date(),
+        stripeRefundId: refund.id,
+      },
+    });
+
+    return tx.bid.update({
+      where: { id },
+      data: {
+        status: bid_status.CANCELLED,
+        rejectionReason: reason,
+      },
+      include: {
+        place: {
+          include: { images: { orderBy: { order: "asc" }, take: 1 } },
+        },
+        payment: true,
+        users: true,
+      },
+    });
+  });
+
+  // Neither of these should block the admin's response — refund + status
+  // update already succeeded, these are best-effort follow-ups.
+  sendBookingCancellationEmail(bid.id).catch((error) =>
+    console.error("Failed to send booking cancellation email:", error),
+  );
+  notifyBookingCancelled(bid.id, bid.place.slug).catch((error) =>
+    console.error("Failed to notify myallocator of cancellation:", error),
+  );
+
+  res.status(200).json({
+    message: "Bid cancelled and refunded successfully",
     data: { bid: formatBid(bid) },
   });
 }

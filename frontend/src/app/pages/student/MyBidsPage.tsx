@@ -33,6 +33,7 @@ const bidStatusColors: Record<string, string> = {
   PENDING: "bg-warning/20 text-warning",
   ACCEPTED: "bg-success/20 text-success",
   REJECTED: "bg-danger/20 text-danger",
+  CANCELLED: "bg-muted/20 text-muted",
   EXPIRED: "bg-muted/20 text-muted",
 };
 
@@ -58,6 +59,11 @@ const paymentStatusConfig: Record<
   CANCELLED: {
     color: "bg-muted/20 text-muted",
     label: "Payment Cancelled",
+    icon: XCircle,
+  },
+  REFUNDED: {
+    color: "bg-muted/20 text-muted",
+    label: "Refunded",
     icon: XCircle,
   },
   FAILED: {
@@ -244,6 +250,16 @@ export function MyBidsPage() {
                       <span className="text-xs sm:text-sm text-danger">
                         Rejected: {bid.rejectionReason}
                       </span>
+                    )}
+
+                    {bid.status === "CANCELLED" && (
+                      <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted glass px-2.5 py-1.5 rounded-md border border-line">
+                        <XCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>
+                          Cancelled &mdash; refund issued
+                          {bid.rejectionReason ? `: ${bid.rejectionReason}` : ""}
+                        </span>
+                      </div>
                     )}
 
                     <Button

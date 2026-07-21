@@ -47,6 +47,16 @@ const defaultVariables: Record<EmailType, Record<string, any>> = {
     totalAmount: "600.00",
     dashboardUrl: "http://localhost:5173/hotel/bids",
   },
+  [EmailType.BOOKING_CANCELLED_STUDENT]: {
+    studentName: "Test User",
+    appName: "Deadline",
+    reservationNumber: "BID-A1B2C3D4",
+    placeName: "Test Hotel",
+    checkInDate: "June 15, 2026",
+    checkOutDate: "June 20, 2026",
+    totalAmount: "600.00",
+    cancellationReason: "Guest requested cancellation",
+  },
   [EmailType.PAYOUT_SENT]: {
     appName: "Deadline",
     placeName: "Test Hotel",

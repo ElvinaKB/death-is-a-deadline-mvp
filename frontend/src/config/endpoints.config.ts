@@ -50,6 +50,7 @@ export const ENDPOINTS = {
   HOTEL_BIDS_LIST: "/api/bids/hotel",
   BID_STATUS: "/api/bids/:id/status",
   BID_PAYOUT: "/api/bids/:id/payout",
+  BID_CANCEL: "/api/bids/:id/cancel",
 
   // Payments
   PAYMENT_CONFIG: "/api/payments/config",

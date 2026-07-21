@@ -151,7 +151,10 @@ router.post("/GetBookingList", async (req: Request, res: Response) => {
   const bids = await prisma.bid.findMany({
     where: {
       placeId: place.id,
-      status: bid_status.ACCEPTED,
+      // CANCELLED is included so a cancelled booking still surfaces here —
+      // that's how Cloudbeds finds out to reopen the room (see GetBookingId
+      // below, which reports IsCancellation for it).
+      status: { in: [bid_status.ACCEPTED, bid_status.CANCELLED] },
       ...(since ? { updatedAt: { gte: since } } : {}),
     },
     select: { id: true, updatedAt: true },
@@ -185,7 +188,11 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
   }
 
   const bid = await prisma.bid.findFirst({
-    where: { id: bookingId, placeId: place.id, status: bid_status.ACCEPTED },
+    where: {
+      id: bookingId,
+      placeId: place.id,
+      status: { in: [bid_status.ACCEPTED, bid_status.CANCELLED] },
+    },
     include: { users: { select: { email: true, raw_user_meta_data: true } } },
   });
   if (!bid) {
@@ -218,7 +225,7 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
       OrderId: bid.id,
       OrderDate: format(bid.createdAt, "yyyy-MM-dd"),
       OrderTime: format(bid.createdAt, "HH:mm:ss"),
-      IsCancellation: 0,
+      IsCancellation: bid.status === bid_status.CANCELLED ? 1 : 0,
       IsModification: 0,
       // Deadline doesn't currently collect a guest/occupant count at bid
       // time, so we report a single adult per booking until that's added.

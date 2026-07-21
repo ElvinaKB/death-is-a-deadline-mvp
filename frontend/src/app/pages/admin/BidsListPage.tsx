@@ -5,6 +5,8 @@ import { DataTable } from "../../components/common/DataTable";
 import { TableColumn } from "../../../types/api.types";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import { Switch } from "../../components/ui/switch";
 import {
   Card,
@@ -20,24 +22,35 @@ import {
 } from "../../components/ui/tabs";
 import { format } from "date-fns";
 import { formatBookingDate } from "../../../utils/dateHelpers";
-import { DollarSign, EyeIcon } from "lucide-react";
+import { DollarSign, EyeIcon, XCircle } from "lucide-react";
 import { PayoutModal } from "../../components/bids/PayoutModal";
+import { CancelBidModal } from "../../components/bids/CancelBidModal";
+import { useDebounce } from "../../../hooks/useDebounce";
 
 const BID_STATUS_COLORS: Record<BidStatus, string> = {
   [BidStatus.PENDING]: "bg-warning/20 text-warning hover:bg-warning/30",
   [BidStatus.ACCEPTED]: "bg-success/20 text-success hover:bg-success/30",
   [BidStatus.REJECTED]: "bg-danger/20 text-danger hover:bg-danger/30",
+  [BidStatus.CANCELLED]: "bg-muted/20 text-muted hover:bg-muted/30",
 };
 
 export function BidsListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [filter, setFilter] = useState<BidStatus | "ALL">("ALL");
   const [selectedBid, setSelectedBid] = useState<Bid | null>(null);
+  const [bidToCancel, setBidToCancel] = useState<Bid | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [checkInFrom, setCheckInFrom] = useState("");
+  const [checkInTo, setCheckInTo] = useState("");
+  const search = useDebounce(searchInput, 400);
 
   const { data, isLoading } = useBids({
     page: currentPage,
     limit: 10,
     ...(filter !== "ALL" ? { status: filter } : {}),
+    ...(search ? { search } : {}),
+    ...(checkInFrom ? { checkInFrom } : {}),
+    ...(checkInTo ? { checkInTo } : {}),
   });
 
   const updatePayout = useUpdatePayout();
@@ -177,18 +190,33 @@ export function BidsListPage() {
       field: "id",
       render: (row) => {
         const canViewPayout = row.status === BidStatus.ACCEPTED;
+        const canCancel =
+          row.status === BidStatus.ACCEPTED &&
+          row.payment?.status === "CAPTURED";
 
         if (!canViewPayout) return null;
 
         return (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setSelectedBid(row)}
-          >
-            <EyeIcon className="h-4 w-4 mr-1" />
-            View
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setSelectedBid(row)}
+            >
+              <EyeIcon className="h-4 w-4 mr-1" />
+              View
+            </Button>
+            {canCancel && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setBidToCancel(row)}
+              >
+                <XCircle className="h-4 w-4 mr-1" />
+                Cancel
+              </Button>
+            )}
+          </div>
         );
       },
     },
@@ -212,6 +240,45 @@ export function BidsListPage() {
         <p className="text-muted mt-1">
           View all bids and their payment status
         </p>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="flex-1 min-w-[220px] space-y-1.5">
+          <Label className="text-fg">Search</Label>
+          <Input
+            value={searchInput}
+            onChange={(e) => {
+              setSearchInput(e.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="Guest email or hotel name"
+            className="bg-glass border-line text-fg placeholder:text-muted"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-fg">Check-in from</Label>
+          <Input
+            type="date"
+            value={checkInFrom}
+            onChange={(e) => {
+              setCheckInFrom(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="bg-glass border-line text-fg"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-fg">Check-in to</Label>
+          <Input
+            type="date"
+            value={checkInTo}
+            onChange={(e) => {
+              setCheckInTo(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="bg-glass border-line text-fg"
+          />
+        </div>
       </div>
 
       <Tabs
@@ -246,6 +313,12 @@ export function BidsListPage() {
             className="data-[state=active]:bg-brand data-[state=active]:text-white"
           >
             Rejected
+          </TabsTrigger>
+          <TabsTrigger
+            value={BidStatus.CANCELLED}
+            className="data-[state=active]:bg-brand data-[state=active]:text-white"
+          >
+            Cancelled
           </TabsTrigger>
         </TabsList>
 
@@ -282,6 +355,15 @@ export function BidsListPage() {
         open={!!selectedBid}
         onOpenChange={(open) => {
           if (!open) setSelectedBid(null);
+        }}
+      />
+
+      {/* Cancel Bid Modal */}
+      <CancelBidModal
+        bid={bidToCancel}
+        open={!!bidToCancel}
+        onOpenChange={(open) => {
+          if (!open) setBidToCancel(null);
         }}
       />
     </div>
