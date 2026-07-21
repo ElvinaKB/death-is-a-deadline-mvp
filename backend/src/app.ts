@@ -7,6 +7,7 @@ dotenv.config({
 import "express-async-errors";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import morgan from "morgan";
 import { errorHandler } from "./libs/middlewares/errorHandler";
 import { auditLogger } from "./libs/middlewares/auditLogger";
@@ -30,7 +31,33 @@ const app = express();
 // collapse IP-keyed rate limiting into one shared bucket for all visitors.
 app.set("trust proxy", 1);
 
-app.use(cors());
+app.use(helmet());
+
+// Known frontend origins only — CLIENT_URL covers local dev, the rest are
+// production domains (deathisadeadline.com is referenced in the ToS as a
+// domain the Service runs on), plus Vercel's own preview-deployment URLs
+// for this project.
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "https://www.deadlinetravel.com",
+  "https://deadlinetravel.com",
+  "https://www.deathisadeadline.com",
+  "https://deathisadeadline.com",
+].filter((origin): origin is string => Boolean(origin));
+const vercelPreviewPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // No Origin header (server-to-server calls, curl, Postman) — allow.
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin) || vercelPreviewPattern.test(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by CORS"));
+    },
+  }),
+);
 
 // Stripe webhook needs raw body - must be BEFORE express.json()
 app.use("/api/payments/webhook", express.raw({ type: "application/json" }));

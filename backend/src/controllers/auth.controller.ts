@@ -13,6 +13,7 @@ import { EmailType } from "../email/emailTypes";
 import jwt from "jsonwebtoken";
 import axios from "axios";
 import { prisma } from "../libs/config/prisma";
+import { JWT_SECRET } from "../libs/config/jwt";
 import {
   consumeHotelInviteToken,
   validateHotelInviteToken,
@@ -420,7 +421,7 @@ export async function linkedinCallback(req: Request, res: Response) {
 
   const verificationToken = jwt.sign(
     { email, name: name || email },
-    process.env.JWT_SECRET ?? "jwt_secret",
+    JWT_SECRET,
     { expiresIn: "15m" },
   );
 
@@ -448,7 +449,7 @@ export async function linkedinComplete(req: Request, res: Response) {
   try {
     const decoded = jwt.verify(
       verificationToken,
-      process.env.JWT_SECRET ?? "jwt_secret",
+      JWT_SECRET,
     ) as { email: string; name: string };
     email = decoded.email;
     name = decoded.name;
@@ -517,10 +518,13 @@ export async function resubmit(
 ) {
   const { token, studentIdUrl } = req.body;
 
-  // Decode JWT to get student_id
+  // Verify JWT to get student_id — must be jwt.verify, not jwt.decode.
+  // decode() reads the payload without checking the signature at all, so
+  // anyone could previously forge a token with an arbitrary `id` claim and
+  // overwrite another student's ID document URL.
   let id = "";
   try {
-    const decodedToken = jwt.decode(token) as { id: string };
+    const decodedToken = jwt.verify(token, JWT_SECRET) as { id: string };
     if (!decodedToken?.id) {
       throw new CustomError("Invalid token", 400);
     }
