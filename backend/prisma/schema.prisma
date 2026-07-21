@@ -171,6 +171,8 @@ model Payment {
   authorizedAt          DateTime?      @map("authorized_at") @db.Timestamptz(6)
   capturedAt            DateTime?      @map("captured_at") @db.Timestamptz(6)
   cancelledAt           DateTime?      @map("cancelled_at") @db.Timestamptz(6)
+  refundedAt            DateTime?      @map("refunded_at") @db.Timestamptz(6)
+  stripeRefundId        String?        @unique @map("stripe_refund_id") @db.VarChar(255)
   failedAt              DateTime?      @map("failed_at") @db.Timestamptz(6)
   expiresAt             DateTime?      @map("expires_at") @db.Timestamptz(6)
   failureReason         String?        @map("failure_reason")
@@ -713,6 +715,7 @@ enum bid_status {
   PENDING
   ACCEPTED
   REJECTED
+  CANCELLED
 
   @@schema("public")
 }
@@ -723,6 +726,7 @@ enum payment_status {
   AUTHORIZED
   CAPTURED
   CANCELLED
+  REFUNDED
   FAILED
   EXPIRED
 

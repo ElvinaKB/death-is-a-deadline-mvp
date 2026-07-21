@@ -403,24 +403,31 @@ export function TermsOfServiceContent() {
         identity of Death Is A Deadline (through Stripe) as the merchant of record on your card statement and the
         descriptor that will appear on your statement; and (h) the date and time at which the charge will be processed
         (typically within minutes of Bid acceptance). By clicking &ldquo;Confirm Bid&rdquo; (or any equivalent button
-        we may use), you expressly authorize this charge, acknowledge that the Reservation is final,
-        non-cancellable, non-refundable, and non-transferable in accordance with Section 6.1, and confirm that the
-        Hotel may apply additional charges directly to you at check-in or during your stay in accordance with Section
-        8.
+        we may use), you expressly authorize this charge, acknowledge the cancellation and refund terms of Section
+        6.1, and confirm that the Hotel may apply additional charges directly to you at check-in or during your stay
+        in accordance with Section 8.
       </LegalP>
-      <LegalH3 key="b-43">6.1 Reservations Are Final; No Cancellations or Refunds</LegalH3>
+      <LegalH3 key="b-43">6.1 Cancellations and Refunds</LegalH3>
       <LegalP key="b-44">
         Because accepted Bids create immediate, confirmed Reservations in the Hotel&apos;s system at a deeply
-        discounted, non-public price, all accepted Bids are final, non-cancellable, non-refundable, non-changeable,
-        and non-transferable. We do not provide refunds, date changes, name changes, room-type changes, or
-        cancellations for any reason attributable to you or to factors outside our control, including but not limited
-        to change of plans, weather, illness, missed travel, denied boarding, school schedule changes, exam
-        conflicts, or dissatisfaction with the Hotel. If the Hotel is unable to honor your Reservation due to its own
-        conduct (for example, an overbooking by the Hotel), Section 7 governs our role in seeking alternative
-        accommodations and any goodwill credit we may, in our sole discretion, provide. You should not submit a Bid
-        unless you are prepared to be charged and to honor the Reservation. By submitting a Bid, you expressly
-        acknowledge and agree that the Reservation is final and non-refundable. We are not responsible for missed
-        stays, delayed travel, transportation issues, or inability to check in due to events outside our control.
+        discounted, non-public price, Reservations are not self-service cancellable, changeable, or transferable
+        through the Service, and we do not guarantee refunds for change of plans, weather, illness, missed travel,
+        denied boarding, school schedule changes, exam conflicts, or dissatisfaction with the Hotel. You should not
+        submit a Bid unless you are prepared to be charged and to honor the Reservation.
+      </LegalP>
+      <LegalP key="b-44b">
+        That said, we may, in our sole discretion, cancel a confirmed Reservation and issue a full refund to your
+        original payment method &mdash; for example, at your request. To request a cancellation, contact our support
+        team; cancellations are processed manually and are not available through self-service account controls at
+        this time. At minimum, any Reservation may be cancelled without penalty, for a full refund, within 24 hours
+        of the Reservation being confirmed, provided the Reservation was made at least 72 hours before check-in. We
+        apply this minimum window to every Reservation regardless of the Hotel&apos;s location, consistent with
+        California Civil Code &sect;&sect; 1748.80&ndash;1748.84. Refunds are issued to your original payment method
+        and typically post within 5&ndash;10 business days, depending on your bank or card issuer. If the Hotel is
+        unable to honor your Reservation due to its own conduct (for example, an overbooking by the Hotel), Section 7
+        governs our role in seeking alternative accommodations and any goodwill credit we may, in our sole
+        discretion, provide. We are not responsible for missed stays, delayed travel, transportation issues, or
+        inability to check in due to events outside our control.
       </LegalP>
       <LegalH3 key="b-45">6.2 Payment Processing through Stripe</LegalH3>
       <LegalP key="b-46">

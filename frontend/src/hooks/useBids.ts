@@ -11,6 +11,7 @@ import {
   BidForPlaceResponse,
   UpdateBidStatusRequest,
   UpdatePayoutRequest,
+  CancelBidRequest,
 } from "../types/bid.types";
 
 // Check if student has existing bid for a place
@@ -63,6 +64,9 @@ export const useBids = (params?: {
   status?: BidStatus;
   placeId?: string;
   studentId?: string;
+  search?: string;
+  checkInFrom?: string;
+  checkInTo?: string;
   page?: number;
   limit?: number;
 }) => {
@@ -130,6 +134,20 @@ export const useUpdatePayout = () => {
       isPaidToHotel,
       payoutNotes,
     }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bids", "admin"] });
+    },
+  });
+};
+
+// Cancel an accepted, charged bid with a full refund (admin)
+export const useCancelBid = () => {
+  const queryClient = useQueryClient();
+
+  return useApiMutation<{ bid: Bid }, CancelBidRequest>({
+    endpoint: (vars) => getEndpoint(ENDPOINTS.BID_CANCEL, { id: vars.id }),
+    method: "PATCH",
+    transformVariables: ({ reason }) => ({ reason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bids", "admin"] });
     },

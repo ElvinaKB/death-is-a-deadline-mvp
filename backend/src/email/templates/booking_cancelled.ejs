@@ -1,0 +1,27 @@
+<%- include('./partials/deadline-head', {
+  title: 'Reservation Cancelled',
+  heading: 'Your reservation has been cancelled',
+  badgeText: '✕ Cancelled'
+}) %>
+
+<p class="intro">Hi <%= studentName %>,</p>
+
+<p>Your reservation at <strong><%= placeName %></strong> has been cancelled and a full refund has been issued to your original payment method.</p>
+
+<table class="detail-table" role="presentation" cellpadding="0" cellspacing="0" border="0">
+  <tr><td class="label">Reservation #</td><td class="value"><%= reservationNumber %></td></tr>
+  <tr><td class="label">Property</td><td class="value"><%= placeName %></td></tr>
+  <tr><td class="label">Check-in</td><td class="value"><%= checkInDate %></td></tr>
+  <tr><td class="label">Check-out</td><td class="value"><%= checkOutDate %></td></tr>
+  <tr class="total-row"><td>Refund Amount</td><td class="value">$<%= totalAmount %></td></tr>
+</table>
+
+<% if (cancellationReason) { %>
+<div class="feature-box"><strong>Reason:</strong> <%= cancellationReason %></div>
+<% } %>
+
+<div class="success-box"><strong>Refund issued:</strong> Your bank or card issuer typically posts refunds within 5&ndash;10 business days. Exact timing depends on your bank, not Deadline.</div>
+
+<p style="color: #6b7280; font-size: 14px;">If you have any questions about this cancellation or refund, please reply to this email or contact our support team.</p>
+
+<%- include('./partials/deadline-foot', { appName: appName }) %>

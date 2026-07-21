@@ -2,6 +2,7 @@ export enum BidStatus {
   PENDING = "PENDING",
   ACCEPTED = "ACCEPTED",
   REJECTED = "REJECTED",
+  CANCELLED = "CANCELLED",
 }
 
 /** Derived server-side booking UX state — use for all screen routing (PR1+) */
@@ -14,6 +15,7 @@ export enum BookingStatus {
   CONFIRMED = "CONFIRMED",
   PAYMENT_FAILED = "PAYMENT_FAILED",
   PAYMENT_CANCELLED = "PAYMENT_CANCELLED",
+  BOOKING_CANCELLED = "BOOKING_CANCELLED",
   EXPIRED = "EXPIRED",
 }
 
@@ -132,6 +134,11 @@ export interface UpdatePayoutRequest {
   payoutMethod?: string;
   isPaidToHotel?: boolean;
   payoutNotes?: string;
+}
+
+export interface CancelBidRequest {
+  id: string;
+  reason: string;
 }
 
 export type PayoutMethod = "ACH" | "WIRE" | "ZELLE" | "WISE" | "OTHER";

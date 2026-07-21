@@ -28,6 +28,7 @@ const templateMap: Record<EmailType, string> = {
   [EmailType.ACCOUNT_REJECTED]: "account_rejected.ejs",
   [EmailType.BOOKING_CONFIRMED_STUDENT]: "booking_confirmed_student.ejs",
   [EmailType.BOOKING_CONFIRMED_PLACE]: "booking_confirmed_place.ejs",
+  [EmailType.BOOKING_CANCELLED_STUDENT]: "booking_cancelled.ejs",
   [EmailType.PAYOUT_SENT]: "payout_sent.ejs",
   [EmailType.HOTEL_INVITE]: "hotel_invite.ejs",
   [EmailType.HOTEL_PLACE_CREATED]: "hotel_place_created.ejs",

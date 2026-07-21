@@ -9,6 +9,7 @@ export enum BookingStatus {
   CONFIRMED = "CONFIRMED",
   PAYMENT_FAILED = "PAYMENT_FAILED",
   PAYMENT_CANCELLED = "PAYMENT_CANCELLED",
+  BOOKING_CANCELLED = "BOOKING_CANCELLED",
   EXPIRED = "EXPIRED",
 }
 
@@ -21,6 +22,7 @@ export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   [BookingStatus.CONFIRMED]: "Booking confirmed",
   [BookingStatus.PAYMENT_FAILED]: "Payment failed",
   [BookingStatus.PAYMENT_CANCELLED]: "Payment cancelled",
+  [BookingStatus.BOOKING_CANCELLED]: "Cancelled — refund issued",
   [BookingStatus.EXPIRED]: "Payment expired",
 };
 
@@ -28,6 +30,10 @@ export function deriveBookingStatus(
   bidStatus: bid_status,
   paymentStatus?: payment_status | null,
 ): BookingStatus {
+  if (bidStatus === bid_status.CANCELLED) {
+    return BookingStatus.BOOKING_CANCELLED;
+  }
+
   if (bidStatus === bid_status.REJECTED) {
     return BookingStatus.BID_REJECTED;
   }
@@ -52,6 +58,8 @@ export function deriveBookingStatus(
       return BookingStatus.PAYMENT_FAILED;
     case payment_status.CANCELLED:
       return BookingStatus.PAYMENT_CANCELLED;
+    case payment_status.REFUNDED:
+      return BookingStatus.BOOKING_CANCELLED;
     case payment_status.EXPIRED:
       return BookingStatus.EXPIRED;
     case payment_status.AUTHORIZED:
