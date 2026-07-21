@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { Button } from "../ui/button";
 import {
+  COOKIE_CONSENT_REOPEN_EVENT,
   getCookieConsentChoice,
   hasGpcSignal,
   setCookieConsentAccepted,
@@ -23,6 +24,12 @@ export function CookieConsentBanner() {
     }
 
     setVisible(true);
+  }, []);
+
+  useEffect(() => {
+    const reopen = () => setVisible(true);
+    window.addEventListener(COOKIE_CONSENT_REOPEN_EVENT, reopen);
+    return () => window.removeEventListener(COOKIE_CONSENT_REOPEN_EVENT, reopen);
   }, []);
 
   const accept = () => {

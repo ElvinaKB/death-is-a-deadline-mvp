@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
+import { reopenCookieConsentBanner } from "../../../utils/cookieConsent";
 
 const footerLinks = [
   { to: ROUTES.CONTACT, label: "Contact Us" },
@@ -27,6 +28,13 @@ export function SiteFooter() {
               {link.label}
             </Link>
           ))}
+          <button
+            type="button"
+            onClick={reopenCookieConsentBanner}
+            className="text-muted hover:text-gold transition-colors cursor-pointer"
+          >
+            Cookie Settings
+          </button>
         </nav>
 
         <p className="text-xs text-muted">
