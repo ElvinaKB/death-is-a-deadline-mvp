@@ -8,6 +8,7 @@ import {
   hotelSignupSchema,
   linkedinCallbackSchema,
   linkedinCompleteSchema,
+  uploadUrlSchema,
 } from "../validations/auth/auth.validation";
 import {
   signup,
@@ -19,6 +20,7 @@ import {
   linkedinAuthorize,
   linkedinCallback,
   linkedinComplete,
+  createIdUploadUrl,
 } from "../controllers/auth.controller";
 import { validate } from "../libs/middlewares/validate";
 import { rateLimit } from "../libs/middlewares/rateLimit";
@@ -38,6 +40,12 @@ router.post(
 );
 router.post("/login", authRateLimit, validate(loginSchema), login);
 router.post("/resubmit", authRateLimit, validate(resubmitSchema), resubmit);
+router.post(
+  "/upload-url",
+  authRateLimit,
+  validate(uploadUrlSchema),
+  createIdUploadUrl,
+);
 router.post(
   "/forgot-password",
   authRateLimit,

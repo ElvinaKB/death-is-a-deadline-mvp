@@ -10,7 +10,7 @@ import { useApiMutation } from "../../hooks/useApi";
 import { ENDPOINTS } from "../../config/endpoints.config";
 import { ROUTES } from "../../config/routes.config";
 import { SignupRequest, AuthResponse } from "../../types/auth.types";
-import { API_BASE_URL } from "../../lib/apiClient";
+import { API_BASE_URL, apiClient } from "../../lib/apiClient";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { PasswordInput } from "../components/ui/password-input";
@@ -113,29 +113,32 @@ export function SignupPage() {
 
   const handleFileUpload = async () => {
     setFileUpload(true);
-    // Upload file to Supabase Storage
     const file = formik.values.studentIdCard;
-    // Get file extension
-    const ext = file && file.name ? file.name.split(".").pop() : "";
-    const fileName = `${formik.values.email.replace(
-      /[^a-zA-Z0-9]/g,
-      "_",
-    )}_${Date.now()}${ext ? `.${ext}` : ""}`;
-    const { data, error } = await supabase.storage
-      .from(SUPABASE_BUCKET)
-      .upload(fileName, file as any);
-    if (error) {
-      setFileUpload(false);
+    const ext = (file && file.name ? file.name.split(".").pop() : "jpg") || "jpg";
+    try {
+      const { path, token } = await apiClient.post<{
+        path: string;
+        token: string;
+      }>(ENDPOINTS.ID_UPLOAD_URL, {
+        context: "signup",
+        fileExt: ext.toLowerCase(),
+      });
+      const { error } = await supabase.storage
+        .from(SUPABASE_BUCKET)
+        .uploadToSignedUrl(path, token, file as File);
+      if (error) throw error;
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from(SUPABASE_BUCKET)
+        .getPublicUrl(path);
+      return publicUrlData?.publicUrl;
+    } catch (error: any) {
       console.log(error);
       toast.error(error.message || "Failed to upload supporting documentation");
       throw error;
+    } finally {
+      setFileUpload(false);
     }
-    // Get public URL
-    const { data: publicUrlData } = supabase.storage
-      .from(SUPABASE_BUCKET)
-      .getPublicUrl(fileName);
-    setFileUpload(false);
-    return publicUrlData?.publicUrl;
   };
 
   const isImageUploaded = !!needsIdUpload ? !!selectedFile : true;
