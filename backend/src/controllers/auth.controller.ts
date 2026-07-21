@@ -12,6 +12,7 @@ import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
 import jwt from "jsonwebtoken";
 import axios from "axios";
+import { randomUUID } from "node:crypto";
 import { prisma } from "../libs/config/prisma";
 import { JWT_SECRET } from "../libs/config/jwt";
 import {
@@ -547,6 +548,36 @@ export async function resubmit(
     message: "ID resubmitted successfully",
     data,
   });
+}
+
+export async function createIdUploadUrl(req: Request, res: Response) {
+  const { context, token, fileExt } = req.body;
+
+  // Uploads happen before a real Supabase Auth session exists (signup) or
+  // via a one-time link (resubmit), so we mint a short-lived signed upload
+  // token here — the same jwt.verify() used in resubmit() above scopes the
+  // resubmit path to the actual student the token was issued for — instead
+  // of relying on a blanket anon-role INSERT policy on the bucket.
+  let prefix = "signup";
+  if (context === "resubmit") {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
+      prefix = `resubmit/${decoded.id}`;
+    } catch {
+      throw new CustomError("Invalid or expired token", 401);
+    }
+  }
+
+  const path = `${prefix}/${randomUUID()}.${fileExt}`;
+  const { data, error } = await supabase.storage
+    .from("student-id-cards")
+    .createSignedUploadUrl(path);
+
+  if (error) {
+    throw new CustomError("Failed to create upload URL", 500);
+  }
+
+  res.status(200).json({ message: "Upload URL created", data });
 }
 
 export async function forgotPassword(

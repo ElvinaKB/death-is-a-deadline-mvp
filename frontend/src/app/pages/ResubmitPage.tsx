@@ -18,6 +18,7 @@ import { useApiMutation } from "../../hooks/useApi";
 import { ENDPOINTS } from "../../config/endpoints.config";
 import { SUPABASE_BUCKET } from "../../lib/constants";
 import { supabase } from "../../utils/supabaseClient";
+import { apiClient } from "../../lib/apiClient";
 
 export function ResubmitPage() {
   const navigate = useNavigate();
@@ -71,23 +72,39 @@ export function ResubmitPage() {
   const handleFileUpload = async () => {
     setFileUpload(true);
     const file = formik.values.studentIdCard;
-    if (!file) return toast.error("No file selected");
-
-    const ext = file && file.name ? file.name.split(".").pop() : "";
-    const fileName = `resubmit_${Date.now()}${ext ? `.${ext}` : ""}`;
-    const { data, error } = await supabase.storage
-      .from(SUPABASE_BUCKET)
-      .upload(fileName, file);
-    if (error) {
+    if (!file) {
       setFileUpload(false);
+      return toast.error("No file selected");
+    }
+    if (!token) {
+      setFileUpload(false);
+      return toast.error("Invalid or missing token");
+    }
+
+    const ext = (file.name ? file.name.split(".").pop() : "jpg") || "jpg";
+    try {
+      const { path, token: uploadToken } = await apiClient.post<{
+        path: string;
+        token: string;
+      }>(ENDPOINTS.ID_UPLOAD_URL, {
+        context: "resubmit",
+        token,
+        fileExt: ext.toLowerCase(),
+      });
+      const { error } = await supabase.storage
+        .from(SUPABASE_BUCKET)
+        .uploadToSignedUrl(path, uploadToken, file);
+      if (error) throw error;
+      const { data: publicUrlData } = supabase.storage
+        .from(SUPABASE_BUCKET)
+        .getPublicUrl(path);
+      return publicUrlData?.publicUrl;
+    } catch (error: any) {
       toast.error(error.message || "Failed to upload student ID card");
       throw error;
+    } finally {
+      setFileUpload(false);
     }
-    const { data: publicUrlData } = supabase.storage
-      .from(SUPABASE_BUCKET)
-      .getPublicUrl(fileName);
-    setFileUpload(false);
-    return publicUrlData?.publicUrl;
   };
 
   return (

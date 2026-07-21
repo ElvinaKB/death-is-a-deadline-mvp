@@ -24,6 +24,17 @@ export const resubmitSchema = z.object({
   studentIdUrl: z.string(),
 });
 
+export const uploadUrlSchema = z
+  .object({
+    context: z.enum(["signup", "resubmit"]),
+    token: z.string().jwt().optional(),
+    fileExt: z.enum(["jpg", "jpeg", "png", "webp"]),
+  })
+  .refine((data) => data.context !== "resubmit" || !!data.token, {
+    message: "token is required for resubmit uploads",
+    path: ["token"],
+  });
+
 export const forgotPasswordSchema = z.object({
   email: z.string().email(),
 });
