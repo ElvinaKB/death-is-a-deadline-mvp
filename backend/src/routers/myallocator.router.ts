@@ -193,7 +193,9 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
       placeId: place.id,
       status: { in: [bid_status.ACCEPTED, bid_status.CANCELLED] },
     },
-    include: { users: { select: { email: true, raw_user_meta_data: true } } },
+    include: {
+      users: { select: { email: true, phone: true, raw_user_meta_data: true } },
+    },
   });
   if (!bid) {
     return fail(res, ERROR.NO_SUCH_BOOKING, "No such booking id.");
@@ -245,6 +247,9 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
           CustomerEmail: bid.users.email || "",
           CustomerFName: firstName,
           CustomerLName: lastName,
+          // Deadline never masks the guest's real email/phone behind a
+          // temporary one — the hotel gets the real contact details.
+          ...(bid.users.phone ? { CustomerPhone: bid.users.phone } : {}),
         },
       ],
       Rooms: [
