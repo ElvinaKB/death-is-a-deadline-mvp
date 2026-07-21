@@ -227,6 +227,28 @@ export function BidLockInModal({
             </p>
           </div>
 
+          <div className="space-y-1.5 rounded-lg border border-line/50 bg-white/[0.02] px-4 py-3 text-xs text-muted leading-relaxed">
+            <p className="text-fg font-medium">Things to keep in mind</p>
+            <ul className="list-disc space-y-1 pl-4">
+              <li>
+                Rate shown is per night, per room. Each room is guaranteed to fit
+                2 guests &mdash; extra guests are at the hotel&apos;s discretion and
+                may be subject to additional fees.
+              </li>
+              <li>
+                This room may not meet every accessibility need. Accessibility
+                requests can be made directly to the hotel and are subject to
+                hotel approval and availability.
+              </li>
+            </ul>
+          </div>
+
+          <p className="text-xs text-muted text-center leading-relaxed">
+            Death Is A Deadline is the merchant of record on your card
+            statement. Your card is charged automatically the moment your bid
+            is accepted &mdash; typically within minutes.
+          </p>
+
           <Button
             type="button"
             className="w-full btn-bid-premium h-12 text-base uppercase tracking-wide text-black"
