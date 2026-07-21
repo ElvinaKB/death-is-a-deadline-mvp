@@ -32,14 +32,25 @@ export function CookieConsentBanner() {
     return () => window.removeEventListener(COOKIE_CONSENT_REOPEN_EVENT, reopen);
   }, []);
 
+  // Reload after a choice made via "Cookie Settings" (i.e. changing an
+  // earlier decision) so already-loaded analytics scripts — which have no
+  // "uninstall" once injected, and in Clarity's case start recording the
+  // session immediately — actually stop rather than keep running until
+  // the next unrelated navigation reloads the page.
+  const wasReopenedChoice = () => getCookieConsentChoice() !== null;
+
   const accept = () => {
+    const reload = wasReopenedChoice();
     setCookieConsentAccepted();
     setVisible(false);
+    if (reload) window.location.reload();
   };
 
   const reject = () => {
+    const reload = wasReopenedChoice();
     setCookieConsentRejected();
     setVisible(false);
+    if (reload) window.location.reload();
   };
 
   if (!visible) return null;
