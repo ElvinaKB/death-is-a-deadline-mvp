@@ -275,8 +275,9 @@ export function TermsOfServiceContent() {
       <LegalP key="b-27">
         If your Bid meets or exceeds the applicable Floor Base, your Bid is accepted and the authorization hold will
         be converted into a completed charge (also known as a &ldquo;capture&rdquo;) for the authorized amount. At
-        that time, a Reservation is created and becomes final, non-cancellable, non-refundable, and non-transferable.
-        If your Bid does not meet the applicable Floor Base, your Bid is rejected and the authorization hold will be
+        that time, a Reservation is created; see Section 6.1 for the circumstances under which a Reservation may be
+        cancelled and refunded. If your Bid does not meet the applicable Floor Base, your Bid is rejected and the
+        authorization hold will be
         released. The timing of the release is determined by your card issuer and financial institution and may take
         several business days to appear on your account. Death Is A Deadline does not control the speed at which
         banks remove released authorization holds.
