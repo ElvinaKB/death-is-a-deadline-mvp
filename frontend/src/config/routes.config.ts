@@ -11,6 +11,7 @@ export const ROUTES = {
 
   HOME: "/",
   WAITLIST: "/waitlist",
+  HOTELS_LANDING: "/hotels",
   PUBLIC_PLACE_DETAIL: "/:slug",
 
   // Student routes

@@ -48,6 +48,7 @@ import { PrivacyPage } from "./pages/legal/PrivacyPage";
 import { AccessibilityPage } from "./pages/legal/AccessibilityPage";
 import { ContactPage } from "./pages/ContactPage";
 import { WaitlistPage } from "./pages/WaitlistPage";
+import { HotelsLandingPage } from "./pages/HotelsLandingPage";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 // Auth routes (redirect to protected base if already authenticated)
@@ -71,6 +72,7 @@ const publicRoutes = [
   { path: ROUTES.ACCESSIBILITY, element: <AccessibilityPage /> },
   { path: ROUTES.CONTACT, element: <ContactPage /> },
   { path: ROUTES.WAITLIST, element: <WaitlistPage /> },
+  { path: ROUTES.HOTELS_LANDING, element: <HotelsLandingPage /> },
   // Old /student links (e.g. already-sent booking confirmation emails)
   // redirect to their new /member equivalents.
   { path: ROUTES.LEGACY_STUDENT_MY_BIDS, element: <Navigate to={ROUTES.STUDENT_MY_BIDS} replace /> },
