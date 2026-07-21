@@ -10,6 +10,7 @@ This documentation covers the implementation of the bidding and payment system f
 4. [Payment System](./04-payment-system.md)
 5. [Stripe Integration](./05-stripe-integration.md)
 6. [Stripe Setup Guide](./06-stripe-setup-guide.md)
+9. [Security & Compliance Tracker](./09-security-compliance-tracker.md)
 
 ## Quick Start
 

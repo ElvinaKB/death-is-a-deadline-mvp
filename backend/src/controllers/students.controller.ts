@@ -8,6 +8,7 @@ import { ApprovalStatus, UserRole } from "../types/auth.types";
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../libs/config/jwt";
 import crypto from "crypto";
 
 export const getRawStudent = (item: RawUser) => ({
@@ -139,7 +140,7 @@ export async function rejectStudent(req: Request, res: Response) {
   // generate jwt token expiry in 1 day
   const token = await jwt.sign(
     { id: student.id },
-    process.env.JWT_SECRET ?? "jwt_secret",
+    JWT_SECRET,
     {
       expiresIn: "1d",
     },
