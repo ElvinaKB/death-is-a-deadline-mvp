@@ -1,7 +1,16 @@
 import { Router } from "express";
 import { validate } from "../libs/middlewares/validate";
 import { authenticate } from "../libs/middlewares/authenticate";
+import { rateLimit } from "../libs/middlewares/rateLimit";
 import { UserRole } from "../types/auth.types";
+
+// Stripe-adjacent endpoints — also guards against card-testing abuse
+// (repeatedly probing stolen card numbers via validate-method).
+const paymentRateLimit = rateLimit({
+  window: "1 m",
+  max: 10,
+  keyPrefix: "payments",
+});
 import {
   createPaymentIntentSchema,
   validatePaymentMethodSchema,
@@ -39,6 +48,7 @@ router.get("/config", getPaymentConfig);
 router.post(
   "/create-intent",
   authenticate(UserRole.STUDENT),
+  paymentRateLimit,
   validate(createPaymentIntentSchema, "body"),
   createPaymentIntent
 );
@@ -52,6 +62,7 @@ router.get(
 router.post(
   "/validate-method",
   authenticate(UserRole.STUDENT),
+  paymentRateLimit,
   validate(validatePaymentMethodSchema, "body"),
   validatePaymentMethod,
 );
