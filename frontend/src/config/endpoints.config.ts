@@ -7,6 +7,7 @@ export const ENDPOINTS = {
   VERIFY_EMAIL: "/api/auth/verify-email",
   RESUBMIT_ID: "/api/auth/resubmit",
   ID_UPLOAD_URL: "/api/auth/upload-url",
+  UPLOAD_URL: "/api/uploads/upload-url",
   FORGOT_PASSWORD: "/api/auth/forgot-password",
   RESET_PASSWORD: "/api/auth/reset-password",
   LINKEDIN_AUTHORIZE: "/api/auth/linkedin/authorize",

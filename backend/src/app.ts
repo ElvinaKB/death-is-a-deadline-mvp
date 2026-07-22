@@ -22,6 +22,7 @@ import { router as contactRouter } from "./routers/contact.router";
 import { router as newsletterRouter } from "./routers/newsletter.router";
 import { router as waitlistRouter } from "./routers/waitlist.router";
 import { router as profileRouter } from "./routers/profile.router";
+import { router as uploadsRouter } from "./routers/uploads.router";
 import { router as myallocatorRouter } from "./routers/myallocator.router";
 
 const app = express();
@@ -96,6 +97,7 @@ app.use("/api/contact", contactRouter);
 app.use("/api/newsletter", newsletterRouter);
 app.use("/api/waitlist", waitlistRouter);
 app.use("/api/profile", profileRouter);
+app.use("/api/uploads", uploadsRouter);
 app.use("/api/myallocator", myallocatorRouter);
 
 // Dev-only routes

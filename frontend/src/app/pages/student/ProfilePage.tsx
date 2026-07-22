@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { useApiQuery, useApiMutation } from "../../../hooks/useApi";
 import { ENDPOINTS } from "../../../config/endpoints.config";
+import { apiClient } from "../../../lib/apiClient";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
 import { useAppSelector } from "../../../store/hooks";
 import { ApprovalStatus } from "../../../types/auth.types";
@@ -341,16 +342,19 @@ export function ProfilePage() {
 
     setAvatarUploading(true);
     try {
-      const ext = file.name.split(".").pop();
-      const fileName = `avatar_${user?.id}_${Date.now()}${ext ? `.${ext}` : ""}`;
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const { path, token } = await apiClient.post<{
+        path: string;
+        token: string;
+      }>(ENDPOINTS.UPLOAD_URL, { context: "avatar", fileExt: ext });
       const { error: uploadError } = await supabase.storage
         .from(SUPABASE_BUCKET)
-        .upload(fileName, file);
+        .uploadToSignedUrl(path, token, file);
       if (uploadError) {
         toast.error(uploadError.message || "Failed to upload photo");
         return;
       }
-      const { data: publicUrlData } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(fileName);
+      const { data: publicUrlData } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
       if (!publicUrlData?.publicUrl) {
         toast.error("Failed to get photo URL");
         return;

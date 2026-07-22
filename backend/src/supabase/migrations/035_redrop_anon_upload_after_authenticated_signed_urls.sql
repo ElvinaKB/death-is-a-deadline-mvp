@@ -1,0 +1,16 @@
+-- Migration: Re-drop the anon INSERT policy on student-id-cards
+--
+-- Migration 034 dropped "Allow anon uploads", but that broke the admin/hotel
+-- place-photo and student-avatar uploads: Deadline's frontend Supabase client
+-- only ever holds the anon key (real auth is backend JWT), so those "logged in"
+-- browser uploads were still hitting Supabase as the anon role and relying on
+-- this policy. The policy was temporarily re-created to restore the live site.
+--
+-- Those three call sites now go through an authenticated backend endpoint
+-- (POST /api/uploads/upload-url, gated by authenticate()) that mints a signed
+-- upload token server-side — same pattern as signup/resubmit. With all five
+-- upload paths off the anon policy, it can be dropped for good.
+--
+-- Run this ONLY after the /api/uploads/upload-url code is deployed and the
+-- place/avatar upload flows are confirmed working, not before.
+DROP POLICY IF EXISTS "Allow anon uploads" ON storage.objects;
