@@ -4,6 +4,7 @@ import { prisma } from "../libs/config/prisma";
 import { supabase } from "../libs/config/supabase";
 import { STRIPE_CONFIG } from "../libs/config/stripe";
 import { sendBookingConfirmationEmails } from "./bookingConfirmationEmail.service";
+import { notifyBookingConfirmed } from "./myallocatorNotify.service";
 
 const HANDLED_EVENT_TYPES = new Set([
   "payment_intent.succeeded",
@@ -76,6 +77,9 @@ interface PaymentSucceededResult {
   paymentId: string;
   studentId: string;
   referralCreditAppliedCents: number;
+  bidId: string | null;
+  // Place slug = the OTA property id for the myallocator NotifyBooking callback.
+  otaPropertyId: string | null;
 }
 
 async function handlePaymentIntentSucceeded(
@@ -112,7 +116,7 @@ async function handlePaymentIntentSucceeded(
           ? paymentIntent.customer
           : paymentIntent.customer?.toString() ?? payment.stripeCustomerId,
     },
-    include: { bid: true },
+    include: { bid: { include: { place: { select: { slug: true } } } } },
   });
 
   if (succeededPayment.bid) {
@@ -130,6 +134,8 @@ async function handlePaymentIntentSucceeded(
     paymentId: succeededPayment.id,
     studentId: succeededPayment.studentId,
     referralCreditAppliedCents,
+    bidId: succeededPayment.bidId ?? null,
+    otaPropertyId: succeededPayment.bid?.place?.slug ?? null,
   };
 }
 
@@ -267,5 +273,15 @@ export async function processStripeWebhookEvent(event: Stripe.Event): Promise<vo
       succeededResult.studentId,
       succeededResult.referralCreditAppliedCents,
     );
+    // Prompt Cloudbeds to import this booking now so the hotel's availability
+    // drops everywhere. Fire-and-forget, fails open if not credentialed.
+    if (succeededResult.bidId && succeededResult.otaPropertyId) {
+      notifyBookingConfirmed(
+        succeededResult.bidId,
+        succeededResult.otaPropertyId,
+      ).catch((error) =>
+        console.error("[stripe-webhook] notifyBookingConfirmed failed:", error),
+      );
+    }
   }
 }

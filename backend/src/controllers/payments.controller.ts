@@ -26,6 +26,7 @@ import {
   findStripeCustomerIdForStudent,
   getOrCreateStripeCustomerForStudent,
 } from "../services/stripeCustomer.service";
+import { getEffectiveCapByDate } from "../services/inventory.service";
 
 /**
  * Check inventory availability for all dates in a bid's date range
@@ -50,23 +51,35 @@ async function checkInventoryForBidDates(
 
   // Single query for all accepted bids that could overlap this stay, instead
   // of one query per night — avoids a sequential round trip per night.
-  const overlappingBids = await prisma.bid.findMany({
-    where: {
+  // Alongside it, the per-date effective cap folds in Cloudbeds availability
+  // (min(maxInventory, units)) so we never confirm a room that's already gone
+  // elsewhere. Dates Cloudbeds hasn't pushed default to maxInventory.
+  const [overlappingBids, effectiveCaps] = await Promise.all([
+    prisma.bid.findMany({
+      where: {
+        placeId,
+        status: bid_status.ACCEPTED,
+        checkInDate: { lt: checkOutDate },
+        checkOutDate: { gt: checkInDate },
+        ...(excludeBidId && { id: { not: excludeBidId } }),
+      },
+      select: { checkInDate: true, checkOutDate: true },
+    }),
+    getEffectiveCapByDate(
       placeId,
-      status: bid_status.ACCEPTED,
-      checkInDate: { lt: checkOutDate },
-      checkOutDate: { gt: checkInDate },
-      ...(excludeBidId && { id: { not: excludeBidId } }),
-    },
-    select: { checkInDate: true, checkOutDate: true },
-  });
+      maxInventory,
+      format(dates[0]!, "yyyy-MM-dd"),
+      format(dates[dates.length - 1]!, "yyyy-MM-dd"),
+    ),
+  ]);
 
   for (const date of dates) {
     const acceptedBidsCount = overlappingBids.filter(
       (bid) => bid.checkInDate <= date && bid.checkOutDate > date,
     ).length;
 
-    const availableSlots = maxInventory - acceptedBidsCount;
+    const cap = effectiveCaps.get(format(date, "yyyy-MM-dd")) ?? maxInventory;
+    const availableSlots = cap - acceptedBidsCount;
 
     if (availableSlots <= 0) {
       return {

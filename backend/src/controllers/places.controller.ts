@@ -17,7 +17,10 @@ import {
 } from "../libs/utils/inviteToken";
 import { supabase } from "../libs/config/supabase";
 import { inferTimezoneFromLocation, parseBookingDateOnly } from "../libs/utils/hotelDates";
-import { getSoldOutNightsInRange } from "../services/inventory.service";
+import {
+  getEffectiveCapByDate,
+  getSoldOutNightsInRange,
+} from "../services/inventory.service";
 import {
   getStayThresholdSummary,
   resolvePlaceThresholdPayload,
@@ -140,11 +143,14 @@ async function getInventoryStatus(
   date: string,
 ): Promise<{ availableInventory: number; isInventoryExhausted: boolean }> {
   const dateOnly = normalizeQueryDate(date);
-  const acceptedBidsCount = await getAcceptedBidsCountForDate(place.id, dateOnly);
-  const availableInventory = Math.max(
-    0,
-    place.maxInventory - acceptedBidsCount,
-  );
+  const [acceptedBidsCount, effectiveCaps] = await Promise.all([
+    getAcceptedBidsCountForDate(place.id, dateOnly),
+    getEffectiveCapByDate(place.id, place.maxInventory, dateOnly, dateOnly),
+  ]);
+  // Cloudbeds `units` can only lower the cap; absent a pushed value we fall
+  // back to the hotel's own maxInventory.
+  const cap = effectiveCaps.get(dateOnly) ?? place.maxInventory;
+  const availableInventory = Math.max(0, cap - acceptedBidsCount);
 
   return {
     availableInventory,
