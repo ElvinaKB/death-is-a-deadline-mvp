@@ -49,7 +49,7 @@ export function DataTable<T extends object>({
                 {columns.map((column, colIdx) => (
                   <TableCell key={colIdx} className="text-fg">
                     {column.render
-                      ? column.render(row)
+                      ? column.render(row, rowIdx)
                       : String(row[column.field as keyof T] || "-")}
                   </TableCell>
                 ))}
