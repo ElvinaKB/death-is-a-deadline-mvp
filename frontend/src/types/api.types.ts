@@ -22,7 +22,7 @@ export interface PaginationParams {
 export interface TableColumn<T = unknown> {
   header: string;
   field: keyof T | string;
-  render?: (row: T) => React.ReactNode;
+  render?: (row: T, rowIndex: number) => React.ReactNode;
   sortable?: boolean;
 }
 

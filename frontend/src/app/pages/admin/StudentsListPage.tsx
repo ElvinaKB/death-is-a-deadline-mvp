@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -77,7 +77,6 @@ function downloadCsv(students: StudentRow[]) {
 export function StudentsListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [currentPage, setCurrentPage] = useState(1);
   const [filter, setFilter] = useState<ApprovalStatus | "ALL">("ALL");
   const [banTarget, setBanTarget] = useState<StudentRow | null>(null);
   const [banReason, setBanReason] = useState("");
@@ -89,11 +88,9 @@ export function StudentsListPage() {
   const [addError, setAddError] = useState<string | null>(null);
 
   const { data, isLoading } = useApiQuery<StudentsListResponse>({
-    queryKey: [QUERY_KEYS.STUDENTS_LIST, currentPage, filter],
+    queryKey: [QUERY_KEYS.STUDENTS_LIST, filter],
     endpoint: ENDPOINTS.STUDENTS_LIST,
     params: {
-      page: currentPage,
-      limit: 10,
       ...(filter !== "ALL" ? { status: filter } : {}),
     },
   });
@@ -104,6 +101,14 @@ export function StudentsListPage() {
     endpoint: ENDPOINTS.STUDENTS_LIST,
     params: { page: 1, limit: 10000 },
   });
+
+  // Newest first — the RPC returns rows in insertion order, so sort here.
+  const sortedStudents = useMemo(() => {
+    return [...(data?.students || [])].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [data?.students]);
+  const totalStudents = sortedStudents.length;
 
   const banMutation = useApiMutation<{ message: string }, { id: string; reason?: string }>({
     endpoint: (vars) => getEndpoint(ENDPOINTS.STUDENT_BAN, { id: vars.id }),
@@ -191,6 +196,14 @@ export function StudentsListPage() {
   };
 
   const columns: TableColumn<StudentRow>[] = [
+    {
+      header: "#",
+      field: "id",
+      // Signup ordinal: oldest = 1, newest (top) = total.
+      render: (_row, i) => (
+        <span className="text-muted tabular-nums">{totalStudents - i}</span>
+      ),
+    },
     {
       header: "Name",
       field: "name",
@@ -321,23 +334,17 @@ export function StudentsListPage() {
         <TabsContent value={filter} className="mt-6">
           <Card className="bg-glass-2 border-line">
             <CardHeader>
-              <CardTitle className="text-fg">Traveler List</CardTitle>
+              <CardTitle className="text-fg">
+                {isLoading
+                  ? "Traveler List"
+                  : `${totalStudents} traveler${totalStudents === 1 ? "" : "s"}`}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <DataTable
                 columns={columns}
-                data={data?.students || []}
+                data={sortedStudents}
                 loading={isLoading}
-                pagination={
-                  data
-                    ? {
-                        currentPage,
-                        totalPages: Math.ceil(data.total / (data.limit || 10)),
-                        totalItems: data.total,
-                        onPageChange: setCurrentPage,
-                      }
-                    : undefined
-                }
                 emptyMessage="No travelers found"
               />
             </CardContent>
