@@ -60,6 +60,8 @@ import { placeValidationSchema } from "../../../utils/validationSchemas";
 import { supabase } from "../../../utils/supabaseClient";
 import { toast } from "sonner";
 import { SUPABASE_BUCKET } from "../../../lib/constants";
+import { apiClient } from "../../../lib/apiClient";
+import { ENDPOINTS } from "../../../config/endpoints.config";
 import { LocationPicker } from "../../components/common/LocationPicker";
 import {
   PLACE_KEYWORD_OPTIONS,
@@ -77,27 +79,29 @@ const uploadImagesToSupabase = async (files: File[]): Promise<string[]> => {
   const urls: string[] = [];
 
   for (const file of files) {
-    const ext = file.name.split(".").pop();
-    const fileName = `place_${Date.now()}_${Math.random()
-      .toString(36)
-      .substring(7)}.${ext}`;
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    try {
+      const { path, token } = await apiClient.post<{
+        path: string;
+        token: string;
+      }>(ENDPOINTS.UPLOAD_URL, { context: "place", fileExt: ext });
 
-    const { data, error } = await supabase.storage
-      .from(SUPABASE_BUCKET)
-      .upload(`places/${fileName}`, file);
+      const { error } = await supabase.storage
+        .from(SUPABASE_BUCKET)
+        .uploadToSignedUrl(path, token, file);
+      if (error) throw error;
 
-    if (error) {
+      const { data: publicUrlData } = supabase.storage
+        .from(SUPABASE_BUCKET)
+        .getPublicUrl(path);
+
+      if (publicUrlData?.publicUrl) {
+        urls.push(publicUrlData.publicUrl);
+      }
+    } catch (error) {
       console.error("Error uploading image:", error);
       toast.error(`Failed to upload ${file.name}`);
       continue;
-    }
-
-    const { data: publicUrlData } = supabase.storage
-      .from(SUPABASE_BUCKET)
-      .getPublicUrl(`places/${fileName}`);
-
-    if (publicUrlData?.publicUrl) {
-      urls.push(publicUrlData.publicUrl);
     }
   }
 
