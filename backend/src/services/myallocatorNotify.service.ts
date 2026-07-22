@@ -18,10 +18,11 @@ function getMyallocatorCallbackBase(): string | null {
 }
 
 // Tells Cloudbeds to re-poll GetBookingList immediately for this booking,
-// instead of waiting for its normal 5-30 minute cycle — used so a cancelled
-// room reopens on Cloudbeds (and everywhere else its channel manager
-// distributes availability) as close to instantly as the API allows.
-export async function notifyBookingCancelled(
+// instead of waiting for its normal 5-30 minute cycle. Used in both
+// directions: when Deadline confirms a booking (so Cloudbeds imports it and
+// drops the room's availability everywhere) and when one is cancelled (so the
+// room reopens) — as close to instantly as the API allows.
+async function notifyBooking(
   bookingId: string,
   otaPropertyId: string,
 ): Promise<void> {
@@ -37,4 +38,20 @@ export async function notifyBookingCancelled(
     },
     { timeout: 10_000 },
   );
+}
+
+/** Deadline just confirmed a booking — prompt Cloudbeds to import it now. */
+export async function notifyBookingConfirmed(
+  bookingId: string,
+  otaPropertyId: string,
+): Promise<void> {
+  return notifyBooking(bookingId, otaPropertyId);
+}
+
+/** Deadline cancelled a booking — prompt Cloudbeds to reopen the room now. */
+export async function notifyBookingCancelled(
+  bookingId: string,
+  otaPropertyId: string,
+): Promise<void> {
+  return notifyBooking(bookingId, otaPropertyId);
 }

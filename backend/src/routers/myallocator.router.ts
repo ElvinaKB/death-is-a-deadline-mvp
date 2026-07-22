@@ -1,7 +1,13 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../libs/config/prisma";
-import { bid_status } from "@prisma/client";
-import { addDays, differenceInCalendarDays, format } from "date-fns";
+import { bid_status, Prisma } from "@prisma/client";
+import {
+  addDays,
+  differenceInCalendarDays,
+  eachDayOfInterval,
+  format,
+} from "date-fns";
+import { parseBookingDateOnly } from "../libs/utils/hotelDates";
 
 // Cloudbeds OTA Build-To-Us API (myallocator).
 // Spec: https://developers.cloudbeds.com/reference/ota-build-to-us-introduction
@@ -115,16 +121,84 @@ router.post("/GetRatePlans", async (req: Request, res: Response) => {
   });
 });
 
-// Cloudbeds pushes ARI (availability/rates/restrictions) to us here.
-// Deadline doesn't yet have a per-day channel-inventory table to apply
-// these updates to, so for now we just acknowledge receipt (the request
-// is still captured by the global audit-log middleware for visibility).
-// TODO: once a per-day rate/availability model exists, use this to drive
-// what's shown as biddable inventory.
+// Cloudbeds pushes ARI (availability/rates/restrictions) to us here. Deadline's
+// model is availability-driven: we persist only the per-date `units`
+// (availability) at the room/place level and deliberately ignore the pushed
+// rate (the hotel's threshold "secret" rate in our dashboard wins), occupancy
+// pricing, and booking-offset restrictions. Stored units become a live ceiling
+// on biddable inventory: available = min(place.maxInventory, units) - accepted
+// bids (see inventory.service.ts).
 router.post("/ARIUpdate", async (req: Request, res: Response) => {
   if (!hasValidSharedSecret(req.body)) {
     return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
   }
+
+  const place = await findPlaceByOtaId(req.body?.ota_property_id);
+  if (!place) {
+    return fail(
+      res,
+      ERROR.LOGIN,
+      "The login details you provided are incorrect.",
+    );
+  }
+
+  // Flatten the Inventory array into one (date, units) row per calendar day.
+  // Cloudbeds only supports room-level availability, so we key on place/date
+  // and ignore ota_room_id/ota_rate_id distinctions.
+  const inventory = Array.isArray(req.body?.Inventory) ? req.body.Inventory : [];
+  const rows: { date: string; units: number }[] = [];
+
+  for (const item of inventory) {
+    const units = Number(item?.units);
+    if (!item?.start_date || !item?.end_date || !Number.isFinite(units)) {
+      // Skip malformed items rather than failing the whole push.
+      console.warn("[ARIUpdate] skipping malformed inventory item", item);
+      continue;
+    }
+    try {
+      const start = parseBookingDateOnly(item.start_date);
+      const end = parseBookingDateOnly(item.end_date); // inclusive
+      if (start > end) continue;
+      for (const day of eachDayOfInterval({ start, end })) {
+        rows.push({ date: format(day, "yyyy-MM-dd"), units: Math.max(0, Math.trunc(units)) });
+      }
+    } catch (err) {
+      console.warn("[ARIUpdate] skipping item with unparseable dates", item, err);
+    }
+  }
+
+  if (rows.length === 0) {
+    return res.json({ success: true });
+  }
+
+  // Last-write-wins per date within this payload (later items override earlier).
+  const byDate = new Map<string, number>();
+  for (const r of rows) byDate.set(r.date, r.units);
+  const deduped = [...byDate.entries()];
+
+  try {
+    // Bulk upsert in chunks to stay well under Postgres' parameter limit.
+    const CHUNK = 500;
+    for (let i = 0; i < deduped.length; i += CHUNK) {
+      const chunk = deduped.slice(i, i + CHUNK);
+      const values = chunk.map(
+        ([date, units]) =>
+          Prisma.sql`(${place.id}, ${date}::date, ${units}, 'cloudbeds', now())`,
+      );
+      await prisma.$executeRaw`
+        INSERT INTO public.place_channel_availability (place_id, date, units, source, updated_at)
+        VALUES ${Prisma.join(values)}
+        ON CONFLICT (place_id, date)
+        DO UPDATE SET units = EXCLUDED.units, updated_at = now()
+      `;
+    }
+  } catch (err) {
+    // Storage failure: return a retryable OFFLINE error (200 body, not a 5xx)
+    // so Cloudbeds re-sends rather than assuming the availability applied.
+    console.error("[ARIUpdate] failed to persist availability", err);
+    return fail(res, ERROR.OFFLINE, "Temporarily unable to store availability.");
+  }
+
   return res.json({ success: true });
 });
 
