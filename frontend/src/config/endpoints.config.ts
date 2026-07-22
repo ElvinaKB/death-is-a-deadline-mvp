@@ -86,6 +86,9 @@ export const ENDPOINTS = {
   NEWSLETTER_SUBSCRIBE: "/api/newsletter/subscribe",
   NEWSLETTER_SUBSCRIBERS: "/api/newsletter",
 
+  // Hotel sign-up applications
+  HOTEL_APPLICATION: "/api/hotel-applications",
+
   // Waitlist
   WAITLIST_JOIN: "/api/waitlist",
   WAITLIST_SEND_WELCOME_EMAILS: "/api/waitlist/send-welcome-emails",

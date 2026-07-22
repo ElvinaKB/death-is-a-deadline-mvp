@@ -36,6 +36,7 @@ import { PlaceFormPage } from "./pages/admin/PlaceFormPage";
 import { PlacesListPage } from "./pages/admin/PlacesListPage";
 import { BidsListPage } from "./pages/admin/BidsListPage";
 import { NewsletterSubscribersPage } from "./pages/admin/NewsletterSubscribersPage";
+import { HotelApplicationsPage } from "./pages/admin/HotelApplicationsPage";
 import { WishlistTallyPage } from "./pages/admin/WishlistTallyPage";
 import { PlaceTestimonialsPage } from "./pages/admin/PlaceTestimonialsPage";
 import { HotelBidsPage } from "./pages/hotel/HotelBidsListPage";
@@ -49,6 +50,7 @@ import { AccessibilityPage } from "./pages/legal/AccessibilityPage";
 import { ContactPage } from "./pages/ContactPage";
 import { WaitlistPage } from "./pages/WaitlistPage";
 import { HotelsLandingPage } from "./pages/HotelsLandingPage";
+import { HotelJoinPage } from "./pages/HotelJoinPage";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 // Auth routes (redirect to protected base if already authenticated)
@@ -73,6 +75,7 @@ const publicRoutes = [
   { path: ROUTES.CONTACT, element: <ContactPage /> },
   { path: ROUTES.WAITLIST, element: <WaitlistPage /> },
   { path: ROUTES.HOTELS_LANDING, element: <HotelsLandingPage /> },
+  { path: ROUTES.HOTELS_JOIN, element: <HotelJoinPage /> },
   // Old /student links (e.g. already-sent booking confirmation emails)
   // redirect to their new /member equivalents.
   { path: ROUTES.LEGACY_STUDENT_MY_BIDS, element: <Navigate to={ROUTES.STUDENT_MY_BIDS} replace /> },
@@ -188,6 +191,10 @@ const protectedRoutes = [
       },
       { path: ROUTES.ADMIN_BIDS, element: <BidsListPage /> },
       { path: ROUTES.ADMIN_NEWSLETTER, element: <NewsletterSubscribersPage /> },
+      {
+        path: ROUTES.ADMIN_HOTEL_APPLICATIONS,
+        element: <HotelApplicationsPage />,
+      },
       { path: ROUTES.ADMIN_WISHLIST, element: <WishlistTallyPage /> },
     ],
   },

@@ -23,6 +23,9 @@ export const QUERY_KEYS = {
 
   // Newsletter
   NEWSLETTER_SUBSCRIBERS: "newsletterSubscribers",
+
+  // Hotel sign-ups
+  HOTEL_APPLICATIONS: "hotelApplications",
 } as const;
 
 export const createQueryKey = (

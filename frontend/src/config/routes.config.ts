@@ -12,6 +12,7 @@ export const ROUTES = {
   HOME: "/",
   WAITLIST: "/waitlist",
   HOTELS_LANDING: "/hotels",
+  HOTELS_JOIN: "/hotels/join",
   PUBLIC_PLACE_DETAIL: "/:slug",
 
   // Student routes
@@ -49,6 +50,7 @@ export const ROUTES = {
   ADMIN_PLACES_TESTIMONIALS: "/admin/places/:id/testimonials",
   ADMIN_BIDS: "/admin/bids",
   ADMIN_NEWSLETTER: "/admin/newsletter",
+  ADMIN_HOTEL_APPLICATIONS: "/admin/hotel-applications",
   ADMIN_WISHLIST: "/admin/wishlist",
 
   // Legal

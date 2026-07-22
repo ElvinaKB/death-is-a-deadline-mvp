@@ -6,6 +6,7 @@ import {
   Gavel,
   Mail,
   Compass,
+  Building2,
 } from "lucide-react";
 import { ROUTES } from "../config/routes.config";
 import { useLocation } from "react-router-dom";
@@ -46,6 +47,11 @@ export function useAdminSidebar(): SidebarItem[] {
       title: "Newsletter",
       path: ROUTES.ADMIN_NEWSLETTER,
       icon: Mail,
+    },
+    {
+      title: "Hotel Sign-ups",
+      path: ROUTES.ADMIN_HOTEL_APPLICATIONS,
+      icon: Building2,
     },
     {
       title: "Destination Requests",

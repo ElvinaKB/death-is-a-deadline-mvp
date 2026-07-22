@@ -229,9 +229,15 @@ export function HotelsLandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-8 md:mb-0">
-              <h3 className="text-3xl font-black uppercase mb-2">
+              <h3 className="text-3xl font-black uppercase mb-4">
                 Ready to Get Started?
               </h3>
+              <Link
+                to={ROUTES.HOTELS_JOIN}
+                className="inline-block bg-[#c5a059] text-[#040d1f] font-bold uppercase tracking-wide px-6 py-3 rounded-lg hover:bg-[#d4b26a] transition-colors"
+              >
+                List Your Hotel →
+              </Link>
             </div>
 
             <div className="flex flex-col space-y-4">
