@@ -83,6 +83,14 @@ export function NewsletterSubscribersPage() {
 
   const columns: TableColumn<NewsletterSubscriber>[] = [
     {
+      header: "#",
+      field: "id",
+      // Signup ordinal: oldest = 1, newest (top) = total.
+      render: (_row, i) => (
+        <span className="text-muted tabular-nums">{subscribers.length - i}</span>
+      ),
+    },
+    {
       header: "Full Name",
       field: "fullName",
       render: (row) => row.fullName || <span className="text-muted">—</span>,
