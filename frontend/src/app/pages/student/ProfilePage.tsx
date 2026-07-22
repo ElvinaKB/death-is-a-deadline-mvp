@@ -130,7 +130,11 @@ function ToggleGrid({
         return (
           <label
             key={option}
-            className="flex items-center gap-2 rounded-md border border-line/60 px-3 py-2 cursor-pointer hover:bg-white/5"
+            className={`flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer transition-colors ${
+              checked
+                ? "border-gold bg-gold/10"
+                : "border-line/60 bg-white/5 hover:bg-white/10 hover:border-gold/40"
+            }`}
           >
             <Checkbox
               checked={checked}
