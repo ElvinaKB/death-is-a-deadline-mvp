@@ -73,10 +73,10 @@ export function AccessibilityStatementContent() {
       <LegalP>
         Email:{" "}
         <a
-          href="mailto:deadline@podshare.com"
+          href="mailto:hotels@deadlinetravel.com"
           className="text-gold hover:text-gold-light underline"
         >
-          deadline@podshare.com
+          hotels@deadlinetravel.com
         </a>
       </LegalP>
       <LegalP>

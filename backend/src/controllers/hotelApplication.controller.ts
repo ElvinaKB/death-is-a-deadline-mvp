@@ -5,7 +5,7 @@ import { verifyTurnstileToken } from "../services/turnstile.service";
 import { HotelApplicationRequest } from "../validations/hotelApplication/hotelApplication.validation";
 
 const HOTEL_LEADS_INBOX =
-  process.env.CONTACT_INBOX_EMAIL || "deadline@podshare.com";
+  process.env.CONTACT_INBOX_EMAIL || "hotels@deadlinetravel.com";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const PMS_LABELS: Record<string, string> = {

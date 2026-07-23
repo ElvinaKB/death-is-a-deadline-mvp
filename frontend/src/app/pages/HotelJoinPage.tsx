@@ -173,6 +173,16 @@ export function HotelJoinPage() {
             basics below and we&apos;ll build your listing and send you a login
             to review it.
           </p>
+          <p className="text-sm text-[hsl(0_0%_70%)] mt-3">
+            Questions? Email us at{" "}
+            <a
+              href="mailto:hotels@deadlinetravel.com"
+              className="text-gold hover:text-gold-light underline underline-offset-2"
+            >
+              hotels@deadlinetravel.com
+            </a>
+            .
+          </p>
         </div>
 
         {submitted ? (

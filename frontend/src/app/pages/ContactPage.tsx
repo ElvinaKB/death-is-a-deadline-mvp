@@ -54,7 +54,7 @@ const contactSchema = Yup.object({
     .required("Message is required"),
 });
 
-const CONTACT_EMAIL = "deadline@podshare.com";
+const CONTACT_EMAIL = "hotels@deadlinetravel.com";
 
 const hotelBenefits = [
   "How many rooms would you list?",
