@@ -44,7 +44,6 @@ interface HotelJoinForm {
   email: string;
   daysOfWeek: number[];
   roomsPerDay: string;
-  secretPrice: string;
   pms: string[];
   pmsOther: string;
 }
@@ -61,10 +60,6 @@ const schema = Yup.object({
     .typeError("Enter a number")
     .integer("Whole rooms only")
     .min(1, "At least one room")
-    .required("Required"),
-  secretPrice: Yup.number()
-    .typeError("Enter a price")
-    .positive("Enter a price")
     .required("Required"),
 });
 
@@ -101,7 +96,6 @@ export function HotelJoinPage() {
       email: "",
       daysOfWeek: [],
       roomsPerDay: "",
-      secretPrice: "",
       pms: [],
       pmsOther: "",
     },
@@ -118,7 +112,6 @@ export function HotelJoinPage() {
         email: values.email.trim(),
         daysOfWeek: values.daysOfWeek,
         roomsPerDay: Number(values.roomsPerDay),
-        secretPrice: Number(values.secretPrice),
         pms: values.pms,
         pmsOther: values.pms.includes("other")
           ? values.pmsOther.trim() || undefined
@@ -315,58 +308,26 @@ export function HotelJoinPage() {
               )}
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="roomsPerDay" className={labelClassName}>
-                  How many rooms on those days?
-                </Label>
-                <Input
-                  id="roomsPerDay"
-                  name="roomsPerDay"
-                  type="number"
-                  min={1}
-                  value={formik.values.roomsPerDay}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  placeholder="e.g. 4"
-                  className={fieldClassName}
-                />
-                {getFieldError("roomsPerDay", formik) && (
-                  <p className="text-xs text-danger">
-                    {getFieldError("roomsPerDay", formik)}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="secretPrice" className={labelClassName}>
-                  Secret price per room{" "}
-                  <span className="text-[hsl(0_0%_58%)] font-normal">
-                    (never shown publicly)
-                  </span>
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(0_0%_60%)]">
-                    $
-                  </span>
-                  <Input
-                    id="secretPrice"
-                    name="secretPrice"
-                    type="number"
-                    min={1}
-                    step="1"
-                    value={formik.values.secretPrice}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    placeholder="e.g. 120"
-                    className={`${fieldClassName} pl-7`}
-                  />
-                </div>
-                {getFieldError("secretPrice", formik) && (
-                  <p className="text-xs text-danger">
-                    {getFieldError("secretPrice", formik)}
-                  </p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="roomsPerDay" className={labelClassName}>
+                How many rooms on those days?
+              </Label>
+              <Input
+                id="roomsPerDay"
+                name="roomsPerDay"
+                type="number"
+                min={1}
+                value={formik.values.roomsPerDay}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                placeholder="e.g. 4"
+                className={fieldClassName}
+              />
+              {getFieldError("roomsPerDay", formik) && (
+                <p className="text-xs text-danger">
+                  {getFieldError("roomsPerDay", formik)}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

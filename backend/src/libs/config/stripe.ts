@@ -18,8 +18,8 @@ export const STRIPE_CONFIG = {
   // Currency
   CURRENCY: "usd" as const,
 
-  // Platform commission rate (6.66%)
-  PLATFORM_COMMISSION_RATE: 0.0666,
+  // Platform commission rate (7%)
+  PLATFORM_COMMISSION_RATE: 0.07,
 
   // Metadata keys
   METADATA_KEYS: {

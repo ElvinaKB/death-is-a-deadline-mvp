@@ -105,7 +105,7 @@ model HotelApplication {
   email       String
   daysOfWeek  Int[]    @default([]) @map("days_of_week") // 0=Sun..6=Sat, matches Place.allowedDaysOfWeek
   roomsPerDay Int      @map("rooms_per_day")
-  secretPrice Decimal  @map("secret_price") @db.Decimal(10, 2)
+  secretPrice Decimal? @map("secret_price") @db.Decimal(10, 2)
   pms         String[] @default([]) // e.g. ["cloudbeds","siteminder","other"]
   pmsOther    String?  @map("pms_other")
   status      String   @default("new") // new | contacted | listed (admin-managed later)
