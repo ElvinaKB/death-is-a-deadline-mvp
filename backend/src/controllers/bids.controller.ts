@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../libs/config/prisma";
-import { stripe } from "../libs/config/stripe";
+import { stripe, STRIPE_CONFIG } from "../libs/config/stripe";
 import { CustomError } from "../libs/utils/CustomError";
 import { PlaceStatus, Prisma, bid_status, payment_status } from "@prisma/client";
 import { differenceInDays, parseISO, format } from "date-fns";
@@ -618,7 +618,7 @@ export async function updatePayout(req: Request, res: Response) {
 
   // Send payout confirmation email to hotel if newly marked as paid
   if (isNewlyMarkedPaid && bid.place.email) {
-    const commissionRate = 6.66;
+    const commissionRate = STRIPE_CONFIG.PLATFORM_COMMISSION_RATE * 100;
     const totalAmount = Number(bid.totalAmount);
     const platformCommission =
       Number(bid.platformCommission) || (totalAmount * commissionRate) / 100;

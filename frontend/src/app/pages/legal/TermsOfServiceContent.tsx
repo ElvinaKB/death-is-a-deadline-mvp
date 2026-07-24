@@ -938,7 +938,7 @@ export function TermsOfServiceContent() {
         <br />
         Attn: Legal
         <br />
-        Email: deadline@podshare.com
+        Email: hotels@deadlinetravel.com
         <br />
         Site: DeadlineTravel.com and deathisadeadline.com
       </LegalP>

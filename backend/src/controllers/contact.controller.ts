@@ -4,7 +4,7 @@ import { verifyTurnstileToken } from "../services/turnstile.service";
 import { ContactRequest } from "../validations/contact/contact.validation";
 
 const CONTACT_INBOX =
-  process.env.CONTACT_INBOX_EMAIL || "deadline@podshare.com";
+  process.env.CONTACT_INBOX_EMAIL || "hotels@deadlinetravel.com";
 
 const topicLabels: Record<ContactRequest["topic"], string> = {
   general: "General inquiry",

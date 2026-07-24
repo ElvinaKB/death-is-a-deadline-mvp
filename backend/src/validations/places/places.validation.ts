@@ -134,7 +134,10 @@ export const placeRefParamSchema = z.object({
 export const listPlacesQuerySchema = z.object({
   status: placeStatusSchema.optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
-  limit: z.coerce.number().int().min(1).max(100).optional().default(10),
+  // The admin Places page deliberately requests limit=1000 to fetch every
+  // hotel unpaginated (so client-side grouping/search work across all of
+  // them) — cap needs to cover that, unlike the public listing's page size.
+  limit: z.coerce.number().int().min(1).max(1000).optional().default(10),
 });
 
 // Query schema for public places listing (with filters)

@@ -277,10 +277,10 @@ export function HotelsLandingPage() {
                   />
                 </svg>
                 <a
-                  href="mailto:deadline@podshare.com"
+                  href="mailto:hotels@deadlinetravel.com"
                   className="text-lg font-bold text-[#c5a059] hover:underline"
                 >
-                  Email deadline@podshare.com
+                  Email hotels@deadlinetravel.com
                 </a>
               </div>
             </div>

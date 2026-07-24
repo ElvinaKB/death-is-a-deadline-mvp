@@ -64,7 +64,7 @@ export async function sendBookingConfirmationEmails(
   // email is missing, wrong, or gets missed, so someone at Deadline always
   // has a record and can follow up directly if needed.
   const internalCopyInbox =
-    process.env.BOOKING_COPY_INBOX_EMAIL || "deadline@podshare.com";
+    process.env.BOOKING_COPY_INBOX_EMAIL || "hotels@deadlinetravel.com";
 
   // These three don't depend on each other, so send them concurrently
   // instead of one-at-a-time — each still fails independently.

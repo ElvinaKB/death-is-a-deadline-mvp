@@ -5,7 +5,7 @@ import { verifyTurnstileToken } from "../services/turnstile.service";
 import { HotelApplicationRequest } from "../validations/hotelApplication/hotelApplication.validation";
 
 const HOTEL_LEADS_INBOX =
-  process.env.CONTACT_INBOX_EMAIL || "deadline@podshare.com";
+  process.env.CONTACT_INBOX_EMAIL || "hotels@deadlinetravel.com";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const PMS_LABELS: Record<string, string> = {
@@ -55,6 +55,10 @@ export async function submitHotelApplication(req: Request, res: Response) {
     ...body.pms.map((p) => PMS_LABELS[p] ?? p),
     ...(body.pmsOther?.trim() ? [`Other: ${body.pmsOther.trim()}`] : []),
   ].join(", ");
+  const secretPriceDisplay =
+    body.secretPrice !== undefined
+      ? `$${Number(body.secretPrice).toFixed(2)}`
+      : "Not collected on form — ask hotel directly";
 
   const html = `
     <h2>New hotel sign-up</h2>
@@ -65,7 +69,7 @@ export async function submitHotelApplication(req: Request, res: Response) {
     <hr />
     <p><strong>Days offered:</strong> ${escapeHtml(days)}</p>
     <p><strong>Rooms per day:</strong> ${body.roomsPerDay}</p>
-    <p><strong>Secret price:</strong> $${Number(body.secretPrice).toFixed(2)}</p>
+    <p><strong>Secret price:</strong> ${escapeHtml(secretPriceDisplay)}</p>
     <p><strong>PMS:</strong> ${escapeHtml(pms || "—")}</p>
   `;
 
@@ -76,7 +80,7 @@ export async function submitHotelApplication(req: Request, res: Response) {
     `Reservations email: ${body.email}`,
     `Days offered: ${days}`,
     `Rooms per day: ${body.roomsPerDay}`,
-    `Secret price: $${Number(body.secretPrice).toFixed(2)}`,
+    `Secret price: ${secretPriceDisplay}`,
     `PMS: ${pms || "—"}`,
   ].join("\n");
 

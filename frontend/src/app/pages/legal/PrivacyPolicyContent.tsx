@@ -603,7 +603,7 @@ export function PrivacyPolicyContent() {
         <br />
         Attn: Privacy
         <br />
-        Email: deadline@podshare.com
+        Email: hotels@deadlinetravel.com
         <br />
         Site: DeadlineTravel.com and deathisadeadline.com
       </LegalP>

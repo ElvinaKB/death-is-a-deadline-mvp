@@ -10,7 +10,7 @@ export const hotelApplicationSchema = z.object({
     .array(z.number().int().min(0).max(6))
     .min(1, "Select at least one day"),
   roomsPerDay: z.number().int().min(1, "At least one room"),
-  secretPrice: z.number().positive("Enter a price"),
+  secretPrice: z.number().positive("Enter a price").optional(),
   pms: z.array(z.enum(["cloudbeds", "siteminder", "other"])).default([]),
   pmsOther: z.string().max(120).optional(),
   turnstileToken: z.string().min(1).optional(),

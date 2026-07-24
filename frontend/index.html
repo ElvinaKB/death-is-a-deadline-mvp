@@ -42,8 +42,12 @@
     />
     <meta name="twitter:image" content="/Favicon.png" />
 
-    <!-- Hide skip link until keyboard focus (before app CSS loads) -->
+    <!-- Match the app's dark theme immediately so the initial paint (before
+         app CSS/JS loads) isn't a jarring flash of white. -->
     <style>
+      html {
+        background-color: #000;
+      }
       a.skip-link {
         position: absolute !important;
         left: -10000px !important;
