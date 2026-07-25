@@ -3,8 +3,13 @@ import { useNavigate } from "react-router-dom";
 import Map, { Marker, Popup, NavigationControl } from "react-map-gl/mapbox";
 import type { MapRef } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { Lock, MapPin } from "lucide-react";
 import { Place } from "../../../types/place.types";
 import { getPublicPlacePath } from "../../../utils/placeUrl";
+import { formatCurrency } from "../../../utils/currency";
+
+const POPUP_IMAGE_FALLBACK =
+  "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_APP_MAPBOX;
 
@@ -245,18 +250,58 @@ export function PlacesMap({
             onClose={handlePopupClose}
             closeButton={true}
             closeOnClick={false}
+            className="deadline-map-popup"
+            maxWidth="none"
           >
             <div
-              className="text-center min-w-[150px] cursor-pointer"
+              className="map-popup-card"
               onClick={() => handleViewDetails(popupInfo)}
             >
-              <h4 className="font-semibold text-fg mb-1">{popupInfo.name}</h4>
-              <p className="text-sm text-muted">
-                {popupInfo.city}, {popupInfo.country}
-              </p>
-              <p className="text-xs text-brand mt-2 hover:underline">
-                View Details →
-              </p>
+              <div className="map-popup-media">
+                <img
+                  src={
+                    (popupInfo.images?.[0] as { url?: string })?.url ||
+                    POPUP_IMAGE_FALLBACK
+                  }
+                  alt={popupInfo.name}
+                />
+              </div>
+              <div className="map-popup-body">
+                <div className="map-popup-loc">
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  {popupInfo.city}
+                </div>
+                <h4 className="map-popup-name">{popupInfo.name}</h4>
+                <div className="map-popup-price-row">
+                  <span className="map-popup-retail">
+                    Retail <b>{formatCurrency(popupInfo.retailPrice)}</b>
+                  </span>
+                  <span className="map-popup-secret">
+                    <Lock className="h-3 w-3 shrink-0" />
+                    Secret Price
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="map-popup-cta"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewDetails(popupInfo);
+                  }}
+                >
+                  Place Your Bid
+                </button>
+                <button
+                  type="button"
+                  className="map-popup-details"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewDetails(popupInfo);
+                  }}
+                >
+                  View Details →
+                </button>
+              </div>
             </div>
           </Popup>
         )}

@@ -1,9 +1,10 @@
-import { lazy, Suspense, useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { ENDPOINTS } from "../../config/endpoints.config";
 import { QUERY_KEYS } from "../../config/queryKeys.config";
 import { useApiQuery } from "../../hooks/useApi";
 import { useDebounce } from "../../hooks/useDebounce";
 import { PlacesResponse } from "../../types/place.types";
+import { GeoHint, sortPlacesByProximity } from "../../utils/geo";
 import { useAppSelector } from "../../store/hooks";
 import { HomeHeader, MarketplaceHero, PlacesSidebar } from "../components/home";
 import { HowItWorksModal } from "../components/home/HowItWorksModal";
@@ -43,7 +44,21 @@ export function HomePage() {
     params,
   });
 
-  const places = data?.places ?? [];
+  // Silent, coarse IP-based location hint (Vercel edge headers — no prompt).
+  // Used only to reorder listings nearest-first; full inventory still shows.
+  // One hint per session is plenty, so never refetch.
+  const { data: geoHint } = useApiQuery<GeoHint>({
+    queryKey: [QUERY_KEYS.GEO_HINT],
+    endpoint: ENDPOINTS.GEO_HINT,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+  });
+
+  const places = useMemo(
+    () => sortPlacesByProximity(data?.places ?? [], geoHint),
+    [data?.places, geoHint],
+  );
 
   const handleSearch = useCallback(() => {
     queryClient.invalidateQueries({

@@ -25,6 +25,7 @@ import { router as profileRouter } from "./routers/profile.router";
 import { router as uploadsRouter } from "./routers/uploads.router";
 import { router as hotelApplicationRouter } from "./routers/hotelApplication.router";
 import { router as eventsRouter } from "./routers/events.router";
+import { router as geoRouter } from "./routers/geo.router";
 import { router as myallocatorRouter } from "./routers/myallocator.router";
 
 const app = express();
@@ -102,6 +103,7 @@ app.use("/api/profile", profileRouter);
 app.use("/api/uploads", uploadsRouter);
 app.use("/api/hotel-applications", hotelApplicationRouter);
 app.use("/api/events", eventsRouter);
+app.use("/api/geo", geoRouter);
 app.use("/api/myallocator", myallocatorRouter);
 
 // Dev-only routes
