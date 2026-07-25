@@ -43,6 +43,11 @@ interface BehaviorStats {
   abandonmentRate: number;
   topCities: { city: string | null; count: number }[];
   hourHistogram: number[];
+  // View metrics (present once migration 039 has run).
+  totalViews?: number;
+  viewedPlaces?: number;
+  exploredNoBid?: number;
+  viewToBidRate?: number | null;
 }
 
 interface DashboardStats {
@@ -418,6 +423,22 @@ export function AdminDashboardPage() {
                     label: "Total bids captured",
                     value: stats.behavior.totalBids.toLocaleString(),
                   },
+                  ...(stats.behavior.viewToBidRate != null
+                    ? [
+                        {
+                          label: "View → bid rate",
+                          value: `${stats.behavior.viewToBidRate}%`,
+                        },
+                      ]
+                    : []),
+                  ...(stats.behavior.totalViews != null
+                    ? [
+                        {
+                          label: "Listing views captured",
+                          value: stats.behavior.totalViews.toLocaleString(),
+                        },
+                      ]
+                    : []),
                 ].map((item, i) => (
                   <div
                     key={i}

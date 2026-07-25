@@ -15,6 +15,8 @@ import { getPublicPlacePath } from "../../../utils/placeUrl";
 import { useApiQuery } from "../../../hooks/useApi";
 import { usePublicPlace } from "../../../hooks/usePlaces";
 import { useAppSelector } from "../../../store/hooks";
+import { apiClient } from "../../../lib/apiClient";
+import { hasCookieConsent } from "../../../utils/cookieConsent";
 import { toApiDateOnly } from "../../../utils/dateHelpers";
 import {
   ACCOMMODATION_TYPE_LABELS,
@@ -133,6 +135,20 @@ export function PlaceDetailPage() {
       : !contextBidId && placeBidContext?.upcomingStay
         ? [placeBidContext.upcomingStay]
         : [];
+
+  // First-party browse event: a logged-in traveler viewed this listing.
+  // Consent-gated (honors Reject + GPC via hasCookieConsent), fired once per
+  // place per session, fire-and-forget. Powers the "explored but didn't bid"
+  // signal in the behavioral analytics.
+  useEffect(() => {
+    if (!placeId || !isAuthenticated || !hasCookieConsent()) return;
+    const key = `pv_${placeId}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    apiClient
+      .post(ENDPOINTS.EVENTS_PLACE_VIEW, { placeId })
+      .catch(() => {});
+  }, [placeId, isAuthenticated]);
 
   // Sold-out modal only after the user picks a check-in date (not from ?date= on load)
   useEffect(() => {
