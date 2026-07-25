@@ -278,14 +278,14 @@ export async function deleteStudent(req: Request, res: Response) {
 }
 
 export async function getStudentsStats(req: Request, res: Response) {
-  const [studentStats, bidStats, hotelStats, topProperties] = await Promise.all(
-    [
+  const [studentStats, bidStats, hotelStats, topProperties, behaviorStats] =
+    await Promise.all([
       supabase.rpc("students_stats"),
       supabase.rpc("bid_stats"),
       supabase.rpc("hotel_stats"),
       supabase.rpc("top_properties"),
-    ],
-  );
+      supabase.rpc("behavior_stats"),
+    ]);
 
   if (studentStats.error)
     throw new CustomError(studentStats.error.message, 400);
@@ -294,12 +294,43 @@ export async function getStudentsStats(req: Request, res: Response) {
   if (topProperties.error)
     throw new CustomError(topProperties.error.message, 400);
 
+  // behavior_stats is new (migration 038). Fail open — a missing function
+  // (migration not yet run) just leaves the Behavioral Insights section empty
+  // rather than breaking the whole dashboard.
+  if (behaviorStats.error) {
+    console.warn(
+      "[stats] behavior_stats unavailable (migration 038 not run?):",
+      behaviorStats.error.message,
+    );
+  }
+
   const data = {
     ...studentStats.data,
     ...bidStats.data,
     ...hotelStats.data,
     topProperties: topProperties.data,
+    behavior: behaviorStats.error ? null : behaviorStats.data,
   };
 
   res.status(200).json({ data });
+}
+
+/** Admin-only: one traveler's behavioral signals (derived from their bids). */
+export async function getStudentBehavior(req: Request, res: Response) {
+  const { id } = req.params;
+
+  const { data, error } = await supabase.rpc("traveler_behavior", {
+    p_student_id: id,
+  });
+
+  if (error) {
+    // Fail open until migration 038 runs.
+    console.warn(
+      "[behavior] traveler_behavior unavailable (migration 038 not run?):",
+      error.message,
+    );
+    return res.status(200).json({ data: { behavior: null } });
+  }
+
+  res.status(200).json({ data: { behavior: data } });
 }
