@@ -52,6 +52,18 @@ export function PlacesMap({
       if (onPlaceSelect) {
         onPlaceSelect(place.id);
       }
+      // Keep the popup card inside the map viewport: recenter on the pin
+      // (fixes left/right clipping near edges) and seat it in the lower
+      // portion so the upward-opening card has vertical room above it.
+      const map = mapRef.current;
+      if (map && place.longitude != null && place.latitude != null) {
+        const h = map.getContainer()?.clientHeight ?? 600;
+        map.easeTo({
+          center: [place.longitude, place.latitude],
+          offset: [0, Math.min(180, h * 0.3)],
+          duration: 400,
+        });
+      }
     },
     [onPlaceSelect],
   );

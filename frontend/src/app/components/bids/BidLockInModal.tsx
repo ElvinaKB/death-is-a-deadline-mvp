@@ -129,12 +129,14 @@ export function BidLockInModal({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         isClose={false}
-        className="lock-in-modal lock-in-modal-shell max-w-md border-0 p-0 gap-0 overflow-hidden max-h-[calc(100dvh-2rem)]"
+        className="lock-in-modal lock-in-modal-shell max-w-md border-0 p-0 gap-0 overflow-hidden max-h-[calc(100dvh-2rem)] flex flex-col"
         onPointerDownOutside={(e) => {
-          if (isSubmitting) e.preventDefault();
+          // Never dismiss a binding final bid on a stray outside click — the
+          // only exits are the × and "Go Back and Adjust".
+          e.preventDefault();
         }}
         onInteractOutside={(e) => {
-          if (isSubmitting) e.preventDefault();
+          e.preventDefault();
         }}
         onEscapeKeyDown={(e) => {
           if (isSubmitting) e.preventDefault();
@@ -151,7 +153,7 @@ export function BidLockInModal({
           </button>
         )}
 
-        <div className="p-6 md:p-8 space-y-5 overflow-y-auto max-h-[calc(100dvh-2rem)]">
+        <div className="flex-1 min-h-0 overflow-y-auto p-6 md:p-8 pb-4 space-y-5">
           <DialogTitle className="text-center text-xs font-semibold tracking-[0.25em] text-urgent uppercase">
             Final Bid
           </DialogTitle>
@@ -248,7 +250,11 @@ export function BidLockInModal({
             statement. Your card is charged automatically the moment your bid
             is accepted &mdash; typically within minutes.
           </p>
+        </div>
 
+        {/* Pinned action footer — always visible so the primary CTA is never
+            hidden below the scroll fold. */}
+        <div className="shrink-0 space-y-2 border-t border-line/50 bg-[hsl(0_0%_8%)] px-6 md:px-8 py-4">
           <Button
             type="button"
             className="w-full btn-bid-premium h-12 text-base uppercase tracking-wide text-black"
