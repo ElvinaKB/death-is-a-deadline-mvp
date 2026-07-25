@@ -55,6 +55,11 @@ interface TravelerBehavior {
   topCities: { city: string | null; count: number }[];
   hourHistogram: number[];
   dowHistogram: number[];
+  // View metrics (present once migration 039 has run).
+  totalViews?: number;
+  viewedPlaces?: number;
+  exploredNoBid?: number;
+  viewToBidRate?: number | null;
 }
 
 // One labeled stat cell for the signals grid.
@@ -514,6 +519,22 @@ export function StudentDetailPage() {
                     label="Avg lead time"
                     value={`${behavior.avgLeadDays} days`}
                   />
+                  {behavior.viewedPlaces != null && (
+                    <Stat
+                      label="Explored (viewed)"
+                      value={`${behavior.viewedPlaces}${
+                        behavior.exploredNoBid
+                          ? ` · ${behavior.exploredNoBid} no bid`
+                          : ""
+                      }`}
+                    />
+                  )}
+                  {behavior.viewToBidRate != null && (
+                    <Stat
+                      label="View → bid"
+                      value={`${behavior.viewToBidRate}%`}
+                    />
+                  )}
                 </div>
 
                 <div>

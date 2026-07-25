@@ -219,6 +219,14 @@ export function PrivacyPolicyContent() {
         (where you opt in) personalize marketing. You can control cookies through your browser settings
         and through the in-product cookie controls we provide where required by law.
       </LegalP>
+      <LegalP key="b-35a">
+        Where you have accepted cookies, we also record first-party product-analytics events about your
+        activity on the Service&mdash;such as which listings you view&mdash;to improve pricing,
+        recommendations, and the marketplace. This is our own analytics, honored subject to the cookie
+        and Global Privacy Control controls described here, and is not used to sell your personal
+        information.
+      </LegalP>
+
       <LegalP key="b-35b">
         Where permitted by applicable law, we may use advertising and remarketing technologies, including
         tools such as Meta Pixel, Google Ads, or similar services, to measure the effectiveness of our

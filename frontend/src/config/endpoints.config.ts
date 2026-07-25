@@ -80,6 +80,9 @@ export const ENDPOINTS = {
   TESTIMONIAL_UPDATE: "/api/testimonials/:id",
   TESTIMONIAL_DELETE: "/api/testimonials/:id",
 
+  // Events (first-party browse analytics)
+  EVENTS_PLACE_VIEW: "/api/events/place-view",
+
   // Contact
   CONTACT: "/api/contact",
 
