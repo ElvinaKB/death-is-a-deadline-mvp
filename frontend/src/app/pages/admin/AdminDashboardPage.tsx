@@ -31,6 +31,20 @@ interface TopProperty {
   revenue: number;
 }
 
+interface BehaviorStats {
+  totalBids: number;
+  totalBookings: number;
+  conversionRate: number;
+  avgDiscountPct: number;
+  avgLeadDays: number;
+  avgBidsPerBooking: number | null;
+  uniqueBidders: number;
+  uniqueBookers: number;
+  abandonmentRate: number;
+  topCities: { city: string | null; count: number }[];
+  hourHistogram: number[];
+}
+
 interface DashboardStats {
   totalStudents: number;
   approvedStudents: number;
@@ -43,6 +57,7 @@ interface DashboardStats {
   totalPaidToHotels: number;
   totalNightsBooked: number;
   topProperties: TopProperty[];
+  behavior: BehaviorStats | null;
 }
 
 const formatCurrency = (amount: number) =>
@@ -362,6 +377,100 @@ export function AdminDashboardPage() {
           </Card>
         </div>
       </section>
+
+      {/* ── BEHAVIORAL INSIGHTS: Deadline's proprietary bid dataset ── */}
+      {stats?.behavior && stats.behavior.totalBids > 0 && (
+        <section>
+          <p className="text-xs font-semibold text-muted uppercase tracking-widest mb-4 flex items-center gap-1.5">
+            <TrendingUp className="h-3.5 w-3.5" /> Behavioral Insights
+            <span className="normal-case font-normal tracking-normal text-muted/70">
+              — every bid, won or lost
+            </span>
+          </p>
+          <Card className="bg-glass-2 border-line">
+            <CardContent className="pt-6 space-y-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {[
+                  {
+                    label: "Avg discount vs retail",
+                    value: `${stats.behavior.avgDiscountPct}%`,
+                  },
+                  {
+                    label: "Conversion rate",
+                    value: `${stats.behavior.conversionRate}%`,
+                  },
+                  {
+                    label: "Avg bids / booking",
+                    value:
+                      stats.behavior.avgBidsPerBooking != null
+                        ? String(stats.behavior.avgBidsPerBooking)
+                        : "—",
+                  },
+                  {
+                    label: "Avg lead time",
+                    value: `${stats.behavior.avgLeadDays} days`,
+                  },
+                  {
+                    label: "Abandonment rate",
+                    value: `${stats.behavior.abandonmentRate}%`,
+                  },
+                  {
+                    label: "Total bids captured",
+                    value: stats.behavior.totalBids.toLocaleString(),
+                  },
+                ].map((item, i) => (
+                  <div
+                    key={i}
+                    className="rounded-lg border border-line bg-white/[0.03] px-3 py-3 text-center"
+                  >
+                    <p className="text-2xl font-bold text-fg tabular-nums">
+                      {item.value}
+                    </p>
+                    <p className="text-[11px] text-muted mt-1">{item.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-muted mb-2">
+                    Most-bid destinations
+                  </p>
+                  <p className="text-sm text-fg">
+                    {stats.behavior.topCities.length
+                      ? stats.behavior.topCities
+                          .map((c) => `${c.city || "—"} (${c.count})`)
+                          .join(", ")
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-muted mb-2">
+                    When travelers bid (hour of day, local)
+                  </p>
+                  <div className="flex items-end gap-[2px] h-12" aria-hidden>
+                    {(() => {
+                      const hrs = stats.behavior.hourHistogram;
+                      const max = Math.max(1, ...hrs);
+                      return hrs.map((c, h) => (
+                        <div
+                          key={h}
+                          className="flex-1 rounded-sm bg-gold/60"
+                          style={{
+                            height: `${(c / max) * 100}%`,
+                            minHeight: c > 0 ? 2 : 0,
+                          }}
+                          title={`${h}:00 — ${c} bid${c === 1 ? "" : "s"}`}
+                        />
+                      ));
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      )}
     </div>
   );
 }

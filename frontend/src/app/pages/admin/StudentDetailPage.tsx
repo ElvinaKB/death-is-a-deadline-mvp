@@ -38,6 +38,52 @@ const BID_STATUS_COLORS: Record<BidStatus, string> = {
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
 
+interface TravelerBehavior {
+  totalBids: number;
+  bookings: number;
+  rejected: number;
+  cancelled: number;
+  conversionRate: number;
+  avgBid: number;
+  minBid: number;
+  maxBid: number;
+  avgDiscountPct: number;
+  avgLeadDays: number;
+  avgBidsPerBooking: number | null;
+  repeatHotels: number;
+  abandoned: boolean;
+  topCities: { city: string | null; count: number }[];
+  hourHistogram: number[];
+  dowHistogram: number[];
+}
+
+// One labeled stat cell for the signals grid.
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5">
+      <p className="text-[11px] uppercase tracking-wide text-muted">{label}</p>
+      <p className="text-lg font-semibold text-fg tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+// Inline 24-bucket bar strip (no chart lib) for bid time-of-day.
+function HourStrip({ hours }: { hours: number[] }) {
+  const max = Math.max(1, ...hours);
+  return (
+    <div className="flex items-end gap-[2px] h-12" aria-hidden>
+      {hours.map((c, h) => (
+        <div
+          key={h}
+          className="flex-1 rounded-sm bg-gold/60"
+          style={{ height: `${(c / max) * 100}%`, minHeight: c > 0 ? 2 : 0 }}
+          title={`${h}:00 — ${c} bid${c === 1 ? "" : "s"}`}
+        />
+      ))}
+    </div>
+  );
+}
+
 const bidHistoryColumns: TableColumn<Bid>[] = [
   {
     header: "Place",
@@ -224,6 +270,13 @@ export function StudentDetailPage() {
     endpoint: getEndpoint(ENDPOINTS.STUDENT_LOGIN_EVENTS, { id: id! }),
     enabled: !!id,
   });
+
+  const { data: behaviorData } = useApiQuery<{ behavior: TravelerBehavior | null }>({
+    queryKey: [QUERY_KEYS.STUDENT_BEHAVIOR, id],
+    endpoint: getEndpoint(ENDPOINTS.STUDENT_BEHAVIOR, { id: id! }),
+    enabled: !!id,
+  });
+  const behavior = behaviorData?.behavior ?? null;
 
   const approveMutation = useApiMutation<void, ApproveStudentRequest>({
     endpoint: getEndpoint(ENDPOINTS.STUDENT_APPROVE, { id: id! }),
@@ -420,6 +473,73 @@ export function StudentDetailPage() {
                     alt="Student ID"
                     className="w-full h-auto object-contain max-h-96"
                   />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {behavior && behavior.totalBids > 0 && (
+            <Card className="glass-2 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-fg flex items-center gap-2">
+                  Behavioral Signals
+                  {behavior.abandoned && (
+                    <Badge className="bg-danger/20 text-danger hover:bg-danger/30">
+                      Abandoned — {behavior.totalBids} bids, never booked
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <Stat
+                    label="Conversion"
+                    value={`${behavior.conversionRate}% · ${behavior.bookings}/${behavior.totalBids}`}
+                  />
+                  <Stat
+                    label="Avg bids / booking"
+                    value={
+                      behavior.avgBidsPerBooking != null
+                        ? String(behavior.avgBidsPerBooking)
+                        : "—"
+                    }
+                  />
+                  <Stat label="Rejected" value={String(behavior.rejected)} />
+                  <Stat label="Avg bid" value={formatCurrency(behavior.avgBid)} />
+                  <Stat
+                    label="Avg discount vs retail"
+                    value={`${behavior.avgDiscountPct}%`}
+                  />
+                  <Stat
+                    label="Avg lead time"
+                    value={`${behavior.avgLeadDays} days`}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-muted mb-1">
+                    Destinations
+                  </p>
+                  <p className="text-sm text-fg">
+                    {behavior.topCities.length
+                      ? behavior.topCities
+                          .map((c) => `${c.city || "—"} (${c.count})`)
+                          .join(", ")
+                      : "—"}
+                    {behavior.repeatHotels > 0 && (
+                      <span className="text-muted">
+                        {" "}· {behavior.repeatHotels} repeat hotel
+                        {behavior.repeatHotels === 1 ? "" : "s"}
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-muted mb-1">
+                    Bid time of day (local)
+                  </p>
+                  <HourStrip hours={behavior.hourHistogram} />
                 </div>
               </CardContent>
             </Card>

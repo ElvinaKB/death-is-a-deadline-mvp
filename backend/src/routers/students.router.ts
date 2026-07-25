@@ -37,6 +37,13 @@ router.get(
   studentsController.getStudentLoginEvents
 );
 
+// GET /api/students/:id/behavior
+router.get(
+  "/:id/behavior",
+  validate(studentIdParamSchema, "params"),
+  studentsController.getStudentBehavior
+);
+
 // POST /api/students/:id/approve
 router.post(
   "/:id/approve",
