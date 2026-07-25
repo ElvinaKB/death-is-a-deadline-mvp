@@ -129,7 +129,7 @@ export function BidLockInModal({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         isClose={false}
-        className="lock-in-modal lock-in-modal-shell max-w-md border-0 p-0 gap-0 overflow-hidden"
+        className="lock-in-modal lock-in-modal-shell max-w-md border-0 p-0 gap-0 overflow-hidden max-h-[calc(100dvh-2rem)]"
         onPointerDownOutside={(e) => {
           if (isSubmitting) e.preventDefault();
         }}
@@ -151,7 +151,7 @@ export function BidLockInModal({
           </button>
         )}
 
-        <div className="p-6 md:p-8 space-y-5">
+        <div className="p-6 md:p-8 space-y-5 overflow-y-auto max-h-[calc(100dvh-2rem)]">
           <DialogTitle className="text-center text-xs font-semibold tracking-[0.25em] text-urgent uppercase">
             Final Bid
           </DialogTitle>

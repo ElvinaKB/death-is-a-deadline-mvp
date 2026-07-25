@@ -27,6 +27,9 @@ export const QUERY_KEYS = {
 
   // Hotel sign-ups
   HOTEL_APPLICATIONS: "hotelApplications",
+
+  // Geo (silent proximity hint)
+  GEO_HINT: "geoHint",
 } as const;
 
 export const createQueryKey = (
