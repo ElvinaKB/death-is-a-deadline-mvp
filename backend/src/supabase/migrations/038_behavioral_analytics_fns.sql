@@ -35,8 +35,8 @@ BEGIN
     ROUND(AVG(b.bid_per_night), 2),
     MIN(b.bid_per_night),
     MAX(b.bid_per_night),
-    ROUND(AVG((p.retail_price - b.bid_per_night) / NULLIF(p.retail_price, 0) * 100)
-          FILTER (WHERE p.retail_price > 0), 1),
+    ROUND(AVG((p."retailPrice" - b.bid_per_night) / NULLIF(p."retailPrice", 0) * 100)
+          FILTER (WHERE p."retailPrice" > 0), 1),
     ROUND(AVG(b.check_in_date - b.created_at::date), 1)
   INTO v_total, v_bookings, v_rejected, v_cancelled,
        v_avg_bid, v_min_bid, v_max_bid, v_avg_disc, v_avg_lead
@@ -119,8 +119,8 @@ BEGIN
   SELECT
     COUNT(*),
     COUNT(*) FILTER (WHERE b.status = 'ACCEPTED'),
-    ROUND(AVG((p.retail_price - b.bid_per_night) / NULLIF(p.retail_price, 0) * 100)
-          FILTER (WHERE p.retail_price > 0), 1),
+    ROUND(AVG((p."retailPrice" - b.bid_per_night) / NULLIF(p."retailPrice", 0) * 100)
+          FILTER (WHERE p."retailPrice" > 0), 1),
     ROUND(AVG(b.check_in_date - b.created_at::date), 1)
   INTO v_total, v_bookings, v_avg_disc, v_avg_lead
   FROM public.bids b
