@@ -541,6 +541,50 @@ export async function listBids(req: Request, res: Response) {
   });
 }
 
+// Chargeback-safe payout hold: a hotel payout is only "due" once the guest has
+// actually stayed. We hold until checkout + PAYOUT_HOLD_HOURS before flagging it
+// payable, which clears no-shows/cancellations before money leaves. (Note: this
+// does NOT remove card-chargeback liability — only card pass-through does that.)
+export const PAYOUT_HOLD_HOURS = 48;
+
+// Payout summary (admin only) — powers the "payouts due" dashboard alert.
+export async function getPayoutSummary(_req: Request, res: Response) {
+  const holdMs = PAYOUT_HOLD_HOURS * 60 * 60 * 1000;
+  const now = Date.now();
+
+  const openBids = await prisma.bid.findMany({
+    where: { status: bid_status.ACCEPTED, isPaidToHotel: false },
+    select: { checkOutDate: true, payableToHotel: true },
+  });
+
+  let dueCount = 0;
+  let heldCount = 0;
+  let dueAmount = 0;
+  for (const b of openBids) {
+    const eligibleAt = new Date(b.checkOutDate).getTime() + holdMs;
+    if (now >= eligibleAt) {
+      dueCount += 1;
+      dueAmount += Number(b.payableToHotel ?? 0);
+    } else {
+      heldCount += 1;
+    }
+  }
+
+  const paidCount = await prisma.bid.count({
+    where: { status: bid_status.ACCEPTED, isPaidToHotel: true },
+  });
+
+  res.status(200).json({
+    data: {
+      dueCount,
+      dueAmount,
+      heldCount,
+      paidCount,
+      holdHours: PAYOUT_HOLD_HOURS,
+    },
+  });
+}
+
 // Update bid status (admin only) — disabled; bids are instant accept/reject only
 export async function updateBidStatus(_req: Request, _res: Response) {
   throw new CustomError(

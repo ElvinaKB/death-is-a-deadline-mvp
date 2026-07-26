@@ -78,6 +78,16 @@ export function AdminDashboardPage() {
     endpoint: `${ENDPOINTS.STUDENTS_STATS}`,
   });
 
+  const { data: payoutSummary } = useApiQuery<{
+    dueCount: number;
+    dueAmount: number;
+    holdHours: number;
+  }>({
+    queryKey: [QUERY_KEYS.PAYOUT_SUMMARY],
+    endpoint: ENDPOINTS.BID_PAYOUT_SUMMARY,
+    staleTime: 60_000,
+  });
+
   if (isLoading) {
     return (
       <div>
@@ -127,6 +137,33 @@ export function AdminDashboardPage() {
         <h1 className="text-3xl font-bold text-fg">Dashboard</h1>
         <p className="text-muted mt-1">Platform overview</p>
       </div>
+
+      {payoutSummary && payoutSummary.dueCount > 0 && (
+        <Link
+          to={ROUTES.ADMIN_BIDS}
+          className="flex items-center justify-between gap-4 rounded-xl border border-success/40 bg-success/10 px-5 py-4 transition-colors hover:bg-success/15"
+        >
+          <div>
+            <p className="text-sm font-semibold text-fg">
+              💸 {payoutSummary.dueCount} hotel payout
+              {payoutSummary.dueCount === 1 ? "" : "s"} due now
+              {payoutSummary.dueAmount > 0
+                ? ` — ${new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                  }).format(payoutSummary.dueAmount)} to release`
+                : ""}
+            </p>
+            <p className="text-xs text-muted mt-0.5">
+              Past checkout + {payoutSummary.holdHours}h, still unpaid — review
+              &amp; pay
+            </p>
+          </div>
+          <span className="text-sm font-medium text-success shrink-0">
+            Go to Bids →
+          </span>
+        </Link>
+      )}
 
       {/* ── REVENUE: Hero strip ── */}
       <section>

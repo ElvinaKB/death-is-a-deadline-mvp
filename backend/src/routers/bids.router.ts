@@ -25,6 +25,7 @@ import {
   listBids,
   updateBidStatus,
   updatePayout,
+  getPayoutSummary,
   cancelBid,
   listHotelBids,
 } from "../controllers/bids.controller";
@@ -65,6 +66,13 @@ router.get(
   validate(placeIdParamSchema, "params"),
   validate(bidForPlaceQuerySchema, "query"),
   getBidForPlace,
+);
+
+// Payout summary (admin only) — must be before "/:id" so it isn't captured.
+router.get(
+  "/payout-summary",
+  authenticate(UserRole.ADMIN),
+  getPayoutSummary,
 );
 
 // Get single bid by ID (student can view own, admin can view all)
