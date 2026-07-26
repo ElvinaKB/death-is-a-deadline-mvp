@@ -26,6 +26,18 @@ import { DollarSign, EyeIcon, XCircle } from "lucide-react";
 import { PayoutModal } from "../../components/bids/PayoutModal";
 import { CancelBidModal } from "../../components/bids/CancelBidModal";
 import { useDebounce } from "../../../hooks/useDebounce";
+import { useApiQuery } from "../../../hooks/useApi";
+import { ENDPOINTS } from "../../../config/endpoints.config";
+import { QUERY_KEYS } from "../../../config/queryKeys.config";
+import { getPayoutState, payoutEligibleAt } from "../../../utils/payout";
+
+interface PayoutSummary {
+  dueCount: number;
+  dueAmount: number;
+  heldCount: number;
+  paidCount: number;
+  holdHours: number;
+}
 
 const BID_STATUS_COLORS: Record<BidStatus, string> = {
   [BidStatus.PENDING]: "bg-warning/20 text-warning hover:bg-warning/30",
@@ -54,6 +66,12 @@ export function BidsListPage() {
   });
 
   const updatePayout = useUpdatePayout();
+
+  const { data: payoutSummary } = useApiQuery<PayoutSummary>({
+    queryKey: [QUERY_KEYS.PAYOUT_SUMMARY],
+    endpoint: ENDPOINTS.BID_PAYOUT_SUMMARY,
+    staleTime: 60_000,
+  });
 
   const getBidStatusBadge = (status: BidStatus) => {
     return (
@@ -186,6 +204,35 @@ export function BidsListPage() {
       },
     },
     {
+      header: "Pay-safe",
+      field: "checkOutDate",
+      render: (row) => {
+        const state = getPayoutState(row);
+        if (state === "paid") {
+          return (
+            <span className="text-xs text-muted">
+              Paid
+              {row.paidToHotelAt
+                ? ` ${format(new Date(row.paidToHotelAt), "MMM d")}`
+                : ""}
+            </span>
+          );
+        }
+        if (state === "na") return <span className="text-xs text-muted">—</span>;
+        if (state === "due") {
+          return (
+            <Badge className="bg-success/20 text-success">Due now</Badge>
+          );
+        }
+        // held
+        return (
+          <span className="text-xs text-warning">
+            Hold until {format(payoutEligibleAt(row.checkOutDate), "MMM d")}
+          </span>
+        );
+      },
+    },
+    {
       header: "Actions",
       field: "id",
       render: (row) => {
@@ -241,6 +288,57 @@ export function BidsListPage() {
           View all bids and their payment status
         </p>
       </div>
+
+      {payoutSummary && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Card
+            className={
+              payoutSummary.dueCount > 0
+                ? "bg-success/10 border-success/40"
+                : "bg-glass border-line"
+            }
+          >
+            <CardContent className="py-4">
+              <p className="text-xs uppercase tracking-wider text-muted">
+                Due to pay now
+              </p>
+              <p className="text-2xl font-bold text-fg mt-1">
+                {payoutSummary.dueCount}
+                <span className="text-base font-medium text-muted ml-2">
+                  {formatCurrency(payoutSummary.dueAmount)}
+                </span>
+              </p>
+              <p className="text-xs text-muted mt-1">
+                Past checkout + {payoutSummary.holdHours}h, still unpaid
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-glass border-line">
+            <CardContent className="py-4">
+              <p className="text-xs uppercase tracking-wider text-muted">
+                Held (too early)
+              </p>
+              <p className="text-2xl font-bold text-fg mt-1">
+                {payoutSummary.heldCount}
+              </p>
+              <p className="text-xs text-muted mt-1">
+                Within {payoutSummary.holdHours}h of checkout
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-glass border-line">
+            <CardContent className="py-4">
+              <p className="text-xs uppercase tracking-wider text-muted">
+                Paid
+              </p>
+              <p className="text-2xl font-bold text-fg mt-1">
+                {payoutSummary.paidCount}
+              </p>
+              <p className="text-xs text-muted mt-1">Hotels settled</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex-1 min-w-[220px] space-y-1.5">

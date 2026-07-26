@@ -54,6 +54,7 @@ export const ENDPOINTS = {
   BID_STATUS: "/api/bids/:id/status",
   BID_PAYOUT: "/api/bids/:id/payout",
   BID_CANCEL: "/api/bids/:id/cancel",
+  BID_PAYOUT_SUMMARY: "/api/bids/payout-summary",
 
   // Payments
   PAYMENT_CONFIG: "/api/payments/config",

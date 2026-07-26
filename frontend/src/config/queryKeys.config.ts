@@ -30,6 +30,9 @@ export const QUERY_KEYS = {
 
   // Geo (silent proximity hint)
   GEO_HINT: "geoHint",
+
+  // Payouts
+  PAYOUT_SUMMARY: "payoutSummary",
 } as const;
 
 export const createQueryKey = (
