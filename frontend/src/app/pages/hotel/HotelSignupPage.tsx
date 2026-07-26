@@ -91,6 +91,23 @@ export function HotelSignupPage() {
               This link is missing a valid token. Please check the email you
               received or contact support.
             </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                type="button"
+                className="w-full"
+                onClick={() => navigate(-1)}
+              >
+                Go back
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-line text-fg hover:bg-white/5"
+                onClick={() => navigate(ROUTES.HOME)}
+              >
+                Back to home
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
