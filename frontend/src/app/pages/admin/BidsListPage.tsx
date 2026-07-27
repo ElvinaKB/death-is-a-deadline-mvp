@@ -39,6 +39,18 @@ interface PayoutSummary {
   holdHours: number;
 }
 
+interface MercuryHealth {
+  connected: boolean;
+  reason?: string;
+  recipientCount?: number;
+  accounts?: {
+    id: string;
+    name: string | null;
+    last4: string | null;
+    availableBalance: number | null;
+  }[];
+}
+
 const BID_STATUS_COLORS: Record<BidStatus, string> = {
   [BidStatus.PENDING]: "bg-warning/20 text-warning hover:bg-warning/30",
   [BidStatus.ACCEPTED]: "bg-success/20 text-success hover:bg-success/30",
@@ -71,6 +83,13 @@ export function BidsListPage() {
     queryKey: [QUERY_KEYS.PAYOUT_SUMMARY],
     endpoint: ENDPOINTS.BID_PAYOUT_SUMMARY,
     staleTime: 60_000,
+  });
+
+  const { data: mercuryHealth } = useApiQuery<MercuryHealth>({
+    queryKey: ["mercury-health"],
+    endpoint: ENDPOINTS.MERCURY_HEALTH,
+    staleTime: 60_000,
+    retry: false,
   });
 
   const getBidStatusBadge = (status: BidStatus) => {
@@ -337,6 +356,45 @@ export function BidsListPage() {
               <p className="text-xs text-muted mt-1">Hotels settled</p>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {mercuryHealth && (
+        <div
+          className={`rounded-lg border px-4 py-3 text-sm ${
+            mercuryHealth.connected
+              ? "border-success/40 bg-success/10"
+              : "border-warning/40 bg-warning/10"
+          }`}
+        >
+          {mercuryHealth.connected ? (
+            <span className="text-fg">
+              <span className="font-semibold text-success">
+                ● Mercury connected
+              </span>
+              {mercuryHealth.accounts && mercuryHealth.accounts.length > 0 && (
+                <>
+                  {" "}
+                  · account{" "}
+                  {mercuryHealth.accounts[0].name
+                    ? `${mercuryHealth.accounts[0].name} `
+                    : ""}
+                  {mercuryHealth.accounts[0].last4
+                    ? `••${mercuryHealth.accounts[0].last4}`
+                    : ""}
+                </>
+              )}{" "}
+              · {mercuryHealth.recipientCount ?? 0} recipient
+              {(mercuryHealth.recipientCount ?? 0) === 1 ? "" : "s"} on file
+            </span>
+          ) : (
+            <span className="text-fg">
+              <span className="font-semibold text-warning">
+                ● Mercury not connected
+              </span>{" "}
+              — {mercuryHealth.reason || "check MERCURY_API_TOKEN"}
+            </span>
+          )}
         </div>
       )}
 
