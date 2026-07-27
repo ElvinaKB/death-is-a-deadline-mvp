@@ -55,6 +55,7 @@ export const ENDPOINTS = {
   BID_PAYOUT: "/api/bids/:id/payout",
   BID_CANCEL: "/api/bids/:id/cancel",
   BID_PAYOUT_SUMMARY: "/api/bids/payout-summary",
+  MERCURY_HEALTH: "/api/payouts/mercury/health",
 
   // Payments
   PAYMENT_CONFIG: "/api/payments/config",
