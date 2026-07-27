@@ -255,6 +255,11 @@ export async function listHotelPlaces(req: Request, res: Response) {
 
 // List public places (for students marketplace - with filters)
 export async function listPublicPlaces(req: Request, res: Response) {
+  // Cache the public marketplace at Vercel's edge: serve instantly for 60s and
+  // revalidate in the background for up to 5 min. Cuts the ~1s cold function
+  // hit on the homepage's initial load for most visitors.
+  res.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+
   const {
     searchQuery,
     selectedType,
@@ -379,6 +384,7 @@ export async function getPlace(req: Request, res: Response) {
 
 // Get public place by ID (for students - includes inventory status)
 export async function getPublicPlace(req: Request, res: Response) {
+  res.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
   const { id: ref } = req.params;
   const { date } = req.query as { date?: string };
 
@@ -767,6 +773,7 @@ export async function deletePlace(req: Request, res: Response) {
 
 // Get price range of LIVE places (for filters)
 export async function getPriceRange(req: Request, res: Response) {
+  res.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
   const result = await prisma.place.aggregate({
     where: { status: PlaceStatus.LIVE },
     _min: { retailPrice: true },
