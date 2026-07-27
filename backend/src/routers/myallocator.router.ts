@@ -85,6 +85,64 @@ async function findPlaceByOtaId(otaPropertyId: unknown): Promise<OtaPlace | null
   return prisma.place.findUnique({ where: { slug: otaPropertyId } });
 }
 
+// Synthetic booking served for the self-cert sandbox (polling path). The
+// sandbox property has no real bids, so we return one well-formed test booking
+// so GetBookingList/GetBookingId can be certified. Format mirrors the real
+// GetBookingId body below.
+const SANDBOX_BOOKING_ID = "dln-sandbox-booking-1";
+
+function buildSandboxBooking(isCancellation: boolean) {
+  const checkInStr = "2026-08-01";
+  const checkIn = new Date(`${checkInStr}T00:00:00Z`);
+  const nights = 2;
+  const rate = 100;
+  const dayRates = Array.from({ length: nights }, (_, i) => ({
+    Date: format(addDays(checkIn, i), "yyyy-MM-dd"),
+    Description: "Deadline Threshold Rate",
+    Rate: rate,
+    Currency: "USD",
+    RateId: "default",
+  }));
+  return {
+    OrderId: SANDBOX_BOOKING_ID,
+    OrderDate: "2026-07-26",
+    OrderTime: "12:00:00",
+    IsCancellation: isCancellation ? 1 : 0,
+    IsModification: 0,
+    OrderAdults: 1,
+    OrderChildren: 0,
+    OrderCustomers: 1,
+    TotalCurrency: "USD",
+    TotalPrice: rate * nights,
+    PaymentCollect: "Channel",
+    Customers: [
+      {
+        CustomerCountry: "US",
+        CustomerEmail: "sandbox@deadlinetravel.com",
+        CustomerFName: "Sandbox",
+        CustomerLName: "Tester",
+      },
+    ],
+    Rooms: [
+      {
+        ChannelRoomType: "dln-sandbox-2",
+        Currency: "USD",
+        Adults: 1,
+        Babies: 0,
+        Children: 0,
+        Occupancy: 1,
+        RateDesc: "Deadline Threshold Rate",
+        RateId: "default",
+        DayRates: dayRates,
+        StartDate: checkInStr,
+        EndDate: format(addDays(checkIn, nights - 1), "yyyy-MM-dd"),
+        Price: rate * nights,
+        Units: 1,
+      },
+    ],
+  };
+}
+
 router.post("/HealthCheck", async (req: Request, res: Response) => {
   if (!hasValidSharedSecret(req.body)) {
     return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
@@ -284,6 +342,15 @@ router.post("/GetBookingList", async (req: Request, res: Response) => {
     );
   }
 
+  if (place.id === SANDBOX_PROPERTY_ID) {
+    return res.json({
+      success: true,
+      Bookings: [
+        { booking_id: SANDBOX_BOOKING_ID, version: "2026-07-26T12:00:00.000Z" },
+      ],
+    });
+  }
+
   const otaBookingVersion = req.body?.ota_booking_version;
   const since =
     typeof otaBookingVersion === "string" && otaBookingVersion
@@ -328,6 +395,13 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
   const bookingId = req.body?.booking_id;
   if (typeof bookingId !== "string" || !bookingId) {
     return fail(res, ERROR.NO_SUCH_BOOKING, "No such booking id.");
+  }
+
+  if (place.id === SANDBOX_PROPERTY_ID) {
+    // Report a cancellation only when the cert asks for the reserved
+    // cancellation id; otherwise return the standard synthetic booking.
+    const isCancellation = bookingId.includes("cancel");
+    return res.json({ success: true, Booking: buildSandboxBooking(isCancellation) });
   }
 
   const bid = await prisma.bid.findFirst({
