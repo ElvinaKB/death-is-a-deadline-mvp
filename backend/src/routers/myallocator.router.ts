@@ -493,6 +493,29 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
   });
 });
 
+// Cloudbeds calls this to tell us a booking was cancelled on their side; we
+// acknowledge it. Sandbox is a pure no-op success.
+// TODO before live hotels use this channel: look up the matching bid and run
+// our real cancellation flow (status -> CANCELLED + refund; see cancelBid).
+router.post("/CancelBooking", async (req: Request, res: Response) => {
+  if (!hasValidSharedSecret(req.body)) {
+    return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
+  }
+  const place = await findPlaceByOtaId(req.body?.ota_property_id);
+  if (!place) {
+    return fail(
+      res,
+      ERROR.LOGIN,
+      "The login details you provided are incorrect.",
+    );
+  }
+  const bookingId = req.body?.booking_id;
+  if (typeof bookingId !== "string" || !bookingId) {
+    return fail(res, ERROR.NO_SUCH_BOOKING, "No such booking id.");
+  }
+  return res.json({ success: true });
+});
+
 // Self-cert debugging: read back the last captured sandbox payload for a verb.
 // Gated by shared_secret. Temporary aid for certification; safe to remove after.
 router.post("/_sandbox-last", async (req: Request, res: Response) => {
