@@ -8,6 +8,7 @@ import {
   format,
 } from "date-fns";
 import { parseBookingDateOnly } from "../libs/utils/hotelDates";
+import { Redis } from "@upstash/redis";
 
 // Cloudbeds OTA Build-To-Us API (myallocator).
 // Spec: https://developers.cloudbeds.com/reference/ota-build-to-us-introduction
@@ -17,6 +18,25 @@ import { parseBookingDateOnly } from "../libs/utils/hotelDates";
 // Error codes: https://apidocs.myallocator.com/ota-errors.html
 
 export const router = Router();
+
+// Self-cert debugging aid: stash the last sandbox payload per verb in Redis
+// (Vercel is stateless, so we can't hold it in memory) so we can read back
+// exactly what the certification tool sent. Best-effort, sandbox-only.
+const sandboxRedis =
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+    ? new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      })
+    : null;
+
+async function captureSandbox(verb: string, body: unknown) {
+  try {
+    await sandboxRedis?.set(`myalloc:sandbox:last:${verb}`, body, { ex: 3600 });
+  } catch {
+    // never block the cert flow on a capture failure
+  }
+}
 
 const ERROR = {
   LOGIN: 1001, // FAULT.OTA.LOGIN - invalid credentials / shared_secret
@@ -184,8 +204,10 @@ router.post("/ARIUpdate", async (req: Request, res: Response) => {
   }
 
   // Sandbox self-cert property: accept the push but never persist, so
-  // certification can't alter any real listing's inventory.
+  // certification can't alter any real listing's inventory. Capture the
+  // payload so we can read exactly what the cert sent.
   if (place.id === SANDBOX_PROPERTY_ID) {
+    await captureSandbox("ARIUpdate", req.body);
     return res.json({ success: true });
   }
 
@@ -392,4 +414,18 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
       ],
     },
   });
+});
+
+// Self-cert debugging: read back the last captured sandbox payload for a verb.
+// Gated by shared_secret. Temporary aid for certification; safe to remove after.
+router.post("/_sandbox-last", async (req: Request, res: Response) => {
+  if (!hasValidSharedSecret(req.body)) {
+    return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
+  }
+  const verb =
+    typeof req.body?.verb === "string" ? req.body.verb : "ARIUpdate";
+  const payload = sandboxRedis
+    ? await sandboxRedis.get(`myalloc:sandbox:last:${verb}`)
+    : null;
+  return res.json({ success: true, verb, payload });
 });
