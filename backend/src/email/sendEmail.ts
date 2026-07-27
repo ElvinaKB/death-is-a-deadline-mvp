@@ -4,8 +4,12 @@ import path from "path";
 import { EmailType } from "./emailTypes";
 import { CustomError } from "../libs/utils/CustomError";
 
-const EMAIL_NAME = process.env.EMAIL_NAME;
-const EMAIL_MAIL = process.env.EMAIL_MAIL;
+const EMAIL_NAME = process.env.EMAIL_NAME || "Deadline Hotels";
+// Default sender is Deadline's own domain (never podshare). The live value is
+// set via EMAIL_MAIL in the env; sending must be authenticated as this mailbox
+// (smtp.porkbun.com) so SPF/DKIM/DMARC pass and invites reach hotel inboxes.
+const EMAIL_MAIL =
+  process.env.EMAIL_MAIL || "Deadline Hotels <hotels@deadlinetravel.com>";
 const EMAIL_PASS = process.env.EMAIL_PASS;
 const EMAIL_SECURE = process.env.EMAIL_SECURE === "true";
 const EMAIL_USER = process.env.EMAIL_USER;
