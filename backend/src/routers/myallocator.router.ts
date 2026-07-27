@@ -105,6 +105,17 @@ router.post("/GetRoomTypes", async (req: Request, res: Response) => {
       "The login details you provided are incorrect.",
     );
   }
+  // Self-cert requires >= 2 room types; the sandbox exposes two synthetic
+  // rooms to satisfy it (real listings model one unit type per Place).
+  if (place.id === SANDBOX_PROPERTY_ID) {
+    return res.json({
+      success: true,
+      Rooms: [
+        { ota_room_id: "dln-sandbox", title: "Deadline Sandbox Room A", dorm: false },
+        { ota_room_id: "dln-sandbox-2", title: "Deadline Sandbox Room B", dorm: false },
+      ],
+    });
+  }
   return res.json({
     success: true,
     Rooms: [
@@ -128,6 +139,16 @@ router.post("/GetRatePlans", async (req: Request, res: Response) => {
       ERROR.LOGIN,
       "The login details you provided are incorrect.",
     );
+  }
+  // Sandbox exposes a rate plan per synthetic room for self-certification.
+  if (place.id === SANDBOX_PROPERTY_ID) {
+    return res.json({
+      success: true,
+      RatePlans: [
+        { ota_room_id: "dln-sandbox", ota_rate_id: "default", title: "Deadline Threshold Rate" },
+        { ota_room_id: "dln-sandbox-2", ota_rate_id: "default", title: "Deadline Threshold Rate" },
+      ],
+    });
   }
   return res.json({
     success: true,
