@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useBids, useUpdatePayout } from "../../../hooks/useBids";
 import { Bid, BidStatus } from "../../../types/bid.types";
 import { DataTable } from "../../components/common/DataTable";
@@ -25,6 +26,7 @@ import { formatBookingDate } from "../../../utils/dateHelpers";
 import { DollarSign, EyeIcon, XCircle } from "lucide-react";
 import { PayoutModal } from "../../components/bids/PayoutModal";
 import { CancelBidModal } from "../../components/bids/CancelBidModal";
+import { MercuryPayoutModal } from "../../components/bids/MercuryPayoutModal";
 import { useDebounce } from "../../../hooks/useDebounce";
 import { useApiQuery } from "../../../hooks/useApi";
 import { ENDPOINTS } from "../../../config/endpoints.config";
@@ -63,6 +65,7 @@ export function BidsListPage() {
   const [filter, setFilter] = useState<BidStatus | "ALL">("ALL");
   const [selectedBid, setSelectedBid] = useState<Bid | null>(null);
   const [bidToCancel, setBidToCancel] = useState<Bid | null>(null);
+  const [bidToPayout, setBidToPayout] = useState<Bid | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [checkInFrom, setCheckInFrom] = useState("");
   const [checkInTo, setCheckInTo] = useState("");
@@ -78,6 +81,7 @@ export function BidsListPage() {
   });
 
   const updatePayout = useUpdatePayout();
+  const queryClient = useQueryClient();
 
   const { data: payoutSummary } = useApiQuery<PayoutSummary>({
     queryKey: [QUERY_KEYS.PAYOUT_SUMMARY],
@@ -272,6 +276,15 @@ export function BidsListPage() {
               <EyeIcon className="h-4 w-4 mr-1" />
               View
             </Button>
+            {!row.isPaidToHotel && (row.payableToHotel ?? 0) > 0 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setBidToPayout(row)}
+              >
+                Pay via Mercury
+              </Button>
+            )}
             {canCancel && (
               <Button
                 variant="destructive"
@@ -376,12 +389,10 @@ export function BidsListPage() {
                 <>
                   {" "}
                   · account{" "}
-                  {mercuryHealth.accounts[0].name
-                    ? `${mercuryHealth.accounts[0].name} `
-                    : ""}
-                  {mercuryHealth.accounts[0].last4
-                    ? `••${mercuryHealth.accounts[0].last4}`
-                    : ""}
+                  {mercuryHealth.accounts[0].name ||
+                    (mercuryHealth.accounts[0].last4
+                      ? `••${mercuryHealth.accounts[0].last4}`
+                      : "")}
                 </>
               )}{" "}
               · {mercuryHealth.recipientCount ?? 0} recipient
@@ -522,6 +533,17 @@ export function BidsListPage() {
           if (!open) setBidToCancel(null);
         }}
       />
+
+      {/* Mercury Payout Modal */}
+      {bidToPayout && (
+        <MercuryPayoutModal
+          bid={bidToPayout}
+          onClose={() => setBidToPayout(null)}
+          onPaid={() => {
+            queryClient.invalidateQueries();
+          }}
+        />
+      )}
     </div>
   );
 }
