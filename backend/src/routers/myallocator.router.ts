@@ -38,10 +38,30 @@ function hasValidSharedSecret(body: Record<string, unknown>): boolean {
   return Boolean(expected) && body?.shared_secret === expected;
 }
 
+// Reserved property id for myallocator self-certification. It maps to NO real
+// listing, so cert ARI pushes / test bookings can never touch live inventory.
+// Connect the test property with Hotel Id = "dln-sandbox" (password ignored).
+export const SANDBOX_PROPERTY_ID = "dln-sandbox";
+
+interface OtaPlace {
+  id: string;
+  slug: string;
+  name: string;
+  accommodationType: string;
+}
+
 // Deadline models one bookable unit type per Place (no separate room-type
 // table), so `ota_room_id` / `ota_property_id` map 1:1 to `Place.slug`.
-async function findPlaceByOtaId(otaPropertyId: unknown) {
+async function findPlaceByOtaId(otaPropertyId: unknown): Promise<OtaPlace | null> {
   if (typeof otaPropertyId !== "string" || !otaPropertyId) return null;
+  if (otaPropertyId === SANDBOX_PROPERTY_ID) {
+    return {
+      id: SANDBOX_PROPERTY_ID,
+      slug: SANDBOX_PROPERTY_ID,
+      name: "Deadline Sandbox (test)",
+      accommodationType: "HOTEL",
+    };
+  }
   return prisma.place.findUnique({ where: { slug: otaPropertyId } });
 }
 
@@ -140,6 +160,12 @@ router.post("/ARIUpdate", async (req: Request, res: Response) => {
       ERROR.LOGIN,
       "The login details you provided are incorrect.",
     );
+  }
+
+  // Sandbox self-cert property: accept the push but never persist, so
+  // certification can't alter any real listing's inventory.
+  if (place.id === SANDBOX_PROPERTY_ID) {
+    return res.json({ success: true });
   }
 
   // Flatten the Inventory array into one (date, units) row per calendar day.
