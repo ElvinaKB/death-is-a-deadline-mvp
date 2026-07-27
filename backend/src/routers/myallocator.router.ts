@@ -91,7 +91,7 @@ async function findPlaceByOtaId(otaPropertyId: unknown): Promise<OtaPlace | null
 // GetBookingId body below.
 const SANDBOX_BOOKING_ID = "dln-sandbox-booking-1";
 
-function buildSandboxBooking(isCancellation: boolean) {
+function buildSandboxBooking(orderId: string, isCancellation: boolean) {
   const checkInStr = "2026-08-01";
   const checkIn = new Date(`${checkInStr}T00:00:00Z`);
   const nights = 2;
@@ -104,7 +104,7 @@ function buildSandboxBooking(isCancellation: boolean) {
     RateId: "default",
   }));
   return {
-    OrderId: SANDBOX_BOOKING_ID,
+    OrderId: orderId,
     OrderDate: "2026-07-26",
     OrderTime: "12:00:00",
     IsCancellation: isCancellation ? 1 : 0,
@@ -401,7 +401,10 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
     // Report a cancellation only when the cert asks for the reserved
     // cancellation id; otherwise return the standard synthetic booking.
     const isCancellation = bookingId.includes("cancel");
-    return res.json({ success: true, Booking: buildSandboxBooking(isCancellation) });
+    return res.json({
+      success: true,
+      Booking: buildSandboxBooking(bookingId, isCancellation),
+    });
   }
 
   const bid = await prisma.bid.findFirst({
