@@ -286,7 +286,7 @@ export function PlaceDetailPage() {
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
                   Retail price
                 </p>
-                <p className="font-serif text-3xl leading-tight text-fg sm:text-4xl md:text-5xl">
+                <p className="font-sans font-bold tracking-tight tabular-nums text-3xl leading-tight text-fg sm:text-4xl md:text-5xl">
                   {formatCurrency(place.retailPrice)}
                 </p>
                 {bookingNights > 0 && (
