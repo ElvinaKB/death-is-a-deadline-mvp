@@ -37,6 +37,7 @@ import { PlacesListPage } from "./pages/admin/PlacesListPage";
 import { BidsListPage } from "./pages/admin/BidsListPage";
 import { NewsletterSubscribersPage } from "./pages/admin/NewsletterSubscribersPage";
 import { HotelApplicationsPage } from "./pages/admin/HotelApplicationsPage";
+import { ReferralsPage } from "./pages/admin/ReferralsPage";
 import { WishlistTallyPage } from "./pages/admin/WishlistTallyPage";
 import { PlaceTestimonialsPage } from "./pages/admin/PlaceTestimonialsPage";
 import { HotelBidsPage } from "./pages/hotel/HotelBidsListPage";
@@ -196,6 +197,7 @@ const protectedRoutes = [
         element: <HotelApplicationsPage />,
       },
       { path: ROUTES.ADMIN_WISHLIST, element: <WishlistTallyPage /> },
+      { path: ROUTES.ADMIN_REFERRALS, element: <ReferralsPage /> },
     ],
   },
 ];

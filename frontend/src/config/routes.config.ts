@@ -51,6 +51,7 @@ export const ROUTES = {
   ADMIN_BIDS: "/admin/bids",
   ADMIN_NEWSLETTER: "/admin/newsletter",
   ADMIN_HOTEL_APPLICATIONS: "/admin/hotel-applications",
+  ADMIN_REFERRALS: "/admin/referrals",
   ADMIN_WISHLIST: "/admin/wishlist",
 
   // Legal

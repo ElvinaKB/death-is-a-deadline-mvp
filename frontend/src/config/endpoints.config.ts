@@ -100,6 +100,12 @@ export const ENDPOINTS = {
   // Hotel sign-up applications
   HOTEL_APPLICATION: "/api/hotel-applications",
 
+  // Affiliate / referrals
+  REFERRERS: "/api/referrers",
+  REFERRER_ASSIGN_PLACE: "/api/referrers/place/:id",
+  MY_REFERRER: "/api/referrers/me",
+  MY_REFERRER_TAX: "/api/referrers/me/tax",
+
   // Waitlist
   WAITLIST_JOIN: "/api/waitlist",
   WAITLIST_SEND_WELCOME_EMAILS: "/api/waitlist/send-welcome-emails",
