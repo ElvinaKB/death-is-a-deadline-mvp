@@ -1,6 +1,12 @@
 import { Request, Response } from "express";
+import crypto from "crypto";
 import { prisma } from "../libs/config/prisma";
 import { bid_status } from "@prisma/client";
+import { supabase } from "../libs/config/supabase";
+import { CustomError } from "../libs/utils/CustomError";
+import { ApprovalStatus, UserRole } from "../types/auth.types";
+import { sendEmail } from "../email/sendEmail";
+import { EmailType } from "../email/emailTypes";
 
 function addMonths(date: Date, months: number): Date {
   const d = new Date(date);
@@ -92,37 +98,95 @@ export async function listReferrers(_req: Request, res: Response) {
 }
 
 export async function createReferrer(req: Request, res: Response) {
-  const { email, displayName, splitPercent } = req.body as {
+  const { email, displayName, splitPercent, demoPassword } = req.body as {
     email?: string;
     displayName?: string;
     splitPercent?: number;
+    demoPassword?: string;
   };
   if (!email || !displayName) {
     return res
       .status(400)
       .json({ message: "email and displayName are required" });
   }
-  // A referrer is also a traveler account — they must sign up first.
-  const user = await prisma.users.findFirst({
-    where: { email: email.toLowerCase() },
+  const lower = email.toLowerCase();
+
+  // A referrer is also a traveler account. Reuse it if one already exists;
+  // otherwise create the account exactly like "Add Traveler" — pre-approved +
+  // email-confirmed, so the person becomes both a verified traveler AND an
+  // affiliate. Real affiliates get a "set your password" email; a demoPassword
+  // (for accounts you can't email-verify, like a demo login) sets a known
+  // password and skips the email.
+  let userId: string | null = null;
+  const existingUser = await prisma.users.findFirst({
+    where: { email: lower },
     select: { id: true },
   });
-  if (!user) {
-    return res.status(404).json({
-      message:
-        "No account found for that email. The referrer must sign up as a traveler first.",
+
+  if (existingUser) {
+    userId = existingUser.id;
+    const existingRef = await prisma.referrer.findUnique({
+      where: { userId },
     });
+    if (existingRef) {
+      return res
+        .status(409)
+        .json({ message: "That account is already a referrer." });
+    }
+  } else {
+    const usingDemoPassword = Boolean(demoPassword && demoPassword.length >= 8);
+    const password = usingDemoPassword
+      ? (demoPassword as string)
+      : crypto.randomBytes(24).toString("hex");
+
+    const { data: createData, error: createError } =
+      await supabase.auth.admin.createUser({
+        email: lower,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          name: displayName,
+          approvalStatus: ApprovalStatus.APPROVED,
+          verifiedVia: "admin",
+          isAffiliate: true,
+        },
+        role: UserRole.STUDENT,
+      });
+    if (createError) throw new CustomError(createError.message, 400);
+    userId = createData?.user?.id ?? null;
+    if (!userId) throw new CustomError("Failed to create account", 500);
+
+    // Real affiliate (no demo password): email them a set-password link.
+    if (!usingDemoPassword) {
+      try {
+        const { data: linkData } = await supabase.auth.admin.generateLink({
+          type: "recovery",
+          email: lower,
+          options: { redirectTo: `${process.env.CLIENT_URL}/reset-password` },
+        });
+        const passwordSetupUrl = linkData?.properties?.action_link;
+        if (passwordSetupUrl) {
+          await sendEmail({
+            type: EmailType.STUDENT_WELCOME,
+            to: lower,
+            subject: "You're a Deadline affiliate — set your password",
+            variables: {
+              name: displayName,
+              appName: "Deadline",
+              passwordSetupUrl,
+            },
+          });
+        }
+      } catch (err) {
+        console.error("[referrers] welcome email failed", err);
+      }
+    }
   }
-  const existing = await prisma.referrer.findUnique({
-    where: { userId: user.id },
-  });
-  if (existing) {
-    return res.status(409).json({ message: "That user is already a referrer." });
-  }
+
   const referrer = await prisma.referrer.create({
     data: {
-      userId: user.id,
-      email: email.toLowerCase(),
+      userId,
+      email: lower,
       displayName,
       ...(typeof splitPercent === "number" ? { splitPercent } : {}),
     },

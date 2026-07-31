@@ -71,6 +71,7 @@ export function ReferralsPage() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [split, setSplit] = useState("3.5");
+  const [demoPassword, setDemoPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -83,10 +84,12 @@ export function ReferralsPage() {
         email,
         displayName: name,
         splitPercent: Number(split) || 3.5,
+        ...(demoPassword.trim() ? { demoPassword: demoPassword.trim() } : {}),
       });
       setEmail("");
       setName("");
       setSplit("3.5");
+      setDemoPassword("");
       queryClient.invalidateQueries({ queryKey: ["referrers"] });
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : "Failed to add referrer");
@@ -169,6 +172,20 @@ export function ReferralsPage() {
                 onChange={(e) => setSplit(e.target.value)}
                 className="bg-bg border-line text-fg"
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-fg">Demo login password (optional)</Label>
+              <Input
+                value={demoPassword}
+                onChange={(e) => setDemoPassword(e.target.value)}
+                placeholder="Leave blank for real affiliates"
+                className="bg-bg border-line text-fg"
+              />
+              <p className="text-[11px] text-muted leading-snug">
+                Real affiliates: leave blank — they get a "set your password"
+                email. Only set this for a demo account you can't email-verify
+                (min 8 chars); you'll log in with this password.
+              </p>
             </div>
             {createError && <p className="text-sm text-danger">{createError}</p>}
             <Button
