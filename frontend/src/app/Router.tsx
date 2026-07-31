@@ -15,6 +15,7 @@ import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { HomePage } from "./pages/HomePage";
 import { PlaceDetailPage as StudentPlacesDetailPage } from "./pages/student/PlacesDetailPage";
 import { MyBidsPage } from "./pages/student/MyBidsPage";
+import { AffiliatePortalPage } from "./pages/student/AffiliatePortalPage";
 import { CheckoutPage } from "./pages/student/CheckoutPage";
 import { ProfilePage } from "./pages/student/ProfilePage";
 import { ComingSoonPage } from "./pages/student/ComingSoonPage";
@@ -111,6 +112,7 @@ const protectedRoutes = [
     element: <StudentLayout />,
     children: [
       { path: ROUTES.STUDENT_MY_BIDS, element: <MyBidsPage /> },
+      { path: ROUTES.STUDENT_REFERRALS, element: <AffiliatePortalPage /> },
       { path: ROUTES.STUDENT_CHECKOUT, element: <CheckoutPage /> },
       { path: ROUTES.STUDENT_PROFILE, element: <ProfilePage /> },
       {

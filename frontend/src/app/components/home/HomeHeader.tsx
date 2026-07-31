@@ -19,6 +19,7 @@ import { logout } from "../../../store/slices/authSlice";
 import { removeAuthToken } from "../../../utils/tokenHelpers";
 import { HowItWorksModal } from "./HowItWorksModal";
 import { cn } from "../ui/utils";
+import { useMyReferrer } from "../../../hooks/useMyReferrer";
 
 interface HomeHeaderProps {
   showSearchBar?: boolean;
@@ -37,6 +38,7 @@ export function HomeHeader({
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { data: myReferrer } = useMyReferrer();
 
   const isHome = location.pathname === ROUTES.HOME;
 
@@ -84,6 +86,15 @@ export function HomeHeader({
       {isAuthenticated && user ? (
         <div className="flex items-center justify-between gap-2">
           <DashboardLink />
+
+          {myReferrer && user.role === UserRole.STUDENT && (
+            <Link
+              to={ROUTES.STUDENT_REFERRALS}
+              className="hidden md:block text-sm font-medium text-muted hover:text-fg transition-colors"
+            >
+              My Referrals
+            </Link>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
