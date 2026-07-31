@@ -134,7 +134,7 @@ export async function createReferrer(req: Request, res: Response) {
         .json({ message: "That account is already a referrer." });
     }
   } else {
-    const usingDemoPassword = Boolean(demoPassword && demoPassword.length >= 8);
+    const usingDemoPassword = Boolean(demoPassword && demoPassword.length >= 6);
     const password = usingDemoPassword
       ? (demoPassword as string)
       : crypto.randomBytes(24).toString("hex");
@@ -192,6 +192,26 @@ export async function createReferrer(req: Request, res: Response) {
     },
   });
   res.status(201).json({ data: referrer });
+}
+
+// Set/reset a referrer's login password (admin only). For demo accounts you
+// can't email-verify, or to recover an account created without a demo password.
+export async function setReferrerPassword(req: Request, res: Response) {
+  const { id } = req.params;
+  const { password } = req.body as { password?: string };
+  if (!password || password.length < 6) {
+    return res
+      .status(400)
+      .json({ message: "Password must be at least 6 characters" });
+  }
+  const referrer = await prisma.referrer.findUnique({ where: { id } });
+  if (!referrer) return res.status(404).json({ message: "Referrer not found" });
+  const { error } = await supabase.auth.admin.updateUserById(referrer.userId, {
+    password,
+    email_confirm: true,
+  });
+  if (error) throw new CustomError(error.message, 400);
+  res.json({ data: { ok: true } });
 }
 
 // Attach (or detach) a referrer to a hotel listing. Setting a referrer starts
