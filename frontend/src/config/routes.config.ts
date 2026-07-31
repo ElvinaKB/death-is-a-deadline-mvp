@@ -13,6 +13,7 @@ export const ROUTES = {
   WAITLIST: "/waitlist",
   HOTELS_LANDING: "/hotels",
   HOTELS_JOIN: "/hotels/join",
+  REFERRALS_LANDING: "/referrals",
   PUBLIC_PLACE_DETAIL: "/:slug",
 
   // Student routes
