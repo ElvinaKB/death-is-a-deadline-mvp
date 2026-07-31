@@ -21,6 +21,15 @@ const fmt$ = (n: number) =>
     currency: "USD",
   }).format(n);
 
+const fmtDate = (iso: string | null) =>
+  iso
+    ? new Date(iso).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "—";
+
 export function AffiliatePortalPage() {
   const { data: referrer, isLoading } = useMyReferrer();
   const queryClient = useQueryClient();
@@ -206,18 +215,24 @@ export function AffiliatePortalPage() {
                     {referrer.hotels.map((h) => (
                       <div
                         key={h.placeId}
-                        className="flex justify-between items-center text-sm border-b border-line/40 last:border-0 pb-2 last:pb-0"
+                        className="border-b border-line/40 last:border-0 pb-2 last:pb-0"
                       >
-                        <span className="text-fg flex items-center gap-1.5">
-                          <MapPin className="h-3.5 w-3.5 text-muted" /> {h.name}{" "}
-                          <span className="text-muted">· {h.city}</span>
-                        </span>
-                        <span className="text-muted">
-                          {h.bookings} booking{h.bookings === 1 ? "" : "s"} ·{" "}
-                          <span className="text-fg font-medium">
-                            {fmt$(h.earning)}
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-fg flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5 text-muted" /> {h.name}{" "}
+                            <span className="text-muted">· {h.city}</span>
                           </span>
-                        </span>
+                          <span className="text-muted">
+                            {h.bookings} booking{h.bookings === 1 ? "" : "s"} ·{" "}
+                            <span className="text-fg font-medium">
+                              {fmt$(h.earning)}
+                            </span>
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted mt-0.5 pl-5">
+                          Referred {fmtDate(h.referralStartedAt)} · earns you
+                          through {fmtDate(h.windowEndsAt)}
+                        </p>
                       </div>
                     ))}
                   </div>
