@@ -103,6 +103,7 @@ export const ENDPOINTS = {
   // Affiliate / referrals
   REFERRERS: "/api/referrers",
   REFERRER_ASSIGN_PLACE: "/api/referrers/place/:id",
+  REFERRER_SET_PASSWORD: "/api/referrers/:id/set-password",
   MY_REFERRER: "/api/referrers/me",
   MY_REFERRER_TAX: "/api/referrers/me/tax",
 

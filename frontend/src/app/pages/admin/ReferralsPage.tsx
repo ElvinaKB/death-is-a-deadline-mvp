@@ -118,6 +118,35 @@ export function ReferralsPage() {
     }
   };
 
+  const [pwMap, setPwMap] = useState<Record<string, string>>({});
+  const [pwSaving, setPwSaving] = useState<string | null>(null);
+  const [pwMsg, setPwMsg] = useState<Record<string, string>>({});
+
+  const setPassword = async (id: string) => {
+    const pw = (pwMap[id] ?? "").trim();
+    if (pw.length < 6) {
+      setPwMsg((m) => ({ ...m, [id]: "Min 6 characters" }));
+      return;
+    }
+    setPwSaving(id);
+    setPwMsg((m) => ({ ...m, [id]: "" }));
+    try {
+      await apiClient.post(
+        getEndpoint(ENDPOINTS.REFERRER_SET_PASSWORD, { id }),
+        { password: pw },
+      );
+      setPwMsg((m) => ({ ...m, [id]: "✓ Password set — they can log in now" }));
+      setPwMap((m) => ({ ...m, [id]: "" }));
+    } catch (e) {
+      setPwMsg((m) => ({
+        ...m,
+        [id]: e instanceof Error ? e.message : "Failed to set password",
+      }));
+    } finally {
+      setPwSaving(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -305,6 +334,34 @@ export function ReferralsPage() {
                       ))}
                     </div>
                   )}
+                  <div className="mt-3 border-t border-line/50 pt-3 flex flex-wrap items-end gap-2">
+                    <div className="flex-1 min-w-[180px] space-y-1">
+                      <Label className="text-xs text-muted">
+                        Set login password (for demo accounts)
+                      </Label>
+                      <Input
+                        type="text"
+                        value={pwMap[r.id] ?? ""}
+                        onChange={(e) =>
+                          setPwMap((m) => ({ ...m, [r.id]: e.target.value }))
+                        }
+                        placeholder="min 6 characters"
+                        className="bg-bg border-line text-fg"
+                      />
+                    </div>
+                    <Button
+                      variant="secondary"
+                      disabled={pwSaving === r.id}
+                      onClick={() => setPassword(r.id)}
+                    >
+                      {pwSaving === r.id ? "Setting…" : "Set password"}
+                    </Button>
+                    {pwMsg[r.id] && (
+                      <span className="w-full text-xs text-muted">
+                        {pwMsg[r.id]}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
