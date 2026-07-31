@@ -52,6 +52,7 @@ import { AccessibilityPage } from "./pages/legal/AccessibilityPage";
 import { ContactPage } from "./pages/ContactPage";
 import { WaitlistPage } from "./pages/WaitlistPage";
 import { HotelsLandingPage } from "./pages/HotelsLandingPage";
+import { ReferralsLandingPage } from "./pages/ReferralsLandingPage";
 import { HotelJoinPage } from "./pages/HotelJoinPage";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
@@ -77,6 +78,7 @@ const publicRoutes = [
   { path: ROUTES.CONTACT, element: <ContactPage /> },
   { path: ROUTES.WAITLIST, element: <WaitlistPage /> },
   { path: ROUTES.HOTELS_LANDING, element: <HotelsLandingPage /> },
+  { path: ROUTES.REFERRALS_LANDING, element: <ReferralsLandingPage /> },
   { path: ROUTES.HOTELS_JOIN, element: <HotelJoinPage /> },
   // Old /student links (e.g. already-sent booking confirmation emails)
   // redirect to their new /member equivalents.

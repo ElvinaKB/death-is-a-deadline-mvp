@@ -4,6 +4,7 @@ import { reopenCookieConsentBanner } from "../../../utils/cookieConsent";
 
 const footerLinks = [
   { to: ROUTES.HOTELS_JOIN, label: "Ready to Join?" },
+  { to: ROUTES.REFERRALS_LANDING, label: "Earn With Deadline" },
   { to: ROUTES.CONTACT, label: "Contact Us" },
   { to: ROUTES.TERMS, label: "Terms of Use" },
   { to: ROUTES.PRIVACY, label: "Privacy Policy" },
