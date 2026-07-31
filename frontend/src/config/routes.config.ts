@@ -18,6 +18,7 @@ export const ROUTES = {
   // Student routes
   STUDENT_DASHBOARD: "/member/dashboard",
   STUDENT_MY_BIDS: "/member/my-bids",
+  STUDENT_REFERRALS: "/member/referrals",
   STUDENT_CHECKOUT: "/member/checkout/:bidId",
   STUDENT_PROFILE: "/member/profile",
   STUDENT_SAVED_HOTELS: "/member/saved-hotels",
