@@ -21,6 +21,8 @@ interface ReferrerHotel {
   bookings: number;
   gross: number;
   earning: number;
+  referralStartedAt: string | null;
+  windowEndsAt: string | null;
 }
 interface Referrer {
   id: string;
@@ -52,6 +54,15 @@ const fmt$ = (n: number) =>
     style: "currency",
     currency: "USD",
   }).format(n);
+
+const fmtDate = (iso: string | null) =>
+  iso
+    ? new Date(iso).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "—";
 
 export function ReferralsPage() {
   const queryClient = useQueryClient();
@@ -318,18 +329,21 @@ export function ReferralsPage() {
                   {r.hotels.length > 0 && (
                     <div className="mt-3 border-t border-line/50 pt-3 space-y-1">
                       {r.hotels.map((h) => (
-                        <div
-                          key={h.placeId}
-                          className="flex justify-between text-sm"
-                        >
-                          <span className="text-fg">
-                            {h.name}{" "}
-                            <span className="text-muted">· {h.city}</span>
-                          </span>
-                          <span className="text-muted">
-                            {h.bookings} booking{h.bookings === 1 ? "" : "s"} ·{" "}
-                            {fmt$(h.earning)}
-                          </span>
+                        <div key={h.placeId} className="text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-fg">
+                              {h.name}{" "}
+                              <span className="text-muted">· {h.city}</span>
+                            </span>
+                            <span className="text-muted">
+                              {h.bookings} booking{h.bookings === 1 ? "" : "s"} ·{" "}
+                              {fmt$(h.earning)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted">
+                            Referred {fmtDate(h.referralStartedAt)} · window ends{" "}
+                            {fmtDate(h.windowEndsAt)}
+                          </p>
                         </div>
                       ))}
                     </div>
