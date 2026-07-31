@@ -35,6 +35,11 @@ model Place {
   allowedDaysOfWeek      Int[]             @default([0, 1, 2, 3, 4, 5, 6]) @map("allowed_days_of_week")
   maxInventory           Int               @default(1) @map("max_inventory")
   status                 PlaceStatus       @default(DRAFT)
+  // Affiliate/referral: who referred this hotel + when it started (the 1-year
+  // referral window runs from referralStartedAt).
+  referrerId             String?           @map("referrer_id")
+  referrer               Referrer?         @relation("PlaceReferrer", fields: [referrerId], references: [id], onDelete: SetNull)
+  referralStartedAt      DateTime?         @map("referral_started_at")
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
   bids                   Bid[]
@@ -45,6 +50,34 @@ model Place {
   views                  PlaceView[]
 
   @@map("places")
+  @@schema("public")
+}
+
+// Affiliate/referrer: a person who refers hotels to Deadline and earns a share
+// of commission on that hotel's bookings for a fixed window (default 12 months).
+// A referrer is also a normal traveler account (userId -> auth users), so they
+// can bid too. Raw tax IDs (SSN/EIN) are intentionally NOT stored here — the W-9
+// TIN must be handled by a secure vault / tax-payout service before real payouts.
+model Referrer {
+  id                   String    @id @default(uuid())
+  userId               String    @unique @map("user_id") @db.Uuid
+  displayName          String    @map("display_name")
+  email                String
+  // Percent of each referred booking's total that the referrer earns
+  // (3.5% = 50% of Deadline's 7% commission).
+  splitPercent         Float     @default(3.5) @map("split_percent")
+  referralWindowMonths Int       @default(12) @map("referral_window_months")
+  // Tax status gates payout: "pending" until a W-9 is on file, then "submitted".
+  taxStatus            String    @default("pending") @map("tax_status")
+  taxLegalName         String?   @map("tax_legal_name")
+  taxClassification    String?   @map("tax_classification")
+  taxAddress           String?   @map("tax_address")
+  status               String    @default("active")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  referredPlaces       Place[]   @relation("PlaceReferrer")
+
+  @@map("referrers")
   @@schema("public")
 }
 

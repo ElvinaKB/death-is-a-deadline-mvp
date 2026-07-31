@@ -7,6 +7,7 @@ import {
   Mail,
   Compass,
   Building2,
+  Handshake,
 } from "lucide-react";
 import { ROUTES } from "../config/routes.config";
 import { useLocation } from "react-router-dom";
@@ -52,6 +53,11 @@ export function useAdminSidebar(): SidebarItem[] {
       title: "Hotel Sign-ups",
       path: ROUTES.ADMIN_HOTEL_APPLICATIONS,
       icon: Building2,
+    },
+    {
+      title: "Referrals",
+      path: ROUTES.ADMIN_REFERRALS,
+      icon: Handshake,
     },
     {
       title: "Destination Requests",
