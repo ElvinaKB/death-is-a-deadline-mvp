@@ -47,7 +47,12 @@ export default function App() {
               <AppRouter />
               <CookieConsentBanner />
             </AnalyticsProvider>
-            <Toaster position="top-right" richColors />
+            <Toaster
+              position="top-center"
+              richColors
+              closeButton
+              duration={2500}
+            />
           </BrowserRouter>
         </QueryClientProvider>
       </PersistGate>

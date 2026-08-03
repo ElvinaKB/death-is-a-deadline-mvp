@@ -5,8 +5,10 @@ import headerBg from "../../assets/hotel-checkin.jpg";
 const GOLD = "#c5a059";
 const NAVY = "#040d1f";
 
+const HOTELS_URL = "https://www.deadlinetravel.com/hotels";
+
 const INTRO_MAILTO =
-  "mailto:hotels@deadlinetravel.com?subject=Hotel%20introduction%20for%20Deadline&body=Hi%20Elvina%2C%0A%0AI'd%20like%20to%20introduce%20you%20to%20a%20hotel%3A%0A%0AHotel%20name%3A%0AContact%20name%20%26%20email%3A%0ACity%3A%0AWhy%20they'd%20be%20a%20fit%3A%0A%0AThanks!";
+  "mailto:hotels@deadlinetravel.com?subject=Hotel%20introduction%20for%20Deadline&body=Hi%20Elvina%2C%0A%0AI'd%20like%20to%20introduce%20you%20to%20a%20hotel%3A%0A%0AHotel%20name%3A%0AContact%20name%20%26%20email%3A%0ACity%3A%0AWhy%20they'd%20be%20a%20fit%3A%0A%0A(You%20can%20share%20this%20with%20them%3A%20https%3A%2F%2Fwww.deadlinetravel.com%2Fhotels)%0A%0AThanks!";
 
 function Check({ children }: { children: React.ReactNode }) {
   return (
@@ -128,15 +130,17 @@ export function ReferralsLandingPage() {
                 → Introduce a Hotel
               </a>
               <p className="text-sm text-gray-500 mt-3">
-                Or have them book a discovery call at{" "}
-                <Link
-                  to={ROUTES.HOTELS_LANDING}
-                  className="font-bold hover:underline"
+                Share this with your hotel friend so they can learn more &amp;
+                book a discovery call:{" "}
+                <a
+                  href={HOTELS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold hover:underline break-all"
                   style={{ color: GOLD }}
                 >
-                  deadlinetravel.com/hotels
-                </Link>
-                .
+                  {HOTELS_URL}
+                </a>
               </p>
             </div>
 
