@@ -10,12 +10,6 @@ export type ThresholdPricingPlace = {
   minimumBidByDayOfWeek: number[];
 };
 
-export type StayThresholdSummary = {
-  minimumTotal: number;
-  nights: number;
-  impliedPerNight: number;
-};
-
 /** Advance yyyy-MM-dd by one calendar day (UTC). */
 function addCalendarDay(dateKey: string): string {
   const [y, m, d] = dateKey.split("-").map(Number);
@@ -34,10 +28,6 @@ export function getOccupiedNights(checkIn: Date, checkOut: Date): Date[] {
   }
 
   return nights;
-}
-
-function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
 }
 
 function resolveWeekdayMinimums(
@@ -59,42 +49,6 @@ export function getMinimumForNight(
 ): number {
   const weekday = nightDate.getUTCDay();
   return resolveWeekdayMinimums(place)[weekday] ?? Number(place.minimumBid);
-}
-
-export function getStayThresholdSummary(
-  place: ThresholdPricingPlace,
-  checkIn: Date,
-  checkOut: Date,
-): StayThresholdSummary {
-  const nights = getOccupiedNights(checkIn, checkOut);
-  const minimumTotal = nights.reduce(
-    (sum, night) => sum + getMinimumForNight(place, night),
-    0,
-  );
-  const nightsCount = nights.length;
-
-  return {
-    minimumTotal: roundMoney(minimumTotal),
-    nights: nightsCount,
-    impliedPerNight:
-      nightsCount > 0 ? roundMoney(minimumTotal / nightsCount) : 0,
-  };
-}
-
-export function isBidAboveStayThreshold(
-  place: ThresholdPricingPlace,
-  checkIn: Date,
-  checkOut: Date,
-  bidPerNight: number,
-): boolean {
-  const { minimumTotal, nights } = getStayThresholdSummary(
-    place,
-    checkIn,
-    checkOut,
-  );
-  if (nights === 0) return false;
-  const totalBid = roundMoney(bidPerNight * nights);
-  return totalBid >= minimumTotal;
 }
 
 export function formatThresholdBidRange(

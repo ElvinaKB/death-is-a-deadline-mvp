@@ -174,16 +174,6 @@ const calendarDateKeySchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be yyyy-MM-dd");
 
-export const stayMinimumQuerySchema = z
-  .object({
-    checkIn: calendarDateKeySchema,
-    checkOut: calendarDateKeySchema,
-  })
-  .refine((q) => q.checkIn < q.checkOut, {
-    message: "checkOut must be after checkIn",
-    path: ["checkOut"],
-  });
-
 export const unavailableNightsQuerySchema = z
   .object({
     from: calendarDateKeySchema,

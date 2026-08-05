@@ -31,10 +31,8 @@ import {
   resolvePlaceTimezone,
   toCalendarDateKey,
 } from "../libs/utils/hotelDates";
-import {
-  getOccupiedNights,
-  isBidAboveStayThreshold,
-} from "../services/thresholdPricing.service";
+import { getOccupiedNights } from "../services/thresholdPricing.service";
+import { isBidAboveDynamicStayThreshold } from "../services/dynamicPricing.service";
 
 // Helper to format bid response
 const formatBid = (bid: any) => {
@@ -167,8 +165,18 @@ export async function createBid(req: Request, res: Response) {
     );
   }
 
-  // Total Stay Threshold: sum of each night's minimum vs total bid
-  if (!isBidAboveStayThreshold(place, checkInDate, checkOutDate, data.bidPerNight)) {
+  // Total Stay Threshold: sum of each night's dynamic minimum vs total bid.
+  // The floor is fixed, but the effective threshold drifts within a bounded
+  // range (inventory scarcity, lead time, recent bid activity) — never
+  // exposed to the traveler, only the accept/reject outcome is.
+  if (
+    !(await isBidAboveDynamicStayThreshold(
+      place,
+      checkInDate,
+      checkOutDate,
+      data.bidPerNight,
+    ))
+  ) {
     // Record the losing attempt (price, dates, who) instead of discarding
     // it — this is the pricing signal future smart-pricing needs.
     await prisma.bid.create({

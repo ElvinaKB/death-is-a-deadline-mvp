@@ -56,12 +56,6 @@ export interface SoldOutNightsResponse {
   soldOutNights: string[];
 }
 
-export interface StayMinimumResponse {
-  minimumTotal: number;
-  nights: number;
-  impliedPerNight: number;
-}
-
 export interface PlaceImage {
   id: string;
   url: string;
