@@ -76,6 +76,7 @@ router.get(
 router.get(
   "/:id",
   validate(placeIdParamSchema, "params"),
+  authenticate(UserRole.ADMIN),
   placesController.getPlace,
 );
 
