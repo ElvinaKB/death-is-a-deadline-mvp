@@ -44,12 +44,13 @@ export type DynamicPricingPlace = ThresholdPricingPlace &
     maxInventory: number;
   };
 
-function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
-}
-
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+/** Cent-safe rounding for sums/comparisons — distinct from the whole-dollar premium itself. */
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 function computeNextPremium(params: {
@@ -87,7 +88,7 @@ function computeNextPremium(params: {
   const base = previousPremium ?? BASE_STARTING_PREMIUM;
   const next = base + step + scarcityBias + activityBonus - urgencyDiscount;
 
-  return roundMoney(clamp(next, MIN_PREMIUM, MAX_PREMIUM));
+  return Math.round(clamp(next, MIN_PREMIUM, MAX_PREMIUM));
 }
 
 /** Sum of dynamic per-night thresholds for [checkIn, checkOut), advancing and persisting each night's walk. */
