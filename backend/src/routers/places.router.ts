@@ -12,7 +12,6 @@ import {
   publicPlacesQuerySchema,
   resendHotelInviteSchema,
   unavailableNightsQuerySchema,
-  stayMinimumQuerySchema,
 } from "../validations/places/places.validation";
 import { UserRole } from "../types/auth.types";
 
@@ -48,14 +47,6 @@ router.get(
   validate(placeRefParamSchema, "params"),
   validate(unavailableNightsQuerySchema, "query"),
   placesController.getPublicPlaceUnavailableNights,
-);
-
-// Public route - stay minimum total for bid validation hint
-router.get(
-  "/public/:id/stay-minimum",
-  validate(placeRefParamSchema, "params"),
-  validate(stayMinimumQuerySchema, "query"),
-  placesController.getPublicPlaceStayMinimum,
 );
 
 router.post(

@@ -16,13 +16,12 @@ import {
   HOTEL_INVITE_EXPIRY_DAYS,
 } from "../libs/utils/inviteToken";
 import { supabase } from "../libs/config/supabase";
-import { inferTimezoneFromLocation, parseBookingDateOnly } from "../libs/utils/hotelDates";
+import { inferTimezoneFromLocation } from "../libs/utils/hotelDates";
 import {
   getEffectiveCapByDate,
   getSoldOutNightsInRange,
 } from "../services/inventory.service";
 import {
-  getStayThresholdSummary,
   resolvePlaceThresholdPayload,
   validatePlaceThresholdPricing,
 } from "../services/thresholdPricing.service";
@@ -447,38 +446,6 @@ export async function getPublicPlaceUnavailableNights(
 }
 
 /** Minimum total bid for a stay (public — no raw weekday map). */
-export async function getPublicPlaceStayMinimum(
-  req: Request,
-  res: Response,
-) {
-  const { id: ref } = req.params;
-  const { checkIn, checkOut } = req.query as {
-    checkIn: string;
-    checkOut: string;
-  };
-
-  const place = await findPlaceByRef(ref);
-
-  if (!place || place.status !== PlaceStatus.LIVE) {
-    throw new CustomError("Place not found", 404);
-  }
-
-  let checkInDate: Date;
-  let checkOutDate: Date;
-  try {
-    checkInDate = parseBookingDateOnly(checkIn);
-    checkOutDate = parseBookingDateOnly(checkOut);
-  } catch {
-    throw new CustomError("Invalid booking date", 400);
-  }
-
-  const summary = getStayThresholdSummary(place, checkInDate, checkOutDate);
-
-  res.status(200).json({
-    data: summary,
-  });
-}
-
 export async function createPlace(req: Request, res: Response) {
   const data = req.body as CreatePlaceInput;
 
