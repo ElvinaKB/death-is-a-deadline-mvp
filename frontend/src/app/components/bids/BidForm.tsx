@@ -141,6 +141,8 @@ const HOTEL_TAXES_ACK_ERROR =
   "Please acknowledge that hotel taxes and fees may be collected separately at check-in.";
 const TERMS_ACK_ERROR =
   "Please agree to the Terms of Use, Privacy Policy, and cancellation terms.";
+const DATA_USE_ACK_ERROR =
+  "Please acknowledge how we use your bidding activity.";
 const BID_AMOUNT_ERROR = "Enter your bid amount.";
 
 /** Only errors that should disable Lock In while payment UI still looks ready. */
@@ -375,6 +377,7 @@ function BidFormInner({
   const [bidStep, setBidStep] = useState<BidStep>("dates");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedHotelTaxes, setAcceptedHotelTaxes] = useState(false);
+  const [acceptedDataUse, setAcceptedDataUse] = useState(false);
   const [lockInOpen, setLockInOpen] = useState(false);
   const [isRebidding, setIsRebidding] = useState(false);
   const [auctionSeconds, setAuctionSeconds] = useState(() =>
@@ -634,6 +637,14 @@ function BidFormInner({
     }
   };
 
+  const handleAcceptedDataUseChange = (v: boolean | "indeterminate") => {
+    const checked = v === true;
+    setAcceptedDataUse(checked);
+    if (checked && paymentError === DATA_USE_ACK_ERROR) {
+      setPaymentError(null);
+    }
+  };
+
   const canLockInBid = useMemo(() => {
     if (isBlockingPaymentError(paymentError)) return false;
     if (
@@ -833,6 +844,12 @@ function BidFormInner({
 
       if (isAuthenticated && !acceptedHotelTaxes) {
         setPaymentError(HOTEL_TAXES_ACK_ERROR);
+        submitInFlightRef.current = false;
+        return;
+      }
+
+      if (isAuthenticated && !acceptedDataUse) {
+        setPaymentError(DATA_USE_ACK_ERROR);
         submitInFlightRef.current = false;
         return;
       }
@@ -1335,6 +1352,10 @@ function BidFormInner({
       setPaymentError(HOTEL_TAXES_ACK_ERROR);
       return;
     }
+    if (!acceptedDataUse) {
+      setPaymentError(DATA_USE_ACK_ERROR);
+      return;
+    }
     if (!acceptedTerms) {
       setPaymentError(TERMS_ACK_ERROR);
       return;
@@ -1517,6 +1538,8 @@ function BidFormInner({
     if (!paymentError) return;
     if (paymentError === HOTEL_TAXES_ACK_ERROR && acceptedHotelTaxes) {
       setPaymentError(null);
+    } else if (paymentError === DATA_USE_ACK_ERROR && acceptedDataUse) {
+      setPaymentError(null);
     } else if (paymentError === TERMS_ACK_ERROR && acceptedTerms) {
       setPaymentError(null);
     } else if (paymentError === BID_AMOUNT_ERROR && canProceedFromAmount) {
@@ -1525,6 +1548,7 @@ function BidFormInner({
   }, [
     paymentError,
     acceptedHotelTaxes,
+    acceptedDataUse,
     acceptedTerms,
     canProceedFromAmount,
   ]);
@@ -2024,6 +2048,24 @@ function BidFormInner({
               <Label htmlFor="listing-hotel-taxes-ack" className="text-xs text-muted leading-relaxed cursor-pointer">
                 Hotel taxes and government-imposed fees may be collected separately
                 by the hotel at check-in.
+              </Label>
+            </div>
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="listing-data-use-ack"
+                checked={acceptedDataUse}
+                onCheckedChange={handleAcceptedDataUseChange}
+                className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
+              />
+              <Label htmlFor="listing-data-use-ack" className="text-xs text-muted leading-relaxed cursor-pointer">
+                I understand that Deadline records my bidding activity and uses it
+                &mdash; grouped with similar travelers by behavior, not personal
+                identity &mdash; to match me with hotels and, at times, to invite
+                me to bid again. See our{" "}
+                <Link to={ROUTES.PRIVACY} className="text-gold underline" target="_blank">
+                  Privacy Policy
+                </Link>
+                .
               </Label>
             </div>
             <div className="flex items-start gap-3">

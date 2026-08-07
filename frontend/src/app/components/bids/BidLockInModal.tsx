@@ -203,7 +203,7 @@ export function BidLockInModal({
             {isSubmitting
               ? "Please wait while we submit your bid and process payment."
               : timerRunning
-                ? "Step away anytime until this hits zero."
+                ? "Nothing is charged until you tap Confirm. You can adjust or close this anytime — your card is only charged if you confirm and your bid meets the hotel's price."
                 : "You can place your binding bid now."}
           </p>
 
@@ -247,8 +247,9 @@ export function BidLockInModal({
 
           <p className="text-xs text-muted text-center leading-relaxed">
             Death Is A Deadline is the merchant of record on your card
-            statement. Your card is charged automatically the moment your bid
-            is accepted &mdash; typically within minutes.
+            statement. Once you confirm, if your bid meets the hotel&apos;s
+            private price, your room is booked and your card is charged
+            immediately &mdash; there&apos;s no separate acceptance step.
           </p>
         </div>
 
