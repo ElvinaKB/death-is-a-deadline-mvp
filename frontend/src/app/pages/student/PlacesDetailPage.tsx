@@ -64,22 +64,32 @@ const FAQ_DATA = [
       "If your bid is rejected, you won't be charged anything. You can try again with a different price or choose different dates. The rejection happens instantly, so you'll know right away.",
   },
   {
-    id: "edu-email",
-    question: "Why do I need to get verified by email?",
+    id: "eligibility",
+    question: "Who can use Deadline?",
     answer:
-      "Deadline is not open to the public. You must be a member to bid. Members are verified by their email addresses.",
+      "Deadline is a private, verified-member marketplace — not open to the general public. You're instantly approved with a .edu, .gov, or approved corporate email address; everyone else can still join through manual ID or LinkedIn verification.",
+  },
+  {
+    id: "hidden-fees",
+    question: "Are there any hidden fees?",
+    answer:
+      "No. If a hotel charges a mandatory resort or parking fee, it's already included in the price shown before you confirm — never added afterward. Only government taxes may be collected separately by the hotel. Optional parking (where offered) is billed separately if you choose it, and pet fees are always separate — contact the hotel directly to ask about their pet policy before booking if you're traveling with one.",
   },
   {
     id: "charged",
     question: "When will my card be charged?",
     answer:
-      "Your card is charged immediately when your bid is accepted. If your bid is rejected, no charge is made. You'll receive a confirmation email once your booking is confirmed.",
+      "Your card is charged immediately when your bid is accepted, for the full price shown — including any mandatory hotel fee. If your bid is rejected, no charge is made. Government taxes are due at check-in, and the hotel will typically ask for a card on file for incidentals. Reservations are booked in your name and must be honored by you — please don't book a room for someone else who won't be present, as the hotel may ask for ID matching the reservation at check-in.",
   },
   {
     id: "cancel",
     question: "Can I cancel a bid?",
     answer:
-      "Once a bid is accepted and payment is processed, it's considered a confirmed booking and follows standard hotel cancellation policies. Pending bids can be cancelled anytime before acceptance.",
+      "For hotels located in California, state law entitles you to a full refund if you cancel within 24 hours of booking, as long as you booked at least 72 hours before check-in. For hotels in every other state, and for California bookings past that 24-hour window, your bid is binding and non-refundable once accepted — you agree to this when you accept our Terms of Use.",
+    link: {
+      label: "California SB 644 (Civil Code § 1748.81)",
+      href: "https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202320240SB644",
+    },
   },
 ];
 
@@ -404,6 +414,19 @@ export function PlaceDetailPage() {
                   </AccordionTrigger>
                   <AccordionContent className="text-muted">
                     {faq.answer}
+                    {faq.link && (
+                      <>
+                        {" "}
+                        <a
+                          href={faq.link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gold underline"
+                        >
+                          {faq.link.label}
+                        </a>
+                      </>
+                    )}
                   </AccordionContent>
                 </AccordionItem>
               ))}
