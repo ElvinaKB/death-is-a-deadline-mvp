@@ -43,6 +43,10 @@ export interface Place {
   blackoutDates: string[]; // Array of ISO date strings
   allowedDaysOfWeek: number[]; // 0=Sunday, 1=Monday, ..., 6=Saturday
   maxInventory: number; // Maximum rooms/beds available per date
+  /** Mandatory, non-waivable per-night resort fee. 0 = none. */
+  mandatoryResortFeeAmount?: number;
+  /** Mandatory, non-waivable per-night parking fee (parking is not optional). 0 = none/optional. */
+  mandatoryParkingFeeAmount?: number;
   status: PlaceStatus;
   createdAt: string;
   updatedAt: string;
@@ -83,6 +87,8 @@ export interface CreatePlaceRequest {
   blackoutDates: string[];
   allowedDaysOfWeek: number[];
   maxInventory: number;
+  mandatoryResortFeeAmount: number;
+  mandatoryParkingFeeAmount: number;
   status: PlaceStatus;
   keywords?: string[];
 }
@@ -130,6 +136,8 @@ export interface CreatePlacePayload {
   blackoutDates: string[];
   allowedDaysOfWeek: number[];
   maxInventory: number;
+  mandatoryResortFeeAmount: number;
+  mandatoryParkingFeeAmount: number;
   status: PlaceStatus;
   keywords?: string[];
 }

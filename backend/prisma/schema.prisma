@@ -34,6 +34,15 @@ model Place {
   blackoutDates          String[]          @default([])
   allowedDaysOfWeek      Int[]             @default([0, 1, 2, 3, 4, 5, 6]) @map("allowed_days_of_week")
   maxInventory           Int               @default(1) @map("max_inventory")
+  // Mandatory, non-waivable per-night fees the hotel charges (resort fee,
+  // and/or parking when parking is not optional). 0 = none. Per the FTC
+  // Junk Fees Rule (effective 2025-05-12) and California SB 478/AB 537,
+  // any mandatory fee must be included in the total price shown before
+  // checkout, not collected separately at check-in — unlike government
+  // taxes and genuinely optional charges (e.g. optional parking), which
+  // may still be disclosed and collected separately.
+  mandatoryResortFeeAmount  Float          @default(0) @map("mandatory_resort_fee_amount")
+  mandatoryParkingFeeAmount Float          @default(0) @map("mandatory_parking_fee_amount")
   status                 PlaceStatus       @default(DRAFT)
   // Affiliate/referral: who referred this hotel + when it started (the 1-year
   // referral window runs from referralStartedAt).
@@ -250,6 +259,12 @@ model Bid {
   bidPerNight        Decimal    @map("bid_per_night") @db.Decimal(10, 2)
   totalNights        Int        @map("total_nights")
   totalAmount        Decimal    @map("total_amount") @db.Decimal(10, 2)
+  // Mandatory fee snapshot (resort/parking) at booking time, in addition to
+  // totalAmount (the room rate). Charged to the guest, passed through to the
+  // hotel in full, and excluded from platformCommission's basis. Snapshotted
+  // here rather than read live from Place so a hotel's later fee changes
+  // never alter what an existing bid was booked and charged at.
+  mandatoryFeeAmount Decimal    @default(0) @map("mandatory_fee_amount") @db.Decimal(10, 2)
   platformCommission Decimal?   @map("platform_commission") @db.Decimal(10, 2)
   payableToHotel     Decimal?   @map("payable_to_hotel") @db.Decimal(10, 2)
   payoutMethod       String?    @map("payout_method") @db.VarChar(50)

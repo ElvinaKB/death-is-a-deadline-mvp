@@ -15,7 +15,11 @@
   <tr><td class="label">Check-out</td><td class="value"><%= checkOutDate %></td></tr>
   <tr><td class="label">Total Nights</td><td class="value"><%= totalNights %></td></tr>
   <tr><td class="label">Price per Night</td><td class="value">$<%= bidPerNight %></td></tr>
-  <tr class="total-row"><td>Total Amount</td><td class="value">$<%= totalAmount %></td></tr>
+  <tr><td class="label">Room Total</td><td class="value">$<%= totalAmount %></td></tr>
+  <% if (mandatoryFeeAmount) { %>
+  <tr><td class="label">Mandatory Fee (yours in full)</td><td class="value">$<%= mandatoryFeeAmount %></td></tr>
+  <% } %>
+  <tr class="total-row"><td>Total Charged to Guest</td><td class="value">$<%= grandTotal %></td></tr>
 </table>
 
 <div class="success-box">

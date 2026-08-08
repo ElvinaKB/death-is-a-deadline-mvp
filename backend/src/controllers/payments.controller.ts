@@ -302,8 +302,13 @@ export async function createPaymentIntent(req: Request, res: Response) {
     }
   }
 
-  // Convert Decimal to number for Stripe (amount in cents)
-  const amountInCents = Math.round(Number(bid.totalAmount) * 100);
+  // Convert Decimal to number for Stripe (amount in cents). Includes the
+  // hotel's mandatory fee snapshot (resort/parking), if any — that fee is
+  // charged to the guest here but excluded from platform commission's
+  // basis; see applyBidCommission in stripeWebhook.service.ts.
+  const amountInCents = Math.round(
+    (Number(bid.totalAmount) + Number(bid.mandatoryFeeAmount || 0)) * 100,
+  );
   const stripeCustomerId = await getOrCreateStripeCustomerForStudent(studentId);
 
   // Apply any available referral credit as a discount, capped so the
@@ -348,7 +353,7 @@ export async function createPaymentIntent(req: Request, res: Response) {
     create: {
       bidId: bid.id,
       studentId,
-      amount: bid.totalAmount,
+      amount: Number(bid.totalAmount) + Number(bid.mandatoryFeeAmount || 0),
       currency: STRIPE_CONFIG.CURRENCY,
       stripePaymentIntentId: paymentIntent.id,
       stripeClientSecret: paymentIntent.client_secret,

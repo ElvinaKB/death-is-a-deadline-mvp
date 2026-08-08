@@ -57,6 +57,13 @@ export async function sendBookingConfirmationEmails(
     totalNights: bid.totalNights,
     bidPerNight: Number(bid.bidPerNight).toFixed(2),
     totalAmount: Number(bid.totalAmount).toFixed(2),
+    mandatoryFeeAmount:
+      Number(bid.mandatoryFeeAmount || 0) > 0
+        ? Number(bid.mandatoryFeeAmount).toFixed(2)
+        : null,
+    grandTotal: (
+      Number(bid.totalAmount) + Number(bid.mandatoryFeeAmount || 0)
+    ).toFixed(2),
     appName,
   };
 
