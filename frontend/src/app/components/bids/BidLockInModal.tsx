@@ -125,6 +125,20 @@ export function BidLockInModal({
   );
   const retailTotal = place.retailPrice * nights;
 
+  // Mandatory fees (resort/parking) the hotel has declared — must be folded
+  // into the total charged and disclosed before checkout, per the FTC Junk
+  // Fees Rule and (for CA properties) SB 478/AB 537. Government taxes are
+  // the only charge that may still be collected separately at check-in.
+  const mandatoryFeeNames: string[] = [];
+  if ((place.mandatoryResortFeeAmount || 0) > 0) mandatoryFeeNames.push("resort fee");
+  if ((place.mandatoryParkingFeeAmount || 0) > 0)
+    mandatoryFeeNames.push("mandatory parking fee");
+  const mandatoryFeeTotal =
+    ((place.mandatoryResortFeeAmount || 0) + (place.mandatoryParkingFeeAmount || 0)) *
+    nights;
+  const hasMandatoryFee = mandatoryFeeTotal > 0;
+  const grandTotal = totalAmount + mandatoryFeeTotal;
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
@@ -163,7 +177,7 @@ export function BidLockInModal({
 
           <div className="text-center">
             <p className="text-5xl md:text-6xl font-bold text-fg tracking-tight">
-              {formatCurrency(totalAmount)}
+              {formatCurrency(grandTotal)}
             </p>
             <p className="text-sm text-muted mt-2">{place.name}</p>
             {bidPerNight > 0 && (
@@ -175,6 +189,12 @@ export function BidLockInModal({
                 totalAmount={totalAmount}
                 showTotalLabel={false}
               />
+            )}
+            {hasMandatoryFee && (
+              <p className="text-xs text-muted mt-1">
+                Includes {formatCurrency(mandatoryFeeTotal)} mandatory{" "}
+                {mandatoryFeeNames.join(" + ")}.
+              </p>
             )}
           </div>
 
@@ -223,9 +243,24 @@ export function BidLockInModal({
               <span>Retail reference</span>
               <span>{formatCurrency(retailTotal)}</span>
             </div>
+            <div className="flex justify-between text-fg">
+              <span>Room rate (your bid)</span>
+              <span>{formatCurrency(totalAmount)}</span>
+            </div>
+            {hasMandatoryFee && (
+              <div className="flex justify-between text-fg capitalize">
+                <span>{mandatoryFeeNames.join(" + ")}</span>
+                <span>{formatCurrency(mandatoryFeeTotal)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-fg font-medium">
+              <span>Total charged today</span>
+              <span>{formatCurrency(grandTotal)}</span>
+            </div>
             <p className="bid-summary-rows__math leading-relaxed">
-              Taxes, resort fees, parking fees, and other hotel-imposed charges may
-              be collected separately by the hotel at check-in.
+              {hasMandatoryFee
+                ? `Price shown includes the room rate and a mandatory ${mandatoryFeeNames.join(" and ")}. Applicable government taxes are collected by the hotel at check-in. There are no other required charges.`
+                : "What's included: your winning bid is the full room rate — no resort fees, no mandatory parking fees. Applicable government taxes are the only add-on and are collected by the hotel at check-in."}
             </p>
           </div>
 
@@ -272,7 +307,7 @@ export function BidLockInModal({
                 <Lock className="mr-2 h-4 w-4" />
                 {timerRunning
                   ? `Confirm in ${formatLockInTimer(lockInSeconds)}`
-                  : `Place ${formatCurrency(totalAmount)} Bid`}
+                  : `Place ${formatCurrency(grandTotal)} Bid`}
               </>
             )}
           </Button>

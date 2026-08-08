@@ -31,7 +31,9 @@ export async function sendBookingCancellationEmail(
       placeName: bid.place.name,
       checkInDate: formatBookingDate(bid.checkInDate, "MMMM d, yyyy"),
       checkOutDate: formatBookingDate(bid.checkOutDate, "MMMM d, yyyy"),
-      totalAmount: Number(bid.totalAmount).toFixed(2),
+      totalAmount: (
+        Number(bid.totalAmount) + Number(bid.mandatoryFeeAmount || 0)
+      ).toFixed(2),
       cancellationReason: bid.rejectionReason || null,
       appName: "Deadline",
     },

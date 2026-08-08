@@ -60,6 +60,16 @@ export const createPlaceSchema = z.object({
     .min(1, "Max inventory must be at least 1")
     .optional()
     .default(1),
+  mandatoryResortFeeAmount: z
+    .number()
+    .min(0, "Mandatory resort fee cannot be negative")
+    .optional()
+    .default(0),
+  mandatoryParkingFeeAmount: z
+    .number()
+    .min(0, "Mandatory parking fee cannot be negative")
+    .optional()
+    .default(0),
   keywords: z.array(placeKeywordSchema).optional().default([]),
   timezone: z
     .string()
@@ -97,6 +107,8 @@ export const updatePlaceSchema = z.object({
   blackoutDates: z.array(z.string()).optional(),
   allowedDaysOfWeek: z.array(z.number().int().min(0).max(6)).optional(),
   maxInventory: z.number().int().min(1).optional(),
+  mandatoryResortFeeAmount: z.number().min(0).optional(),
+  mandatoryParkingFeeAmount: z.number().min(0).optional(),
   keywords: z.array(placeKeywordSchema).optional(),
   timezone: z
     .string()
