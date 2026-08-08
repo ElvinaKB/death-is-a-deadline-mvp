@@ -343,6 +343,34 @@ export function PrivacyPolicyContent() {
         ]}
       />
 
+      <LegalH3 key="bid-activity-1">4.6 How We Use Your Bidding Activity.</LegalH3>
+      <LegalP key="bid-activity-2">
+        When you place bids on Deadline, we record the amounts you bid, whether they were accepted, how
+        often you bid, the types of stays you book, and &mdash; where hotels share it &mdash; what you
+        spend on property. We use this information to operate the marketplace, improve your matches, and
+        help hotels decide which offers to accept. We may group you with other travelers who behave
+        similarly (for example, &ldquo;frequent midweek business travelers who typically bid in a given
+        range&rdquo;) and share aggregated or behavior-based insights with hotels &mdash; including, at
+        times, an individual offer to a specific hotel on your behalf (for example, letting a hotel know a
+        repeat guest tends to bid a certain amount and inviting them to accept it).
+      </LegalP>
+
+      <LegalH3 key="bid-activity-3">4.7 What We Do Not Do.</LegalH3>
+      <LegalP key="bid-activity-4">
+        We do not group, price, or profile you based on protected characteristics such as gender, age,
+        race, religion, disability, or national origin. We segment only on your behavior on the platform.
+      </LegalP>
+
+      <LegalH3 key="bid-activity-5">4.8 Your Choices Regarding Bidding Activity.</LegalH3>
+      <LegalP key="bid-activity-6">
+        You can request access to, correction of, or deletion of your data, and you can opt out of
+        behavior-based matching, by contacting{" "}
+        <a href="mailto:privacy@deadlinetravel.com" className="underline">
+          privacy@deadlinetravel.com
+        </a>
+        . Opting out may limit our ability to surface offers tailored to you.
+      </LegalP>
+
       <LegalH2 key="b-59">5. Sharing and Disclosure of Personal Information</LegalH2>
 
       <LegalH3 key="b-60">5.1 With Your Consent or at Your Direction.</LegalH3>

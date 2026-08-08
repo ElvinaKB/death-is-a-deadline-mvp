@@ -313,6 +313,15 @@ export function TermsOfServiceContent() {
         representation by us.
       </LegalP>
 
+      <LegalH3 key="bid-data-match-1">4.6 Bidding Data and Matching</LegalH3>
+      <LegalP key="bid-data-match-2">
+        By placing bids on Deadline, you authorize us to collect and use your bidding activity as described
+        in our Privacy Policy, including grouping you with similar travelers by behavior and, from time to
+        time, presenting an offer to a hotel on your behalf and inviting you to bid again. Deadline sets no
+        price for you and never obligates you to bid; every bid you submit is voluntary, and you control the
+        amount.
+      </LegalP>
+
       <LegalH2 key="b-32">5. Content and Reviews</LegalH2>
       <LegalH3 key="b-33">Hotel Content.</LegalH3>
       <LegalP key="b-34">
