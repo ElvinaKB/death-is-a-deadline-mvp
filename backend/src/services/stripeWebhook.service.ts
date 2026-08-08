@@ -60,12 +60,16 @@ function resolvePaymentMethodId(
 async function applyBidCommission(
   bidId: string,
   totalAmount: number,
+  mandatoryFeeAmount: number,
   tx: Prisma.TransactionClient,
 ): Promise<void> {
+  // Commission is a percentage of the room rate only — the mandatory fee
+  // (resort/parking, if any) is a pass-through the hotel keeps in full.
   const platformCommission =
     Math.round(totalAmount * STRIPE_CONFIG.PLATFORM_COMMISSION_RATE * 100) / 100;
   const payableToHotel =
-    Math.round((totalAmount - platformCommission) * 100) / 100;
+    Math.round((totalAmount - platformCommission + mandatoryFeeAmount) * 100) /
+    100;
 
   await tx.bid.update({
     where: { id: bidId },
@@ -123,6 +127,7 @@ async function handlePaymentIntentSucceeded(
     await applyBidCommission(
       succeededPayment.bidId,
       Number(succeededPayment.bid.totalAmount),
+      Number(succeededPayment.bid.mandatoryFeeAmount || 0),
       tx,
     );
   }

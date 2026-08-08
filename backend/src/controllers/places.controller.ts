@@ -61,6 +61,8 @@ const formatPlace = (
   blackoutDates: place.blackoutDates || [],
   allowedDaysOfWeek: place.allowedDaysOfWeek || [0, 1, 2, 3, 4, 5, 6],
   maxInventory: place.maxInventory || 1,
+  mandatoryResortFeeAmount: place.mandatoryResortFeeAmount || 0,
+  mandatoryParkingFeeAmount: place.mandatoryParkingFeeAmount || 0,
   status: place.status,
   createdAt: place.createdAt,
   updatedAt: place.updatedAt,
@@ -491,6 +493,8 @@ export async function createPlace(req: Request, res: Response) {
       blackoutDates: data.blackoutDates ?? [],
       allowedDaysOfWeek: data.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
       maxInventory: data.maxInventory ?? 1,
+      mandatoryResortFeeAmount: data.mandatoryResortFeeAmount ?? 0,
+      mandatoryParkingFeeAmount: data.mandatoryParkingFeeAmount ?? 0,
       keywords: data.keywords ?? [],
       timezone:
         data.timezone?.trim() ||
@@ -651,6 +655,12 @@ export async function updatePlace(req: Request, res: Response) {
       }),
       ...(data.maxInventory !== undefined && {
         maxInventory: data.maxInventory,
+      }),
+      ...(data.mandatoryResortFeeAmount !== undefined && {
+        mandatoryResortFeeAmount: data.mandatoryResortFeeAmount,
+      }),
+      ...(data.mandatoryParkingFeeAmount !== undefined && {
+        mandatoryParkingFeeAmount: data.mandatoryParkingFeeAmount,
       }),
       ...(data.keywords !== undefined && { keywords: data.keywords }),
       ...(data.timezone !== undefined && {

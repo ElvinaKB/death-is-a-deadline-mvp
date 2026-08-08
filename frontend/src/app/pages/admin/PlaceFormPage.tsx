@@ -18,6 +18,7 @@ import {
   buildUniformWeekdayMins,
   ThresholdPricingFields,
 } from "../../components/places/ThresholdPricingFields";
+import { MandatoryFeesFields } from "../../components/places/MandatoryFeesFields";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
@@ -129,6 +130,8 @@ export function PlaceFormPage() {
   const [minimumBidByDayOfWeek, setMinimumBidByDayOfWeek] = useState<number[]>(
     buildUniformWeekdayMins(0),
   );
+  const [hasResortFee, setHasResortFee] = useState(false);
+  const [hasMandatoryParking, setHasMandatoryParking] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   const DAYS_OF_WEEK = [
@@ -159,6 +162,8 @@ export function PlaceFormPage() {
       retailPrice: existingPlace?.retailPrice || 0,
       minimumBid: existingPlace?.minimumBid || 0,
       maxInventory: existingPlace?.maxInventory || 1,
+      mandatoryResortFeeAmount: existingPlace?.mandatoryResortFeeAmount || 0,
+      mandatoryParkingFeeAmount: existingPlace?.mandatoryParkingFeeAmount || 0,
       autoAcceptAboveMinimum: true,
       status: existingPlace?.status || PlaceStatus.DRAFT,
     },
@@ -184,6 +189,17 @@ export function PlaceFormPage() {
           return;
         }
 
+        if (hasResortFee && !(values.mandatoryResortFeeAmount > 0)) {
+          toast.error("Enter the mandatory resort fee amount, or uncheck it.");
+          setIsUploading(false);
+          return;
+        }
+        if (hasMandatoryParking && !(values.mandatoryParkingFeeAmount > 0)) {
+          toast.error("Enter the mandatory parking fee amount, or uncheck it.");
+          setIsUploading(false);
+          return;
+        }
+
         const thresholdPayload = useSameThresholdForAllDays
           ? {
               minimumBid: values.minimumBid,
@@ -199,6 +215,12 @@ export function PlaceFormPage() {
         const data = {
           ...values,
           ...thresholdPayload,
+          mandatoryResortFeeAmount: hasResortFee
+            ? values.mandatoryResortFeeAmount
+            : 0,
+          mandatoryParkingFeeAmount: hasMandatoryParking
+            ? values.mandatoryParkingFeeAmount
+            : 0,
           shortDescription: deriveShortDescription(
             values.fullDescription,
             values.name,
@@ -243,6 +265,10 @@ export function PlaceFormPage() {
         existingPlace.minimumBidByDayOfWeek?.length === 7
           ? existingPlace.minimumBidByDayOfWeek
           : buildUniformWeekdayMins(existingPlace.minimumBid ?? 0),
+      );
+      setHasResortFee((existingPlace.mandatoryResortFeeAmount ?? 0) > 0);
+      setHasMandatoryParking(
+        (existingPlace.mandatoryParkingFeeAmount ?? 0) > 0,
       );
     }
   }, [existingPlace, isEditMode]);
@@ -694,6 +720,21 @@ export function PlaceFormPage() {
                 formik.touched.minimumBid && formik.errors.minimumBid
                   ? String(formik.errors.minimumBid)
                   : undefined
+              }
+            />
+
+            <MandatoryFeesFields
+              hasResortFee={hasResortFee}
+              onHasResortFeeChange={setHasResortFee}
+              resortFeeAmount={formik.values.mandatoryResortFeeAmount}
+              onResortFeeAmountChange={(value) =>
+                formik.setFieldValue("mandatoryResortFeeAmount", value)
+              }
+              hasMandatoryParking={hasMandatoryParking}
+              onHasMandatoryParkingChange={setHasMandatoryParking}
+              parkingFeeAmount={formik.values.mandatoryParkingFeeAmount}
+              onParkingFeeAmountChange={(value) =>
+                formik.setFieldValue("mandatoryParkingFeeAmount", value)
               }
             />
 

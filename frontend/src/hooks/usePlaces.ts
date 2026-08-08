@@ -84,6 +84,8 @@ export const useCreatePlace = () => {
           data.thresholdPricingMode ?? ThresholdPricingMode.UNIFORM,
         minimumBidByDayOfWeek: data.minimumBidByDayOfWeek,
         maxInventory: data.maxInventory,
+        mandatoryResortFeeAmount: data.mandatoryResortFeeAmount,
+        mandatoryParkingFeeAmount: data.mandatoryParkingFeeAmount,
         autoAcceptAboveMinimum: data.autoAcceptAboveMinimum,
         blackoutDates: data.blackoutDates,
         allowedDaysOfWeek: data.allowedDaysOfWeek,

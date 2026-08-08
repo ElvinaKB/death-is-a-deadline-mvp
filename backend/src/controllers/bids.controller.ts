@@ -50,6 +50,7 @@ const formatBid = (bid: any) => {
   bidPerNight: Number(bid.bidPerNight),
   totalNights: bid.totalNights,
   totalAmount: Number(bid.totalAmount),
+  mandatoryFeeAmount: Number(bid.mandatoryFeeAmount || 0),
   platformCommission: bid.platformCommission
     ? Number(bid.platformCommission)
     : null,
@@ -244,6 +245,14 @@ export async function createBid(req: Request, res: Response) {
   const status = bid_status.ACCEPTED;
   const message = "Congratulations! Your bid has been automatically accepted.";
 
+  // Snapshot the hotel's mandatory fee (if any) at booking time — charged to
+  // the guest on top of totalAmount, passed through to the hotel in full,
+  // and never used as the basis for platform commission. See Bid.mandatoryFeeAmount.
+  const mandatoryFeeAmount =
+    ((place.mandatoryResortFeeAmount || 0) +
+      (place.mandatoryParkingFeeAmount || 0)) *
+    totalNights;
+
   // Create the bid
   const bid = await prisma.bid.create({
     data: {
@@ -254,6 +263,7 @@ export async function createBid(req: Request, res: Response) {
       bidPerNight: data.bidPerNight,
       totalNights,
       totalAmount,
+      mandatoryFeeAmount,
       status,
     },
     include: {
@@ -672,10 +682,12 @@ export async function updatePayout(req: Request, res: Response) {
   if (isNewlyMarkedPaid && bid.place.email) {
     const commissionRate = STRIPE_CONFIG.PLATFORM_COMMISSION_RATE * 100;
     const totalAmount = Number(bid.totalAmount);
+    const mandatoryFeeAmount = Number(bid.mandatoryFeeAmount || 0);
     const platformCommission =
       Number(bid.platformCommission) || (totalAmount * commissionRate) / 100;
     const payableToHotel =
-      Number(bid.payableToHotel) || totalAmount - platformCommission;
+      Number(bid.payableToHotel) ||
+      totalAmount - platformCommission + mandatoryFeeAmount;
 
     try {
       await sendEmail({

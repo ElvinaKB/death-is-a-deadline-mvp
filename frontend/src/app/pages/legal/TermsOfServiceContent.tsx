@@ -387,20 +387,22 @@ export function TermsOfServiceContent() {
         Is A Deadline to (i) evaluate your Bid against the applicable Floor Base, (ii) facilitate the resulting
         reservation on your behalf, including making payment arrangements with the Hotel, and (iii) charge your
         payment method, through Stripe, for the total reservation price upon acceptance. You agree to pay all charges
-        for any accepted Bid, including the nightly room price, applicable taxes and fees, and any other charges
-        identified during checkout in the Application. You are responsible for paying the Hotel directly for any
-        incidentals, room upgrades, resort fees, destination fees, parking, taxes, deposits, or other fees due
-        on-site at the Hotel, as well as any associated taxes.
+        for any accepted Bid, including the nightly room price, any mandatory fee the Hotel has designated as
+        required (see Section 6.3), and government-imposed taxes identified during checkout in the Application. You
+        are responsible for paying the Hotel directly for any incidentals, room upgrades, optional parking, deposits,
+        or other charges that are conditional on your conduct or choices on-site at the Hotel.
       </LegalP>
       <LegalH3 key="b-42b">6.0 Checkout Disclosure and Express Authorization</LegalH3>
       <LegalP key="b-42c">
         Before you confirm a Bid, the Service will display, on a single confirmation screen: (a) the name of the
         Hotel (once your Bid has been matched), the dates of stay, and the number of guests; (b) the per-night room
         rate; (c) the total room rate for the stay; (d) any non-refundable service or facilitation fee we retain as
-        compensation for our services; (e) a disclosure that additional taxes, occupancy taxes, resort fees, parking
-        fees, destination fees, and other Hotel-imposed charges may be collected directly by the Hotel at check-in,
-        check-out, or during the stay and are not included in the Bid Amount unless expressly stated during
-        checkout; (f) the maximum amount that may be charged to your payment method if your Bid is accepted; (g) the
+        compensation for our services, and any mandatory fee the Hotel has designated as required (for example, a
+        resort fee or a mandatory parking fee), which is included in the total price and charged at the same time as
+        your Bid, not collected separately by the Hotel; (e) a disclosure that government-imposed taxes and any
+        genuinely optional charges you may choose on-site (such as optional parking or incidentals) are not included
+        and may be collected directly by the Hotel at check-in, check-out, or during the stay; (f) the maximum amount
+        that may be charged to your payment method if your Bid is accepted; (g) the
         identity of Death Is A Deadline (through Stripe) as the merchant of record on your card statement and the
         descriptor that will appear on your statement; and (h) the date and time at which the charge will be processed
         (typically within minutes of Bid acceptance). By clicking &ldquo;Confirm Bid&rdquo; (or any equivalent button
@@ -444,25 +446,35 @@ export function TermsOfServiceContent() {
       <LegalH3 key="b-47">6.3 Service Fees; Compensation</LegalH3>
       <LegalP key="b-48">
         The total amount displayed in the Application during checkout, before you confirm your Bid, includes the room
-        rate matched against the Hotel&apos;s Floor Base and any non-refundable service or facilitation fee we retain
-        as compensation for our services. Government-imposed taxes and fees are generally not included in the Bid
-        Amount and may be collected separately by the Hotel at check-in, check-out, or during the stay, as required
-        by applicable law. No mandatory charges related to your Bid are added after you confirm. Death Is A Deadline
-        makes no guarantee that the prices offered by Hotels through the Service represent (i) the lowest price then
-        available for the same hotel room, (ii) any specific discount off the published price for a hotel room on
-        another website or publication not affiliated with Death Is A Deadline, or (iii) any specific savings off the
+        rate matched against the Hotel&apos;s Floor Base, any non-refundable service or facilitation fee we retain as
+        compensation for our services, and any mandatory fee the Hotel has designated as required &mdash; for
+        example, a resort fee, or a parking fee where parking is not optional (see Section 6.4). Consistent with the
+        FTC&apos;s Trade Regulation Rule on Unfair or Deceptive Fees for Live-Event Tickets and Short-Term Lodging
+        (effective May 12, 2025) and, for Hotels located in California, California Civil Code &sect; 1770(a)(29) and
+        California Business and Professions Code &sect; 17568 (SB 478 / AB 537), a mandatory fee is never added after
+        you confirm or collected separately by the Hotel. Government-imposed taxes, and any charge that is genuinely
+        optional &mdash; meaning you may decline it and still complete the stay, such as self-park parking or on-site
+        incidentals &mdash; are not included in the Bid Amount and may be collected separately by the Hotel at
+        check-in, check-out, or during the stay, as required by applicable law. Death Is A Deadline makes no
+        guarantee that the prices offered by Hotels through the Service represent (i) the lowest price then available
+        for the same hotel room, (ii) any specific discount off the published price for a hotel room on another
+        website or publication not affiliated with Death Is A Deadline, or (iii) any specific savings off the
         displayed Retail Price.
       </LegalP>
-      <LegalH3 key="b-49">6.4 Taxes and Fees</LegalH3>
+      <LegalH3 key="b-49">6.4 Mandatory Fees, Taxes, and Optional Charges</LegalH3>
       <LegalP key="b-50">
-        Taxes, resort fees, parking fees, destination fees, and other charges imposed by a Hotel or governmental
-        authority may not be included in a Bid Amount displayed in the Application. Such charges may be collected
-        separately by the Hotel at check-in, check-out, or during the stay. Users are solely responsible for paying
-        any applicable taxes, fees, surcharges, or other charges assessed by the Hotel. Student Deadline Inc. does
-        not calculate, collect, report, or remit occupancy, lodging, tourism, sales, use, or similar taxes on behalf
-        of Hotels unless expressly stated during checkout. Hotels remain solely responsible for calculating,
-        collecting, reporting, and remitting all applicable taxes and governmental charges associated with the
-        reservation.
+        Each Hotel designates to us, in advance, whether it charges a mandatory resort fee and whether parking at the
+        property is mandatory rather than optional. Where a Hotel has made either designation, that fee is included
+        in the Bid Amount and total price displayed in the Application and is charged to you at the same time as
+        your Bid &mdash; the Hotel does not collect it separately at check-in, check-out, or during the stay.
+        Government-imposed taxes, and any charge that is genuinely optional (for example, parking a guest may decline
+        in favor of another arrangement, or on-site incidentals), are not included in the Bid Amount and may be
+        collected separately by the Hotel at check-in, check-out, or during the stay. Users are solely responsible
+        for paying any applicable taxes and any optional charges they elect on-site. Student Deadline Inc. does not
+        calculate, collect, report, or remit occupancy, lodging, tourism, sales, use, or similar taxes on behalf of
+        Hotels unless expressly stated during checkout. Hotels remain solely responsible for calculating, collecting,
+        reporting, and remitting all applicable taxes and governmental charges associated with the reservation, and
+        for accurately designating to us whether their resort or parking fees are mandatory.
       </LegalP>
       <LegalH3 key="b-51">6.5 Chargebacks</LegalH3>
       <LegalP key="b-52">
