@@ -8,7 +8,7 @@ import {
   SignupRequest,
   UserRole,
 } from "../types/auth.types";
-import { sendEmail } from "../email/sendEmail";
+import { sendEmail, sendPlainEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
 import jwt from "jsonwebtoken";
 import axios from "axios";
@@ -21,6 +21,65 @@ import {
 } from "../libs/utils/inviteToken";
 
 const LINKEDIN_REDIRECT_URI = `${process.env.CLIENT_URL}/auth/linkedin/callback`;
+
+const REVIEW_INBOX =
+  process.env.CONTACT_INBOX_EMAIL || "hotels@deadlinetravel.com";
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Neither signup path (ID-upload or LinkedIn) notified anyone that a review
+// was waiting — only the applicant got an email. Fail-open on send so a mail
+// hiccup never blocks the signup itself, which is already persisted.
+async function notifyAdminOfPendingReview(params: {
+  userId: string;
+  email: string;
+  name: string;
+  verifiedVia: "id-upload" | "linkedin";
+  linkedinProfileUrl?: string;
+}): Promise<void> {
+  const { userId, email, name, verifiedVia, linkedinProfileUrl } = params;
+  const reviewUrl = `${process.env.CLIENT_URL}/admin/students/${userId}`;
+  const methodLabel = verifiedVia === "linkedin" ? "LinkedIn" : "ID upload";
+
+  const html = `
+    <h2>New signup needs review</h2>
+    <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+    <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+    <p><strong>Verification method:</strong> ${methodLabel}</p>
+    ${
+      linkedinProfileUrl
+        ? `<p><strong>LinkedIn profile:</strong> <a href="${escapeHtml(linkedinProfileUrl)}">${escapeHtml(linkedinProfileUrl)}</a></p>`
+        : ""
+    }
+    <p><a href="${reviewUrl}">Review in the admin dashboard</a></p>
+  `;
+  const text = [
+    `Name: ${name}`,
+    `Email: ${email}`,
+    `Verification method: ${methodLabel}`,
+    ...(linkedinProfileUrl ? [`LinkedIn profile: ${linkedinProfileUrl}`] : []),
+    `Review: ${reviewUrl}`,
+  ].join("\n");
+
+  try {
+    await sendPlainEmail({
+      to: REVIEW_INBOX,
+      subject: `[Deadline] New signup needs review — ${name}`,
+      html,
+      text,
+      replyTo: email,
+    });
+  } catch (err) {
+    console.error("[auth] pending-review admin notification failed", err);
+  }
+}
 
 export async function hotelSignup(
   req: Request,
@@ -218,10 +277,19 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
     throw new CustomError(metaError.message, 400);
   }
 
-  // No separate "under review" email here — this signup path already
-  // triggers Supabase's own confirmation email (emailRedirectTo above),
-  // and that template now carries the "you'll be reviewed" messaging
-  // too, so the user gets one email instead of two back-to-back.
+  // No separate "under review" email to the applicant here — this signup
+  // path already triggers Supabase's own confirmation email
+  // (emailRedirectTo above), and that template now carries the "you'll be
+  // reviewed" messaging too, so the user gets one email instead of two
+  // back-to-back. The admin side still needs its own notification, though.
+  if (approvalStatus === ApprovalStatus.PENDING && data?.user?.id) {
+    await notifyAdminOfPendingReview({
+      userId: data.user.id,
+      email,
+      name,
+      verifiedVia: "id-upload",
+    });
+  }
 
   // Return user info and session (token)
   return res.status(201).json({
@@ -468,6 +536,14 @@ export async function linkedinComplete(req: Request, res: Response) {
     to: email,
     subject: "Your account is under review",
     variables: { name, appName: "Deadline" },
+  });
+
+  await notifyAdminOfPendingReview({
+    userId,
+    email,
+    name,
+    verifiedVia: "linkedin",
+    linkedinProfileUrl,
   });
 
   res.status(201).json({
