@@ -9,17 +9,30 @@ import {
   LinkedInCompleteRequest,
   LinkedInCompleteResponse,
 } from "../../types/auth.types";
+import { REFERRER_LINKEDIN_INTENT_KEY } from "./ReferralSignupPage";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { PasswordInput } from "../components/ui/password-input";
 import { Label } from "../components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 
-type Phase = "verifying" | "form" | "success" | "error";
+type Phase = "verifying" | "completing" | "form" | "success" | "error";
+
+/** Reads and clears the referral-partner flag set by ReferralSignupPage — a one-shot signal for this single OAuth round-trip, not a persistent setting. */
+function consumeReferrerIntent(): boolean {
+  try {
+    const value = sessionStorage.getItem(REFERRER_LINKEDIN_INTENT_KEY);
+    sessionStorage.removeItem(REFERRER_LINKEDIN_INTENT_KEY);
+    return value === "referrer";
+  } catch {
+    return false;
+  }
+}
 
 export function LinkedInCallbackPage() {
   const [searchParams] = useSearchParams();
   const attempted = useRef(false);
+  const isReferrerFlow = useRef(false);
 
   const [phase, setPhase] = useState<Phase>("verifying");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -30,12 +43,39 @@ export function LinkedInCallbackPage() {
   const [linkedinProfileUrl, setLinkedinProfileUrl] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
-  const verifyMutation = useApiMutation<LinkedInVerifyResponse, { code: string }>({
+  const referrerCompleteMutation = useApiMutation<
+    { data: unknown },
+    { verificationToken: string }
+  >({
+    endpoint: ENDPOINTS.REFERRER_LINKEDIN_COMPLETE,
+    showErrorToast: false,
+    onSuccess: () => {
+      setPhase("success");
+    },
+    onError: (error) => {
+      setErrorMessage(
+        error.message || "Something went wrong setting up your referral account.",
+      );
+      setPhase("error");
+    },
+  });
+
+  const verifyMutation = useApiMutation<
+    LinkedInVerifyResponse,
+    { code: string; intent?: string }
+  >({
     endpoint: ENDPOINTS.LINKEDIN_CALLBACK,
     showErrorToast: false,
     onSuccess: (data) => {
       setVerified(data);
-      setPhase("form");
+      if (isReferrerFlow.current) {
+        setPhase("completing");
+        referrerCompleteMutation.mutate({
+          verificationToken: data.verificationToken,
+        });
+      } else {
+        setPhase("form");
+      }
     },
     onError: (error) => {
       setErrorMessage(error.message || "Something went wrong verifying your LinkedIn account.");
@@ -58,6 +98,8 @@ export function LinkedInCallbackPage() {
     if (attempted.current) return;
     attempted.current = true;
 
+    isReferrerFlow.current = consumeReferrerIntent();
+
     const code = searchParams.get("code");
     if (!code) {
       setErrorMessage("Missing authorization code from LinkedIn.");
@@ -65,7 +107,10 @@ export function LinkedInCallbackPage() {
       return;
     }
 
-    verifyMutation.mutate({ code });
+    verifyMutation.mutate({
+      code,
+      ...(isReferrerFlow.current && { intent: "referrer" }),
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -97,10 +142,14 @@ export function LinkedInCallbackPage() {
   return (
     <div className="min-h-screen bg-bg diad-vignette flex items-center justify-center px-4 py-10">
       <div className="max-w-md w-full">
-        {phase === "verifying" && (
+        {(phase === "verifying" || phase === "completing") && (
           <div className="text-center space-y-4">
             <Loader2 className="w-8 h-8 mx-auto animate-spin text-brand" />
-            <p className="text-muted">Verifying your LinkedIn account...</p>
+            <p className="text-muted">
+              {phase === "completing"
+                ? "Setting up your referral account..."
+                : "Verifying your LinkedIn account..."}
+            </p>
           </div>
         )}
 
@@ -109,10 +158,10 @@ export function LinkedInCallbackPage() {
             <h1 className="text-2xl font-bold text-fg">Couldn&apos;t sign in</h1>
             <p className="text-muted">{errorMessage}</p>
             <Link
-              to={ROUTES.SIGNUP}
+              to={isReferrerFlow.current ? ROUTES.REFERRAL_SIGNUP : ROUTES.SIGNUP}
               className="inline-block text-brand hover:underline font-medium"
             >
-              Back to sign up
+              {isReferrerFlow.current ? "Back to referral signup" : "Back to sign up"}
             </Link>
           </div>
         )}
@@ -191,10 +240,13 @@ export function LinkedInCallbackPage() {
         {phase === "success" && (
           <div className="text-center space-y-4">
             <CheckCircle2 className="w-12 h-12 mx-auto text-success" />
-            <h1 className="text-2xl font-bold text-fg">Account created!</h1>
+            <h1 className="text-2xl font-bold text-fg">
+              {isReferrerFlow.current ? "You're a referral partner!" : "Account created!"}
+            </h1>
             <p className="text-muted">
-              Your LinkedIn profile is being manually reviewed. We&apos;ll
-              email you once you&apos;re approved.
+              {isReferrerFlow.current
+                ? "Check your email to set your password (or, if you already had a Deadline account, just log in as usual — you'll see a Referrals tab now). Refer a hotel whenever you're ready."
+                : "Your LinkedIn profile is being manually reviewed. We'll email you once you're approved."}
             </p>
             <Link
               to={ROUTES.HOME}

@@ -8,9 +8,13 @@ import {
   setReferrerPassword,
   getMyReferrer,
   submitMyTaxDetails,
+  selfSignupReferrer,
 } from "../controllers/referrers.controller";
 
 const router = Router();
+
+// Public — completes a LinkedIn-verified referral-partner signup.
+router.post("/linkedin-complete", selfSignupReferrer);
 
 // Admin — manage referrers + attach them to listings.
 router.get("/", authenticate(UserRole.ADMIN), listReferrers);

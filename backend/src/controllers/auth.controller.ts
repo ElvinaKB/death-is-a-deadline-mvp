@@ -22,41 +22,6 @@ import {
 
 const LINKEDIN_REDIRECT_URI = `${process.env.CLIENT_URL}/auth/linkedin/callback`;
 
-// LinkedIn proves someone owns this email and has a LinkedIn account —
-// it does NOT prove employment or that the email isn't a free consumer
-// provider (LinkedIn accounts can be made with any Gmail address). Block
-// the same free-domain providers here that would otherwise require ID
-// verification, so LinkedIn can't be used to bypass that policy.
-const FREE_EMAIL_DOMAINS = [
-  "gmail.com",
-  "googlemail.com",
-  "yahoo.com",
-  "yahoo.co.uk",
-  "hotmail.com",
-  "outlook.com",
-  "live.com",
-  "msn.com",
-  "aol.com",
-  "icloud.com",
-  "me.com",
-  "mac.com",
-  "comcast.net",
-  "verizon.net",
-  "att.net",
-  "sbcglobal.net",
-  "protonmail.com",
-  "proton.me",
-  "gmx.com",
-  "mail.com",
-  "yandex.com",
-  "zoho.com",
-];
-
-function isFreeEmailDomain(email: string): boolean {
-  const domain = email.toLowerCase().split("@")[1] ?? "";
-  return FREE_EMAIL_DOMAINS.includes(domain);
-}
-
 export async function hotelSignup(
   req: Request,
   res: Response,
@@ -357,7 +322,8 @@ export async function linkedinAuthorize(req: Request, res: Response) {
  * token carrying the verified email/name for the completion step below.
  */
 export async function linkedinCallback(req: Request, res: Response) {
-  const { code } = req.body as { code: string };
+  const { code, intent } = req.body as { code: string; intent?: string };
+  const isReferrerIntent = intent === "referrer";
 
   if (!process.env.LINKEDIN_CLIENT_ID || !process.env.LINKEDIN_CLIENT_SECRET) {
     throw new CustomError("LinkedIn sign-in is not configured yet.", 503);
@@ -403,21 +369,19 @@ export async function linkedinCallback(req: Request, res: Response) {
     );
   }
 
-  if (isFreeEmailDomain(email)) {
-    throw new CustomError(
-      "LinkedIn sign-in is for work/professional emails only. Personal email providers (Gmail, Yahoo, etc.) still require ID verification — please sign up with your email and upload a government ID instead.",
-      400,
-    );
-  }
-
-  const { data: existingUser } = await supabase.rpc("get_user_by_email", {
-    email,
-  });
-  if (existingUser?.id) {
-    throw new CustomError(
-      "An account with this email already exists. Please log in with your email and password instead.",
-      409,
-    );
+  // Referral-partner signups reuse an existing traveler account if the
+  // LinkedIn email already has one (they just gain a Referrer record) — so
+  // only the traveler-signup path rejects an already-existing account here.
+  if (!isReferrerIntent) {
+    const { data: existingUser } = await supabase.rpc("get_user_by_email", {
+      email,
+    });
+    if (existingUser?.id) {
+      throw new CustomError(
+        "An account with this email already exists. Please log in with your email and password instead.",
+        409,
+      );
+    }
   }
 
   const verificationToken = jwt.sign(
