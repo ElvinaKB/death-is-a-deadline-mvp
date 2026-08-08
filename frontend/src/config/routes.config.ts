@@ -14,6 +14,7 @@ export const ROUTES = {
   HOTELS_LANDING: "/hotels",
   HOTELS_JOIN: "/hotels/join",
   REFERRALS_LANDING: "/referrals",
+  REFERRAL_SIGNUP: "/referrals/join",
   PUBLIC_PLACE_DETAIL: "/:slug",
 
   // Student routes

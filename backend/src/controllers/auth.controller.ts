@@ -8,7 +8,7 @@ import {
   SignupRequest,
   UserRole,
 } from "../types/auth.types";
-import { sendEmail } from "../email/sendEmail";
+import { sendEmail, sendPlainEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
 import jwt from "jsonwebtoken";
 import axios from "axios";
@@ -22,39 +22,63 @@ import {
 
 const LINKEDIN_REDIRECT_URI = `${process.env.CLIENT_URL}/auth/linkedin/callback`;
 
-// LinkedIn proves someone owns this email and has a LinkedIn account —
-// it does NOT prove employment or that the email isn't a free consumer
-// provider (LinkedIn accounts can be made with any Gmail address). Block
-// the same free-domain providers here that would otherwise require ID
-// verification, so LinkedIn can't be used to bypass that policy.
-const FREE_EMAIL_DOMAINS = [
-  "gmail.com",
-  "googlemail.com",
-  "yahoo.com",
-  "yahoo.co.uk",
-  "hotmail.com",
-  "outlook.com",
-  "live.com",
-  "msn.com",
-  "aol.com",
-  "icloud.com",
-  "me.com",
-  "mac.com",
-  "comcast.net",
-  "verizon.net",
-  "att.net",
-  "sbcglobal.net",
-  "protonmail.com",
-  "proton.me",
-  "gmx.com",
-  "mail.com",
-  "yandex.com",
-  "zoho.com",
-];
+const REVIEW_INBOX =
+  process.env.CONTACT_INBOX_EMAIL || "hotels@deadlinetravel.com";
 
-function isFreeEmailDomain(email: string): boolean {
-  const domain = email.toLowerCase().split("@")[1] ?? "";
-  return FREE_EMAIL_DOMAINS.includes(domain);
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Neither signup path (ID-upload or LinkedIn) notified anyone that a review
+// was waiting — only the applicant got an email. Fail-open on send so a mail
+// hiccup never blocks the signup itself, which is already persisted.
+async function notifyAdminOfPendingReview(params: {
+  userId: string;
+  email: string;
+  name: string;
+  verifiedVia: "id-upload" | "linkedin";
+  linkedinProfileUrl?: string;
+}): Promise<void> {
+  const { userId, email, name, verifiedVia, linkedinProfileUrl } = params;
+  const reviewUrl = `${process.env.CLIENT_URL}/admin/students/${userId}`;
+  const methodLabel = verifiedVia === "linkedin" ? "LinkedIn" : "ID upload";
+
+  const html = `
+    <h2>New signup needs review</h2>
+    <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+    <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+    <p><strong>Verification method:</strong> ${methodLabel}</p>
+    ${
+      linkedinProfileUrl
+        ? `<p><strong>LinkedIn profile:</strong> <a href="${escapeHtml(linkedinProfileUrl)}">${escapeHtml(linkedinProfileUrl)}</a></p>`
+        : ""
+    }
+    <p><a href="${reviewUrl}">Review in the admin dashboard</a></p>
+  `;
+  const text = [
+    `Name: ${name}`,
+    `Email: ${email}`,
+    `Verification method: ${methodLabel}`,
+    ...(linkedinProfileUrl ? [`LinkedIn profile: ${linkedinProfileUrl}`] : []),
+    `Review: ${reviewUrl}`,
+  ].join("\n");
+
+  try {
+    await sendPlainEmail({
+      to: REVIEW_INBOX,
+      subject: `[Deadline] New signup needs review — ${name}`,
+      html,
+      text,
+      replyTo: email,
+    });
+  } catch (err) {
+    console.error("[auth] pending-review admin notification failed", err);
+  }
 }
 
 export async function hotelSignup(
@@ -253,10 +277,19 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
     throw new CustomError(metaError.message, 400);
   }
 
-  // No separate "under review" email here — this signup path already
-  // triggers Supabase's own confirmation email (emailRedirectTo above),
-  // and that template now carries the "you'll be reviewed" messaging
-  // too, so the user gets one email instead of two back-to-back.
+  // No separate "under review" email to the applicant here — this signup
+  // path already triggers Supabase's own confirmation email
+  // (emailRedirectTo above), and that template now carries the "you'll be
+  // reviewed" messaging too, so the user gets one email instead of two
+  // back-to-back. The admin side still needs its own notification, though.
+  if (approvalStatus === ApprovalStatus.PENDING && data?.user?.id) {
+    await notifyAdminOfPendingReview({
+      userId: data.user.id,
+      email,
+      name,
+      verifiedVia: "id-upload",
+    });
+  }
 
   // Return user info and session (token)
   return res.status(201).json({
@@ -357,7 +390,8 @@ export async function linkedinAuthorize(req: Request, res: Response) {
  * token carrying the verified email/name for the completion step below.
  */
 export async function linkedinCallback(req: Request, res: Response) {
-  const { code } = req.body as { code: string };
+  const { code, intent } = req.body as { code: string; intent?: string };
+  const isReferrerIntent = intent === "referrer";
 
   if (!process.env.LINKEDIN_CLIENT_ID || !process.env.LINKEDIN_CLIENT_SECRET) {
     throw new CustomError("LinkedIn sign-in is not configured yet.", 503);
@@ -403,21 +437,19 @@ export async function linkedinCallback(req: Request, res: Response) {
     );
   }
 
-  if (isFreeEmailDomain(email)) {
-    throw new CustomError(
-      "LinkedIn sign-in is for work/professional emails only. Personal email providers (Gmail, Yahoo, etc.) still require ID verification — please sign up with your email and upload a government ID instead.",
-      400,
-    );
-  }
-
-  const { data: existingUser } = await supabase.rpc("get_user_by_email", {
-    email,
-  });
-  if (existingUser?.id) {
-    throw new CustomError(
-      "An account with this email already exists. Please log in with your email and password instead.",
-      409,
-    );
+  // Referral-partner signups reuse an existing traveler account if the
+  // LinkedIn email already has one (they just gain a Referrer record) — so
+  // only the traveler-signup path rejects an already-existing account here.
+  if (!isReferrerIntent) {
+    const { data: existingUser } = await supabase.rpc("get_user_by_email", {
+      email,
+    });
+    if (existingUser?.id) {
+      throw new CustomError(
+        "An account with this email already exists. Please log in with your email and password instead.",
+        409,
+      );
+    }
   }
 
   const verificationToken = jwt.sign(
@@ -504,6 +536,14 @@ export async function linkedinComplete(req: Request, res: Response) {
     to: email,
     subject: "Your account is under review",
     variables: { name, appName: "Deadline" },
+  });
+
+  await notifyAdminOfPendingReview({
+    userId,
+    email,
+    name,
+    verifiedVia: "linkedin",
+    linkedinProfileUrl,
   });
 
   res.status(201).json({

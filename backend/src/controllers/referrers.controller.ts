@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { prisma } from "../libs/config/prisma";
 import { bid_status } from "@prisma/client";
 import { supabase } from "../libs/config/supabase";
@@ -7,6 +8,7 @@ import { CustomError } from "../libs/utils/CustomError";
 import { ApprovalStatus, UserRole } from "../types/auth.types";
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
+import { JWT_SECRET } from "../libs/config/jwt";
 
 function addMonths(date: Date, months: number): Date {
   const d = new Date(date);
@@ -191,6 +193,100 @@ export async function createReferrer(req: Request, res: Response) {
       ...(typeof splitPercent === "number" ? { splitPercent } : {}),
     },
   });
+  res.status(201).json({ data: referrer });
+}
+
+// ── Public self-service ─────────────────────────────────────────────────────
+// Completes a LinkedIn-verified referral-partner signup (see
+// linkedinCallback in auth.controller.ts for the OAuth exchange that issues
+// this token). Mirrors createReferrer's account-reuse logic above, but is
+// triggered by the applicant themselves rather than an admin, and skips
+// admin review — a verified LinkedIn identity is treated as sufficient for
+// the referrer role, since the consequential step (attaching a hotel and
+// starting the commission window) stays admin-controlled via
+// assignPlaceReferrer.
+export async function selfSignupReferrer(req: Request, res: Response) {
+  const { verificationToken } = req.body as { verificationToken?: string };
+  if (!verificationToken) {
+    throw new CustomError("Missing verification token", 400);
+  }
+
+  let email: string;
+  let name: string;
+  try {
+    const decoded = jwt.verify(verificationToken, JWT_SECRET) as {
+      email: string;
+      name: string;
+    };
+    email = decoded.email;
+    name = decoded.name;
+  } catch {
+    throw new CustomError(
+      "Your LinkedIn verification has expired. Please try again.",
+      400,
+    );
+  }
+
+  const lower = email.toLowerCase();
+
+  let userId: string | null = null;
+  const existingUser = await prisma.users.findFirst({
+    where: { email: lower },
+    select: { id: true },
+  });
+
+  if (existingUser) {
+    userId = existingUser.id;
+    const existingRef = await prisma.referrer.findUnique({ where: { userId } });
+    if (existingRef) {
+      throw new CustomError(
+        "This account is already a referral partner.",
+        409,
+      );
+    }
+  } else {
+    const password = crypto.randomBytes(24).toString("hex");
+    const { data: createData, error: createError } =
+      await supabase.auth.admin.createUser({
+        email: lower,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          name,
+          approvalStatus: ApprovalStatus.APPROVED,
+          verifiedVia: "linkedin",
+          isAffiliate: true,
+        },
+        role: UserRole.STUDENT,
+      });
+    if (createError) throw new CustomError(createError.message, 400);
+    userId = createData?.user?.id ?? null;
+    if (!userId) throw new CustomError("Failed to create account", 500);
+
+    try {
+      const { data: linkData } = await supabase.auth.admin.generateLink({
+        type: "recovery",
+        email: lower,
+        options: { redirectTo: `${process.env.CLIENT_URL}/reset-password` },
+      });
+      const passwordSetupUrl = linkData?.properties?.action_link;
+      if (passwordSetupUrl) {
+        await sendEmail({
+          type: EmailType.STUDENT_WELCOME,
+          to: lower,
+          subject: "You're a Deadline referral partner — set your password",
+          variables: { name, appName: "Deadline", passwordSetupUrl },
+        });
+      }
+    } catch (err) {
+      console.error("[referrers] self-signup welcome email failed", err);
+    }
+  }
+
+  const referrer = await prisma.referrer.create({
+    data: { userId, email: lower, displayName: name },
+  });
+
   res.status(201).json({ data: referrer });
 }
 

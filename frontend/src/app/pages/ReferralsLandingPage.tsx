@@ -292,13 +292,13 @@ export function ReferralsLandingPage() {
             <p className="text-gray-300 mb-6">
               No cap. No selling. Just warm intros that pay you for a year.
             </p>
-            <a
-              href={INTRO_MAILTO}
+            <Link
+              to={ROUTES.REFERRAL_SIGNUP}
               className="inline-block rounded-full px-10 py-4 text-lg font-black uppercase tracking-wide text-black transition-transform hover:-translate-y-0.5"
               style={{ backgroundColor: GOLD }}
             >
-              → Introduce a Hotel
-            </a>
+              → Sign Up as a Referral Partner
+            </Link>
             <p className="text-sm text-gray-400 mt-4">
               Questions? Email{" "}
               <a

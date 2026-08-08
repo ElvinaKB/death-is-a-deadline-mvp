@@ -105,6 +105,7 @@ export const ENDPOINTS = {
   REFERRER_SET_PASSWORD: "/api/referrers/:id/set-password",
   MY_REFERRER: "/api/referrers/me",
   MY_REFERRER_TAX: "/api/referrers/me/tax",
+  REFERRER_LINKEDIN_COMPLETE: "/api/referrers/linkedin-complete",
 
   // Waitlist
   WAITLIST_JOIN: "/api/waitlist",
