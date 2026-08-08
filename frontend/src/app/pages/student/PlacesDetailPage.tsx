@@ -79,7 +79,7 @@ const FAQ_DATA = [
     id: "charged",
     question: "When will my card be charged?",
     answer:
-      "Your card is charged immediately when your bid is accepted, for the full price shown — including any mandatory hotel fee. If your bid is rejected, no charge is made. Government taxes are due at check-in, and the hotel may ask for a card on file for incidentals. Please don't make a reservation if you won't be able to present the card you booked with at check-in — hotels can decline check-in otherwise, and it keeps bids honest since you can't book on someone else's behalf.",
+      "Your card is charged immediately when your bid is accepted, for the full price shown — including any mandatory hotel fee. If your bid is rejected, no charge is made. Government taxes are due at check-in, and the hotel will typically ask for a card on file for incidentals. Reservations are booked in your name and must be honored by you — please don't book a room for someone else who won't be present, as the hotel may ask for ID matching the reservation at check-in.",
   },
   {
     id: "cancel",

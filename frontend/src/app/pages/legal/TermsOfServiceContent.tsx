@@ -546,8 +546,12 @@ export function TermsOfServiceContent() {
       </LegalP>
       <LegalH3 key="b-65">8.5 Identity at Check-In</LegalH3>
       <LegalP key="b-66">
-        Reservations are generally non-transferable and must be honored in the name of the verified User who placed
-        the Bid. The Hotel may refuse check-in if the guest of record cannot present matching identification.
+        Reservations are not transferable and must be honored in the name of the verified User who placed the Bid
+        &mdash; that User must be the guest checking in, or among the guests staying, at the Hotel. The Hotel may
+        refuse check-in if the guest of record cannot present government-issued photo identification matching the
+        name on the Reservation. This identity match, together with any incidental-expense hold or payment method
+        the Hotel collects at check-in under Section 8.3, helps confirm that the verified User actually received the
+        accommodation reserved in their name.
       </LegalP>
 
       <LegalH2 key="b-67">9. Disclaimer of Warranties</LegalH2>
