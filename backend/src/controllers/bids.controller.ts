@@ -703,7 +703,9 @@ export async function updatePayout(req: Request, res: Response) {
           checkInDate: formatBookingDate(bid.checkInDate, "MMM dd, yyyy"),
           checkOutDate: formatBookingDate(bid.checkOutDate, "MMM dd, yyyy"),
           totalNights: bid.totalNights,
-          totalAmount: totalAmount.toFixed(2),
+          totalAmount: (totalAmount + mandatoryFeeAmount).toFixed(2),
+          mandatoryFeeAmount:
+            mandatoryFeeAmount > 0 ? mandatoryFeeAmount.toFixed(2) : null,
           commissionRate: commissionRate.toFixed(2),
           platformCommission: platformCommission.toFixed(2),
           payableToHotel: payableToHotel.toFixed(2),

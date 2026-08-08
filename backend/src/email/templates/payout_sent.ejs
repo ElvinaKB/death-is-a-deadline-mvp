@@ -19,7 +19,10 @@
 <table class="detail-table" role="presentation" cellpadding="0" cellspacing="0" border="0">
   <tr><th colspan="2">Payment Breakdown</th></tr>
   <tr><td class="label">Student Paid (Total)</td><td class="value">$<%= totalAmount %></td></tr>
-  <tr><td class="label" style="color: #dc2626;">Platform Commission (<%= commissionRate %>%)</td><td class="value" style="color: #dc2626;">- $<%= platformCommission %></td></tr>
+  <% if (mandatoryFeeAmount) { %>
+  <tr><td class="label">Includes Mandatory Fee (yours in full, no commission)</td><td class="value">$<%= mandatoryFeeAmount %></td></tr>
+  <% } %>
+  <tr><td class="label" style="color: #dc2626;">Platform Commission (<%= commissionRate %>%, room rate only)</td><td class="value" style="color: #dc2626;">- $<%= platformCommission %></td></tr>
   <tr class="total-row"><td>Your Payout</td><td class="value">$<%= payableToHotel %></td></tr>
 </table>
 
