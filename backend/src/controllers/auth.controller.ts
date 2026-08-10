@@ -34,22 +34,34 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#039;");
 }
 
-// Neither signup path (ID-upload or LinkedIn) notified anyone that a review
-// was waiting — only the applicant got an email. Fail-open on send so a mail
-// hiccup never blocks the signup itself, which is already persisted.
-async function notifyAdminOfPendingReview(params: {
+// No signup path notified anyone a new traveler had joined — only the
+// applicant got an email, and only on the manual-review paths at that. Fail-
+// open on send so a mail hiccup never blocks the signup itself, which is
+// already persisted.
+async function notifyAdminOfNewSignup(params: {
   userId: string;
   email: string;
   name: string;
-  verifiedVia: "id-upload" | "linkedin";
+  approvalStatus: ApprovalStatus;
+  verifiedVia: "id-upload" | "linkedin" | "instant-domain";
   linkedinProfileUrl?: string;
 }): Promise<void> {
-  const { userId, email, name, verifiedVia, linkedinProfileUrl } = params;
+  const { userId, email, name, approvalStatus, verifiedVia, linkedinProfileUrl } =
+    params;
   const reviewUrl = `${process.env.CLIENT_URL}/admin/students/${userId}`;
-  const methodLabel = verifiedVia === "linkedin" ? "LinkedIn" : "ID upload";
+  const needsReview = approvalStatus === ApprovalStatus.PENDING;
+  const methodLabel =
+    verifiedVia === "linkedin"
+      ? "LinkedIn"
+      : verifiedVia === "id-upload"
+        ? "ID upload"
+        : "Instant-verified domain (.edu/.gov/partner)";
+  const heading = needsReview
+    ? "New signup needs review"
+    : "New signup (auto-approved, no action needed)";
 
   const html = `
-    <h2>New signup needs review</h2>
+    <h2>${heading}</h2>
     <p><strong>Name:</strong> ${escapeHtml(name)}</p>
     <p><strong>Email:</strong> ${escapeHtml(email)}</p>
     <p><strong>Verification method:</strong> ${methodLabel}</p>
@@ -58,26 +70,26 @@ async function notifyAdminOfPendingReview(params: {
         ? `<p><strong>LinkedIn profile:</strong> <a href="${escapeHtml(linkedinProfileUrl)}">${escapeHtml(linkedinProfileUrl)}</a></p>`
         : ""
     }
-    <p><a href="${reviewUrl}">Review in the admin dashboard</a></p>
+    <p><a href="${reviewUrl}">View in the admin dashboard</a></p>
   `;
   const text = [
     `Name: ${name}`,
     `Email: ${email}`,
     `Verification method: ${methodLabel}`,
     ...(linkedinProfileUrl ? [`LinkedIn profile: ${linkedinProfileUrl}`] : []),
-    `Review: ${reviewUrl}`,
+    `View: ${reviewUrl}`,
   ].join("\n");
 
   try {
     await sendPlainEmail({
       to: REVIEW_INBOX,
-      subject: `[Deadline] New signup needs review — ${name}`,
+      subject: `[Deadline] ${heading} — ${name}`,
       html,
       text,
       replyTo: email,
     });
   } catch (err) {
-    console.error("[auth] pending-review admin notification failed", err);
+    console.error("[auth] new-signup admin notification failed", err);
   }
 }
 
@@ -281,13 +293,15 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
   // path already triggers Supabase's own confirmation email
   // (emailRedirectTo above), and that template now carries the "you'll be
   // reviewed" messaging too, so the user gets one email instead of two
-  // back-to-back. The admin side still needs its own notification, though.
-  if (approvalStatus === ApprovalStatus.PENDING && data?.user?.id) {
-    await notifyAdminOfPendingReview({
+  // back-to-back. The admin side still needs its own notification, though —
+  // for every signup, not just ones needing review.
+  if (data?.user?.id) {
+    await notifyAdminOfNewSignup({
       userId: data.user.id,
       email,
       name,
-      verifiedVia: "id-upload",
+      approvalStatus,
+      verifiedVia: studentIdUrl ? "id-upload" : "instant-domain",
     });
   }
 
@@ -538,10 +552,11 @@ export async function linkedinComplete(req: Request, res: Response) {
     variables: { name, appName: "Deadline" },
   });
 
-  await notifyAdminOfPendingReview({
+  await notifyAdminOfNewSignup({
     userId,
     email,
     name,
+    approvalStatus: ApprovalStatus.PENDING,
     verifiedVia: "linkedin",
     linkedinProfileUrl,
   });

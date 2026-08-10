@@ -6,9 +6,21 @@ import { bid_status } from "@prisma/client";
 import { supabase } from "../libs/config/supabase";
 import { CustomError } from "../libs/utils/CustomError";
 import { ApprovalStatus, UserRole } from "../types/auth.types";
-import { sendEmail } from "../email/sendEmail";
+import { sendEmail, sendPlainEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
 import { JWT_SECRET } from "../libs/config/jwt";
+
+const REVIEW_INBOX =
+  process.env.CONTACT_INBOX_EMAIL || "hotels@deadlinetravel.com";
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 function addMonths(date: Date, months: number): Date {
   const d = new Date(date);
@@ -286,6 +298,25 @@ export async function selfSignupReferrer(req: Request, res: Response) {
   const referrer = await prisma.referrer.create({
     data: { userId, email: lower, displayName: name },
   });
+
+  try {
+    await sendPlainEmail({
+      to: REVIEW_INBOX,
+      subject: `[Deadline] New referral partner — ${name}`,
+      html: `
+        <h2>New referral partner signed up</h2>
+        <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(lower)}</p>
+        <p>Verified via LinkedIn, auto-approved — no review needed. Connect
+        them to a hotel from the admin Referrers page once they send one your
+        way.</p>
+      `,
+      text: `Name: ${name}\nEmail: ${lower}\nVerified via LinkedIn, auto-approved — no review needed.`,
+      replyTo: lower,
+    });
+  } catch (err) {
+    console.error("[referrers] new-referrer admin notification failed", err);
+  }
 
   res.status(201).json({ data: referrer });
 }
