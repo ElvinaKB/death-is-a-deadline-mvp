@@ -501,6 +501,20 @@ export function PrivacyPolicyContent() {
         Service, the Apple App Store and Google Play Store (if and when we publish a mobile application),
         and the Hotels you transact with.
       </LegalP>
+      <LegalP key="b-82b">
+        Channel-manager and booking integrations. To deliver a confirmed reservation to a Hotel&rsquo;s
+        property-management system, we transmit the reservation details through channel-manager partners
+        (including Cloudbeds and its myallocator platform). When a booking is completed, the relevant
+        reservation information is shared with the Hotel and its channel manager to fulfill your stay; the
+        Hotel is the controller of the guest reservation data it receives and processes it under its own
+        privacy practices. We do not send special-category data (such as accessibility, dietary, health, or
+        similar preferences) through this integration; to the extent any such data were ever received, we
+        would process it only as a service provider on the Hotel&rsquo;s instructions and never for
+        analytics, profiling, or marketing. Data we collect independently through the Service &mdash;
+        including your account, verification status, searches, bids and bid history, and analytics we derive
+        from them &mdash; remains our own data and is not shared as part of this integration except as needed
+        to complete a booking.
+      </LegalP>
 
       <LegalH2 key="b-83">8. Your Rights and Choices</LegalH2>
       <LegalP key="b-84">
@@ -615,6 +629,12 @@ export function PrivacyPolicyContent() {
         access controls, logging and monitoring, secret management, vendor due diligence, and the use of
         PCI-compliant processors (Stripe) for card data. You are responsible for safeguarding your account
         credentials and should notify us immediately if you believe your account has been compromised.
+      </LegalP>
+      <LegalP key="b-103b">
+        We maintain incident-response and breach-notification procedures. In the event of a security
+        incident affecting your personal information, we will notify affected users and the appropriate
+        authorities as and when required by applicable law, and will cooperate with our vendors and
+        integration partners as needed to investigate, remediate, and provide any required notifications.
       </LegalP>
 
       <LegalH2 key="b-104">11. Changes to This Privacy Policy</LegalH2>

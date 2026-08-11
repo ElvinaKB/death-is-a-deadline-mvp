@@ -9,6 +9,10 @@ import {
 } from "date-fns";
 import { parseBookingDateOnly } from "../libs/utils/hotelDates";
 import { Redis } from "@upstash/redis";
+import {
+  notifyBookingConfirmed,
+  notifyBookingCancelled,
+} from "../services/myallocatorNotify.service";
 
 // Cloudbeds OTA Build-To-Us API (myallocator).
 // Spec: https://developers.cloudbeds.com/reference/ota-build-to-us-introduction
@@ -90,6 +94,7 @@ async function findPlaceByOtaId(otaPropertyId: unknown): Promise<OtaPlace | null
 // so GetBookingList/GetBookingId can be certified. Format mirrors the real
 // GetBookingId body below.
 const SANDBOX_BOOKING_ID = "dln-sandbox-booking-1";
+const SANDBOX_CANCEL_BOOKING_ID = "dln-sandbox-cancel-1";
 
 function buildSandboxBooking(orderId: string, isCancellation: boolean) {
   const checkInStr = "2026-08-01";
@@ -347,6 +352,10 @@ router.post("/GetBookingList", async (req: Request, res: Response) => {
       success: true,
       Bookings: [
         { booking_id: SANDBOX_BOOKING_ID, version: "2026-07-26T12:00:00.000Z" },
+        {
+          booking_id: SANDBOX_CANCEL_BOOKING_ID,
+          version: "2026-07-26T12:30:00.000Z",
+        },
       ],
     });
   }
@@ -514,6 +523,35 @@ router.post("/CancelBooking", async (req: Request, res: Response) => {
     return fail(res, ERROR.NO_SUCH_BOOKING, "No such booking id.");
   }
   return res.json({ success: true });
+});
+
+// Fire a test booking + cancellation to the myallocator test property (for
+// Cloudbeds go-live: "send a test booking and then cancel it"). Pokes
+// NotifyBooking so myallocator polls our GetBookingList/GetBookingId — where the
+// sandbox now serves one active booking + one cancelled booking. Gated by
+// shared_secret. Requires MYALLOCATOR_OTA_CID + MYALLOCATOR_SHARED_SECRET set.
+router.post("/_send-test-booking", async (req: Request, res: Response) => {
+  if (!hasValidSharedSecret(req.body)) {
+    return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
+  }
+  const out: Record<string, string> = {};
+  try {
+    await notifyBookingConfirmed(SANDBOX_BOOKING_ID, SANDBOX_PROPERTY_ID);
+    out.confirm = "sent";
+  } catch (err) {
+    out.confirm = `error: ${(err as Error)?.message ?? "failed"}`;
+  }
+  try {
+    await notifyBookingCancelled(SANDBOX_CANCEL_BOOKING_ID, SANDBOX_PROPERTY_ID);
+    out.cancel = "sent";
+  } catch (err) {
+    out.cancel = `error: ${(err as Error)?.message ?? "failed"}`;
+  }
+  return res.json({
+    success: true,
+    ota_cid: process.env.MYALLOCATOR_OTA_CID ?? "(MYALLOCATOR_OTA_CID not set)",
+    ...out,
+  });
 });
 
 // Self-cert debugging: read back the last captured sandbox payload for a verb.
