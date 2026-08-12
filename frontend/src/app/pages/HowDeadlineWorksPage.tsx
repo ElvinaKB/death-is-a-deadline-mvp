@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { ROUTES } from "../../config/routes.config";
 import marketplaceImg from "../../assets/how-works-marketplace.png";
 import listingImg from "../../assets/how-works-listing.png";
-import bidImg from "../../assets/how-works-bid.png";
 import tooLowImg from "../../assets/how-works-too-low.png";
 import acceptedImg from "../../assets/how-works-accepted.png";
 
