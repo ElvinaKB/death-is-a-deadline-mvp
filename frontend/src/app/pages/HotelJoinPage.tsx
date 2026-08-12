@@ -408,6 +408,15 @@ export function HotelJoinPage() {
             </p>
           </form>
         )}
+        <p className="text-center text-sm text-[hsl(0_0%_70%)] mt-10">
+          Curious how the bidding actually works?{" "}
+          <Link
+            to={ROUTES.HOW_IT_WORKS}
+            className="text-gold hover:text-gold-light underline underline-offset-2"
+          >
+            See how Deadline works
+          </Link>
+        </p>
       </main>
       <SiteFooter />
     </div>
