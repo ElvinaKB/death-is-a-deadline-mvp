@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../../config/routes.config";
 import marketplaceImg from "../../assets/how-works-marketplace.png";
@@ -30,19 +31,47 @@ function Check({ children }: { children: React.ReactNode }) {
   );
 }
 
+function IconRow({
+  icon,
+  title,
+  detail,
+}: {
+  icon: string;
+  title: string;
+  detail?: string;
+}) {
+  return (
+    <li className="flex items-start gap-4">
+      <span className="text-2xl leading-none shrink-0" aria-hidden>
+        {icon}
+      </span>
+      <div>
+        <p className="font-bold text-lg leading-snug">{title}</p>
+        {detail && (
+          <p className="text-gray-600 text-sm leading-relaxed mt-0.5">
+            {detail}
+          </p>
+        )}
+      </div>
+    </li>
+  );
+}
+
 function StepCard({
   n,
   title,
   description,
   image,
+  badges,
 }: {
   n: number;
   title: string;
   description: string;
   image: string;
+  badges?: string[];
 }) {
   return (
-    <div className="rounded-2xl overflow-hidden bg-white/[0.03] border border-white/10">
+    <div className="rounded-2xl overflow-hidden bg-gray-50 border border-gray-200">
       <img src={image} alt={title} className="w-full h-auto block" />
       <div className="p-6">
         <div className="flex items-start gap-3">
@@ -56,7 +85,19 @@ function StepCard({
             <p className="font-black text-lg mb-1" style={{ color: GOLD }}>
               {title}
             </p>
-            <p className="text-gray-300 leading-relaxed">{description}</p>
+            <p className="text-gray-600 leading-relaxed">{description}</p>
+            {badges && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {badges.map((b) => (
+                  <span
+                    key={b}
+                    className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  >
+                    ✅ {b}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -72,6 +113,109 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
     >
       {children}
     </h2>
+  );
+}
+
+/** Loops: hidden minimum -> a losing bid -> rejected -> a winning bid -> accepted -> repeat. */
+function AnimatedPricingDemo() {
+  const PHASES = [
+    { bid: null, result: null, duration: 1400 },
+    { bid: 160, result: null, duration: 1200 },
+    { bid: 160, result: "rejected" as const, duration: 2000 },
+    { bid: 220, result: null, duration: 1200 },
+    { bid: 220, result: "accepted" as const, duration: 2400 },
+  ];
+  const [phase, setPhase] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setPhase((p) => (p + 1) % PHASES.length),
+      PHASES[phase].duration,
+    );
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  const { bid, result } = PHASES[phase];
+
+  return (
+    <div className="rounded-2xl border border-white/15 bg-white/5 p-8 w-full max-w-sm">
+      <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-2">
+        Minimum
+      </p>
+      <p
+        className="text-3xl font-black tracking-[0.3em] mb-6"
+        style={{ color: GOLD }}
+      >
+        • • • •
+      </p>
+      <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-2">
+        Your Secret Bid
+      </p>
+      <p
+        className="text-4xl font-black mb-6 h-11 transition-opacity duration-500"
+        style={{ opacity: bid ? 1 : 0 }}
+      >
+        ${bid ?? 0}
+      </p>
+      <div className="h-9 flex items-center transition-opacity duration-500" style={{ opacity: result ? 1 : 0 }}>
+        {result === "accepted" && (
+          <span className="text-xl font-black text-emerald-400">
+            ✓ Accepted
+          </span>
+        )}
+        {result === "rejected" && (
+          <span className="text-lg font-bold text-red-400">
+            ✕ Not accepted — try again
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PricingComparisonDiagram() {
+  return (
+    <div className="grid md:grid-cols-2 gap-6 mt-6">
+      <div className="rounded-xl border border-white/10 bg-white/5 p-6 flex flex-col items-center text-center gap-2">
+        <p className="text-xs uppercase tracking-wider text-gray-400 mb-2">
+          Traditional OTA
+        </p>
+        <span className="text-2xl" aria-hidden>
+          🏨
+        </span>
+        <span className="text-gray-300 text-sm">Hotel</span>
+        <span className="text-gray-500">↓</span>
+        <span className="text-2xl font-black text-white">$170</span>
+        <span className="text-gray-500">↓</span>
+        <p className="text-sm text-gray-400">Everyone sees it</p>
+      </div>
+      <div
+        className="rounded-xl border p-6 flex flex-col items-center text-center gap-2"
+        style={{ borderColor: GOLD, backgroundColor: "rgba(197,160,89,0.08)" }}
+      >
+        <p className="text-xs uppercase tracking-wider mb-2" style={{ color: GOLD }}>
+          Deadline
+        </p>
+        <span className="text-2xl" aria-hidden>
+          🏨
+        </span>
+        <span className="text-gray-300 text-sm">Hotel</span>
+        <span className="text-gray-500">↓</span>
+        <span
+          className="text-xl font-black tracking-widest"
+          style={{ color: GOLD }}
+        >
+          Hidden
+        </span>
+        <span className="text-gray-500">↓</span>
+        <span className="text-gray-300 text-sm">Traveler places a Secret Bid</span>
+        <span className="text-gray-500">↓</span>
+        <p className="text-sm font-medium" style={{ color: GOLD }}>
+          Only the winner ever sees a price
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -98,15 +242,23 @@ export function HowDeadlineWorksPage() {
           >
             How Deadline Works
           </p>
-          <h2 className="text-4xl md:text-5xl font-black leading-[1.05] mb-6 max-w-3xl">
-            Private pricing. Verified travelers. No public discounts.
-          </h2>
-          <p className="text-xl text-gray-300 max-w-2xl leading-relaxed">
-            Deadline is a private marketplace where verified travelers submit
-            confidential bids on unsold hotel rooms. It&apos;s not an auction —
-            there&apos;s no bidding war and no visible competition. Each hotel
-            sets one hidden minimum. Meet it, and the room is instantly yours.
-          </p>
+          <div className="grid md:grid-cols-2 gap-10 items-center">
+            <div>
+              <h2 className="text-4xl md:text-5xl font-black leading-[1.05] mb-6 max-w-xl">
+                Hotels have a secret minimum price.
+                <br />
+                <span style={{ color: GOLD }}>Your job is to guess it.</span>
+              </h2>
+              <p className="text-xl text-gray-300 max-w-xl leading-relaxed">
+                Meet it, and the room is instantly yours — no bidding war, no
+                visible competition, just you against the hotel&apos;s hidden
+                number.
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <AnimatedPricingDemo />
+            </div>
+          </div>
         </div>
       </header>
 
@@ -123,13 +275,14 @@ export function HowDeadlineWorksPage() {
             <StepCard
               n={1}
               title="Get verified"
-              description="A .edu, .gov, or approved corporate email verifies instantly. Anyone else can verify with LinkedIn or a quick ID check — Deadline isn't open to the general public."
+              description="Deadline isn't open to the general public — verify once and you're in."
               image={marketplaceImg}
+              badges={["LinkedIn", ".edu / .gov Email", "Quick ID Check"]}
             />
             <StepCard
               n={2}
-              title="Place a private bid"
-              description="Pick your dates and enter what you're willing to pay per night. You're bidding against the retail price shown on the page — the hotel's actual minimum is never displayed anywhere."
+              title="Place a Secret Bid"
+              description="Pick your dates and enter what you're willing to pay per night. You're bidding against the retail price shown — the hotel's actual minimum is never displayed anywhere."
               image={listingImg}
             />
             <StepCard
@@ -145,6 +298,13 @@ export function HowDeadlineWorksPage() {
               image={acceptedImg}
             />
           </div>
+          <p
+            className="mt-8 text-center text-base font-bold rounded-xl py-4 px-6"
+            style={{ backgroundColor: "rgba(197,160,89,0.1)", color: NAVY }}
+          >
+            ⏳ Hotels release only a limited number of rooms each night — once
+            they&apos;re gone, they&apos;re gone.
+          </p>
         </section>
 
         {/* Blind bidding, confidential minimums */}
@@ -152,9 +312,7 @@ export function HowDeadlineWorksPage() {
           className="rounded-2xl p-8 md:p-10"
           style={{ backgroundColor: NAVY }}
         >
-          <h2
-            className="text-2xl md:text-3xl font-black uppercase mb-4 text-white"
-          >
+          <h2 className="text-2xl md:text-3xl font-black uppercase mb-4 text-white">
             Why the minimum stays{" "}
             <span style={{ color: GOLD }}>confidential</span>
           </h2>
@@ -162,8 +320,8 @@ export function HowDeadlineWorksPage() {
             A hotel&apos;s private minimum is never published, never shown to
             travelers, and never the same number twice — it shifts slightly
             based on real signals like how much inventory is left and how
-            close the date is. There&apos;s no fixed number to guess, screenshot,
-            or pass along to a friend.
+            close the date is. There&apos;s no fixed number to guess,
+            screenshot, or pass along to a friend.
           </p>
           <p className="text-gray-300 leading-relaxed max-w-3xl">
             That confidentiality is the whole point: it lets a hotel move
@@ -171,6 +329,7 @@ export function HowDeadlineWorksPage() {
             becoming a public rate, so it never triggers rate-parity clauses
             or undercuts what the hotel charges everywhere else.
           </p>
+          <PricingComparisonDiagram />
         </section>
 
         {/* For Hotels */}
@@ -180,30 +339,32 @@ export function HowDeadlineWorksPage() {
             An unsold room tonight earns nothing. Deadline turns it into
             revenue without touching your public rate.
           </p>
-          <ul className="space-y-4 max-w-2xl mb-8">
-            <Check>
-              You set a private minimum — one flat number, or a different
-              floor for each day of the week. It's never published anywhere.
-            </Check>
-            <Check>
-              Your public rates on your own site and OTAs never move. A
-              closed, verified-member channel sits outside published parity —
-              it isn't a public discount, so it doesn't trigger rate-parity or
-              most-favored-nation clauses.
-            </Check>
-            <Check>
-              7% commission, only on bids you accept. No listing fee, no
-              subscription, nothing charged for empty rooms.
-            </Check>
-            <Check>
-              You control exactly what's bookable — blackout dates, which
-              days of the week are open, and how many rooms per night.
-            </Check>
-            <Check>
-              If you charge a mandatory resort or parking fee, it's disclosed
-              and folded into the price shown up front — never hidden, never
-              added after the fact.
-            </Check>
+          <ul className="space-y-5 max-w-2xl mb-8">
+            <IconRow
+              icon="🔒"
+              title="You set the minimum"
+              detail="One flat number, or a different floor for each day of the week. It's never published anywhere."
+            />
+            <IconRow
+              icon="📈"
+              title="Your public rates never move"
+              detail="A closed, verified-member channel sits outside published parity — it doesn't trigger rate-parity or most-favored-nation clauses."
+            />
+            <IconRow
+              icon="💳"
+              title="7% commission, only when a bid is accepted"
+              detail="No listing fee, no subscription, nothing charged for empty rooms."
+            />
+            <IconRow
+              icon="🎛️"
+              title="Full control"
+              detail="Blackout dates, which days of the week are open, and how many rooms per night — all yours to set."
+            />
+            <IconRow
+              icon="🧾"
+              title="Mandatory fees are disclosed and included"
+              detail="A resort or parking fee, if you charge one, is folded into the price shown up front — never hidden, never added after the fact."
+            />
           </ul>
           <Link
             to={ROUTES.HOTELS_JOIN}
@@ -217,22 +378,22 @@ export function HowDeadlineWorksPage() {
         {/* After acceptance */}
         <section>
           <SectionHeading>After Your Bid Is Accepted</SectionHeading>
-          <ul className="space-y-4 max-w-2xl">
-            <Check>
-              Acceptance is instant and binding. There&apos;s no separate
-              hotel-side approval step — the room is confirmed and your card
-              is charged the moment your bid clears the hotel&apos;s price.
-            </Check>
-            <Check>
-              Deadline is the merchant of record on your card statement, and a
-              confirmation email goes out right away with your reservation
-              details.
-            </Check>
-            <Check>
-              The reservation is booked in your name. You need to be the
-              guest checking in (or among the group staying) — the hotel may
-              ask for ID matching the reservation at check-in.
-            </Check>
+          <ul className="space-y-5 max-w-2xl">
+            <IconRow
+              icon="⚡"
+              title="Instant and binding"
+              detail="There's no separate hotel-side approval step — the room is confirmed and your card is charged the moment your bid clears the hotel's price."
+            />
+            <IconRow
+              icon="📧"
+              title="Confirmed right away"
+              detail="Deadline is the merchant of record on your card statement, and a confirmation email goes out immediately with your reservation details."
+            />
+            <IconRow
+              icon="🪪"
+              title="Booked in your name"
+              detail="You need to be the guest checking in (or among the group staying) — the hotel may ask for ID matching the reservation."
+            />
           </ul>
         </section>
 
