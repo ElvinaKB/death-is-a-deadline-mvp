@@ -95,12 +95,53 @@ async function findPlaceByOtaId(otaPropertyId: unknown): Promise<OtaPlace | null
 // GetBookingId body below.
 const SANDBOX_BOOKING_ID = "dln-sandbox-booking-1";
 const SANDBOX_CANCEL_BOOKING_ID = "dln-sandbox-cancel-1";
+// A second, deliberately distinct reservation Cloudbeds asked for after the
+// first review ("a new test reservation, separate from dln-sandbox-booking-1").
+// Different guest, dates, length of stay and rate so it's unmistakably new.
+const SANDBOX_BOOKING_ID_2 = "dln-sandbox-booking-2";
+
+// Per-booking synthetic profiles so each sandbox reservation is distinct.
+const SANDBOX_PROFILES: Record<
+  string,
+  {
+    checkIn: string;
+    nights: number;
+    rate: number;
+    orderDate: string;
+    orderTime: string;
+    fName: string;
+    lName: string;
+    email: string;
+  }
+> = {
+  [SANDBOX_BOOKING_ID]: {
+    checkIn: "2026-08-01",
+    nights: 2,
+    rate: 100,
+    orderDate: "2026-07-26",
+    orderTime: "12:00:00",
+    fName: "Sandbox",
+    lName: "Tester",
+    email: "sandbox@deadlinetravel.com",
+  },
+  [SANDBOX_BOOKING_ID_2]: {
+    checkIn: "2026-09-20",
+    nights: 3,
+    rate: 150,
+    orderDate: "2026-08-15",
+    orderTime: "09:30:00",
+    fName: "Riley",
+    lName: "Sandbox-Two",
+    email: "sandbox2@deadlinetravel.com",
+  },
+};
 
 function buildSandboxBooking(orderId: string, isCancellation: boolean) {
-  const checkInStr = "2026-08-01";
+  const p = SANDBOX_PROFILES[orderId] ?? SANDBOX_PROFILES[SANDBOX_BOOKING_ID];
+  const checkInStr = p.checkIn;
   const checkIn = new Date(`${checkInStr}T00:00:00Z`);
-  const nights = 2;
-  const rate = 100;
+  const nights = p.nights;
+  const rate = p.rate;
   const dayRates = Array.from({ length: nights }, (_, i) => ({
     Date: format(addDays(checkIn, i), "yyyy-MM-dd"),
     Description: "Deadline Threshold Rate",
@@ -110,8 +151,8 @@ function buildSandboxBooking(orderId: string, isCancellation: boolean) {
   }));
   return {
     OrderId: orderId,
-    OrderDate: "2026-07-26",
-    OrderTime: "12:00:00",
+    OrderDate: p.orderDate,
+    OrderTime: p.orderTime,
     IsCancellation: isCancellation ? 1 : 0,
     IsModification: 0,
     OrderAdults: 1,
@@ -123,9 +164,9 @@ function buildSandboxBooking(orderId: string, isCancellation: boolean) {
     Customers: [
       {
         CustomerCountry: "US",
-        CustomerEmail: "sandbox@deadlinetravel.com",
-        CustomerFName: "Sandbox",
-        CustomerLName: "Tester",
+        CustomerEmail: p.email,
+        CustomerFName: p.fName,
+        CustomerLName: p.lName,
       },
     ],
     Rooms: [
@@ -338,6 +379,9 @@ router.post("/GetBookingList", async (req: Request, res: Response) => {
   if (!hasValidSharedSecret(req.body)) {
     return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
   }
+  // Record that myallocator polled us (observable via /_sandbox-last) — proves
+  // a NotifyBooking poke actually triggered a re-pull during certification.
+  await captureSandbox("GetBookingList", req.body);
   const place = await findPlaceByOtaId(req.body?.ota_property_id);
   if (!place) {
     return fail(
@@ -355,6 +399,10 @@ router.post("/GetBookingList", async (req: Request, res: Response) => {
         {
           booking_id: SANDBOX_CANCEL_BOOKING_ID,
           version: "2026-07-26T12:30:00.000Z",
+        },
+        {
+          booking_id: SANDBOX_BOOKING_ID_2,
+          version: "2026-08-15T09:30:00.000Z",
         },
       ],
     });
@@ -392,6 +440,7 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
   if (!hasValidSharedSecret(req.body)) {
     return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
   }
+  await captureSandbox("GetBookingId", req.body);
   const place = await findPlaceByOtaId(req.body?.ota_property_id);
   if (!place) {
     return fail(
@@ -534,22 +583,34 @@ router.post("/_send-test-booking", async (req: Request, res: Response) => {
   if (!hasValidSharedSecret(req.body)) {
     return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
   }
+  // Default to the fresh reservation Cloudbeds requested post-review; allow an
+  // explicit booking_id override, and an optional cancel poke.
+  const bookingId =
+    typeof req.body?.booking_id === "string" && req.body.booking_id
+      ? req.body.booking_id
+      : SANDBOX_BOOKING_ID_2;
   const out: Record<string, string> = {};
   try {
-    await notifyBookingConfirmed(SANDBOX_BOOKING_ID, SANDBOX_PROPERTY_ID);
+    await notifyBookingConfirmed(bookingId, SANDBOX_PROPERTY_ID);
     out.confirm = "sent";
   } catch (err) {
     out.confirm = `error: ${(err as Error)?.message ?? "failed"}`;
   }
-  try {
-    await notifyBookingCancelled(SANDBOX_CANCEL_BOOKING_ID, SANDBOX_PROPERTY_ID);
-    out.cancel = "sent";
-  } catch (err) {
-    out.cancel = `error: ${(err as Error)?.message ?? "failed"}`;
+  if (req.body?.cancel === true) {
+    try {
+      await notifyBookingCancelled(
+        SANDBOX_CANCEL_BOOKING_ID,
+        SANDBOX_PROPERTY_ID,
+      );
+      out.cancel = "sent";
+    } catch (err) {
+      out.cancel = `error: ${(err as Error)?.message ?? "failed"}`;
+    }
   }
   return res.json({
     success: true,
     ota_cid: process.env.MYALLOCATOR_OTA_CID ?? "(MYALLOCATOR_OTA_CID not set)",
+    booking_id: bookingId,
     ...out,
   });
 });
