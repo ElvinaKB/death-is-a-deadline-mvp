@@ -370,12 +370,16 @@ export function StudentDetailPage() {
 
   const student = data.student;
 
-  const getStatusBadge = (status: ApprovalStatus) => {
+  const getStatusBadge = (status: ApprovalStatus | null | undefined) => {
     const variants = {
       [ApprovalStatus.APPROVED]: "bg-success/20 text-success border-success/30",
       [ApprovalStatus.PENDING]: "bg-warning/20 text-warning border-warning/30",
       [ApprovalStatus.REJECTED]: "bg-error/20 text-error border-error/30",
     };
+
+    if (!status || !variants[status]) {
+      return <Badge className="bg-muted/20 text-muted">Unknown</Badge>;
+    }
 
     return (
       <Badge className={variants[status]}>

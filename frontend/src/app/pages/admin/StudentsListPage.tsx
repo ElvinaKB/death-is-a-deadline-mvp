@@ -188,9 +188,14 @@ export function StudentsListPage() {
       [ApprovalStatus.REJECTED]: "bg-danger/20 text-danger hover:bg-danger/30",
     };
 
+    const status = row.approvalStatus;
+    if (!status || !variants[status]) {
+      return <Badge className="bg-muted/20 text-muted">Unknown</Badge>;
+    }
+
     return (
-      <Badge className={variants[row.approvalStatus]}>
-        {row.approvalStatus.charAt(0) + row.approvalStatus.slice(1).toLowerCase()}
+      <Badge className={variants[status]}>
+        {status.charAt(0) + status.slice(1).toLowerCase()}
       </Badge>
     );
   };
