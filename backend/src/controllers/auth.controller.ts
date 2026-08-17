@@ -25,6 +25,26 @@ const LINKEDIN_REDIRECT_URI = `${process.env.CLIENT_URL}/auth/linkedin/callback`
 const REVIEW_INBOX =
   process.env.CONTACT_INBOX_EMAIL || "hotels@deadlinetravel.com";
 
+// Mirrors frontend/src/utils/emailValidator.ts's isAutoVerifiedEmail — kept
+// in sync manually since the two run in different bundles. This is the
+// AUTHORITATIVE check: the client-side version only decides which UI to
+// show (ID upload vs. not), it does not gate anything. Trusting the client
+// to report which email "qualifies" let anyone hit this endpoint directly
+// with any email and no ID and get instantly approved.
+const ACADEMIC_EMAIL_SUFFIXES = [".edu"];
+const GOV_EMAIL_SUFFIXES = [".gov"];
+const PARTNER_ORG_DOMAINS = ["hofoco.org", "safeplaceforyouth.org"];
+
+function isAutoVerifiedEmail(email: string): boolean {
+  const lower = email.toLowerCase();
+  const domain = lower.split("@")[1] ?? "";
+  return (
+    ACADEMIC_EMAIL_SUFFIXES.some((suffix) => lower.endsWith(suffix)) ||
+    GOV_EMAIL_SUFFIXES.some((suffix) => lower.endsWith(suffix)) ||
+    PARTNER_ORG_DOMAINS.includes(domain)
+  );
+}
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
@@ -223,9 +243,21 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
     referralCode,
   } = req.body as SignupRequest;
 
-  const approvalStatus = studentIdUrl
-    ? ApprovalStatus.PENDING
-    : ApprovalStatus.APPROVED;
+  // Instant approval requires the email to actually match an approved
+  // domain — never just "no ID was attached". Without this check, anyone
+  // calling this endpoint directly (skipping the frontend's own domain
+  // check) could get auto-approved with any email and no verification at
+  // all, which is exactly how a bot got in tonight.
+  const emailQualifiesForInstantApproval = isAutoVerifiedEmail(email);
+  if (!emailQualifiesForInstantApproval && !studentIdUrl) {
+    throw new CustomError(
+      "Please upload a form of ID to verify your account, or sign up with a .edu, .gov, or approved email.",
+      400,
+    );
+  }
+  const approvalStatus = emailQualifiesForInstantApproval
+    ? ApprovalStatus.APPROVED
+    : ApprovalStatus.PENDING;
 
   // Supabase sign up
   const { data, error } = await supabase.auth.signUp({
