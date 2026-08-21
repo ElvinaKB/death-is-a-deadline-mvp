@@ -212,9 +212,11 @@ export async function hotelSignup(
 
   const session = sessionData?.session;
 
-  // First, find all places owned by this hotel user
+  // First, find all places owned by this hotel user. Match case-insensitively:
+  // Supabase lowercases account emails, but place.email is admin-entered and may
+  // differ in case — an exact match would silently orphan the hotel's listing.
   const places = await prisma.place.findMany({
-    where: { email }, // or however ownership is modeled
+    where: { email: { equals: email, mode: "insensitive" } },
     select: { id: true, name: true },
   });
 
@@ -376,9 +378,10 @@ export async function login(req: Request, res: Response, next: NextFunction) {
   }
 
   if (data.user?.role === UserRole.HOTEL_OWNER) {
-    // First, find all places owned by this hotel user
+    // Case-insensitive: place.email is admin-entered and may differ in case
+    // from the (Supabase-lowercased) account email.
     places = await prisma.place.findMany({
-      where: { email }, // or however ownership is modeled
+      where: { email: { equals: email, mode: "insensitive" } },
       select: { id: true, name: true },
     });
   }
@@ -747,7 +750,7 @@ export async function resetPassword(
   let places: { id: string }[] = [];
   if (data.user?.role === UserRole.HOTEL_OWNER) {
     places = await prisma.place.findMany({
-      where: { email },
+      where: { email: { equals: email, mode: "insensitive" } },
       select: { id: true, name: true },
     });
   }

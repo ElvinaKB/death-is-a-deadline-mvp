@@ -1,5 +1,5 @@
 import { Building2, LogOut, Menu } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ROUTES } from "../../config/routes.config";
 import { useAdminSidebar } from "../../hooks/useAdminSidebar";
@@ -43,6 +43,23 @@ export function AdminLayout() {
     setHotel(hotel);
     queryClient.clear();
   };
+
+  // Auto-select the hotel on login, and heal a stale persisted selection.
+  // The Dashboard/Bids/Place Details pages all key off `selectedHotel`, but only
+  // signup and manual dropdown clicks used to set it — so a returning hotel
+  // owner (or one whose place was recreated, leaving a stale persisted id) saw
+  // empty pages even though their hotel name showed in the header. If the
+  // current selection isn't one of the user's places, snap to the first one.
+  useEffect(() => {
+    if (!isHotelAdmin) return;
+    const places = (user?.places ?? []) as Hotel[];
+    if (places.length === 0) return;
+    const selectionValid =
+      selectedHotel && places.some((p) => p.id === selectedHotel.id);
+    if (!selectionValid) {
+      setHotel(places[0]);
+    }
+  }, [isHotelAdmin, user?.places, selectedHotel, setHotel]);
 
   const handleLogout = () => {
     dispatch(logout());
