@@ -227,7 +227,9 @@ export async function listHotelPlaces(req: Request, res: Response) {
   const skip = (page - 1) * limit;
 
   const where: Prisma.PlaceWhereInput = {
-    email: hotelEmail,
+    // Case-insensitive: the account email (Supabase-lowercased) may differ in
+    // case from the admin-entered place.email.
+    email: { equals: hotelEmail, mode: "insensitive" },
     ...(status ? { status } : {}),
   };
 
@@ -480,7 +482,9 @@ export async function createPlace(req: Request, res: Response) {
       city: data.city,
       country: data.country,
       address: data.address,
-      email: data.email ?? null,
+      // Store canonical (lowercased, trimmed) so it reliably matches the
+      // Supabase-lowercased hotel-owner account email later.
+      email: data.email ? data.email.trim().toLowerCase() : null,
       reservationPhone: data.reservationPhone ?? null,
       latitude: data.latitude ?? null,
       longitude: data.longitude ?? null,
@@ -635,7 +639,9 @@ export async function updatePlace(req: Request, res: Response) {
       ...(data.city && { city: data.city }),
       ...(data.country && { country: data.country }),
       ...(data.address && { address: data.address }),
-      ...(data.email !== undefined && { email: data.email }),
+      ...(data.email !== undefined && {
+        email: data.email ? data.email.trim().toLowerCase() : null,
+      }),
       ...(data.reservationPhone !== undefined && {
         reservationPhone: data.reservationPhone,
       }),
