@@ -52,6 +52,14 @@ async function setSandboxState(bookingId: string, state: SandboxState) {
     await sandboxRedis?.set(`myalloc:sandbox:state:${bookingId}`, state, {
       ex: 604800,
     });
+    // Stamp a fresh version so GetBookingList reports the booking as changed —
+    // myallocator dedupes by version, so a cancellation (which changes no other
+    // field) is otherwise skipped as a no-op.
+    await sandboxRedis?.set(
+      `myalloc:sandbox:ver:${bookingId}`,
+      new Date().toISOString(),
+      { ex: 604800 },
+    );
   } catch {
     // best-effort; the poke below still fires
   }
@@ -60,6 +68,7 @@ async function setSandboxState(bookingId: string, state: SandboxState) {
 async function clearSandboxState(bookingId: string) {
   try {
     await sandboxRedis?.del(`myalloc:sandbox:state:${bookingId}`);
+    await sandboxRedis?.del(`myalloc:sandbox:ver:${bookingId}`);
   } catch {
     // best-effort
   }
@@ -69,6 +78,16 @@ async function readSandboxState(bookingId: string): Promise<SandboxState | null>
   try {
     const v = await sandboxRedis?.get(`myalloc:sandbox:state:${bookingId}`);
     return v === "modify" || v === "cancel" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+// The bumped version set when a booking is modified/cancelled, else null.
+async function readSandboxVersion(bookingId: string): Promise<string | null> {
+  try {
+    const v = await sandboxRedis?.get(`myalloc:sandbox:ver:${bookingId}`);
+    return typeof v === "string" && v ? v : null;
   } catch {
     return null;
   }
@@ -429,17 +448,26 @@ router.post("/GetBookingList", async (req: Request, res: Response) => {
   }
 
   if (place.id === SANDBOX_PROPERTY_ID) {
+    // A modified/cancelled booking reports its bumped version so myallocator
+    // treats it as changed and re-applies (see setSandboxState).
+    const [v1, v2] = await Promise.all([
+      readSandboxVersion(SANDBOX_BOOKING_ID),
+      readSandboxVersion(SANDBOX_BOOKING_ID_2),
+    ]);
     return res.json({
       success: true,
       Bookings: [
-        { booking_id: SANDBOX_BOOKING_ID, version: "2026-07-26T12:00:00.000Z" },
+        {
+          booking_id: SANDBOX_BOOKING_ID,
+          version: v1 ?? "2026-07-26T12:00:00.000Z",
+        },
         {
           booking_id: SANDBOX_CANCEL_BOOKING_ID,
           version: "2026-07-26T12:30:00.000Z",
         },
         {
           booking_id: SANDBOX_BOOKING_ID_2,
-          version: "2026-08-15T09:30:00.000Z",
+          version: v2 ?? "2026-08-15T09:30:00.000Z",
         },
       ],
     });
