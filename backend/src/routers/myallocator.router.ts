@@ -189,7 +189,11 @@ const SANDBOX_PROFILES: Record<
 
 function buildSandboxBooking(
   orderId: string,
-  opts: { isCancellation?: boolean; isModification?: boolean } = {},
+  opts: {
+    isCancellation?: boolean;
+    isModification?: boolean;
+    eventTs?: string;
+  } = {},
 ) {
   const p = SANDBOX_PROFILES[orderId] ?? SANDBOX_PROFILES[SANDBOX_BOOKING_ID];
   const checkInStr = p.checkIn;
@@ -198,6 +202,12 @@ function buildSandboxBooking(
   // the reservation myallocator already imported (nights + total price move).
   const nights = p.nights + (opts.isModification ? 1 : 0);
   const rate = p.rate;
+  // On a modification/cancellation, stamp the order date/time with the event
+  // time. A cancellation changes no other field, and myallocator dedupes a
+  // re-pulled booking by its content — without a newer timestamp it looks
+  // byte-identical to the copy it holds and the cancellation is skipped.
+  const orderDate = opts.eventTs ? opts.eventTs.slice(0, 10) : p.orderDate;
+  const orderTime = opts.eventTs ? opts.eventTs.slice(11, 19) : p.orderTime;
   const dayRates = Array.from({ length: nights }, (_, i) => ({
     Date: format(addDays(checkIn, i), "yyyy-MM-dd"),
     Description: "Deadline Threshold Rate",
@@ -207,8 +217,8 @@ function buildSandboxBooking(
   }));
   return {
     OrderId: orderId,
-    OrderDate: p.orderDate,
-    OrderTime: p.orderTime,
+    OrderDate: orderDate,
+    OrderTime: orderTime,
     IsCancellation: opts.isCancellation ? 1 : 0,
     IsModification: opts.isModification ? 1 : 0,
     OrderAdults: 1,
@@ -526,9 +536,16 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
     const state = await readSandboxState(bookingId);
     const isCancellation = state === "cancel" || bookingId.includes("cancel");
     const isModification = state === "modify";
+    // Carry the event timestamp into OrderDate/OrderTime so myallocator sees a
+    // genuinely newer booking and applies the change (esp. a cancellation).
+    const eventTs = state ? (await readSandboxVersion(bookingId)) ?? undefined : undefined;
     return res.json({
       success: true,
-      Booking: buildSandboxBooking(bookingId, { isCancellation, isModification }),
+      Booking: buildSandboxBooking(bookingId, {
+        isCancellation,
+        isModification,
+        eventTs,
+      }),
     });
   }
 
