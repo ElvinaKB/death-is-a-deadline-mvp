@@ -8,11 +8,6 @@ import {
   format,
 } from "date-fns";
 import { parseBookingDateOnly } from "../libs/utils/hotelDates";
-import { Redis } from "@upstash/redis";
-import {
-  notifyBookingConfirmed,
-  notifyBookingCancelled,
-} from "../services/myallocatorNotify.service";
 
 // Cloudbeds OTA Build-To-Us API (myallocator).
 // Spec: https://developers.cloudbeds.com/reference/ota-build-to-us-introduction
@@ -22,76 +17,6 @@ import {
 // Error codes: https://apidocs.myallocator.com/ota-errors.html
 
 export const router = Router();
-
-// Self-cert debugging aid: stash the last sandbox payload per verb in Redis
-// (Vercel is stateless, so we can't hold it in memory) so we can read back
-// exactly what the certification tool sent. Best-effort, sandbox-only.
-const sandboxRedis =
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-    ? new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-      })
-    : null;
-
-async function captureSandbox(verb: string, body: unknown) {
-  try {
-    await sandboxRedis?.set(`myalloc:sandbox:last:${verb}`, body, { ex: 3600 });
-  } catch {
-    // never block the cert flow on a capture failure
-  }
-}
-
-// Per-booking lifecycle state for the cert sandbox, so an already-imported
-// booking can be flipped to a modification or cancellation and re-pulled.
-// Kept in Redis (a week) so cert screenshots stay reproducible; sandbox-only.
-type SandboxState = "modify" | "cancel";
-
-async function setSandboxState(bookingId: string, state: SandboxState) {
-  try {
-    await sandboxRedis?.set(`myalloc:sandbox:state:${bookingId}`, state, {
-      ex: 604800,
-    });
-    // Stamp a fresh version so GetBookingList reports the booking as changed —
-    // myallocator dedupes by version, so a cancellation (which changes no other
-    // field) is otherwise skipped as a no-op.
-    await sandboxRedis?.set(
-      `myalloc:sandbox:ver:${bookingId}`,
-      new Date().toISOString(),
-      { ex: 604800 },
-    );
-  } catch {
-    // best-effort; the poke below still fires
-  }
-}
-
-async function clearSandboxState(bookingId: string) {
-  try {
-    await sandboxRedis?.del(`myalloc:sandbox:state:${bookingId}`);
-    await sandboxRedis?.del(`myalloc:sandbox:ver:${bookingId}`);
-  } catch {
-    // best-effort
-  }
-}
-
-async function readSandboxState(bookingId: string): Promise<SandboxState | null> {
-  try {
-    const v = await sandboxRedis?.get(`myalloc:sandbox:state:${bookingId}`);
-    return v === "modify" || v === "cancel" ? v : null;
-  } catch {
-    return null;
-  }
-}
-
-// The bumped version set when a booking is modified/cancelled, else null.
-async function readSandboxVersion(bookingId: string): Promise<string | null> {
-  try {
-    const v = await sandboxRedis?.get(`myalloc:sandbox:ver:${bookingId}`);
-    return typeof v === "string" && v ? v : null;
-  } catch {
-    return null;
-  }
-}
 
 const ERROR = {
   LOGIN: 1001, // FAULT.OTA.LOGIN - invalid credentials / shared_secret
@@ -189,25 +114,13 @@ const SANDBOX_PROFILES: Record<
 
 function buildSandboxBooking(
   orderId: string,
-  opts: {
-    isCancellation?: boolean;
-    isModification?: boolean;
-    eventTs?: string;
-  } = {},
+  opts: { isCancellation?: boolean } = {},
 ) {
   const p = SANDBOX_PROFILES[orderId] ?? SANDBOX_PROFILES[SANDBOX_BOOKING_ID];
   const checkInStr = p.checkIn;
   const checkIn = new Date(`${checkInStr}T00:00:00Z`);
-  // A modification extends the stay by one night — a clear, visible change to
-  // the reservation myallocator already imported (nights + total price move).
-  const nights = p.nights + (opts.isModification ? 1 : 0);
+  const nights = p.nights;
   const rate = p.rate;
-  // On a modification/cancellation, stamp the order date/time with the event
-  // time. A cancellation changes no other field, and myallocator dedupes a
-  // re-pulled booking by its content — without a newer timestamp it looks
-  // byte-identical to the copy it holds and the cancellation is skipped.
-  const orderDate = opts.eventTs ? opts.eventTs.slice(0, 10) : p.orderDate;
-  const orderTime = opts.eventTs ? opts.eventTs.slice(11, 19) : p.orderTime;
   const dayRates = Array.from({ length: nights }, (_, i) => ({
     Date: format(addDays(checkIn, i), "yyyy-MM-dd"),
     Description: "Deadline Threshold Rate",
@@ -217,10 +130,10 @@ function buildSandboxBooking(
   }));
   return {
     OrderId: orderId,
-    OrderDate: orderDate,
-    OrderTime: orderTime,
+    OrderDate: p.orderDate,
+    OrderTime: p.orderTime,
     IsCancellation: opts.isCancellation ? 1 : 0,
-    IsModification: opts.isModification ? 1 : 0,
+    IsModification: 0,
     OrderAdults: 1,
     OrderChildren: 0,
     OrderCustomers: 1,
@@ -374,10 +287,8 @@ router.post("/ARIUpdate", async (req: Request, res: Response) => {
   }
 
   // Sandbox self-cert property: accept the push but never persist, so
-  // certification can't alter any real listing's inventory. Capture the
-  // payload so we can read exactly what the cert sent.
+  // certification can't alter any real listing's inventory.
   if (place.id === SANDBOX_PROPERTY_ID) {
-    await captureSandbox("ARIUpdate", req.body);
     return res.json({ success: true });
   }
 
@@ -445,9 +356,6 @@ router.post("/GetBookingList", async (req: Request, res: Response) => {
   if (!hasValidSharedSecret(req.body)) {
     return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
   }
-  // Record that myallocator polled us (observable via /_sandbox-last) — proves
-  // a NotifyBooking poke actually triggered a re-pull during certification.
-  await captureSandbox("GetBookingList", req.body);
   const place = await findPlaceByOtaId(req.body?.ota_property_id);
   if (!place) {
     return fail(
@@ -458,18 +366,12 @@ router.post("/GetBookingList", async (req: Request, res: Response) => {
   }
 
   if (place.id === SANDBOX_PROPERTY_ID) {
-    // A modified/cancelled booking reports its bumped version so myallocator
-    // treats it as changed and re-applies (see setSandboxState).
-    const [v1, v2] = await Promise.all([
-      readSandboxVersion(SANDBOX_BOOKING_ID),
-      readSandboxVersion(SANDBOX_BOOKING_ID_2),
-    ]);
     return res.json({
       success: true,
       Bookings: [
         {
           booking_id: SANDBOX_BOOKING_ID,
-          version: v1 ?? "2026-07-26T12:00:00.000Z",
+          version: "2026-07-26T12:00:00.000Z",
         },
         {
           booking_id: SANDBOX_CANCEL_BOOKING_ID,
@@ -477,7 +379,7 @@ router.post("/GetBookingList", async (req: Request, res: Response) => {
         },
         {
           booking_id: SANDBOX_BOOKING_ID_2,
-          version: v2 ?? "2026-08-15T09:30:00.000Z",
+          version: "2026-08-15T09:30:00.000Z",
         },
       ],
     });
@@ -515,7 +417,6 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
   if (!hasValidSharedSecret(req.body)) {
     return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
   }
-  await captureSandbox("GetBookingId", req.body);
   const place = await findPlaceByOtaId(req.body?.ota_property_id);
   if (!place) {
     return fail(
@@ -531,21 +432,12 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
   }
 
   if (place.id === SANDBOX_PROPERTY_ID) {
-    // Lifecycle state (set by the modify/cancel test triggers) overrides the
-    // default; the reserved *-cancel-* id is always a cancellation.
-    const state = await readSandboxState(bookingId);
-    const isCancellation = state === "cancel" || bookingId.includes("cancel");
-    const isModification = state === "modify";
-    // Carry the event timestamp into OrderDate/OrderTime so myallocator sees a
-    // genuinely newer booking and applies the change (esp. a cancellation).
-    const eventTs = state ? (await readSandboxVersion(bookingId)) ?? undefined : undefined;
+    // The reserved *-cancel-* id is a cancellation; everything else is a
+    // standard synthetic booking.
+    const isCancellation = bookingId.includes("cancel");
     return res.json({
       success: true,
-      Booking: buildSandboxBooking(bookingId, {
-        isCancellation,
-        isModification,
-        eventTs,
-      }),
+      Booking: buildSandboxBooking(bookingId, { isCancellation }),
     });
   }
 
@@ -656,118 +548,4 @@ router.post("/CancelBooking", async (req: Request, res: Response) => {
     return fail(res, ERROR.NO_SUCH_BOOKING, "No such booking id.");
   }
   return res.json({ success: true });
-});
-
-// Fire a test booking + cancellation to the myallocator test property (for
-// Cloudbeds go-live: "send a test booking and then cancel it"). Pokes
-// NotifyBooking so myallocator polls our GetBookingList/GetBookingId — where the
-// sandbox now serves one active booking + one cancelled booking. Gated by
-// shared_secret. Requires MYALLOCATOR_OTA_CID + MYALLOCATOR_SHARED_SECRET set.
-router.post("/_send-test-booking", async (req: Request, res: Response) => {
-  if (!hasValidSharedSecret(req.body)) {
-    return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
-  }
-  // Default to the fresh reservation Cloudbeds requested post-review; allow an
-  // explicit booking_id override, and an optional cancel poke.
-  const bookingId =
-    typeof req.body?.booking_id === "string" && req.body.booking_id
-      ? req.body.booking_id
-      : SANDBOX_BOOKING_ID_2;
-  const out: Record<string, string> = {};
-  try {
-    // A confirm is always a clean booking — clear any modify/cancel state left
-    // over from a prior lifecycle test on this id.
-    await clearSandboxState(bookingId);
-    await notifyBookingConfirmed(bookingId, SANDBOX_PROPERTY_ID);
-    out.confirm = "sent";
-  } catch (err) {
-    out.confirm = `error: ${(err as Error)?.message ?? "failed"}`;
-  }
-  if (req.body?.cancel === true) {
-    try {
-      await notifyBookingCancelled(
-        SANDBOX_CANCEL_BOOKING_ID,
-        SANDBOX_PROPERTY_ID,
-      );
-      out.cancel = "sent";
-    } catch (err) {
-      out.cancel = `error: ${(err as Error)?.message ?? "failed"}`;
-    }
-  }
-  return res.json({
-    success: true,
-    ota_cid: process.env.MYALLOCATOR_OTA_CID ?? "(MYALLOCATOR_OTA_CID not set)",
-    booking_id: bookingId,
-    ...out,
-  });
-});
-
-// Cloudbeds cert step 2: send a MODIFICATION of an already-imported booking.
-// Flips the booking to IsModification=1 (stay extended by a night) and pokes
-// NotifyBooking so myallocator re-pulls and updates it. Defaults to booking-2.
-router.post("/_send-test-modification", async (req: Request, res: Response) => {
-  if (!hasValidSharedSecret(req.body)) {
-    return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
-  }
-  const bookingId =
-    typeof req.body?.booking_id === "string" && req.body.booking_id
-      ? req.body.booking_id
-      : SANDBOX_BOOKING_ID_2;
-  const out: Record<string, string> = {};
-  try {
-    await setSandboxState(bookingId, "modify");
-    await notifyBookingConfirmed(bookingId, SANDBOX_PROPERTY_ID);
-    out.notify = "sent";
-  } catch (err) {
-    out.notify = `error: ${(err as Error)?.message ?? "failed"}`;
-  }
-  return res.json({
-    success: true,
-    ota_cid: process.env.MYALLOCATOR_OTA_CID ?? "(MYALLOCATOR_OTA_CID not set)",
-    booking_id: bookingId,
-    action: "modification",
-    ...out,
-  });
-});
-
-// Cloudbeds cert step 3: send a CANCELLATION of an already-imported booking.
-// Flips the booking to IsCancellation=1 and pokes NotifyBooking so myallocator
-// re-pulls and cancels it. Defaults to booking-1 (the original, still active).
-router.post("/_send-test-cancellation", async (req: Request, res: Response) => {
-  if (!hasValidSharedSecret(req.body)) {
-    return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
-  }
-  const bookingId =
-    typeof req.body?.booking_id === "string" && req.body.booking_id
-      ? req.body.booking_id
-      : SANDBOX_BOOKING_ID;
-  const out: Record<string, string> = {};
-  try {
-    await setSandboxState(bookingId, "cancel");
-    await notifyBookingCancelled(bookingId, SANDBOX_PROPERTY_ID);
-    out.notify = "sent";
-  } catch (err) {
-    out.notify = `error: ${(err as Error)?.message ?? "failed"}`;
-  }
-  return res.json({
-    success: true,
-    ota_cid: process.env.MYALLOCATOR_OTA_CID ?? "(MYALLOCATOR_OTA_CID not set)",
-    booking_id: bookingId,
-    action: "cancellation",
-    ...out,
-  });
-});
-
-// Self-cert debugging: read back the last captured sandbox payload for a verb.
-// Gated by shared_secret. Temporary aid for certification; safe to remove after.
-router.post("/_sandbox-last", async (req: Request, res: Response) => {
-  if (!hasValidSharedSecret(req.body)) {
-    return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
-  }
-  const verb =
-    typeof req.body?.verb === "string" ? req.body.verb : "ARIUpdate";
-  const payload = sandboxRedis
-    ? await sandboxRedis.get(`myalloc:sandbox:last:${verb}`)
-    : null;
-  return res.json({ success: true, verb, payload });
 });
