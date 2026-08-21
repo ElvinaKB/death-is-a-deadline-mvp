@@ -42,6 +42,38 @@ async function captureSandbox(verb: string, body: unknown) {
   }
 }
 
+// Per-booking lifecycle state for the cert sandbox, so an already-imported
+// booking can be flipped to a modification or cancellation and re-pulled.
+// Kept in Redis (a week) so cert screenshots stay reproducible; sandbox-only.
+type SandboxState = "modify" | "cancel";
+
+async function setSandboxState(bookingId: string, state: SandboxState) {
+  try {
+    await sandboxRedis?.set(`myalloc:sandbox:state:${bookingId}`, state, {
+      ex: 604800,
+    });
+  } catch {
+    // best-effort; the poke below still fires
+  }
+}
+
+async function clearSandboxState(bookingId: string) {
+  try {
+    await sandboxRedis?.del(`myalloc:sandbox:state:${bookingId}`);
+  } catch {
+    // best-effort
+  }
+}
+
+async function readSandboxState(bookingId: string): Promise<SandboxState | null> {
+  try {
+    const v = await sandboxRedis?.get(`myalloc:sandbox:state:${bookingId}`);
+    return v === "modify" || v === "cancel" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 const ERROR = {
   LOGIN: 1001, // FAULT.OTA.LOGIN - invalid credentials / shared_secret
   NOTENABLED: 1002, // FAULT.OTA.NOTENABLED
@@ -136,11 +168,16 @@ const SANDBOX_PROFILES: Record<
   },
 };
 
-function buildSandboxBooking(orderId: string, isCancellation: boolean) {
+function buildSandboxBooking(
+  orderId: string,
+  opts: { isCancellation?: boolean; isModification?: boolean } = {},
+) {
   const p = SANDBOX_PROFILES[orderId] ?? SANDBOX_PROFILES[SANDBOX_BOOKING_ID];
   const checkInStr = p.checkIn;
   const checkIn = new Date(`${checkInStr}T00:00:00Z`);
-  const nights = p.nights;
+  // A modification extends the stay by one night — a clear, visible change to
+  // the reservation myallocator already imported (nights + total price move).
+  const nights = p.nights + (opts.isModification ? 1 : 0);
   const rate = p.rate;
   const dayRates = Array.from({ length: nights }, (_, i) => ({
     Date: format(addDays(checkIn, i), "yyyy-MM-dd"),
@@ -153,8 +190,8 @@ function buildSandboxBooking(orderId: string, isCancellation: boolean) {
     OrderId: orderId,
     OrderDate: p.orderDate,
     OrderTime: p.orderTime,
-    IsCancellation: isCancellation ? 1 : 0,
-    IsModification: 0,
+    IsCancellation: opts.isCancellation ? 1 : 0,
+    IsModification: opts.isModification ? 1 : 0,
     OrderAdults: 1,
     OrderChildren: 0,
     OrderCustomers: 1,
@@ -456,12 +493,14 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
   }
 
   if (place.id === SANDBOX_PROPERTY_ID) {
-    // Report a cancellation only when the cert asks for the reserved
-    // cancellation id; otherwise return the standard synthetic booking.
-    const isCancellation = bookingId.includes("cancel");
+    // Lifecycle state (set by the modify/cancel test triggers) overrides the
+    // default; the reserved *-cancel-* id is always a cancellation.
+    const state = await readSandboxState(bookingId);
+    const isCancellation = state === "cancel" || bookingId.includes("cancel");
+    const isModification = state === "modify";
     return res.json({
       success: true,
-      Booking: buildSandboxBooking(bookingId, isCancellation),
+      Booking: buildSandboxBooking(bookingId, { isCancellation, isModification }),
     });
   }
 
@@ -591,6 +630,9 @@ router.post("/_send-test-booking", async (req: Request, res: Response) => {
       : SANDBOX_BOOKING_ID_2;
   const out: Record<string, string> = {};
   try {
+    // A confirm is always a clean booking — clear any modify/cancel state left
+    // over from a prior lifecycle test on this id.
+    await clearSandboxState(bookingId);
     await notifyBookingConfirmed(bookingId, SANDBOX_PROPERTY_ID);
     out.confirm = "sent";
   } catch (err) {
@@ -611,6 +653,62 @@ router.post("/_send-test-booking", async (req: Request, res: Response) => {
     success: true,
     ota_cid: process.env.MYALLOCATOR_OTA_CID ?? "(MYALLOCATOR_OTA_CID not set)",
     booking_id: bookingId,
+    ...out,
+  });
+});
+
+// Cloudbeds cert step 2: send a MODIFICATION of an already-imported booking.
+// Flips the booking to IsModification=1 (stay extended by a night) and pokes
+// NotifyBooking so myallocator re-pulls and updates it. Defaults to booking-2.
+router.post("/_send-test-modification", async (req: Request, res: Response) => {
+  if (!hasValidSharedSecret(req.body)) {
+    return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
+  }
+  const bookingId =
+    typeof req.body?.booking_id === "string" && req.body.booking_id
+      ? req.body.booking_id
+      : SANDBOX_BOOKING_ID_2;
+  const out: Record<string, string> = {};
+  try {
+    await setSandboxState(bookingId, "modify");
+    await notifyBookingConfirmed(bookingId, SANDBOX_PROPERTY_ID);
+    out.notify = "sent";
+  } catch (err) {
+    out.notify = `error: ${(err as Error)?.message ?? "failed"}`;
+  }
+  return res.json({
+    success: true,
+    ota_cid: process.env.MYALLOCATOR_OTA_CID ?? "(MYALLOCATOR_OTA_CID not set)",
+    booking_id: bookingId,
+    action: "modification",
+    ...out,
+  });
+});
+
+// Cloudbeds cert step 3: send a CANCELLATION of an already-imported booking.
+// Flips the booking to IsCancellation=1 and pokes NotifyBooking so myallocator
+// re-pulls and cancels it. Defaults to booking-1 (the original, still active).
+router.post("/_send-test-cancellation", async (req: Request, res: Response) => {
+  if (!hasValidSharedSecret(req.body)) {
+    return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
+  }
+  const bookingId =
+    typeof req.body?.booking_id === "string" && req.body.booking_id
+      ? req.body.booking_id
+      : SANDBOX_BOOKING_ID;
+  const out: Record<string, string> = {};
+  try {
+    await setSandboxState(bookingId, "cancel");
+    await notifyBookingCancelled(bookingId, SANDBOX_PROPERTY_ID);
+    out.notify = "sent";
+  } catch (err) {
+    out.notify = `error: ${(err as Error)?.message ?? "failed"}`;
+  }
+  return res.json({
+    success: true,
+    ota_cid: process.env.MYALLOCATOR_OTA_CID ?? "(MYALLOCATOR_OTA_CID not set)",
+    booking_id: bookingId,
+    action: "cancellation",
     ...out,
   });
 });
