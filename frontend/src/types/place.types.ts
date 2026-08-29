@@ -47,6 +47,10 @@ export interface Place {
   mandatoryResortFeeAmount?: number;
   /** Mandatory, non-waivable per-night parking fee (parking is not optional). 0 = none/optional. */
   mandatoryParkingFeeAmount?: number;
+  /** Direct link to an MP4/WebM file — not a YouTube/Instagram/TikTok page link. */
+  verticalVideoUrl?: string | null;
+  neighborhoodGuideText?: string | null;
+  neighborhoodGuideImageUrl?: string | null;
   status: PlaceStatus;
   createdAt: string;
   updatedAt: string;
@@ -138,6 +142,9 @@ export interface CreatePlacePayload {
   maxInventory: number;
   mandatoryResortFeeAmount: number;
   mandatoryParkingFeeAmount: number;
+  verticalVideoUrl?: string | null;
+  neighborhoodGuideText?: string | null;
+  neighborhoodGuideImageUrl?: string | null;
   status: PlaceStatus;
   keywords?: string[];
 }

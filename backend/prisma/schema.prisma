@@ -43,6 +43,13 @@ model Place {
   // may still be disclosed and collected separately.
   mandatoryResortFeeAmount  Float          @default(0) @map("mandatory_resort_fee_amount")
   mandatoryParkingFeeAmount Float          @default(0) @map("mandatory_parking_fee_amount")
+  // Optional listing-page media, editable from the Places dashboard so they
+  // can be swapped out later without a code change. verticalVideoUrl expects
+  // a direct link to an MP4/WebM file (rendered in a plain <video> tag) —
+  // not a YouTube/Instagram/TikTok page link.
+  verticalVideoUrl          String?        @map("vertical_video_url")
+  neighborhoodGuideText     String?        @map("neighborhood_guide_text")
+  neighborhoodGuideImageUrl String?        @map("neighborhood_guide_image_url")
   status                 PlaceStatus       @default(DRAFT)
   // Affiliate/referral: who referred this hotel + when it started (the 1-year
   // referral window runs from referralStartedAt).

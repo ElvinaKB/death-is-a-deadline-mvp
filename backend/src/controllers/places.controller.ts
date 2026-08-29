@@ -16,7 +16,10 @@ import {
   HOTEL_INVITE_EXPIRY_DAYS,
 } from "../libs/utils/inviteToken";
 import { supabase } from "../libs/config/supabase";
-import { inferTimezoneFromLocation } from "../libs/utils/hotelDates";
+import {
+  inferTimezoneFromLocation,
+  parseBookingDateOnly,
+} from "../libs/utils/hotelDates";
 import {
   getEffectiveCapByDate,
   getSoldOutNightsInRange,
@@ -63,6 +66,9 @@ const formatPlace = (
   maxInventory: place.maxInventory || 1,
   mandatoryResortFeeAmount: place.mandatoryResortFeeAmount || 0,
   mandatoryParkingFeeAmount: place.mandatoryParkingFeeAmount || 0,
+  verticalVideoUrl: place.verticalVideoUrl || null,
+  neighborhoodGuideText: place.neighborhoodGuideText || null,
+  neighborhoodGuideImageUrl: place.neighborhoodGuideImageUrl || null,
   status: place.status,
   createdAt: place.createdAt,
   updatedAt: place.updatedAt,
@@ -157,6 +163,70 @@ async function getInventoryStatus(
     availableInventory,
     isInventoryExhausted: availableInventory === 0,
   };
+}
+
+/**
+ * Batched version of getInventoryStatus for a page of places at once — 2
+ * queries total instead of 2 per place. A per-place round trip here (one
+ * getAcceptedBidsCountForDate + one getEffectiveCapByDate call for every
+ * listing on the page) was the main contributor to the homepage's listings
+ * taking ~3s to load, since the public marketplace always passes a date.
+ */
+async function getInventoryStatusesForDate(
+  places: { id: string; maxInventory: number }[],
+  date: string,
+): Promise<
+  Map<string, { availableInventory: number; isInventoryExhausted: boolean }>
+> {
+  const dateOnly = normalizeQueryDate(date);
+  const dayStart = startOfUtcDay(dateOnly);
+  const dayEnd = endOfUtcDay(dateOnly);
+  const placeIds = places.map((p) => p.id);
+
+  const [bidCounts, channelRows] = await Promise.all([
+    prisma.bid.groupBy({
+      by: ["placeId"],
+      where: {
+        placeId: { in: placeIds },
+        status: bid_status.ACCEPTED,
+        checkInDate: { lte: dayEnd },
+        checkOutDate: { gt: dayStart },
+      },
+      _count: { _all: true },
+    }),
+    prisma.placeChannelAvailability
+      .findMany({
+        where: { placeId: { in: placeIds }, date: parseBookingDateOnly(dateOnly) },
+        select: { placeId: true, units: true },
+      })
+      // Same fallback as getEffectiveCapByDate: if the table/migration isn't
+      // there yet, behave as if no channel data exists.
+      .catch(() => [] as { placeId: string; units: number }[]),
+  ]);
+
+  const acceptedCountByPlace = new Map(
+    bidCounts.map((row) => [row.placeId, row._count._all]),
+  );
+  const capByPlace = new Map(channelRows.map((row) => [row.placeId, row.units]));
+
+  const result = new Map<
+    string,
+    { availableInventory: number; isInventoryExhausted: boolean }
+  >();
+  for (const place of places) {
+    const acceptedCount = acceptedCountByPlace.get(place.id) ?? 0;
+    const channelUnits = capByPlace.get(place.id);
+    const cap =
+      channelUnits !== undefined
+        ? Math.min(place.maxInventory, channelUnits)
+        : place.maxInventory;
+    const availableInventory = Math.max(0, cap - acceptedCount);
+    result.set(place.id, {
+      availableInventory,
+      isInventoryExhausted: availableInventory === 0,
+    });
+  }
+  return result;
 }
 
 // List all places (admin - optionally filter by status, with pagination)
@@ -340,19 +410,12 @@ export async function listPublicPlaces(req: Request, res: Response) {
   // If date is provided, filter out places with exhausted inventory
   if (date) {
     const dateOnly = normalizeQueryDate(date);
-    const placesWithInventory = await Promise.all(
-      places.map(async (place) => {
-        const inventoryStatus = await getInventoryStatus(place, dateOnly);
-        return { place, inventoryStatus };
-      }),
-    );
+    const inventoryByPlace = await getInventoryStatusesForDate(places, dateOnly);
 
     // Filter out places with exhausted inventory
-    const availablePlaces = placesWithInventory.filter(
-      (item) => !item.inventoryStatus.isInventoryExhausted,
+    places = places.filter(
+      (place) => !inventoryByPlace.get(place.id)?.isInventoryExhausted,
     );
-
-    places = availablePlaces.map((item) => item.place);
   }
 
   total = places.length;
@@ -499,6 +562,9 @@ export async function createPlace(req: Request, res: Response) {
       maxInventory: data.maxInventory ?? 1,
       mandatoryResortFeeAmount: data.mandatoryResortFeeAmount ?? 0,
       mandatoryParkingFeeAmount: data.mandatoryParkingFeeAmount ?? 0,
+      verticalVideoUrl: data.verticalVideoUrl || null,
+      neighborhoodGuideText: data.neighborhoodGuideText || null,
+      neighborhoodGuideImageUrl: data.neighborhoodGuideImageUrl || null,
       keywords: data.keywords ?? [],
       timezone:
         data.timezone?.trim() ||
@@ -667,6 +733,15 @@ export async function updatePlace(req: Request, res: Response) {
       }),
       ...(data.mandatoryParkingFeeAmount !== undefined && {
         mandatoryParkingFeeAmount: data.mandatoryParkingFeeAmount,
+      }),
+      ...(data.verticalVideoUrl !== undefined && {
+        verticalVideoUrl: data.verticalVideoUrl || null,
+      }),
+      ...(data.neighborhoodGuideText !== undefined && {
+        neighborhoodGuideText: data.neighborhoodGuideText || null,
+      }),
+      ...(data.neighborhoodGuideImageUrl !== undefined && {
+        neighborhoodGuideImageUrl: data.neighborhoodGuideImageUrl || null,
       }),
       ...(data.keywords !== undefined && { keywords: data.keywords }),
       ...(data.timezone !== undefined && {
