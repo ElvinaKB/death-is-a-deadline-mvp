@@ -7,11 +7,11 @@
 -- Safe to re-run.
 
 WITH normalized AS (
-  SELECT id, regexp_replace(btrim(full_description), '\s+', ' ', 'g') AS full_norm
+  SELECT id, regexp_replace(btrim("fullDescription"), '\s+', ' ', 'g') AS full_norm
   FROM public.places
 )
 UPDATE public.places p
-SET short_description = trim(
+SET "shortDescription" = trim(
   CASE
     WHEN char_length(n.full_norm) = 0 THEN p.name
     WHEN char_length(n.full_norm) <= 100 THEN n.full_norm
