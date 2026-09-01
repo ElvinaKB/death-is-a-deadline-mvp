@@ -55,6 +55,7 @@ import { HotelsLandingPage } from "./pages/HotelsLandingPage";
 import { ReferralsLandingPage } from "./pages/ReferralsLandingPage";
 import { ReferralSignupPage } from "./pages/ReferralSignupPage";
 import { HowDeadlineWorksPage } from "./pages/HowDeadlineWorksPage";
+import { HotelsCloudbedsPage } from "./pages/HotelsCloudbedsPage";
 import { HotelJoinPage } from "./pages/HotelJoinPage";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
@@ -84,6 +85,7 @@ const publicRoutes = [
   { path: ROUTES.REFERRAL_SIGNUP, element: <ReferralSignupPage /> },
   { path: ROUTES.HOW_IT_WORKS, element: <HowDeadlineWorksPage /> },
   { path: ROUTES.HOTELS_JOIN, element: <HotelJoinPage /> },
+  { path: ROUTES.HOTELS_CLOUDBEDS, element: <HotelsCloudbedsPage /> },
   // Old /student links (e.g. already-sent booking confirmation emails)
   // redirect to their new /member equivalents.
   { path: ROUTES.LEGACY_STUDENT_MY_BIDS, element: <Navigate to={ROUTES.STUDENT_MY_BIDS} replace /> },

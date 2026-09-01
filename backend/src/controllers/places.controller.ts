@@ -16,6 +16,7 @@ import {
   HOTEL_INVITE_EXPIRY_DAYS,
 } from "../libs/utils/inviteToken";
 import { supabase } from "../libs/config/supabase";
+import { UserRole } from "../types/auth.types";
 import {
   inferTimezoneFromLocation,
   parseBookingDateOnly,
@@ -430,7 +431,7 @@ export async function listPublicPlaces(req: Request, res: Response) {
   });
 }
 
-// Get place by ID
+// Get place by ID (admin, or the owning hotel)
 export async function getPlace(req: Request, res: Response) {
   const { id } = req.params;
 
@@ -441,6 +442,18 @@ export async function getPlace(req: Request, res: Response) {
 
   if (!place) {
     throw new CustomError("Place not found", 404);
+  }
+
+  // A hotel owner may only load their own listing (matched case-insensitively
+  // by email); admins may load any. Return 404 rather than 403 so we don't
+  // reveal that a place with this id exists.
+  const user = req.user;
+  const role = user?.role || user?.user_metadata?.role;
+  if (role === UserRole.HOTEL_OWNER) {
+    const email = user?.email?.toLowerCase();
+    if (!email || !place.email || place.email.toLowerCase() !== email) {
+      throw new CustomError("Place not found", 404);
+    }
   }
 
   res.status(200).json({

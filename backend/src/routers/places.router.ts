@@ -63,11 +63,13 @@ router.get(
   placesController.getPublicPlace,
 );
 
-// GET /api/places/:id - Get place by ID (admin - no inventory filtering)
+// GET /api/places/:id - Get place by ID (admin, or the owning hotel — no
+// inventory filtering). Hotel owners are scoped to their own listing in the
+// controller so they can load/manage their property; admins see any.
 router.get(
   "/:id",
   validate(placeIdParamSchema, "params"),
-  authenticate(UserRole.ADMIN),
+  authenticate(UserRole.ADMIN, UserRole.HOTEL_OWNER),
   placesController.getPlace,
 );
 
