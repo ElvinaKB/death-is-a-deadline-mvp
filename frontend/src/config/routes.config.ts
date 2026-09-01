@@ -13,6 +13,7 @@ export const ROUTES = {
   WAITLIST: "/waitlist",
   HOTELS_LANDING: "/hotels",
   HOTELS_JOIN: "/hotels/join",
+  HOTELS_CLOUDBEDS: "/hotels/cloudbeds",
   REFERRALS_LANDING: "/referrals",
   REFERRAL_SIGNUP: "/referrals/join",
   HOW_IT_WORKS: "/how-deadline-works",
