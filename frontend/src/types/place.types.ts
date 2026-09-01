@@ -110,6 +110,12 @@ export const ACCOMMODATION_TYPE_LABELS: Record<AccommodationType, string> = {
 export interface PlaceResponse {
   place: Place;
   inventoryMessage?: string; // Message when inventory is exhausted
+  // Cloudbeds/myallocator channel connection credentials for this listing.
+  // Only present on the authenticated getPlace endpoint (admin or owning hotel).
+  channelConnection?: {
+    propertyId: string;
+    password: string | null;
+  };
 }
 
 export interface PlacesResponse {

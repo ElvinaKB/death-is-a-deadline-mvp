@@ -52,7 +52,16 @@ interface OtaPlace {
 
 // Deadline models one bookable unit type per Place (no separate room-type
 // table), so `ota_room_id` / `ota_property_id` map 1:1 to `Place.slug`.
-async function findPlaceByOtaId(otaPropertyId: unknown): Promise<OtaPlace | null> {
+//
+// Listing slugs are public, so slug alone can't authorize a connection — the
+// caller must also present the property's channel secret (issued by Deadline).
+// This prevents one hotel from linking to another's listing via its public
+// slug. Fails closed: no/invalid secret => no place. (The sandbox property is
+// exempt; it maps to no real listing.)
+async function findPlaceByOtaId(
+  otaPropertyId: unknown,
+  otaPropertyPassword?: unknown,
+): Promise<OtaPlace | null> {
   if (typeof otaPropertyId !== "string" || !otaPropertyId) return null;
   if (otaPropertyId === SANDBOX_PROPERTY_ID) {
     return {
@@ -62,7 +71,19 @@ async function findPlaceByOtaId(otaPropertyId: unknown): Promise<OtaPlace | null
       accommodationType: "HOTEL",
     };
   }
-  return prisma.place.findUnique({ where: { slug: otaPropertyId } });
+  const place = await prisma.place.findUnique({
+    where: { slug: otaPropertyId },
+    include: { channelSecret: true },
+  });
+  if (!place) return null;
+  const expected = place.channelSecret?.secret;
+  if (!expected || otaPropertyPassword !== expected) {
+    console.warn(
+      `[myallocator] rejected connection for ota_property_id=${otaPropertyId}: missing or mismatched channel secret`,
+    );
+    return null;
+  }
+  return place;
 }
 
 // Synthetic booking served for the self-cert sandbox (polling path). The
@@ -175,17 +196,14 @@ router.post("/HealthCheck", async (req: Request, res: Response) => {
   return res.json({ success: true });
 });
 
-// Validates ota_property_id/ota_property_password against a Deadline Place.
-// NOTE: Deadline doesn't yet store a per-hotel channel password, so any
-// non-empty password is currently accepted once the property slug matches.
-// This is fine for credentialing against test properties, but should be
-// tightened (real per-hotel secret) before any live hotel self-serves a
-// channel connection.
+// Validates ota_property_id + ota_property_password against a Deadline Place.
+// findPlaceByOtaId enforces the per-property channel secret, so a matching slug
+// alone is not enough — the caller must present the correct secret.
 router.post("/SetupProperty", async (req: Request, res: Response) => {
   if (!hasValidSharedSecret(req.body)) {
     return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
   }
-  const place = await findPlaceByOtaId(req.body?.ota_property_id);
+  const place = await findPlaceByOtaId(req.body?.ota_property_id, req.body?.ota_property_password);
   if (!place) {
     return fail(
       res,
@@ -200,7 +218,7 @@ router.post("/GetRoomTypes", async (req: Request, res: Response) => {
   if (!hasValidSharedSecret(req.body)) {
     return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
   }
-  const place = await findPlaceByOtaId(req.body?.ota_property_id);
+  const place = await findPlaceByOtaId(req.body?.ota_property_id, req.body?.ota_property_password);
   if (!place) {
     return fail(
       res,
@@ -235,7 +253,7 @@ router.post("/GetRatePlans", async (req: Request, res: Response) => {
   if (!hasValidSharedSecret(req.body)) {
     return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
   }
-  const place = await findPlaceByOtaId(req.body?.ota_property_id);
+  const place = await findPlaceByOtaId(req.body?.ota_property_id, req.body?.ota_property_password);
   if (!place) {
     return fail(
       res,
@@ -277,7 +295,7 @@ router.post("/ARIUpdate", async (req: Request, res: Response) => {
     return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
   }
 
-  const place = await findPlaceByOtaId(req.body?.ota_property_id);
+  const place = await findPlaceByOtaId(req.body?.ota_property_id, req.body?.ota_property_password);
   if (!place) {
     return fail(
       res,
@@ -356,7 +374,7 @@ router.post("/GetBookingList", async (req: Request, res: Response) => {
   if (!hasValidSharedSecret(req.body)) {
     return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
   }
-  const place = await findPlaceByOtaId(req.body?.ota_property_id);
+  const place = await findPlaceByOtaId(req.body?.ota_property_id, req.body?.ota_property_password);
   if (!place) {
     return fail(
       res,
@@ -417,7 +435,7 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
   if (!hasValidSharedSecret(req.body)) {
     return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
   }
-  const place = await findPlaceByOtaId(req.body?.ota_property_id);
+  const place = await findPlaceByOtaId(req.body?.ota_property_id, req.body?.ota_property_password);
   if (!place) {
     return fail(
       res,
@@ -535,7 +553,7 @@ router.post("/CancelBooking", async (req: Request, res: Response) => {
   if (!hasValidSharedSecret(req.body)) {
     return fail(res, ERROR.LOGIN, "Invalid shared_secret.");
   }
-  const place = await findPlaceByOtaId(req.body?.ota_property_id);
+  const place = await findPlaceByOtaId(req.body?.ota_property_id, req.body?.ota_property_password);
   if (!place) {
     return fail(
       res,

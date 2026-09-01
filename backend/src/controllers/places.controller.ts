@@ -17,6 +17,14 @@ import {
 } from "../libs/utils/inviteToken";
 import { supabase } from "../libs/config/supabase";
 import { UserRole } from "../types/auth.types";
+import { randomBytes } from "crypto";
+
+// Secret a hotel enters (with its listing slug as the "Property ID") to connect
+// the Deadline channel in Cloudbeds. 24 hex chars — unguessable but easy to
+// copy/paste. See PlaceChannelSecret + findPlaceByOtaId.
+function generateChannelSecret(): string {
+  return randomBytes(12).toString("hex");
+}
 import {
   inferTimezoneFromLocation,
   parseBookingDateOnly,
@@ -437,7 +445,10 @@ export async function getPlace(req: Request, res: Response) {
 
   const place = await prisma.place.findUnique({
     where: { id },
-    include: { images: { orderBy: { order: "asc" } } },
+    include: {
+      images: { orderBy: { order: "asc" } },
+      channelSecret: true,
+    },
   });
 
   if (!place) {
@@ -457,7 +468,16 @@ export async function getPlace(req: Request, res: Response) {
   }
 
   res.status(200).json({
-    data: { place: formatPlace(place) },
+    data: {
+      place: formatPlace(place),
+      // Credentials this property enters to connect the Deadline channel in
+      // Cloudbeds. Only ever returned from this authenticated endpoint (admin
+      // or the owning hotel) — never from public place responses.
+      channelConnection: {
+        propertyId: place.slug,
+        password: place.channelSecret?.secret ?? null,
+      },
+    },
   });
 }
 
@@ -589,6 +609,9 @@ export async function createPlace(req: Request, res: Response) {
           order: img.order ?? index,
         })),
       },
+      // Issue the channel connection secret up front so the listing is ready to
+      // connect to Cloudbeds the moment it's created.
+      channelSecret: { create: { secret: generateChannelSecret() } },
     },
     include: { images: { orderBy: { order: "asc" } } },
   });

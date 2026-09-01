@@ -124,6 +124,7 @@ export function PlaceFormPage() {
   const createPlace = useCreatePlace();
   const updatePlace = useUpdatePlace();
   const existingPlace = data?.place;
+  const channelConnection = data?.channelConnection;
 
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
@@ -370,6 +371,36 @@ export function PlaceFormPage() {
           {isEditMode ? "Edit Place" : "Add New Place"}
         </h1>
       </div>
+
+      {isEditMode && channelConnection?.password && (
+        <Card className="glass-2 border-brand/30">
+          <CardHeader>
+            <CardTitle className="text-fg">Cloudbeds channel connection</CardTitle>
+            <CardDescription className="text-muted">
+              Enter these in the property's Cloudbeds / myallocator channel setup
+              to link it to this Deadline listing. Keep the password private.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted mb-1">
+                Property ID
+              </p>
+              <p className="font-mono text-sm text-fg break-all select-all">
+                {channelConnection.propertyId}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted mb-1">
+                Connection password
+              </p>
+              <p className="font-mono text-sm text-fg break-all select-all">
+                {channelConnection.password}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <form onSubmit={formik.handleSubmit} className="space-y-6">
         {/* Basic Information */}
