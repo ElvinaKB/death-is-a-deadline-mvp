@@ -33,14 +33,14 @@ export function PlaceListItem({
 
   return (
     <div
-      className={`listing-place-card flex flex-col sm:flex-row gap-3 sm:gap-4 p-3.5 min-h-[11rem] sm:min-h-[7.7rem] cursor-pointer transition-all duration-200 ${
+      className={`listing-place-card flex flex-col sm:flex-row gap-3 sm:gap-4 p-3.5 min-h-[11rem] sm:min-h-[9rem] cursor-pointer transition-all duration-200 ${
         isSelected ? "ring-1 ring-gold/50" : ""
       }`}
       onClick={handleClick}
       onMouseEnter={() => onHover?.(place.id)}
       onMouseLeave={() => onHover?.(null)}
     >
-      <div className="relative w-full sm:w-44 h-44 sm:h-[7.7rem] rounded-lg overflow-hidden shrink-0">
+      <div className="relative w-full sm:w-44 h-44 sm:h-[9rem] rounded-lg overflow-hidden shrink-0">
         <img
           src={imageUrl}
           alt={place.name}
@@ -64,7 +64,7 @@ export function PlaceListItem({
           </div>
 
           {place.shortDescription && (
-            <p className="listing-place-tagline line-clamp-2">
+            <p className="listing-place-tagline line-clamp-3">
               {place.shortDescription}
             </p>
           )}
@@ -84,12 +84,12 @@ export function PlaceListItem({
         </div>
       </div>
 
-      <div className="hidden sm:flex text-right shrink-0 py-1 flex-col justify-end gap-2 min-w-[72px]">
-        <div className="flex items-baseline justify-end gap-2">
+      <div className="hidden sm:flex text-right shrink-0 py-1 flex-col justify-end gap-2 min-w-[84px]">
+        <div className="flex flex-col items-end gap-0.5">
           <span className="text-[10px] font-semibold tracking-[0.14em] text-[hsl(0_0%_50%)] uppercase shrink-0">
             Retail
           </span>
-          <span className="text-[10px] font-semibold tracking-[0.14em] text-fg whitespace-nowrap">
+          <span className="text-lg font-bold text-fg whitespace-nowrap">
             {formatCurrency(place.retailPrice)}
           </span>
         </div>

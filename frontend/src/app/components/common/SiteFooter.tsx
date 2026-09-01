@@ -3,7 +3,7 @@ import { ROUTES } from "../../../config/routes.config";
 import { reopenCookieConsentBanner } from "../../../utils/cookieConsent";
 
 const footerLinks = [
-  { to: ROUTES.HOTELS_JOIN, label: "Ready to Join?" },
+  { to: ROUTES.HOTELS_JOIN, label: "Indie Hotels" },
   { to: ROUTES.REFERRALS_LANDING, label: "Earn With Deadline" },
   { to: ROUTES.CONTACT, label: "Contact Us" },
   { to: ROUTES.TERMS, label: "Terms of Use" },

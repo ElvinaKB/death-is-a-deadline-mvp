@@ -397,84 +397,142 @@ export function PlaceDetailPage() {
 
           <Testimonials placeId={place.id} />
 
-          {/* FAQ Accordion */}
+          {/* FAQ Accordion (+ vertical video alongside it when the hotel has added one) */}
           <div className="mt-8 sm:mt-12">
-            <h2 className="text-xl sm:text-2xl font-bold text-fg mb-4 sm:mb-6">
-              Frequently Asked Questions
-            </h2>
-            <Accordion type="single" collapsible className="w-full">
-              {FAQ_DATA.map((faq) => (
-                <AccordionItem
-                  key={faq.id}
-                  value={faq.id}
-                  className="gold-card border-gold/20 rounded-lg mb-3 px-4"
-                >
-                  <AccordionTrigger className="text-fg hover:no-underline">
-                    "{faq.question}"
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted">
-                    {faq.answer}
-                    {faq.link && (
-                      <>
-                        {" "}
-                        <a
-                          href={faq.link.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-gold underline"
-                        >
-                          {faq.link.label}
-                        </a>
-                      </>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-              <AccordionItem value="" />
-            </Accordion>
+            <div
+              className={
+                place.verticalVideoUrl
+                  ? "grid grid-cols-1 lg:grid-cols-2 gap-8 items-start"
+                  : ""
+              }
+            >
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-fg mb-4 sm:mb-6">
+                  Frequently Asked Questions
+                </h2>
+                <Accordion type="single" collapsible className="w-full">
+                  {FAQ_DATA.map((faq) => (
+                    <AccordionItem
+                      key={faq.id}
+                      value={faq.id}
+                      className="gold-card border-gold/20 rounded-lg mb-3 px-4"
+                    >
+                      <AccordionTrigger className="text-fg hover:no-underline">
+                        "{faq.question}"
+                      </AccordionTrigger>
+                      <AccordionContent className="text-muted">
+                        {faq.answer}
+                        {faq.link && (
+                          <>
+                            {" "}
+                            <a
+                              href={faq.link.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-gold underline"
+                            >
+                              {faq.link.label}
+                            </a>
+                          </>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                  <AccordionItem value="" />
+                </Accordion>
+              </div>
+
+              {place.verticalVideoUrl && (
+                <div className="mx-auto w-full max-w-[300px] lg:max-w-none">
+                  <video
+                    key={place.verticalVideoUrl}
+                    src={place.verticalVideoUrl}
+                    className="w-full aspect-[9/16] rounded-xl object-cover bg-black lg:max-h-[520px] lg:w-auto lg:mx-auto"
+                    controls
+                    playsInline
+                    muted
+                    loop
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Map Section - Only show if lat/lng exist */}
           {place.latitude && place.longitude && (
             <div className="mt-8">
-              <div className="flex items-center gap-2 mb-4">
-                <MapPin className="h-5 w-5 text-muted" />
-                <h3 className="text-lg font-semibold text-fg">Location</h3>
-              </div>
-              <p className="text-muted mb-4">{place.address}</p>
-              <div className="relative w-full h-56 sm:h-72 md:h-80 rounded-lg overflow-hidden">
-                <Map
-                  initialViewState={{
-                    latitude: place.latitude,
-                    longitude: place.longitude,
-                    zoom: 14,
-                  }}
-                  style={{ width: "100%", height: "100%" }}
-                  mapStyle="mapbox://styles/mapbox/dark-v11"
-                  mapboxAccessToken={MAPBOX_TOKEN}
-                >
-                  <NavigationControl position="top-right" />
-                  <Marker
-                    latitude={place.latitude}
-                    longitude={place.longitude}
-                    anchor="bottom"
-                  >
-                    <div
-                      style={{
-                        background: "linear-gradient(180deg, #283B66, #1E2A44)",
-                        color: "#F5F3EE",
-                        border: "1px solid #93A4C9",
-                        padding: "6px 12px",
-                        borderRadius: "12px",
-                        fontWeight: 600,
-                        fontSize: "12px",
-                        boxShadow: "0 0 14px rgba(140, 160, 255, 0.45)",
+              <div
+                className={
+                  place.neighborhoodGuideText || place.neighborhoodGuideImageUrl
+                    ? "grid grid-cols-1 lg:grid-cols-2 gap-8 items-start"
+                    : ""
+                }
+              >
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <MapPin className="h-5 w-5 text-muted" />
+                    <h3 className="text-lg font-semibold text-fg">Location</h3>
+                  </div>
+                  <p className="text-muted mb-4">{place.address}</p>
+                  <div className="relative w-full h-56 sm:h-72 md:h-80 rounded-lg overflow-hidden">
+                    <Map
+                      initialViewState={{
+                        latitude: place.latitude,
+                        longitude: place.longitude,
+                        zoom: 14,
                       }}
+                      style={{ width: "100%", height: "100%" }}
+                      mapStyle="mapbox://styles/mapbox/dark-v11"
+                      mapboxAccessToken={MAPBOX_TOKEN}
                     >
-                      BID
-                    </div>
-                  </Marker>
-                </Map>
+                      <NavigationControl position="top-right" />
+                      <Marker
+                        latitude={place.latitude}
+                        longitude={place.longitude}
+                        anchor="bottom"
+                      >
+                        <div
+                          style={{
+                            background:
+                              "linear-gradient(180deg, #283B66, #1E2A44)",
+                            color: "#F5F3EE",
+                            border: "1px solid #93A4C9",
+                            padding: "6px 12px",
+                            borderRadius: "12px",
+                            fontWeight: 600,
+                            fontSize: "12px",
+                            boxShadow: "0 0 14px rgba(140, 160, 255, 0.45)",
+                          }}
+                        >
+                          BID
+                        </div>
+                      </Marker>
+                    </Map>
+                  </div>
+                </div>
+
+                {(place.neighborhoodGuideText ||
+                  place.neighborhoodGuideImageUrl) && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-fg mb-4">
+                      Neighborhood
+                    </h3>
+                    {place.neighborhoodGuideImageUrl && (
+                      <div className="w-full h-56 sm:h-72 md:h-80 rounded-lg overflow-hidden mb-4">
+                        <img
+                          src={place.neighborhoodGuideImageUrl}
+                          alt={`${place.city} neighborhood`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    {place.neighborhoodGuideText && (
+                      <p className="text-sm text-muted leading-relaxed whitespace-pre-line">
+                        {place.neighborhoodGuideText}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}

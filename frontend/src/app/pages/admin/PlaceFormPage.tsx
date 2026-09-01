@@ -19,6 +19,7 @@ import {
   ThresholdPricingFields,
 } from "../../components/places/ThresholdPricingFields";
 import { MandatoryFeesFields } from "../../components/places/MandatoryFeesFields";
+import { MediaFields } from "../../components/places/MediaFields";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
@@ -164,6 +165,9 @@ export function PlaceFormPage() {
       maxInventory: existingPlace?.maxInventory || 1,
       mandatoryResortFeeAmount: existingPlace?.mandatoryResortFeeAmount || 0,
       mandatoryParkingFeeAmount: existingPlace?.mandatoryParkingFeeAmount || 0,
+      verticalVideoUrl: existingPlace?.verticalVideoUrl || "",
+      neighborhoodGuideText: existingPlace?.neighborhoodGuideText || "",
+      neighborhoodGuideImageUrl: existingPlace?.neighborhoodGuideImageUrl || "",
       autoAcceptAboveMinimum: true,
       status: existingPlace?.status || PlaceStatus.DRAFT,
     },
@@ -402,6 +406,10 @@ export function PlaceFormPage() {
                     {formik.errors.fullDescription}
                   </p>
                 )}
+            </div>
+
+            <div className="border-t border-line pt-4">
+              <MediaFields formik={formik} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

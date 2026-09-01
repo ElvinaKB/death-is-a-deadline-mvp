@@ -70,6 +70,19 @@ export const createPlaceSchema = z.object({
     .min(0, "Mandatory parking fee cannot be negative")
     .optional()
     .default(0),
+  verticalVideoUrl: z
+    .string()
+    .url("Must be a valid URL")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
+  neighborhoodGuideText: z.string().max(2000).optional().nullable(),
+  neighborhoodGuideImageUrl: z
+    .string()
+    .url("Must be a valid URL")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
   keywords: z.array(placeKeywordSchema).optional().default([]),
   timezone: z
     .string()
@@ -109,6 +122,19 @@ export const updatePlaceSchema = z.object({
   maxInventory: z.number().int().min(1).optional(),
   mandatoryResortFeeAmount: z.number().min(0).optional(),
   mandatoryParkingFeeAmount: z.number().min(0).optional(),
+  verticalVideoUrl: z
+    .string()
+    .url("Must be a valid URL")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
+  neighborhoodGuideText: z.string().max(2000).optional().nullable(),
+  neighborhoodGuideImageUrl: z
+    .string()
+    .url("Must be a valid URL")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
   keywords: z.array(placeKeywordSchema).optional(),
   timezone: z
     .string()

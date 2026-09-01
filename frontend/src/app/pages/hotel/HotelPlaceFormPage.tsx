@@ -10,6 +10,7 @@ import {
   ThresholdPricingFields,
 } from "../../components/places/ThresholdPricingFields";
 import { MandatoryFeesFields } from "../../components/places/MandatoryFeesFields";
+import { MediaFields } from "../../components/places/MediaFields";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
@@ -134,6 +135,9 @@ export function HotelPlaceFormPage() {
       minimumBid: existingPlace?.minimumBid || 0,
       mandatoryResortFeeAmount: existingPlace?.mandatoryResortFeeAmount || 0,
       mandatoryParkingFeeAmount: existingPlace?.mandatoryParkingFeeAmount || 0,
+      verticalVideoUrl: existingPlace?.verticalVideoUrl || "",
+      neighborhoodGuideText: existingPlace?.neighborhoodGuideText || "",
+      neighborhoodGuideImageUrl: existingPlace?.neighborhoodGuideImageUrl || "",
       images: [] as File[],
     },
     enableReinitialize: true,
@@ -201,6 +205,9 @@ export function HotelPlaceFormPage() {
           mandatoryParkingFeeAmount: hasMandatoryParking
             ? values.mandatoryParkingFeeAmount
             : 0,
+          verticalVideoUrl: values.verticalVideoUrl,
+          neighborhoodGuideText: values.neighborhoodGuideText,
+          neighborhoodGuideImageUrl: values.neighborhoodGuideImageUrl,
           blackoutDates: blackoutDates.map((d) => toApiDateOnly(d)!),
           allowedDaysOfWeek,
           imageUrls: allImageUrls,
@@ -473,6 +480,10 @@ export function HotelPlaceFormPage() {
                     {formik.errors.fullDescription}
                   </p>
                 )}
+            </div>
+
+            <div className="border-t border-line pt-4">
+              <MediaFields formik={formik} compact />
             </div>
 
             {/* Photos */}
