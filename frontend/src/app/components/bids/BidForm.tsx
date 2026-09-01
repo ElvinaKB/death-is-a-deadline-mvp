@@ -2057,7 +2057,7 @@ function BidFormInner({
                 onCheckedChange={handleAcceptedDataUseChange}
                 className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
               />
-              <Label htmlFor="listing-data-use-ack" className="text-xs text-muted leading-relaxed cursor-pointer">
+              <Label htmlFor="listing-data-use-ack" className="block text-xs text-muted leading-relaxed cursor-pointer">
                 I understand that Deadline records my bidding activity and uses it
                 &mdash; grouped with similar travelers by behavior, not personal
                 identity &mdash; to match me with hotels and, at times, to invite
@@ -2075,7 +2075,7 @@ function BidFormInner({
                 onCheckedChange={handleAcceptedTermsChange}
                 className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
               />
-              <Label htmlFor="listing-terms-ack" className="text-xs text-muted leading-relaxed cursor-pointer">
+              <Label htmlFor="listing-terms-ack" className="block text-xs text-muted leading-relaxed cursor-pointer">
                 I agree to the{" "}
                 <Link to={ROUTES.TERMS} className="text-gold underline" target="_blank">
                   Terms of Use
@@ -2400,7 +2400,7 @@ function BidFormInner({
                 onCheckedChange={handleAcceptedTermsChange}
                 className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
               />
-              <Label htmlFor="bid-terms-ack" className="text-xs text-muted leading-relaxed cursor-pointer">
+              <Label htmlFor="bid-terms-ack" className="block text-xs text-muted leading-relaxed cursor-pointer">
                 I agree to the{" "}
                 <Link to={ROUTES.TERMS} className="text-gold underline" target="_blank">Terms of Use</Link>
                 ,{" "}

@@ -72,8 +72,13 @@ import {
 
 const deriveShortDescription = (fullDescription: string, name: string) => {
   const trimmed = fullDescription.replace(/\s+/g, " ").trim();
-  if (trimmed.length > 0) return trimmed.slice(0, 100);
-  return name.slice(0, 100);
+  const source = trimmed.length > 0 ? trimmed : name;
+  if (source.length <= 100) return source;
+  // Cut at the last whole word within 100 chars instead of mid-word, so
+  // listing cards never end on a fragment like "Bouleva" or "3-star bo".
+  const cut = source.slice(0, 100);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trim();
 };
 
 // Upload images to Supabase and return URLs
@@ -409,7 +414,12 @@ export function PlaceFormPage() {
             </div>
 
             <div className="border-t border-line pt-4">
-              <MediaFields formik={formik} />
+              <MediaFields
+                formik={formik}
+                uploadImage={async (file) =>
+                  (await uploadImagesToSupabase([file]))[0]
+                }
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
