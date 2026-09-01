@@ -483,7 +483,13 @@ export function HotelPlaceFormPage() {
             </div>
 
             <div className="border-t border-line pt-4">
-              <MediaFields formik={formik} compact />
+              <MediaFields
+                formik={formik}
+                compact
+                uploadImage={async (file) =>
+                  (await uploadImagesToSupabase([file]))[0]
+                }
+              />
             </div>
 
             {/* Photos */}

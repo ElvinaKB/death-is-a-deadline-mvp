@@ -18,6 +18,7 @@ import { useAppSelector } from "../../../store/hooks";
 import { apiClient } from "../../../lib/apiClient";
 import { hasCookieConsent } from "../../../utils/cookieConsent";
 import { toApiDateOnly } from "../../../utils/dateHelpers";
+import { getYouTubeEmbedUrl } from "../../../utils/videoEmbed";
 import {
   ACCOMMODATION_TYPE_LABELS,
   PlaceImage,
@@ -444,15 +445,29 @@ export function PlaceDetailPage() {
 
               {place.verticalVideoUrl && (
                 <div className="mx-auto w-full max-w-[300px] lg:max-w-none">
-                  <video
-                    key={place.verticalVideoUrl}
-                    src={place.verticalVideoUrl}
-                    className="w-full aspect-[9/16] rounded-xl object-cover bg-black lg:max-h-[520px] lg:w-auto lg:mx-auto"
-                    controls
-                    playsInline
-                    muted
-                    loop
-                  />
+                  {(() => {
+                    const embedUrl = getYouTubeEmbedUrl(place.verticalVideoUrl);
+                    return embedUrl ? (
+                      <iframe
+                        key={embedUrl}
+                        src={embedUrl}
+                        className="w-full aspect-[9/16] rounded-xl bg-black lg:max-h-[520px] lg:w-auto lg:mx-auto"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        title="Property video"
+                      />
+                    ) : (
+                      <video
+                        key={place.verticalVideoUrl}
+                        src={place.verticalVideoUrl}
+                        className="w-full aspect-[9/16] rounded-xl object-cover bg-black lg:max-h-[520px] lg:w-auto lg:mx-auto"
+                        controls
+                        playsInline
+                        muted
+                        loop
+                      />
+                    );
+                  })()}
                 </div>
               )}
             </div>
