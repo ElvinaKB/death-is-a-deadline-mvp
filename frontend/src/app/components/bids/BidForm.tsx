@@ -144,6 +144,10 @@ const TERMS_ACK_ERROR =
 const DATA_USE_ACK_ERROR =
   "Please acknowledge how we use your bidding activity.";
 const BID_AMOUNT_ERROR = "Enter your bid amount.";
+const PHONE_REQUIRED_ERROR =
+  "Enter a contact phone number so the hotel can reach you about your stay.";
+// Loose check — international formats vary; just require enough digits.
+const isValidPhone = (v: string) => (v.match(/\d/g) || []).length >= 7;
 
 /** Only errors that should disable Lock In while payment UI still looks ready. */
 function isBlockingPaymentError(error: string | null): boolean {
@@ -376,6 +380,7 @@ function BidFormInner({
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   const [bidStep, setBidStep] = useState<BidStep>("dates");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [phone, setPhone] = useState("");
   const [acceptedHotelTaxes, setAcceptedHotelTaxes] = useState(false);
   const [acceptedDataUse, setAcceptedDataUse] = useState(false);
   const [lockInOpen, setLockInOpen] = useState(false);
@@ -860,6 +865,12 @@ function BidFormInner({
         return;
       }
 
+      if (isAuthenticated && !isValidPhone(phone)) {
+        setPaymentError(PHONE_REQUIRED_ERROR);
+        submitInFlightRef.current = false;
+        return;
+      }
+
       const paymentReady = await ensurePaymentReadyForBid();
       if (!paymentReady.ok || !paymentReady.chargePaymentMethodId) {
         const paymentMsg =
@@ -913,6 +924,7 @@ function BidFormInner({
         checkInDate: toApiDateOnly(values.checkInDate!)!,
         checkOutDate: toApiDateOnly(values.checkOutDate!)!,
         bidPerNight: Number(values.bidPerNight),
+        phone: phone.trim() || undefined,
       };
 
       try {
@@ -1892,6 +1904,27 @@ function BidFormInner({
             {isAuthenticated ? (
             <>
             <div className="space-y-2">
+              <Label htmlFor="listing-contact-phone" className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase">
+                Contact phone
+              </Label>
+              <Input
+                id="listing-contact-phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="e.g. +1 310 555 0198"
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  if (paymentError === PHONE_REQUIRED_ERROR) setPaymentError(null);
+                }}
+                className="bg-glass border-line"
+              />
+              <p className="text-[11px] text-muted">
+                Shared with the hotel for this reservation only.
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase">
                 Pay with
               </Label>
@@ -2364,6 +2397,27 @@ function BidFormInner({
 
         {bidStep === "payment" && isAuthenticated && (
           <>
+            <div className="space-y-2">
+              <Label htmlFor="bid-contact-phone" className="text-sm text-muted mb-1.5 block">
+                Contact phone
+              </Label>
+              <Input
+                id="bid-contact-phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="e.g. +1 310 555 0198"
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  if (paymentError === PHONE_REQUIRED_ERROR) setPaymentError(null);
+                }}
+                className="bg-glass border-gold/30"
+              />
+              <p className="text-xs text-muted">
+                Shared with the hotel for this reservation only.
+              </p>
+            </div>
             <div className="space-y-2">
               <Label id="bid-card-label" className="text-sm text-muted mb-1.5 block">
                 Card details

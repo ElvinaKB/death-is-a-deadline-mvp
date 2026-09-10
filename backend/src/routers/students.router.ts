@@ -72,6 +72,13 @@ router.post(
   studentsController.unbanStudent
 );
 
+// POST /api/students/:id/send-reset — admin resends a password-setup link
+router.post(
+  "/:id/send-reset",
+  validate(studentIdParamSchema, "params"),
+  studentsController.sendPasswordReset
+);
+
 // DELETE /api/students/:id
 router.delete(
   "/:id",

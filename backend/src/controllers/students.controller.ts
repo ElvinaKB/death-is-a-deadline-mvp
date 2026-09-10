@@ -264,6 +264,52 @@ export async function addStudent(req: Request, res: Response) {
 }
 
 /**
+ * Admin-only: (re)send a password-setup / reset link to a traveler by id.
+ * Uses the same branded email + Supabase recovery link as the welcome flow, so
+ * a traveler whose original link expired can be re-sent a fresh one from the
+ * admin panel. The link's lifetime is governed by the Supabase project's email
+ * OTP/link expiry setting (set it to 24h to give travelers a full day).
+ */
+export async function sendPasswordReset(req: Request, res: Response) {
+  const { id } = req.params;
+
+  const { data: userData, error: getError } =
+    await supabase.auth.admin.getUserById(id);
+  if (getError || !userData?.user?.email) {
+    throw new CustomError("Traveler not found", 404);
+  }
+  const email = userData.user.email;
+  const name = (userData.user.user_metadata?.name as string) || "there";
+
+  const { data: linkData, error: linkError } =
+    await supabase.auth.admin.generateLink({
+      type: "recovery",
+      email,
+      options: { redirectTo: `${process.env.CLIENT_URL}/reset-password` },
+    });
+  const passwordSetupUrl = linkData?.properties?.action_link;
+  if (linkError || !passwordSetupUrl) {
+    throw new CustomError(
+      linkError?.message || "Failed to generate reset link",
+      500,
+    );
+  }
+
+  await sendEmail({
+    type: EmailType.STUDENT_WELCOME,
+    to: email,
+    subject: "Set your Deadline password",
+    variables: {
+      name,
+      appName: "Deadline",
+      passwordSetupUrl,
+    },
+  });
+
+  res.status(200).json({ message: `Password reset link sent to ${email}` });
+}
+
+/**
  * Admin-only: permanently delete a traveler account. Their bids/payments
  * cascade-delete with them (foreign key ON DELETE CASCADE) — this is for
  * test accounts or bounced/invalid signups, not a substitute for Ban.

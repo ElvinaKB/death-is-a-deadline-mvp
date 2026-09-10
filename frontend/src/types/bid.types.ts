@@ -79,6 +79,8 @@ export interface CreateBidRequest {
   checkInDate: string;
   checkOutDate: string;
   bidPerNight: number;
+  // Contact phone for the reservation (pushed to the hotel's PMS).
+  phone?: string;
 }
 
 export interface BidResponse {

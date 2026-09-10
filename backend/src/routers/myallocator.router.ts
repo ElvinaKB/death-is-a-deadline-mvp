@@ -473,11 +473,16 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
     return fail(res, ERROR.NO_SUCH_BOOKING, "No such booking id.");
   }
 
-  const guestName =
-    (bid.users.raw_user_meta_data as { name?: string } | null)?.name ||
-    "Guest";
+  const guestMeta = bid.users.raw_user_meta_data as
+    | { name?: string; phone?: string }
+    | null;
+  const guestName = guestMeta?.name || "Guest";
   const [firstName, ...rest] = guestName.split(" ");
   const lastName = rest.join(" ") || firstName;
+  // The traveler's contact phone is stored in profile metadata (the auth
+  // `phone` column is only set via SMS auth, which we don't use), so read
+  // metadata first and fall back to the column just in case.
+  const guestPhone = guestMeta?.phone || bid.users.phone || "";
 
   const checkIn = bid.checkInDate;
   const lastNight = addDays(bid.checkOutDate, -1);
@@ -521,7 +526,7 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
           CustomerLName: lastName,
           // Deadline never masks the guest's real email/phone behind a
           // temporary one — the hotel gets the real contact details.
-          ...(bid.users.phone ? { CustomerPhone: bid.users.phone } : {}),
+          ...(guestPhone ? { CustomerPhone: guestPhone } : {}),
         },
       ],
       Rooms: [
