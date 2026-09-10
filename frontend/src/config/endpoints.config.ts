@@ -24,6 +24,7 @@ export const ENDPOINTS = {
   STUDENT_REJECT: "/api/students/:id/reject",
   STUDENT_BAN: "/api/students/:id/ban",
   STUDENT_UNBAN: "/api/students/:id/unban",
+  STUDENT_SEND_RESET: "/api/students/:id/send-reset",
   STUDENT_DELETE: "/api/students/:id",
   STUDENT_UPLOAD_ID: "/api/students/upload-id",
   STUDENTS_STATS: "/api/students/stats",

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../libs/config/prisma";
+import { supabase } from "../libs/config/supabase";
 import { stripe, STRIPE_CONFIG } from "../libs/config/stripe";
 import { CustomError } from "../libs/utils/CustomError";
 import { PlaceStatus, Prisma, bid_status, payment_status } from "@prisma/client";
@@ -272,6 +273,24 @@ export async function createBid(req: Request, res: Response) {
       },
     },
   });
+
+  // Save the contact phone onto the traveler's profile metadata so it pushes
+  // to the hotel's PMS (Cloudbeds reads raw_user_meta_data.phone) and pre-fills
+  // next time. Best-effort: the bid is already placed, so never fail on this.
+  if (data.phone) {
+    try {
+      const { data: existing } =
+        await supabase.auth.admin.getUserById(studentId);
+      const meta = (existing?.user?.user_metadata ?? {}) as Record<string, any>;
+      if (meta.phone !== data.phone) {
+        await supabase.auth.admin.updateUserById(studentId, {
+          user_metadata: { ...meta, phone: data.phone },
+        });
+      }
+    } catch (err) {
+      console.error("Failed to persist bid contact phone:", err);
+    }
+  }
 
   res.status(201).json({
     message,

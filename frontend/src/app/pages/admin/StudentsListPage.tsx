@@ -15,7 +15,7 @@ import { Badge } from "../../components/ui/badge";
 import { Textarea } from "../../components/ui/textarea";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Eye, Ban, RotateCcw, Trash2, Download, Plus } from "lucide-react";
+import { Eye, Ban, RotateCcw, Trash2, Download, Plus, KeyRound } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -125,6 +125,13 @@ export function StudentsListPage() {
     onSuccess: () => {
       toast.success("Traveler unbanned");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STUDENTS_LIST] });
+    },
+  });
+
+  const sendResetMutation = useApiMutation<{ message: string }, { id: string }>({
+    endpoint: (vars) => getEndpoint(ENDPOINTS.STUDENT_SEND_RESET, { id: vars.id }),
+    onSuccess: (res) => {
+      toast.success(res?.message || "Password reset link sent");
     },
   });
 
@@ -241,6 +248,24 @@ export function StudentsListPage() {
           >
             <Eye className="h-4 w-4 mr-2" />
             View
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={sendResetMutation.isPending}
+            title="Email this traveler a fresh password-setup link"
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Send a password reset link to ${row.email}?`,
+                )
+              ) {
+                sendResetMutation.mutate({ id: row.id });
+              }
+            }}
+          >
+            <KeyRound className="h-4 w-4 mr-2" />
+            Reset PW
           </Button>
           {row.banned ? (
             <Button

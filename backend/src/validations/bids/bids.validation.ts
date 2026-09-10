@@ -19,6 +19,18 @@ export const createBidSchema = z
       message: "Invalid check-out date",
     }),
     bidPerNight: z.number().positive("Bid per night must be greater than 0"),
+    // Contact phone for the reservation — the hotel gets a real number pushed
+    // to its PMS (Cloudbeds). The bid form requires it; we keep it optional on
+    // the API for now so older clients can't be hard-broken, but validate the
+    // shape when present. Kept loose on format (international numbers vary).
+    phone: z
+      .string()
+      .trim()
+      .max(30, "Phone number is too long")
+      .refine((v) => (v.match(/\d/g) || []).length >= 7, {
+        message: "A valid contact phone number is required",
+      })
+      .optional(),
   })
   .refine((data) => new Date(data.checkOutDate) > new Date(data.checkInDate), {
     message: "Check-out date must be after check-in date",
