@@ -198,9 +198,10 @@ export async function unbanStudent(req: Request, res: Response) {
  * link so they can actually log in.
  */
 export async function addStudent(req: Request, res: Response) {
-  const { name, email, linkedinProfileUrl } = req.body as {
+  const { name, email, phone, linkedinProfileUrl } = req.body as {
     name: string;
     email: string;
+    phone?: string;
     linkedinProfileUrl?: string;
   };
 
@@ -226,6 +227,7 @@ export async function addStudent(req: Request, res: Response) {
       approvalStatus: ApprovalStatus.APPROVED,
       linkedinProfileUrl: linkedinProfileUrl || null,
       verifiedVia: "admin",
+      ...(phone ? { phone: phone.trim() } : {}),
     },
     role: UserRole.STUDENT,
   });

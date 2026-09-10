@@ -43,6 +43,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useBidForPlace, useCreateBid } from "../../../hooks/useBids";
+import { useProfilePhone } from "../../../hooks/useProfilePhone";
 import { usePlaceSoldOutNights } from "../../../hooks/usePlaces";
 import {
   useConfirmPayment,
@@ -381,6 +382,10 @@ function BidFormInner({
   const [bidStep, setBidStep] = useState<BidStep>("dates");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [phone, setPhone] = useState("");
+  // If the traveler already has a phone on file (e.g. added from the admin
+  // panel), we don't ask for it again during bidding.
+  const { phone: phoneOnFile } = useProfilePhone();
+  const hasPhoneOnFile = isValidPhone(phoneOnFile);
   const [acceptedHotelTaxes, setAcceptedHotelTaxes] = useState(false);
   const [acceptedDataUse, setAcceptedDataUse] = useState(false);
   const [lockInOpen, setLockInOpen] = useState(false);
@@ -865,7 +870,7 @@ function BidFormInner({
         return;
       }
 
-      if (isAuthenticated && !isValidPhone(phone)) {
+      if (isAuthenticated && !hasPhoneOnFile && !isValidPhone(phone)) {
         setPaymentError(PHONE_REQUIRED_ERROR);
         submitInFlightRef.current = false;
         return;
@@ -924,7 +929,7 @@ function BidFormInner({
         checkInDate: toApiDateOnly(values.checkInDate!)!,
         checkOutDate: toApiDateOnly(values.checkOutDate!)!,
         bidPerNight: Number(values.bidPerNight),
-        phone: phone.trim() || undefined,
+        phone: phone.trim() || phoneOnFile || undefined,
       };
 
       try {
@@ -1903,6 +1908,7 @@ function BidFormInner({
             </div>
             {isAuthenticated ? (
             <>
+            {!hasPhoneOnFile && (
             <div className="space-y-2">
               <Label htmlFor="listing-contact-phone" className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase">
                 Contact phone
@@ -1924,6 +1930,7 @@ function BidFormInner({
                 Shared with the hotel for this reservation only.
               </p>
             </div>
+            )}
             <div className="space-y-2">
               <Label className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase">
                 Pay with
@@ -2397,6 +2404,7 @@ function BidFormInner({
 
         {bidStep === "payment" && isAuthenticated && (
           <>
+            {!hasPhoneOnFile && (
             <div className="space-y-2">
               <Label htmlFor="bid-contact-phone" className="text-sm text-muted mb-1.5 block">
                 Contact phone
@@ -2418,6 +2426,7 @@ function BidFormInner({
                 Shared with the hotel for this reservation only.
               </p>
             </div>
+            )}
             <div className="space-y-2">
               <Label id="bid-card-label" className="text-sm text-muted mb-1.5 block">
                 Card details
