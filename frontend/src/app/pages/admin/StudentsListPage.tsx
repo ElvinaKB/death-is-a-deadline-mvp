@@ -84,6 +84,7 @@ export function StudentsListPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [addName, setAddName] = useState("");
   const [addEmail, setAddEmail] = useState("");
+  const [addPhone, setAddPhone] = useState("");
   const [addLinkedinUrl, setAddLinkedinUrl] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -147,7 +148,7 @@ export function StudentsListPage() {
 
   const addMutation = useApiMutation<
     { message: string },
-    { name: string; email: string; linkedinProfileUrl?: string }
+    { name: string; email: string; phone?: string; linkedinProfileUrl?: string }
   >({
     endpoint: ENDPOINTS.STUDENT_CREATE,
     showErrorToast: false,
@@ -156,6 +157,7 @@ export function StudentsListPage() {
       setAddOpen(false);
       setAddName("");
       setAddEmail("");
+      setAddPhone("");
       setAddLinkedinUrl("");
       setAddError(null);
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STUDENTS_LIST] });
@@ -178,6 +180,7 @@ export function StudentsListPage() {
     addMutation.mutate({
       name: addName.trim(),
       email: addEmail.trim(),
+      phone: addPhone.trim() || undefined,
       linkedinProfileUrl: addLinkedinUrl.trim() || undefined,
     });
   };
@@ -483,6 +486,23 @@ export function StudentsListPage() {
                 onChange={(e) => setAddEmail(e.target.value)}
                 className="bg-glass border-line text-fg"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="addPhone" className="text-fg">
+                Phone <span className="text-muted font-normal">(optional)</span>
+              </Label>
+              <Input
+                id="addPhone"
+                type="tel"
+                inputMode="tel"
+                placeholder="e.g. +1 310 555 0198"
+                value={addPhone}
+                onChange={(e) => setAddPhone(e.target.value)}
+                className="bg-glass border-line text-fg"
+              />
+              <p className="text-xs text-muted">
+                If set, the traveler won&apos;t be asked for a phone when bidding.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="addLinkedinUrl" className="text-fg">
