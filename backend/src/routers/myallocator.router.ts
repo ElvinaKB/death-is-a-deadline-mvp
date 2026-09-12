@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../libs/config/prisma";
-import { bid_status, Prisma } from "@prisma/client";
+import { bid_status, payment_status, Prisma } from "@prisma/client";
 import {
   addDays,
   differenceInCalendarDays,
@@ -413,10 +413,20 @@ router.post("/GetBookingList", async (req: Request, res: Response) => {
   const bids = await prisma.bid.findMany({
     where: {
       placeId: place.id,
-      // CANCELLED is included so a cancelled booking still surfaces here —
-      // that's how Cloudbeds finds out to reopen the room (see GetBookingId
-      // below, which reports IsCancellation for it).
-      status: { in: [bid_status.ACCEPTED, bid_status.CANCELLED] },
+      // Only ever surface bookings the guest actually PAID for. An accepted
+      // bid whose card was declined (payment not CAPTURED) must never reach the
+      // hotel's PMS as a reservation — otherwise a failed payment creates a
+      // phantom booking on their calendar. CANCELLED bids are always included
+      // so a cancelled (previously paid) booking still surfaces here — that's
+      // how Cloudbeds finds out to reopen the room (see GetBookingId below,
+      // which reports IsCancellation for it).
+      OR: [
+        {
+          status: bid_status.ACCEPTED,
+          payment: { status: payment_status.CAPTURED },
+        },
+        { status: bid_status.CANCELLED },
+      ],
       ...(since ? { updatedAt: { gte: since } } : {}),
     },
     select: { id: true, updatedAt: true },
@@ -463,7 +473,16 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
     where: {
       id: bookingId,
       placeId: place.id,
-      status: { in: [bid_status.ACCEPTED, bid_status.CANCELLED] },
+      // Mirror GetBookingList: only a PAID (CAPTURED) accepted bid — or a
+      // cancellation — is a real booking the hotel may fetch. A declined /
+      // unpaid accepted bid returns "no such booking".
+      OR: [
+        {
+          status: bid_status.ACCEPTED,
+          payment: { status: payment_status.CAPTURED },
+        },
+        { status: bid_status.CANCELLED },
+      ],
     },
     include: {
       users: { select: { email: true, phone: true, raw_user_meta_data: true } },
