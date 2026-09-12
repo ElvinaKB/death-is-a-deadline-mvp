@@ -49,6 +49,7 @@ export const createPlaceSchema = z.object({
     .length(7, "All 7 weekday minimum bids are required")
     .optional(),
   autoAcceptAboveMinimum: z.boolean().optional().default(true),
+  dynamicPricingEnabled: z.boolean().optional().default(true),
   blackoutDates: z.array(z.string()).optional().default([]),
   allowedDaysOfWeek: z
     .array(z.number().int().min(0).max(6))
@@ -117,6 +118,7 @@ export const updatePlaceSchema = z.object({
     .length(7)
     .optional(),
   autoAcceptAboveMinimum: z.boolean().optional(),
+  dynamicPricingEnabled: z.boolean().optional(),
   blackoutDates: z.array(z.string()).optional(),
   allowedDaysOfWeek: z.array(z.number().int().min(0).max(6)).optional(),
   maxInventory: z.number().int().min(1).optional(),

@@ -30,6 +30,10 @@ model Place {
   minimumBid             Float
   thresholdPricingMode   ThresholdPricingMode @default(UNIFORM) @map("threshold_pricing_mode")
   minimumBidByDayOfWeek  Float[]           @default([]) @map("minimum_bid_by_day_of_week")
+  // When false, the hidden dynamic premium is disabled and a bid simply needs
+  // to meet the fixed minimum (floor) to win — deterministic "bid exactly $X".
+  // When true (default), the flickering premium applies. See dynamicPricing.
+  dynamicPricingEnabled  Boolean           @default(true) @map("dynamic_pricing_enabled")
   autoAcceptAboveMinimum Boolean           @default(true)
   blackoutDates          String[]          @default([])
   allowedDaysOfWeek      Int[]             @default([0, 1, 2, 3, 4, 5, 6]) @map("allowed_days_of_week")
