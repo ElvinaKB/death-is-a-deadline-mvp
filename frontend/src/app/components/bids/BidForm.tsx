@@ -1588,13 +1588,18 @@ function BidFormInner({
   const overlappingActiveBid = useMemo(() => {
     if (!formik.values.checkInDate || !formik.values.checkOutDate) return null;
     return (
-      activeBids.find((b) =>
-        bookingDatesOverlap(
-          formik.values.checkInDate!,
-          formik.values.checkOutDate!,
-          b.checkInDate,
-          b.checkOutDate,
-        ),
+      activeBids.find(
+        (b) =>
+          // Only a PAID booking blocks re-bidding. An unpaid accepted bid
+          // (declined/abandoned card) is retryable via My Bids and must not
+          // stop the traveler from bidding again.
+          b.payment?.status === PaymentStatus.CAPTURED &&
+          bookingDatesOverlap(
+            formik.values.checkInDate!,
+            formik.values.checkOutDate!,
+            b.checkInDate,
+            b.checkOutDate,
+          ),
       ) ?? null
     );
   }, [
