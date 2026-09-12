@@ -434,9 +434,17 @@ export async function getMyBids(req: Request, res: Response) {
   const { status, page = 1, limit = 10 } = req.query as unknown as MyBidsQuery;
   const skip = (page - 1) * limit;
 
+  // Travelers only see their wins/active reservations, never failed attempts.
+  // A rejected bid (didn't meet the hotel's private threshold) is noise to the
+  // guest and clutters the list, so we hide REJECTED by default. Accepted bids
+  // (including ones awaiting a payment retry) and cancellations stay visible.
+  // Admins see every bid via the separate admin listing (listBids). If a
+  // specific status is explicitly requested we honor it.
   const where: Prisma.BidWhereInput = {
     studentId,
-    ...(status && { status }),
+    ...(status
+      ? { status }
+      : { status: { not: bid_status.REJECTED } }),
   };
 
   const [bids, total] = await Promise.all([
