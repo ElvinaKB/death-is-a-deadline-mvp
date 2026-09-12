@@ -175,6 +175,7 @@ export function PlaceFormPage() {
       neighborhoodGuideText: existingPlace?.neighborhoodGuideText || "",
       neighborhoodGuideImageUrl: existingPlace?.neighborhoodGuideImageUrl || "",
       autoAcceptAboveMinimum: true,
+      dynamicPricingEnabled: existingPlace?.dynamicPricingEnabled ?? true,
       status: existingPlace?.status || PlaceStatus.DRAFT,
     },
     enableReinitialize: true,
@@ -809,6 +810,24 @@ export function PlaceFormPage() {
                   {formik.errors.maxInventory}
                 </p>
               )}
+            </div>
+
+            <div className="flex items-center justify-between p-4 border border-white/10 rounded-lg">
+              <div className="space-y-0.5 pr-4">
+                <Label className="text-fg">Dynamic (real-time) pricing</Label>
+                <p className="text-sm text-muted">
+                  On: a hidden premium flickers above your minimum, so the exact
+                  winning number shifts and can&apos;t be shared. Off: a bid only
+                  needs to meet your minimum to win — use this for exact
+                  &ldquo;bid $X&rdquo; promotions.
+                </p>
+              </div>
+              <Switch
+                checked={formik.values.dynamicPricingEnabled}
+                onCheckedChange={(checked) =>
+                  formik.setFieldValue("dynamicPricingEnabled", checked)
+                }
+              />
             </div>
 
             {/* <div className="flex items-center justify-between p-4 border border-white/10 rounded-lg">

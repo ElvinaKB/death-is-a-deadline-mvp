@@ -69,6 +69,7 @@ const formatPlace = (
   minimumBid: place.minimumBid,
   thresholdPricingMode: place.thresholdPricingMode ?? "UNIFORM",
   minimumBidByDayOfWeek: (place.minimumBidByDayOfWeek || []).map(Number),
+  dynamicPricingEnabled: place.dynamicPricingEnabled ?? true,
   autoAcceptAboveMinimum: place.autoAcceptAboveMinimum,
   blackoutDates: place.blackoutDates || [],
   allowedDaysOfWeek: place.allowedDaysOfWeek || [0, 1, 2, 3, 4, 5, 6],
@@ -589,6 +590,7 @@ export async function createPlace(req: Request, res: Response) {
       minimumBid: threshold.minimumBid,
       thresholdPricingMode: threshold.thresholdPricingMode,
       minimumBidByDayOfWeek: threshold.minimumBidByDayOfWeek,
+      dynamicPricingEnabled: data.dynamicPricingEnabled ?? true,
       autoAcceptAboveMinimum: true,
       blackoutDates: data.blackoutDates ?? [],
       allowedDaysOfWeek: data.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
@@ -757,6 +759,9 @@ export async function updatePlace(req: Request, res: Response) {
       thresholdPricingMode: threshold.thresholdPricingMode,
       minimumBidByDayOfWeek: threshold.minimumBidByDayOfWeek,
       autoAcceptAboveMinimum: true,
+      ...(data.dynamicPricingEnabled !== undefined && {
+        dynamicPricingEnabled: data.dynamicPricingEnabled,
+      }),
       ...(data.blackoutDates && { blackoutDates: data.blackoutDates }),
       ...(data.allowedDaysOfWeek && {
         allowedDaysOfWeek: data.allowedDaysOfWeek,

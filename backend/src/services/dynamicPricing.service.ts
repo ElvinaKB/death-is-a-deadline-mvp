@@ -42,6 +42,10 @@ export type DynamicPricingPlace = ThresholdPricingPlace &
   PlaceTimezoneSource & {
     id: string;
     maxInventory: number;
+    // When false, skip the dynamic premium entirely — a bid only needs to meet
+    // the fixed floor. Optional so callers that predate the column still work
+    // (treated as enabled).
+    dynamicPricingEnabled?: boolean;
   };
 
 function clamp(value: number, min: number, max: number): number {
@@ -188,7 +192,17 @@ export async function isBidAboveDynamicStayThreshold(
   const nights = getOccupiedNights(checkIn, checkOut);
   if (nights.length === 0) return false;
 
-  const minimumTotal = await getDynamicStayThresholdTotal(place, nights);
   const totalBid = roundMoney(bidPerNight * nights.length);
+
+  // Dynamic pricing off → the bar is just the fixed floor (sum of each night's
+  // minimum), so "bid exactly $X" is deterministic. No premium, no state walk.
+  if (place.dynamicPricingEnabled === false) {
+    const floorTotal = roundMoney(
+      nights.reduce((sum, night) => sum + getMinimumForNight(place, night), 0),
+    );
+    return totalBid >= floorTotal;
+  }
+
+  const minimumTotal = await getDynamicStayThresholdTotal(place, nights);
   return totalBid >= minimumTotal;
 }

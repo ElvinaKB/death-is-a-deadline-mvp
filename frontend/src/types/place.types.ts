@@ -40,6 +40,8 @@ export interface Place {
   minimumBidByDayOfWeek?: number[];
   /** Admin/hotel only */
   autoAcceptAboveMinimum?: boolean;
+  /** Admin/hotel only — false disables the hidden dynamic premium */
+  dynamicPricingEnabled?: boolean;
   blackoutDates: string[]; // Array of ISO date strings
   allowedDaysOfWeek: number[]; // 0=Sunday, 1=Monday, ..., 6=Saturday
   maxInventory: number; // Maximum rooms/beds available per date
@@ -88,6 +90,7 @@ export interface CreatePlaceRequest {
   thresholdPricingMode?: ThresholdPricingMode;
   minimumBidByDayOfWeek?: number[];
   autoAcceptAboveMinimum: boolean;
+  dynamicPricingEnabled?: boolean;
   blackoutDates: string[];
   allowedDaysOfWeek: number[];
   maxInventory: number;
@@ -143,6 +146,7 @@ export interface CreatePlacePayload {
   thresholdPricingMode?: ThresholdPricingMode;
   minimumBidByDayOfWeek?: number[];
   autoAcceptAboveMinimum: boolean;
+  dynamicPricingEnabled?: boolean;
   blackoutDates: string[];
   allowedDaysOfWeek: number[];
   maxInventory: number;
