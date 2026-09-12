@@ -150,6 +150,93 @@ const PHONE_REQUIRED_ERROR =
 // Loose check — international formats vary; just require enough digits.
 const isValidPhone = (v: string) => (v.match(/\d/g) || []).length >= 7;
 
+// How long to wait for Stripe's secure card iframe to signal "ready" before we
+// assume it was blocked (ad/content blockers, in-app browsers, flaky mobile
+// networks) and show a retry instead of a silent empty box.
+const CARD_LOAD_TIMEOUT_MS = 10000;
+
+/**
+ * Renders the Stripe CardElement with load detection. If the secure card
+ * iframe never mounts, we surface a clear retry + guidance rather than the
+ * blank box some travelers were hitting on mobile. `elements.getElement` still
+ * finds the mounted card regardless of which layout renders this.
+ */
+function CardField({
+  onReady,
+  onChange,
+}: {
+  onReady: (element: StripeCardElement) => void;
+  onChange: (e: StripeCardElementChangeEvent) => void;
+}) {
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
+  const [mountKey, setMountKey] = useState(0);
+
+  useEffect(() => {
+    if (loadState !== "loading") return;
+    const t = setTimeout(() => {
+      setLoadState((s) => (s === "loading" ? "error" : s));
+    }, CARD_LOAD_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [loadState, mountKey]);
+
+  if (loadState === "error") {
+    return (
+      <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-xs text-muted space-y-2">
+        <p className="text-fg font-medium">The secure card field didn&apos;t load.</p>
+        <p>
+          This is almost always an ad/content blocker or an in-app browser (a
+          link opened inside Instagram, Gmail, etc.). Turn off blockers for this
+          site, or open deadlinetravel.com directly in Chrome or Safari — then
+          try again.
+        </p>
+        <div className="flex gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              setLoadState("loading");
+              setMountKey((k) => k + 1);
+            }}
+            className="rounded-md border border-gold/50 px-3 py-1.5 text-gold hover:bg-gold/10"
+          >
+            Try again
+          </button>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded-md border border-line px-3 py-1.5 text-muted hover:bg-glass"
+          >
+            Reload page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <CardElement
+      key={mountKey}
+      options={{
+        style: {
+          base: {
+            fontSize: "16px",
+            color: "#f8fafc",
+            fontFamily: "Inter, system-ui, sans-serif",
+            "::placeholder": { color: "#64748b" },
+          },
+          invalid: { color: "#ef4444", iconColor: "#ef4444" },
+        },
+      }}
+      onReady={(element) => {
+        setLoadState("ready");
+        onReady(element);
+      }}
+      onChange={onChange}
+    />
+  );
+}
+
 /** Only errors that should disable Lock In while payment UI still looks ready. */
 function isBlockingPaymentError(error: string | null): boolean {
   if (!error) return false;
@@ -2042,18 +2129,7 @@ function BidFormInner({
                     <span id="listing-card-label" className="sr-only">
                       Credit or debit card details
                     </span>
-                    <CardElement
-                      options={{
-                        style: {
-                          base: {
-                            fontSize: "16px",
-                            color: "#f8fafc",
-                            fontFamily: "Inter, system-ui, sans-serif",
-                            "::placeholder": { color: "#64748b" },
-                          },
-                          invalid: { color: "#ef4444", iconColor: "#ef4444" },
-                        },
-                      }}
+                    <CardField
                       onReady={(element) => {
                         cardElementRef.current = element;
                       }}
@@ -2437,18 +2513,7 @@ function BidFormInner({
                 aria-labelledby="bid-card-label"
                 aria-describedby={paymentError ? "bid-card-feedback" : undefined}
               >
-                <CardElement
-                  options={{
-                    style: {
-                      base: {
-                        fontSize: "16px",
-                        color: "#f8fafc",
-                        fontFamily: "system-ui, -apple-system, sans-serif",
-                        "::placeholder": { color: "#64748b" },
-                      },
-                      invalid: { color: "#ef4444", iconColor: "#ef4444" },
-                    },
-                  }}
+                <CardField
                   onReady={(element) => {
                     cardElementRef.current = element;
                   }}
@@ -2594,23 +2659,7 @@ function BidFormInner({
                   <span id="bid-saved-card-label" className="sr-only">
                     Credit or debit card details
                   </span>
-                  <CardElement
-                    options={{
-                      style: {
-                        base: {
-                          fontSize: "16px",
-                          color: "#f8fafc",
-                          fontFamily: "system-ui, -apple-system, sans-serif",
-                          "::placeholder": {
-                            color: "#64748b",
-                          },
-                        },
-                        invalid: {
-                          color: "#ef4444",
-                          iconColor: "#ef4444",
-                        },
-                      },
-                    }}
+                  <CardField
                     onReady={(element) => {
                       cardElementRef.current = element;
                     }}
@@ -2866,17 +2915,7 @@ function OrphanBidPaymentRetry({
   return (
     <div className="space-y-2">
       <div className="border border-line rounded-lg p-3 bg-bg">
-        <CardElement
-          options={{
-            style: {
-              base: {
-                fontSize: "16px",
-                color: "#f8fafc",
-                fontFamily: "Inter, system-ui, sans-serif",
-                "::placeholder": { color: "#64748b" },
-              },
-            },
-          }}
+        <CardField
           onReady={(el) => {
             cardRef.current = el;
           }}
