@@ -59,6 +59,7 @@ export function BidOutcomePanel({
 }: BidOutcomePanelProps) {
   const isBusy = isRebidding || isProcessingBid;
   const rejectedHeaderRef = useRef<HTMLDivElement>(null);
+  const acceptedHeaderRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const user = useAppSelector((s) => s.auth.user);
   const [adjustBid, setAdjustBid] = useState(true);
@@ -102,11 +103,25 @@ export function BidOutcomePanel({
     return () => clearTimeout(timer);
   }, [isAccepted, scrollToHeaderTrigger]);
 
+  // On success, bring the confirmation into view. Without this, mobile stayed
+  // scrolled at the bottom of the form after payment, hiding the "You're All
+  // Set" panel behind the confetti.
+  useEffect(() => {
+    if (!isAccepted) return;
+    const timer = window.setTimeout(() => {
+      acceptedHeaderRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [isAccepted]);
+
   if (isAccepted) {
     return (
       <>
         <AcceptedOutcomeSparkles />
-        <div className="outcome-panel outcome-panel--accepted rounded-xl p-4 space-y-3 bg-[hsl(0_0%_4%)]">
+        <div ref={acceptedHeaderRef} className="outcome-panel outcome-panel--accepted rounded-xl p-4 space-y-3 bg-[hsl(0_0%_4%)]">
           <div className="text-center">
             <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20 border-2 border-emerald-500">
               <CheckCircle className="h-6 w-6 text-emerald-400" />

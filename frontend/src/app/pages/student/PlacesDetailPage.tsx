@@ -25,7 +25,6 @@ import {
   PlacesResponse,
 } from "../../../types/place.types";
 import { BidForm } from "../../components/bids/BidForm";
-import { PriorStayBanner } from "../../components/bids/PriorStayBanner";
 import { useBidForPlace } from "../../../hooks/useBids";
 import { formatCurrency } from "../../../utils/currency";
 import { resolvePlaceKeywords } from "../../../utils/amenities";
@@ -136,16 +135,6 @@ export function PlaceDetailPage() {
     enabled: isAuthenticated && !!placeId,
     bidId: contextBidId,
   });
-  const heroPriorStay =
-    placeBidContext?.priorStay && !placeBidContext.bid
-      ? placeBidContext.priorStay
-      : null;
-  const heroUpcomingStays =
-    !contextBidId && placeBidContext?.upcomingStays?.length
-      ? placeBidContext.upcomingStays
-      : !contextBidId && placeBidContext?.upcomingStay
-        ? [placeBidContext.upcomingStay]
-        : [];
 
   // First-party browse event: a logged-in traveler viewed this listing.
   // Consent-gated (honors Reject + GPC via hasCookieConsent), fired once per
@@ -314,22 +303,10 @@ export function PlaceDetailPage() {
                 <h1 className="font-serif text-2xl sm:text-3xl text-fg md:text-4xl leading-tight">
                   {place.name}
                 </h1>
-                {heroUpcomingStays.length > 0 && (
-                  <PriorStayBanner
-                    upcomingStays={heroUpcomingStays}
-                    variant="pill"
-                    kind="upcoming"
-                    className="mt-3 w-fit"
-                  />
-                )}
-                {heroPriorStay && (
-                  <PriorStayBanner
-                    priorStay={heroPriorStay}
-                    variant="pill"
-                    kind="completed"
-                    className="mt-3 w-fit"
-                  />
-                )}
+                {/* The "you booked this hotel / bid again" banners used to sit
+                    here on top of the photo, crowding the name and retail
+                    price. The same info is shown inside the bid form below, so
+                    we keep the hero clean (name + address only). */}
                 <p className="mt-2 flex items-center gap-2 text-sm text-[hsl(0_0%_78%)]">
                   <MapPin className="h-4 w-4 shrink-0 text-gold" />
                   {place.address}
