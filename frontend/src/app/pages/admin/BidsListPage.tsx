@@ -23,13 +23,14 @@ import {
 } from "../../components/ui/tabs";
 import { format } from "date-fns";
 import { formatBookingDate } from "../../../utils/dateHelpers";
-import { DollarSign, EyeIcon, XCircle } from "lucide-react";
+import { DollarSign, EyeIcon, XCircle, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { PayoutModal } from "../../components/bids/PayoutModal";
 import { CancelBidModal } from "../../components/bids/CancelBidModal";
 import { MercuryPayoutModal } from "../../components/bids/MercuryPayoutModal";
 import { useDebounce } from "../../../hooks/useDebounce";
-import { useApiQuery } from "../../../hooks/useApi";
-import { ENDPOINTS } from "../../../config/endpoints.config";
+import { useApiQuery, useApiMutation } from "../../../hooks/useApi";
+import { ENDPOINTS, getEndpoint } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
 import { getPayoutState, payoutEligibleAt } from "../../../utils/payout";
 
@@ -82,6 +83,26 @@ export function BidsListPage() {
 
   const updatePayout = useUpdatePayout();
   const queryClient = useQueryClient();
+
+  const repushMutation = useApiMutation<
+    { data?: { pushed?: boolean }; error?: string },
+    { id: string }
+  >({
+    endpoint: (vars) => getEndpoint(ENDPOINTS.BID_REPUSH_CHANNEL, { id: vars.id }),
+    showErrorToast: false,
+    onSuccess: (res) => {
+      if (res?.data?.pushed) {
+        toast.success(
+          "Re-pushed to Cloudbeds. Give it a minute, then refresh the PMS.",
+        );
+      } else {
+        toast.error(
+          `Channel did not accept the push: ${res?.error ?? "unknown error"}`,
+        );
+      }
+    },
+    onError: (err) => toast.error(err.message || "Re-push failed"),
+  });
 
   const { data: payoutSummary } = useApiQuery<PayoutSummary>({
     queryKey: [QUERY_KEYS.PAYOUT_SUMMARY],
@@ -283,6 +304,18 @@ export function BidsListPage() {
                 onClick={() => setBidToPayout(row)}
               >
                 Pay via Mercury
+              </Button>
+            )}
+            {canCancel && (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={repushMutation.isPending}
+                title="Re-send this paid booking to the hotel's Cloudbeds calendar"
+                onClick={() => repushMutation.mutate({ id: row.id })}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Re-push
               </Button>
             )}
             {canCancel && (

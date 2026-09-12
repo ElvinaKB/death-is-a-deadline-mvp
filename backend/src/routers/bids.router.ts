@@ -28,6 +28,7 @@ import {
   getPayoutSummary,
   cancelBid,
   listHotelBids,
+  repushBookingToChannel,
 } from "../controllers/bids.controller";
 
 const router = Router();
@@ -117,6 +118,14 @@ router.patch(
   validate(bidIdParamSchema, "params"),
   validate(cancelBidSchema, "body"),
   cancelBid,
+);
+
+// Manually re-push a paid booking to the hotel's channel/PMS (admin only)
+router.post(
+  "/:id/repush-channel",
+  authenticate(UserRole.ADMIN),
+  validate(bidIdParamSchema, "params"),
+  repushBookingToChannel,
 );
 
 export { router };

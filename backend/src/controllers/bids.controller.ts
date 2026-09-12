@@ -15,7 +15,10 @@ import { UserRole } from "../types/auth.types";
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
 import { sendBookingCancellationEmail } from "../services/bookingCancellationEmail.service";
-import { notifyBookingCancelled } from "../services/myallocatorNotify.service";
+import {
+  notifyBookingCancelled,
+  notifyBookingConfirmed,
+} from "../services/myallocatorNotify.service";
 import {
   deriveBookingStatus,
   BOOKING_STATUS_LABELS,
@@ -843,6 +846,67 @@ export async function cancelBid(req: Request, res: Response) {
     message: "Bid cancelled and refunded successfully",
     data: { bid: formatBid(bid) },
   });
+}
+
+/**
+ * Admin: manually re-push an accepted, PAID booking to the hotel's channel
+ * (Cloudbeds). Bumps the bid's updatedAt so it re-enters Cloudbeds' poll window
+ * (GetBookingList filters on updatedAt >= the version cursor), then fires the
+ * NotifyBooking poke and reports whether the channel accepted it. Recovery tool
+ * for a booking that didn't sync, and a diagnostic (surfaces the OTA response).
+ */
+export async function repushBookingToChannel(req: Request, res: Response) {
+  const { id } = req.params;
+  const bid = await prisma.bid.findUnique({
+    where: { id },
+    include: { place: { select: { slug: true, name: true } }, payment: true },
+  });
+  if (!bid) return res.status(404).json({ message: "Bid not found" });
+  if (bid.status !== bid_status.ACCEPTED) {
+    return res
+      .status(400)
+      .json({ message: `Only accepted bids can be pushed (status: ${bid.status})` });
+  }
+  if (bid.payment?.status !== payment_status.CAPTURED) {
+    return res.status(400).json({
+      message:
+        "This booking isn't paid (payment not captured), so there's no real reservation to push.",
+    });
+  }
+  if (!bid.place?.slug) {
+    return res
+      .status(400)
+      .json({ message: "This listing has no channel slug to push to." });
+  }
+
+  // Touch the bid so its updatedAt is current — re-enters the channel's poll
+  // window even if its cursor has already advanced past the original time.
+  await prisma.bid.update({
+    where: { id: bid.id },
+    data: { status: bid.status },
+  });
+
+  try {
+    await notifyBookingConfirmed(bid.id, bid.place.slug);
+    return res.json({
+      data: {
+        pushed: true,
+        bookingId: bid.id,
+        otaPropertyId: bid.place.slug,
+      },
+    });
+  } catch (err) {
+    const e = err as {
+      response?: { data?: unknown; status?: number };
+      message?: string;
+    };
+    return res.status(200).json({
+      data: { pushed: false },
+      error: e?.response?.data
+        ? JSON.stringify(e.response.data).slice(0, 500)
+        : e?.message || "Notify failed",
+    });
+  }
 }
 
 // Hotel Owner
