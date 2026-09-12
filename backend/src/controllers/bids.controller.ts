@@ -204,12 +204,16 @@ export async function createBid(req: Request, res: Response) {
   }
 
   // Block overlap only with future stays at this hotel (hotel-local "today")
+  // that are REAL (paid) bookings. An accepted-but-unpaid bid (card declined or
+  // payment abandoned) is not a booking — it must not block the traveler from
+  // bidding again. We're MoR: no captured payment = no reservation.
   const hotelTodayDate = hotelTodayAsDate(place);
   const blockingBids = await prisma.bid.findMany({
     where: {
       placeId: data.placeId,
       studentId,
-      status: { in: [bid_status.ACCEPTED, bid_status.PENDING] },
+      status: bid_status.ACCEPTED,
+      payment: { status: payment_status.CAPTURED },
       checkOutDate: { gt: hotelTodayDate },
     },
     select: { checkInDate: true, checkOutDate: true },
@@ -368,6 +372,9 @@ export async function getBidForPlace(req: Request, res: Response) {
     .filter(
       (b) =>
         b.status === bid_status.ACCEPTED &&
+        // Only PAID bookings are real "you booked this" stays. An unpaid
+        // accepted bid (declined/abandoned card) isn't a reservation.
+        b.payment?.status === payment_status.CAPTURED &&
         isStayActiveAtHotel(b.checkOutDate, hotelToday),
     )
     .sort(
