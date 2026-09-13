@@ -206,6 +206,13 @@ export function BidLockInModal({
             </p>
           </div>
 
+          <p className="text-xs text-muted text-center leading-relaxed">
+            <span className="font-semibold text-fg">No-show policy:</span> If you
+            do not check in and have not cancelled in accordance with the
+            hotel&apos;s cancellation policy, the first night&apos;s room rate may
+            be charged to your payment method on file.
+          </p>
+
           <div className="lock-in-timer-row">
             <div className="flex items-center gap-2 text-urgent text-xs font-semibold tracking-[0.14em] uppercase">
               <Hourglass className="h-4 w-4" />
