@@ -25,6 +25,12 @@ import Swal from "sweetalert2";
 import { Timeline, type TimelineItem } from "../../components/ui/timeline";
 import { useBids } from "../../../hooks/useBids";
 import { Bid, BidStatus } from "../../../types/bid.types";
+import { PaymentStatus } from "../../../types/payment.types";
+
+// A bid is a real WON booking only if it was accepted AND paid (captured).
+// An accepted bid whose card declined is "payment failed", not a win.
+const isWonBid = (b: Bid) =>
+  b.status === BidStatus.ACCEPTED && b.payment?.status === PaymentStatus.CAPTURED;
 import { DataTable } from "../../components/common/DataTable";
 import { TableColumn } from "../../../types/api.types";
 import { formatBookingDate } from "../../../utils/dateHelpers";
@@ -118,16 +124,33 @@ const bidHistoryColumns: TableColumn<Bid>[] = [
   {
     header: "Result",
     field: "status",
-    render: (row) => (
-      <div>
-        <Badge className={BID_STATUS_COLORS[row.status]}>
-          {row.status === BidStatus.ACCEPTED ? "Won" : row.status === BidStatus.REJECTED ? "Unsuccessful" : "Pending"}
-        </Badge>
-        {row.status === BidStatus.REJECTED && row.rejectionReason && (
-          <p className="text-xs text-muted mt-1">{row.rejectionReason}</p>
-        )}
-      </div>
-    ),
+    render: (row) => {
+      const acceptedUnpaid =
+        row.status === BidStatus.ACCEPTED && !isWonBid(row);
+      const label = isWonBid(row)
+        ? "Won"
+        : acceptedUnpaid
+          ? "Payment failed"
+          : row.status === BidStatus.REJECTED
+            ? "Unsuccessful"
+            : "Pending";
+      const badgeClass = acceptedUnpaid
+        ? "bg-warning/20 text-warning hover:bg-warning/30"
+        : BID_STATUS_COLORS[row.status];
+      return (
+        <div>
+          <Badge className={badgeClass}>{label}</Badge>
+          {acceptedUnpaid && (
+            <p className="text-xs text-muted mt-1">
+              Bid accepted but card wasn&apos;t charged
+            </p>
+          )}
+          {row.status === BidStatus.REJECTED && row.rejectionReason && (
+            <p className="text-xs text-muted mt-1">{row.rejectionReason}</p>
+          )}
+        </div>
+      );
+    },
   },
   {
     header: "Placed",
@@ -577,7 +600,7 @@ export function StudentDetailPage() {
                 {bidsData && (
                   <span className="ml-2 text-sm font-normal text-muted">
                     ({bidsData.total} total —{" "}
-                    {bidsData.bids.filter((b) => b.status === BidStatus.ACCEPTED).length}{" "}
+                    {bidsData.bids.filter(isWonBid).length}{" "}
                     won,{" "}
                     {bidsData.bids.filter((b) => b.status === BidStatus.REJECTED).length}{" "}
                     unsuccessful)
