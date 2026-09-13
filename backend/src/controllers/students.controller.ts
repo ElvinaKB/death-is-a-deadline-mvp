@@ -15,6 +15,7 @@ export const getRawStudent = (item: RawUser) => ({
   id: item.id,
   email: item.email,
   name: item.raw_user_meta_data?.name,
+  phone: item.raw_user_meta_data?.phone ?? null,
   approvalStatus: item.raw_user_meta_data?.approvalStatus,
   studentIdUrl: item.raw_user_meta_data?.studentIdUrl,
   createdAt: item.created_at,

@@ -11,6 +11,9 @@
 <table class="detail-table" role="presentation" cellpadding="0" cellspacing="0" border="0">
   <tr><td class="label">Guest</td><td class="value"><%= studentName %></td></tr>
   <tr><td class="label">Guest Email</td><td class="value"><%= studentEmail %></td></tr>
+  <% if (studentPhone) { %>
+  <tr><td class="label">Guest Phone</td><td class="value"><%= studentPhone %></td></tr>
+  <% } %>
   <tr><td class="label">Check-in</td><td class="value"><%= checkInDate %></td></tr>
   <tr><td class="label">Check-out</td><td class="value"><%= checkOutDate %></td></tr>
   <tr><td class="label">Total Nights</td><td class="value"><%= totalNights %></td></tr>

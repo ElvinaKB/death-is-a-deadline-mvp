@@ -440,6 +440,10 @@ export function StudentDetailPage() {
                   <p className="font-medium text-fg">{student.email}</p>
                 </div>
                 <div>
+                  <p className="text-sm text-muted">Phone</p>
+                  <p className="font-medium text-fg">{student.phone || "—"}</p>
+                </div>
+                <div>
                   <p className="text-sm text-muted">Status</p>
                   <div className="mt-1">
                     {getStatusBadge(student.approvalStatus)}

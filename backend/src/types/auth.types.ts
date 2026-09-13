@@ -40,6 +40,7 @@ export interface SignupRequest {
 export interface RawUser extends SupabaseUser {
   raw_user_meta_data: {
     name: string;
+    phone?: string | null;
     approvalStatus: ApprovalStatus;
     studentIdUrl?: string;
     rejectionReason?: string;
