@@ -129,6 +129,7 @@ export async function sendBookingConfirmationEmails(
           subject: `Booking Confirmed - ${place.name}`,
           variables: {
             ...baseVariables,
+            googleCalendarUrl: placeVariables.googleCalendarUrl,
             dashboardUrl: `${clientUrl}/member/my-bids`,
           },
         }).catch((error) =>
