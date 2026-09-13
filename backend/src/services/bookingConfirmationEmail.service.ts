@@ -44,6 +44,10 @@ export async function sendBookingConfirmationEmails(
       student.email ||
       "Student",
     studentEmail: student.email || "",
+    studentPhone:
+      (student.raw_user_meta_data as { phone?: string })?.phone ||
+      (student as { phone?: string }).phone ||
+      null,
     reservationNumber: `BID-${bid.id.split("-")[0].toUpperCase()}`,
     placeName: place.name,
     placeCity: place.city,
