@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../libs/config/prisma";
 import { bid_status, payment_status, Prisma } from "@prisma/client";
+import { STRIPE_CONFIG } from "../libs/config/stripe";
 import {
   addDays,
   differenceInCalendarDays,
@@ -532,9 +533,10 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
       OrderCustomers: 1,
       TotalCurrency: "USD",
       TotalPrice: Number(bid.totalAmount),
-      // Deadline charges the traveler directly and pays the hotel a
-      // payout minus commission, so Deadline (the "channel") collects.
-      PaymentCollect: "Channel",
+      // Model B (commission-only): the hotel collects the room balance + taxes
+      // at the desk, so the PMS shows a balance due -> PaymentCollect "Hotel".
+      // MoR: Deadline collected the full amount -> "Channel".
+      PaymentCollect: STRIPE_CONFIG.COMMISSION_ONLY_MODE ? "Hotel" : "Channel",
       Customers: [
         {
           // TODO: Deadline doesn't collect guest country of residence;

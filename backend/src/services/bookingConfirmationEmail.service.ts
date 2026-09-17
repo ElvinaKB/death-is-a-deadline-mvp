@@ -3,13 +3,12 @@ import { EmailType } from "../email/emailTypes";
 import { prisma } from "../libs/config/prisma";
 import { formatBookingDate } from "../libs/utils/hotelDates";
 import { buildGoogleCalendarUrl } from "../email/googleCalendar";
+import { STRIPE_CONFIG } from "../libs/config/stripe";
 
-// Deadline's commission on the room rate (Model B: guest pays this, hotel
-// collects the rest at the desk). Also used to preview the split in the hotel
-// email. COMMISSION_ONLY flips the hotel email to the "you collect 93% + tax"
-// (Model B) layout; false today = MoR (guest charged in full).
-const COMMISSION_RATE = 0.07;
-const COMMISSION_ONLY = false;
+// Model B: guest pays the 7% commission, hotel collects the rest at the desk.
+// Driven by the single source of truth so the emails match what we charge.
+const COMMISSION_RATE = STRIPE_CONFIG.PLATFORM_COMMISSION_RATE;
+const COMMISSION_ONLY = STRIPE_CONFIG.COMMISSION_ONLY_MODE;
 
 /** Booking confirmation emails — webhook path only (PR 3). */
 export async function sendBookingConfirmationEmails(
@@ -130,6 +129,10 @@ export async function sendBookingConfirmationEmails(
           variables: {
             ...baseVariables,
             googleCalendarUrl: placeVariables.googleCalendarUrl,
+            commissionOnly: COMMISSION_ONLY,
+            roomRate: roomRateNum.toFixed(2),
+            commissionAmount: commissionNum.toFixed(2),
+            hotelBalance: (roomRateNum - commissionNum).toFixed(2),
             dashboardUrl: `${clientUrl}/member/my-bids`,
           },
         }).catch((error) =>

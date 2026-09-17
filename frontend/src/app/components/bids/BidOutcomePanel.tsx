@@ -16,6 +16,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Checkbox } from "../ui/checkbox";
 import { formatCurrency } from "../../../utils/currency";
+import { COMMISSION_ONLY, commissionOf, dueAtHotel } from "../../../config/model.config";
 import { BidPriceBreakdown } from "./BidPriceBreakdown";
 import { AcceptedOutcomeSparkles } from "./AcceptedOutcomeSparkles";
 import { Place } from "../../../types/place.types";
@@ -153,10 +154,25 @@ export function BidOutcomePanel({
             <span>Your Bid</span>
             <span className="text-fg">{formatCurrency(bidPerNight)}/night</span>
           </div>
-          <div className="flex justify-between pt-1.5 border-t border-line/60 font-semibold text-fg text-base">
-            <span>Total Paid</span>
-            <span>{formatCurrency(totalAmount)}</span>
-          </div>
+          {COMMISSION_ONLY ? (
+            <>
+              <div className="flex justify-between pt-1.5 border-t border-line/60 font-semibold text-fg text-base">
+                <span>Paid today (booking fee)</span>
+                <span>{formatCurrency(commissionOf(totalAmount))}</span>
+              </div>
+              <div className="flex justify-between text-muted">
+                <span>Due at property</span>
+                <span className="text-fg">
+                  {formatCurrency(dueAtHotel(totalAmount))} + tax
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="flex justify-between pt-1.5 border-t border-line/60 font-semibold text-fg text-base">
+              <span>Total Paid</span>
+              <span>{formatCurrency(totalAmount)}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between rounded-lg border border-line/60 bg-bg/50 px-3 py-1.5 text-sm">
@@ -165,7 +181,7 @@ export function BidOutcomePanel({
             <span className="text-fg">Card charged</span>
           </div>
           <span className="text-xs font-medium text-emerald-400 border border-emerald-500/50 rounded px-2 py-0.5">
-            Paid
+            {COMMISSION_ONLY ? formatCurrency(commissionOf(totalAmount)) : "Paid"}
           </span>
         </div>
 

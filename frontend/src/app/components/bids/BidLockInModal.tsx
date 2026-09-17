@@ -11,6 +11,11 @@ import { Button } from "../ui/button";
 import { formatCurrency } from "../../../utils/currency";
 import { Place } from "../../../types/place.types";
 import { BidPriceBreakdown } from "./BidPriceBreakdown";
+import {
+  COMMISSION_ONLY,
+  commissionOf,
+  dueAtHotel,
+} from "../../../config/model.config";
 
 /** Seconds user must wait before confirming (review window). */
 export const LOCK_IN_DURATION_SECONDS = 10;
@@ -260,15 +265,37 @@ export function BidLockInModal({
                 <span>{formatCurrency(mandatoryFeeTotal)}</span>
               </div>
             )}
-            <div className="flex justify-between text-fg font-medium">
-              <span>Total charged today</span>
-              <span>{formatCurrency(grandTotal)}</span>
-            </div>
-            <p className="bid-summary-rows__math leading-relaxed">
-              {hasMandatoryFee
-                ? `Price shown includes the room rate and a mandatory ${mandatoryFeeNames.join(" and ")}. Applicable government taxes are collected by the hotel at check-in. There are no other required charges.`
-                : "What's included: your winning bid is the full room rate — no resort fees, no mandatory parking fees. Applicable government taxes are the only add-on and are collected by the hotel at check-in."}
-            </p>
+            {COMMISSION_ONLY ? (
+              <>
+                <div className="flex justify-between text-fg font-medium">
+                  <span>Booking fee charged today (7%)</span>
+                  <span>{formatCurrency(commissionOf(totalAmount))}</span>
+                </div>
+                <div className="flex justify-between text-fg font-medium">
+                  <span>Due at property + taxes</span>
+                  <span>
+                    {formatCurrency(dueAtHotel(totalAmount) + mandatoryFeeTotal)}
+                  </span>
+                </div>
+                <p className="bid-summary-rows__math leading-relaxed">
+                  You pay a small booking fee now to lock in the room. The room
+                  balance{hasMandatoryFee ? ", mandatory fees," : ""} and any
+                  applicable taxes are paid directly to the property at check-in.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between text-fg font-medium">
+                  <span>Total charged today</span>
+                  <span>{formatCurrency(grandTotal)}</span>
+                </div>
+                <p className="bid-summary-rows__math leading-relaxed">
+                  {hasMandatoryFee
+                    ? `Price shown includes the room rate and a mandatory ${mandatoryFeeNames.join(" and ")}. Applicable government taxes are collected by the hotel at check-in. There are no other required charges.`
+                    : "What's included: your winning bid is the full room rate — no resort fees, no mandatory parking fees. Applicable government taxes are the only add-on and are collected by the hotel at check-in."}
+                </p>
+              </>
+            )}
           </div>
 
           <div className="space-y-1.5 rounded-lg border border-line/50 bg-white/[0.02] px-4 py-3 text-xs text-muted leading-relaxed">
@@ -288,10 +315,22 @@ export function BidLockInModal({
           </div>
 
           <p className="text-xs text-muted text-center leading-relaxed">
-            Death Is A Deadline is the merchant of record on your card
-            statement. Once you confirm, if your bid meets the hotel&apos;s
-            private price, your room is booked and your card is charged
-            immediately &mdash; there&apos;s no separate acceptance step.
+            {COMMISSION_ONLY ? (
+              <>
+                Once you confirm, if your bid meets the hotel&apos;s private
+                price your room is instantly booked and only the{" "}
+                {formatCurrency(commissionOf(totalAmount))} booking fee is
+                charged now. You pay the room balance and taxes directly to the
+                property at check-in.
+              </>
+            ) : (
+              <>
+                Death Is A Deadline is the merchant of record on your card
+                statement. Once you confirm, if your bid meets the hotel&apos;s
+                private price, your room is booked and your card is charged
+                immediately &mdash; there&apos;s no separate acceptance step.
+              </>
+            )}
           </p>
         </div>
 

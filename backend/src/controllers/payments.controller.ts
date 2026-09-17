@@ -302,13 +302,16 @@ export async function createPaymentIntent(req: Request, res: Response) {
     }
   }
 
-  // Convert Decimal to number for Stripe (amount in cents). Includes the
-  // hotel's mandatory fee snapshot (resort/parking), if any — that fee is
-  // charged to the guest here but excluded from platform commission's
-  // basis; see applyBidCommission in stripeWebhook.service.ts.
-  const amountInCents = Math.round(
-    (Number(bid.totalAmount) + Number(bid.mandatoryFeeAmount || 0)) * 100,
-  );
+  // Amount to charge (cents).
+  // - Model B (commission-only): charge ONLY the 7% commission on the room
+  //   rate. The room balance + taxes + mandatory fees are collected by the
+  //   hotel at the front desk, so we don't charge them here.
+  // - MoR (full-collection): charge the full room total + mandatory fee.
+  const roomTotal = Number(bid.totalAmount);
+  const commissionOnly = STRIPE_CONFIG.COMMISSION_ONLY_MODE;
+  const amountInCents = commissionOnly
+    ? Math.round(roomTotal * STRIPE_CONFIG.PLATFORM_COMMISSION_RATE * 100)
+    : Math.round((roomTotal + Number(bid.mandatoryFeeAmount || 0)) * 100);
   const stripeCustomerId = await getOrCreateStripeCustomerForStudent(studentId);
 
   // Apply any available referral credit as a discount, capped so the
@@ -353,7 +356,9 @@ export async function createPaymentIntent(req: Request, res: Response) {
     create: {
       bidId: bid.id,
       studentId,
-      amount: Number(bid.totalAmount) + Number(bid.mandatoryFeeAmount || 0),
+      // What we actually charge the guest — the 7% commission in Model B,
+      // the full amount in MoR.
+      amount: amountInCents / 100,
       currency: STRIPE_CONFIG.CURRENCY,
       stripePaymentIntentId: paymentIntent.id,
       stripeClientSecret: paymentIntent.client_secret,

@@ -25,6 +25,8 @@ import {
 } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { ROUTES } from "../../../config/routes.config";
+import { formatCurrency } from "../../../utils/currency";
+import { COMMISSION_ONLY, commissionOf, dueAtHotel } from "../../../config/model.config";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
 import { format } from "date-fns";
 import { formatBookingDate } from "../../../utils/dateHelpers";
@@ -515,17 +517,42 @@ export function CheckoutPage() {
                 </div>
               </div>
 
-              <div className="border-t border-line pt-4">
-                <div className="flex justify-between text-lg font-semibold">
-                  <span className="text-fg">Total Amount:</span>
-                  <span className="text-fg">${bid.totalAmount}</span>
-                </div>
+              <div className="border-t border-line pt-4 space-y-1">
+                {COMMISSION_ONLY ? (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted">Room Total:</span>
+                      <span className="text-fg">
+                        {formatCurrency(Number(bid.totalAmount))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-lg font-semibold">
+                      <span className="text-fg">Booking fee (charged now):</span>
+                      <span className="text-fg">
+                        {formatCurrency(commissionOf(Number(bid.totalAmount)))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted">Due at property + taxes:</span>
+                      <span className="text-fg">
+                        {formatCurrency(dueAtHotel(Number(bid.totalAmount)))}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between text-lg font-semibold">
+                    <span className="text-fg">Total Amount:</span>
+                    <span className="text-fg">${bid.totalAmount}</span>
+                  </div>
+                )}
               </div>
 
               <div className="glass rounded-lg p-4 border border-brand/30">
                 <p className="text-sm text-muted">
-                  <strong className="text-fg">Note:</strong> Your card will be
-                  charged ${bid.totalAmount} when you complete payment.
+                  <strong className="text-fg">Note:</strong>{" "}
+                  {COMMISSION_ONLY
+                    ? `Your card will be charged the ${formatCurrency(commissionOf(Number(bid.totalAmount)))} booking fee now. You pay the ${formatCurrency(dueAtHotel(Number(bid.totalAmount)))} balance plus taxes at the property at check-in.`
+                    : `Your card will be charged $${bid.totalAmount} when you complete payment.`}
                 </p>
               </div>
             </CardContent>
