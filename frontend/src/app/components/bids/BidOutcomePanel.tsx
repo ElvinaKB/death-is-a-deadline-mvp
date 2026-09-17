@@ -15,7 +15,7 @@ import {
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Checkbox } from "../ui/checkbox";
-import { formatCurrency } from "../../../utils/currency";
+import { formatCurrency, formatCurrencyCents } from "../../../utils/currency";
 import { COMMISSION_ONLY, commissionOf, dueAtHotel } from "../../../config/model.config";
 import { BidPriceBreakdown } from "./BidPriceBreakdown";
 import { AcceptedOutcomeSparkles } from "./AcceptedOutcomeSparkles";
@@ -158,12 +158,12 @@ export function BidOutcomePanel({
             <>
               <div className="flex justify-between pt-1.5 border-t border-line/60 font-semibold text-fg text-base">
                 <span>Paid today (booking fee)</span>
-                <span>{formatCurrency(commissionOf(totalAmount))}</span>
+                <span>{formatCurrencyCents(commissionOf(totalAmount))}</span>
               </div>
               <div className="flex justify-between text-muted">
                 <span>Due at property</span>
                 <span className="text-fg">
-                  {formatCurrency(dueAtHotel(totalAmount))} + tax
+                  {formatCurrencyCents(dueAtHotel(totalAmount))} + tax
                 </span>
               </div>
             </>
@@ -181,7 +181,7 @@ export function BidOutcomePanel({
             <span className="text-fg">Card charged</span>
           </div>
           <span className="text-xs font-medium text-emerald-400 border border-emerald-500/50 rounded px-2 py-0.5">
-            {COMMISSION_ONLY ? formatCurrency(commissionOf(totalAmount)) : "Paid"}
+            {COMMISSION_ONLY ? formatCurrencyCents(commissionOf(totalAmount)) : "Paid"}
           </span>
         </div>
 

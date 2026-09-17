@@ -99,7 +99,7 @@ import { BidPriceBreakdown } from "./BidPriceBreakdown";
 import { StayDatesAvailabilityAlert } from "./StayDatesAvailabilityAlert";
 import { BidStepIndicator, type BidStep, STEPS } from "./BidStepIndicator";
 import { PriorStayBanner } from "./PriorStayBanner";
-import { formatCurrency } from "../../../utils/currency";
+import { formatCurrency, formatCurrencyCents } from "../../../utils/currency";
 import {
   isDateInBlackout,
   isDayOfWeekAllowed,
@@ -2488,7 +2488,7 @@ function BidFormInner({
               )}
             <p className="text-xs text-warning border border-warning/30 rounded-md p-2 bg-warning/5">
               {COMMISSION_ONLY
-                ? `Binding bid: if accepted, only the ${formatCurrency(commissionOf(calculateTotalAmount()))} booking fee is charged now — you pay the ${formatCurrency(dueAtHotel(calculateTotalAmount()))} balance plus taxes at the property. Rejected bids are not charged.`
+                ? `Binding bid: if accepted, only the ${formatCurrencyCents(commissionOf(calculateTotalAmount()))} booking fee is charged now — you pay the ${formatCurrencyCents(dueAtHotel(calculateTotalAmount()))} balance plus taxes at the property. Rejected bids are not charged.`
                 : "Binding bid: if accepted, your card is charged immediately for the full amount. Rejected bids are not charged."}
             </p>
           </div>

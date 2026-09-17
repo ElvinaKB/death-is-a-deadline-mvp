@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
-import { formatCurrency } from "../../../utils/currency";
+import { formatCurrency, formatCurrencyCents } from "../../../utils/currency";
 import { Place } from "../../../types/place.types";
 import { BidPriceBreakdown } from "./BidPriceBreakdown";
 import {
@@ -211,7 +211,7 @@ export function BidLockInModal({
             </p>
           </div>
 
-          <p className="text-xs text-muted text-center leading-relaxed">
+          <p className="text-sm text-muted text-center leading-relaxed">
             <span className="font-semibold text-fg">No-show policy:</span> If you
             do not check in and have not cancelled in accordance with the
             hotel&apos;s cancellation policy, the first night&apos;s room rate may
@@ -269,12 +269,14 @@ export function BidLockInModal({
               <>
                 <div className="flex justify-between text-fg font-medium">
                   <span>Booking fee charged today (7%)</span>
-                  <span>{formatCurrency(commissionOf(totalAmount))}</span>
+                  <span>{formatCurrencyCents(commissionOf(totalAmount))}</span>
                 </div>
                 <div className="flex justify-between text-fg font-medium">
                   <span>Due at property + taxes</span>
                   <span>
-                    {formatCurrency(dueAtHotel(totalAmount) + mandatoryFeeTotal)}
+                    {formatCurrencyCents(
+                      dueAtHotel(totalAmount) + mandatoryFeeTotal,
+                    )}
                   </span>
                 </div>
                 <p className="bid-summary-rows__math leading-relaxed">
@@ -298,7 +300,7 @@ export function BidLockInModal({
             )}
           </div>
 
-          <div className="space-y-1.5 rounded-lg border border-line/50 bg-white/[0.02] px-4 py-3 text-xs text-muted leading-relaxed">
+          <div className="space-y-1.5 rounded-lg border border-line/50 bg-white/[0.02] px-4 py-3 text-sm text-muted leading-relaxed">
             <p className="text-fg font-medium">Things to keep in mind</p>
             <ul className="list-disc space-y-1 pl-4">
               <li>
@@ -314,12 +316,12 @@ export function BidLockInModal({
             </ul>
           </div>
 
-          <p className="text-xs text-muted text-center leading-relaxed">
+          <p className="text-sm text-muted text-center leading-relaxed">
             {COMMISSION_ONLY ? (
               <>
                 Once you confirm, if your bid meets the hotel&apos;s private
                 price your room is instantly booked and only the{" "}
-                {formatCurrency(commissionOf(totalAmount))} booking fee is
+                {formatCurrencyCents(commissionOf(totalAmount))} booking fee is
                 charged now. You pay the room balance and taxes directly to the
                 property at check-in.
               </>
