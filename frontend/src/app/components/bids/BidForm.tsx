@@ -44,6 +44,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useBidForPlace, useCreateBid } from "../../../hooks/useBids";
 import { useProfilePhone } from "../../../hooks/useProfilePhone";
+import { COMMISSION_ONLY, commissionOf, dueAtHotel } from "../../../config/model.config";
 import { usePlaceSoldOutNights } from "../../../hooks/usePlaces";
 import {
   useConfirmPayment,
@@ -2206,6 +2207,15 @@ function BidFormInner({
                   Privacy Policy
                 </Link>
                 .
+                {COMMISSION_ONLY && (
+                  <>
+                    {" "}
+                    I authorize Deadline to charge the booking fee to my card now
+                    and, if I don&apos;t check in and haven&apos;t cancelled per
+                    the no-show policy, the first night&apos;s room rate to my
+                    card on file.
+                  </>
+                )}
               </Label>
             </div>
             {paymentError &&
@@ -2477,8 +2487,9 @@ function BidFormInner({
                 />
               )}
             <p className="text-xs text-warning border border-warning/30 rounded-md p-2 bg-warning/5">
-              Binding bid: if accepted, your card is charged immediately for the
-              full amount. Rejected bids are not charged.
+              {COMMISSION_ONLY
+                ? `Binding bid: if accepted, only the ${formatCurrency(commissionOf(calculateTotalAmount()))} booking fee is charged now — you pay the ${formatCurrency(dueAtHotel(calculateTotalAmount()))} balance plus taxes at the property. Rejected bids are not charged.`
+                : "Binding bid: if accepted, your card is charged immediately for the full amount. Rejected bids are not charged."}
             </p>
           </div>
         )}
@@ -2538,7 +2549,10 @@ function BidFormInner({
                 <Link to={ROUTES.TERMS} className="text-gold underline" target="_blank">Terms of Use</Link>
                 ,{" "}
                 <Link to={ROUTES.PRIVACY} className="text-gold underline" target="_blank">Privacy Policy</Link>
-                , and cancellation terms. If my bid is accepted, my card will be charged immediately.
+                , and cancellation terms.{" "}
+                {COMMISSION_ONLY
+                  ? "I authorize Deadline to charge the booking fee now and, per the no-show policy, the first night's room rate to my card on file if I don't check in."
+                  : "If my bid is accepted, my card will be charged immediately."}
               </Label>
             </div>
           </>

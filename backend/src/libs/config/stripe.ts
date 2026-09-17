@@ -21,6 +21,14 @@ export const STRIPE_CONFIG = {
   // Platform commission rate (7%)
   PLATFORM_COMMISSION_RATE: 0.07,
 
+  // Model B (commission-only): when true, Deadline charges the guest ONLY the
+  // 7% commission at booking and the hotel collects the room balance + taxes at
+  // the front desk (PaymentCollect: "Hotel"). When false, MoR full-collection.
+  // NOTE: this is currently global. Only Elvina's own properties are live, so
+  // it's contained — but before onboarding third-party hotels on Model B,
+  // gate this per-place (see the dynamicPricingEnabled pattern).
+  COMMISSION_ONLY_MODE: true,
+
   // Metadata keys
   METADATA_KEYS: {
     BID_ID: "bid_id",
