@@ -25,7 +25,7 @@ import {
 } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { ROUTES } from "../../../config/routes.config";
-import { formatCurrency } from "../../../utils/currency";
+import { formatCurrency, formatCurrencyCents } from "../../../utils/currency";
 import { COMMISSION_ONLY, commissionOf, dueAtHotel } from "../../../config/model.config";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
 import { format } from "date-fns";
@@ -529,13 +529,13 @@ export function CheckoutPage() {
                     <div className="flex justify-between text-lg font-semibold">
                       <span className="text-fg">Booking fee (charged now):</span>
                       <span className="text-fg">
-                        {formatCurrency(commissionOf(Number(bid.totalAmount)))}
+                        {formatCurrencyCents(commissionOf(Number(bid.totalAmount)))}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted">Due at property + taxes:</span>
                       <span className="text-fg">
-                        {formatCurrency(dueAtHotel(Number(bid.totalAmount)))}
+                        {formatCurrencyCents(dueAtHotel(Number(bid.totalAmount)))}
                       </span>
                     </div>
                   </>
@@ -551,7 +551,7 @@ export function CheckoutPage() {
                 <p className="text-sm text-muted">
                   <strong className="text-fg">Note:</strong>{" "}
                   {COMMISSION_ONLY
-                    ? `Your card will be charged the ${formatCurrency(commissionOf(Number(bid.totalAmount)))} booking fee now. You pay the ${formatCurrency(dueAtHotel(Number(bid.totalAmount)))} balance plus taxes at the property at check-in.`
+                    ? `Your card will be charged the ${formatCurrencyCents(commissionOf(Number(bid.totalAmount)))} booking fee now. You pay the ${formatCurrencyCents(dueAtHotel(Number(bid.totalAmount)))} balance plus taxes at the property at check-in.`
                     : `Your card will be charged $${bid.totalAmount} when you complete payment.`}
                 </p>
               </div>
