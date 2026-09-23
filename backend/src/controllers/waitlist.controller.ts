@@ -21,31 +21,67 @@ async function sendWaitlistWelcomeEmail(email: string) {
 }
 
 export async function joinWaitlist(req: Request, res: Response) {
+  // Email is already trimmed + lowercased by the validation schema.
   const { fullName, email, phone, source, marketingConsent } =
     req.body as WaitlistSignupRequest;
-  const normalizedEmail = email.toLowerCase();
 
-  await prisma.waitlistSignup.upsert({
-    where: { email: normalizedEmail },
-    update: { fullName, phone, source, marketingConsent },
-    create: { fullName, email: normalizedEmail, phone, source, marketingConsent },
-  });
+  // One row per email, no matter how many times it's submitted (self-signup,
+  // then someone entering the same address by hand). A repeat never overwrites
+  // what's already there — it only fills in blanks and can turn consent on.
+  const existing = await prisma.waitlistSignup.findUnique({ where: { email } });
+  const signup = existing
+    ? await prisma.waitlistSignup.update({
+        where: { email },
+        data: {
+          phone: existing.phone ?? phone,
+          source: existing.source ?? source,
+          marketingConsent: existing.marketingConsent || marketingConsent,
+        },
+      })
+    : await prisma.waitlistSignup.create({
+        data: { fullName, email, phone, source, marketingConsent },
+      });
 
-  if (marketingConsent) {
+  if (signup.marketingConsent) {
     // Waitlist signups are also newsletter subscribers — one list to email,
     // instead of maintaining two separate subscriber sets. Carry the extra
     // waitlist fields over so they're visible from the Newsletter admin view.
-    await prisma.newsletterSubscriber.upsert({
-      where: { email: normalizedEmail },
-      update: { fullName, phone, source },
-      create: { email: normalizedEmail, fullName, phone, source },
+    const subscriber = await prisma.newsletterSubscriber.findUnique({
+      where: { email },
     });
+    if (!subscriber) {
+      await prisma.newsletterSubscriber.create({
+        data: {
+          email,
+          fullName: signup.fullName,
+          phone: signup.phone,
+          source: signup.source,
+        },
+      });
+    } else {
+      await prisma.newsletterSubscriber.update({
+        where: { email },
+        data: {
+          fullName: subscriber.fullName ?? signup.fullName,
+          phone: subscriber.phone ?? signup.phone,
+          source: subscriber.source ?? signup.source,
+        },
+      });
+    }
 
-    await sendWaitlistWelcomeEmail(normalizedEmail);
-    await prisma.waitlistSignup.update({
-      where: { email: normalizedEmail },
-      data: { welcomeEmailSentAt: new Date() },
-    });
+    // Welcome email goes out once per person, and a mail-server hiccup must
+    // never make an already-saved signup look like it failed.
+    if (!signup.welcomeEmailSentAt) {
+      try {
+        await sendWaitlistWelcomeEmail(email);
+        await prisma.waitlistSignup.update({
+          where: { email },
+          data: { welcomeEmailSentAt: new Date() },
+        });
+      } catch (err) {
+        console.error("[waitlist] welcome email failed", err);
+      }
+    }
   }
 
   res.json({ success: true, message: "You're on the list!" });
