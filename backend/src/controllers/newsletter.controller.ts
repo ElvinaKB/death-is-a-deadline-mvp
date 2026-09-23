@@ -3,13 +3,22 @@ import { prisma } from "../libs/config/prisma";
 import { NewsletterSubscribeRequest } from "../validations/newsletter/newsletter.validation";
 
 export async function subscribeNewsletter(req: Request, res: Response) {
-  const { email } = req.body as NewsletterSubscribeRequest;
+  const { email, fullName } = req.body as NewsletterSubscribeRequest;
 
-  await prisma.newsletterSubscriber.upsert({
-    where: { email: email.toLowerCase() },
-    update: {},
-    create: { email: email.toLowerCase() },
+  // One row per email. If they're already on the list (e.g. added earlier
+  // from the waitlist), don't create a second row or overwrite their details
+  // — only fill in a name if we didn't have one.
+  const existing = await prisma.newsletterSubscriber.findUnique({
+    where: { email },
   });
+  if (!existing) {
+    await prisma.newsletterSubscriber.create({ data: { email, fullName } });
+  } else if (!existing.fullName) {
+    await prisma.newsletterSubscriber.update({
+      where: { email },
+      data: { fullName },
+    });
+  }
 
   res.json({ success: true, message: "You're on the list!" });
 }

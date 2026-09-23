@@ -20,6 +20,7 @@ export function NewsletterSignupModal() {
   const [open, setOpen] = useState(
     () => localStorage.getItem(SEEN_KEY) !== "true",
   );
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
@@ -41,11 +42,18 @@ export function NewsletterSignupModal() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (!fullName.trim()) {
+      toast.error("Please enter your name");
+      return;
+    }
     if (!isValidEmail(email)) {
       toast.error("Please enter a valid email address");
       return;
     }
-    subscribeMutation.mutate({ email });
+    subscribeMutation.mutate({
+      email: email.trim(),
+      fullName: fullName.trim(),
+    });
   };
 
   return (
@@ -77,6 +85,17 @@ export function NewsletterSignupModal() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
+              <Label htmlFor="newsletter-name" className="sr-only">
+                Full name
+              </Label>
+              <Input
+                id="newsletter-name"
+                type="text"
+                placeholder="Full name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                autoFocus
+              />
               <Label htmlFor="newsletter-email" className="sr-only">
                 Email
               </Label>
@@ -86,7 +105,6 @@ export function NewsletterSignupModal() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoFocus
               />
             </div>
             <Button

@@ -33,6 +33,8 @@ interface NewsletterSubscribersResponse {
   total: number;
 }
 
+const PAGE_SIZE = 50;
+
 function downloadCsv(subscribers: NewsletterSubscriber[]) {
   const rows = [
     ["Full Name", "Email", "Phone", "Heard about us via", "Signed up"],
@@ -56,6 +58,7 @@ function downloadCsv(subscribers: NewsletterSubscriber[]) {
 
 export function NewsletterSubscribersPage() {
   const [confirmSendOpen, setConfirmSendOpen] = useState(false);
+  const [page, setPage] = useState(1);
   const { data, isLoading } = useApiQuery<NewsletterSubscribersResponse>({
     queryKey: [QUERY_KEYS.NEWSLETTER_SUBSCRIBERS],
     endpoint: ENDPOINTS.NEWSLETTER_SUBSCRIBERS,
@@ -80,6 +83,10 @@ export function NewsletterSubscribersPage() {
   });
 
   const subscribers = data?.subscribers ?? [];
+  const totalPages = Math.max(1, Math.ceil(subscribers.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pageRows = subscribers.slice(pageStart, pageStart + PAGE_SIZE);
 
   const columns: TableColumn<NewsletterSubscriber>[] = [
     {
@@ -87,7 +94,9 @@ export function NewsletterSubscribersPage() {
       field: "id",
       // Signup ordinal: oldest = 1, newest (top) = total.
       render: (_row, i) => (
-        <span className="text-muted tabular-nums">{subscribers.length - i}</span>
+        <span className="text-muted tabular-nums">
+          {subscribers.length - (pageStart + i)}
+        </span>
       ),
     },
     {
@@ -182,8 +191,14 @@ export function NewsletterSubscribersPage() {
         <CardContent>
           <DataTable
             columns={columns}
-            data={subscribers}
+            data={pageRows}
             loading={isLoading}
+            pagination={{
+              currentPage,
+              totalPages,
+              totalItems: subscribers.length,
+              onPageChange: setPage,
+            }}
             emptyMessage="No newsletter signups yet"
           />
         </CardContent>
