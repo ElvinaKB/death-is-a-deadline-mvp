@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApiQuery, useApiMutation } from "../../../hooks/useApi";
 import { ENDPOINTS } from "../../../config/endpoints.config";
@@ -66,20 +66,37 @@ export function NewsletterSubscribersPage() {
     endpoint: ENDPOINTS.NEWSLETTER_SUBSCRIBERS,
   });
 
+  const totalSent = useRef(0);
   const sendWelcomeEmailsMutation = useApiMutation<
-    { success: boolean; sent: number },
+    { success: boolean; sent: number; failed: number; remaining: number },
     void
   >({
     endpoint: ENDPOINTS.WAITLIST_SEND_WELCOME_EMAILS,
     onSuccess: (result) => {
+      totalSent.current += result.sent;
+      // Keep going in batches until everyone has been welcomed. Stop if a
+      // whole batch failed, so a broken mail server doesn't loop forever.
+      if (result.remaining > 0 && result.sent > 0) {
+        sendWelcomeEmailsMutation.mutate();
+        return;
+      }
       setConfirmSendOpen(false);
-      toast.success(
-        result.sent === 0
-          ? "Everyone's already been welcomed — nothing to send."
-          : `Sent the welcome email to ${result.sent} waitlist signup${result.sent === 1 ? "" : "s"}.`,
-      );
+      const sent = totalSent.current;
+      totalSent.current = 0;
+      if (result.remaining > 0) {
+        toast.error(
+          `Sent ${sent}, but ${result.remaining} still haven't been emailed. Try again in a few minutes.`,
+        );
+      } else {
+        toast.success(
+          sent === 0
+            ? "Everyone's already been welcomed — nothing to send."
+            : `Sent the welcome email to ${sent} waitlist signup${sent === 1 ? "" : "s"}.`,
+        );
+      }
     },
     onError: () => {
+      totalSent.current = 0;
       setConfirmSendOpen(false);
     },
   });
