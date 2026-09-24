@@ -25,6 +25,7 @@ interface NewsletterSubscriber {
   fullName: string | null;
   phone: string | null;
   source: string | null;
+  linkedinUrl: string | null;
   createdAt: string;
 }
 
@@ -37,11 +38,12 @@ const PAGE_SIZE = 50;
 
 function downloadCsv(subscribers: NewsletterSubscriber[]) {
   const rows = [
-    ["Full Name", "Email", "Phone", "Heard about us via", "Signed up"],
+    ["Full Name", "Email", "Phone", "LinkedIn", "Heard about us via", "Signed up"],
     ...subscribers.map((s) => [
       s.fullName ?? "",
       s.email,
       s.phone ?? "",
+      s.linkedinUrl ?? "",
       s.source ?? "",
       new Date(s.createdAt).toISOString(),
     ]),
@@ -112,6 +114,23 @@ export function NewsletterSubscribersPage() {
       header: "Phone",
       field: "phone",
       render: (row) => row.phone || <span className="text-muted">—</span>,
+    },
+    {
+      header: "LinkedIn",
+      field: "linkedinUrl",
+      render: (row) =>
+        row.linkedinUrl ? (
+          <a
+            href={row.linkedinUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gold underline"
+          >
+            View profile
+          </a>
+        ) : (
+          <span className="text-muted">—</span>
+        ),
     },
     {
       header: "Heard about us via",

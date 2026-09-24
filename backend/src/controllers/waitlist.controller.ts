@@ -4,6 +4,14 @@ import { WaitlistSignupRequest } from "../validations/waitlist/waitlist.validati
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
 
+const LINKEDIN_PROFILE_RE = /^\s*(https?:\/\/)?(www\.)?linkedin\.com\/in\/\S+\s*$/i;
+
+/** Canonical https LinkedIn profile URL, without share/tracking parameters. */
+function normalizeLinkedIn(raw: string): string {
+  const cleaned = raw.trim().split(/[?#]/)[0];
+  return /^https?:\/\//i.test(cleaned) ? cleaned : `https://${cleaned}`;
+}
+
 const INSTAGRAM_URL = "https://instagram.com/podshare";
 
 async function sendWaitlistWelcomeEmail(email: string) {
@@ -22,8 +30,16 @@ async function sendWaitlistWelcomeEmail(email: string) {
 
 export async function joinWaitlist(req: Request, res: Response) {
   // Email is already trimmed + lowercased by the validation schema.
-  const { fullName, email, phone, source, marketingConsent } =
+  const { fullName, email, phone, marketingConsent, ...rest } =
     req.body as WaitlistSignupRequest;
+
+  // The "where did you hear about us" box is often used to paste a LinkedIn
+  // profile. Keep that in its own field so it can be used later to verify the
+  // person, and leave "source" for the actual answer.
+  const sourceIsLinkedIn = !!rest.source && LINKEDIN_PROFILE_RE.test(rest.source);
+  const rawLinkedIn = rest.linkedinUrl || (sourceIsLinkedIn ? rest.source : undefined);
+  const linkedinUrl = rawLinkedIn ? normalizeLinkedIn(rawLinkedIn) : undefined;
+  const source = sourceIsLinkedIn ? undefined : rest.source;
 
   // One row per email, no matter how many times it's submitted (self-signup,
   // then someone entering the same address by hand). A repeat never overwrites
@@ -35,11 +51,12 @@ export async function joinWaitlist(req: Request, res: Response) {
         data: {
           phone: existing.phone ?? phone,
           source: existing.source ?? source,
+          linkedinUrl: existing.linkedinUrl ?? linkedinUrl,
           marketingConsent: existing.marketingConsent || marketingConsent,
         },
       })
     : await prisma.waitlistSignup.create({
-        data: { fullName, email, phone, source, marketingConsent },
+        data: { fullName, email, phone, source, linkedinUrl, marketingConsent },
       });
 
   if (signup.marketingConsent) {
@@ -56,6 +73,7 @@ export async function joinWaitlist(req: Request, res: Response) {
           fullName: signup.fullName,
           phone: signup.phone,
           source: signup.source,
+          linkedinUrl: signup.linkedinUrl,
         },
       });
     } else {
@@ -65,6 +83,7 @@ export async function joinWaitlist(req: Request, res: Response) {
           fullName: subscriber.fullName ?? signup.fullName,
           phone: subscriber.phone ?? signup.phone,
           source: subscriber.source ?? signup.source,
+          linkedinUrl: subscriber.linkedinUrl ?? signup.linkedinUrl,
         },
       });
     }
