@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express";
 import { sendEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
+import { authenticate } from "../libs/middlewares/authenticate";
+import { UserRole } from "../types/auth.types";
 
 const router = Router();
 
@@ -100,7 +102,9 @@ const defaultVariables: Record<EmailType, Record<string, any>> = {
   },
 };
 
-router.post("/email", async (req: Request, res: Response) => {
+// Admin-only: this mounts in production, and an open version would let anyone
+// send Deadline-branded email to any address.
+router.post("/email", authenticate(UserRole.ADMIN), async (req: Request, res: Response) => {
   const { type, to, subject, variables } = req.body;
 
   if (!type || !Object.values(EmailType).includes(type)) {
