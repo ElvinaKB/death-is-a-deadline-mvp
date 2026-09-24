@@ -120,19 +120,44 @@ export async function listWaitlistSignups(_req: Request, res: Response) {
   });
 }
 
-/** Admin-only: backfill-send the welcome email to consented signups that haven't received it yet. */
+const WELCOME_BATCH_SIZE = 30;
+const WELCOME_CONCURRENCY = 5;
+
+/**
+ * Admin-only: send the welcome email to opted-in signups who haven't had it.
+ * Works in batches so one request stays inside the serverless time limit; the
+ * admin page keeps calling until `remaining` is 0. Each person is marked as
+ * sent right after their email goes out, so nobody is emailed twice.
+ */
 export async function sendWaitlistWelcomeEmails(_req: Request, res: Response) {
-  const pending = await prisma.waitlistSignup.findMany({
-    where: { marketingConsent: true, welcomeEmailSentAt: null },
+  const where = { marketingConsent: true, welcomeEmailSentAt: null };
+  const batch = await prisma.waitlistSignup.findMany({
+    where,
+    orderBy: { createdAt: "asc" },
+    take: WELCOME_BATCH_SIZE,
   });
 
-  for (const signup of pending) {
-    await sendWaitlistWelcomeEmail(signup.email);
-    await prisma.waitlistSignup.update({
-      where: { id: signup.id },
-      data: { welcomeEmailSentAt: new Date() },
-    });
+  let sent = 0;
+  let failed = 0;
+  for (let i = 0; i < batch.length; i += WELCOME_CONCURRENCY) {
+    const chunk = batch.slice(i, i + WELCOME_CONCURRENCY);
+    await Promise.all(
+      chunk.map(async (signup) => {
+        try {
+          await sendWaitlistWelcomeEmail(signup.email);
+          await prisma.waitlistSignup.update({
+            where: { id: signup.id },
+            data: { welcomeEmailSentAt: new Date() },
+          });
+          sent += 1;
+        } catch (err) {
+          failed += 1;
+          console.error("[waitlist] welcome email failed", signup.email, err);
+        }
+      }),
+    );
   }
 
-  res.json({ data: { success: true, sent: pending.length } });
+  const remaining = await prisma.waitlistSignup.count({ where });
+  res.json({ data: { success: true, sent, failed, remaining } });
 }
