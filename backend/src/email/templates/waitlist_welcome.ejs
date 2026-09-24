@@ -1,49 +1,146 @@
-<%- include('./partials/deadline-head', {
-  title: "You're in. Welcome to " + appName + ".",
-  heading: "You're officially on the list."
-}) %>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>You're on the list. Welcome to <%= appName %>.</title>
+</head>
+<body style="margin:0;padding:0;background:#0c0c0c;font-family:Arial,Helvetica,sans-serif;color:#ffffff;">
+<%
+  const img = (name) => marketplaceUrl.replace(/\/$/, '') + '/email/' + name;
+  const serif = "Georgia,'Times New Roman',serif";
+  const gold = '#e7b53c';
+%>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#0c0c0c;">
+<tr><td align="center" style="padding:0;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:680px;width:100%;background:#0c0c0c;">
 
-<p class="intro">Thanks for joining <%= appName %>.</p>
+  <!-- HEADER -->
+  <tr><td style="background:#0c0c0c;padding:20px 28px;border-bottom:1px solid #1f1f1f;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+      <td align="left" style="font-family:<%- serif %>;color:<%- gold %>;font-size:28px;letter-spacing:3px;">DEADLINE</td>
+      <td align="right" style="font-size:11px;letter-spacing:4px;color:#ffffff;">THE WAITLIST</td>
+    </tr></table>
+  </td></tr>
 
-<p>We're building a <strong>private marketplace</strong> where verified travelers guess the hotel's secret price to win the room.</p>
+  <!-- HERO -->
+  <tr><td background="<%= img('waitlist-hero.jpg') %>" bgcolor="#0c0c0c" valign="top" style="background-color:#0c0c0c;background-image:url('<%= img('waitlist-hero.jpg') %>');background-size:cover;background-position:top center;background-repeat:no-repeat;padding:34px 28px 38px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+      <td width="62%" valign="top">
+        <div style="font-family:<%- serif %>;font-size:32px;line-height:1.15;color:#ffffff;">You&rsquo;re on the list.</div>
+        <div style="font-family:<%- serif %>;font-size:40px;line-height:1.1;color:<%- gold %>;margin-top:4px;">LIFE&rsquo;S SHORT.<br>TRAVEL NOW.</div>
+        <div style="width:46px;height:2px;background:<%- gold %>;margin:16px 0;"></div>
+        <div style="font-size:15px;line-height:1.55;color:#ffffff;">Thanks for joining <%= appName %>.<br>We&rsquo;ll bring you independent hotels<br><span style="color:<%- gold %>;font-weight:bold;">so you can bid your price.</span></div>
+        <div style="font-size:15px;line-height:1.55;color:#ffffff;margin-top:14px;">Imagine a staycation or getaway where if you guess the price, you win the room.</div>
+        <div style="margin-top:22px;"><a href="<%= marketplaceUrl %>" style="display:inline-block;background:<%- gold %>;color:#111111;font-size:12px;font-weight:bold;letter-spacing:3px;text-decoration:none;padding:14px 26px;border-radius:6px;">SEE WHAT&rsquo;S LIVE &rarr;</a></div>
+      </td>
+      <td width="38%"></td>
+    </tr></table>
+  </td></tr>
 
-<p>Unlike public discounts, hotels never reveal their minimum price—so they can fill empty rooms without hurting their brand.</p>
+  <!-- SECRET PRICE -->
+  <tr><td style="background:#f6f1e7;color:#111111;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+      <td width="62%" valign="top" style="padding:30px 10px 30px 28px;">
+        <div style="font-size:11px;letter-spacing:6px;color:#111111;">EVERYONE HAS A</div>
+        <div style="font-family:<%- serif %>;font-size:40px;line-height:1.1;color:#111111;margin:6px 0 4px;">SECRET PRICE.</div>
+        <div style="font-size:17px;color:#111111;">Hotels do. <span style="color:#c49322;font-weight:bold;">You do too.</span></div>
+        <div style="width:46px;height:2px;background:#c49322;margin:14px 0;"></div>
+        <div style="font-size:14px;line-height:1.55;color:#1f2937;">Maybe you&rsquo;d never book that hotel for $300.<br>But for $175? Now we&rsquo;re talking.</div>
+        <div style="font-size:14px;line-height:1.55;color:#1f2937;margin-top:12px;">Deadline lets independent hotels quietly offer rooms without blasting a discount all over the internet &mdash; and lets you decide what the stay is worth to you.</div>
+        <div style="font-size:14px;line-height:1.55;color:#1f2937;margin-top:12px;">No coupon codes. No sale hunting. Just take your shot.</div>
+      </td>
+      <td width="38%" background="<%= img('waitlist-room.jpg') %>" bgcolor="#3a2a1a" style="background-color:#3a2a1a;background-image:url('<%= img('waitlist-room.jpg') %>');background-size:cover;background-position:center;background-repeat:no-repeat;">&nbsp;</td>
+    </tr></table>
+  </td></tr>
 
-<div class="feature-box">
-  Today, a handful of independent hotels are already accepting bids, and we're adding more every week.
-</div>
+  <!-- DISCOVER / BID / UNLOCK -->
+  <tr><td style="background:#0c0c0c;padding:22px 20px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+      <% [['01','DISCOVER','Meet the independents.','Boutique hotels, hidden gems and properties with an actual personality &mdash; not just another room off the interstate.'],
+          ['02','BID','Name your price.','The hotel has a secret number. You have yours. Bid what you&rsquo;d actually pay and see if the two of you match.'],
+          ['03','UNLOCK','Guess it. Get it. Go.','Clear the secret price and you&rsquo;ve unlocked a rate that didn&rsquo;t need to be advertised to everyone else.']].forEach(function (c, i) { %>
+      <td width="33%" valign="top" style="padding:0 <%= i < 2 ? 5 : 0 %>px 0 <%= i > 0 ? 5 : 0 %>px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #2a2a2a;border-radius:8px;background:#111111;"><tr><td style="padding:16px 14px 18px;">
+          <div style="font-family:<%- serif %>;color:<%- gold %>;font-size:22px;">&mdash; <%= c[0] %></div>
+          <div style="font-family:<%- serif %>;font-size:19px;color:#ffffff;margin-top:10px;letter-spacing:1px;"><%= c[1] %></div>
+          <div style="font-size:12px;font-weight:bold;color:<%- gold %>;margin-top:4px;"><%= c[2] %></div>
+          <div style="font-size:12px;line-height:1.5;color:#d4d4d4;margin-top:8px;"><%- c[3] %></div>
+        </td></tr></table>
+      </td>
+      <% }) %>
+    </tr></table>
+  </td></tr>
 
-<p>As we grow, you'll be the first to know when:</p>
-<ul class="checklist">
-  <li><span class="check-icon">✓</span> New hotels join</li>
-  <li><span class="check-icon">✓</span> Launch parties</li>
-  <li><span class="check-icon">✓</span> Exclusive discounts</li>
-</ul>
+  <!-- JUST GETTING STARTED -->
+  <tr><td background="<%= img('waitlist-terrace.jpg') %>" bgcolor="#0c0c0c" style="background-color:#0c0c0c;background-image:url('<%= img('waitlist-terrace.jpg') %>');background-size:cover;background-position:center;background-repeat:no-repeat;padding:26px 28px 28px;">
+    <div style="font-size:11px;letter-spacing:6px;color:#ffffff;margin-bottom:14px;">AND WE&rsquo;RE JUST GETTING STARTED.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+      <td width="34%" valign="top" style="padding-right:12px;border-right:1px solid #5a5a5a;">
+        <div style="font-size:14px;font-weight:bold;color:<%- gold %>;">Today:</div>
+        <div style="font-size:13px;line-height:1.5;color:#ffffff;margin-top:4px;">You find a hotel.<br>You make the bid.</div>
+      </td>
+      <td width="36%" valign="top" style="padding:0 12px;">
+        <div style="font-size:14px;font-weight:bold;color:<%- gold %>;">Coming later:</div>
+        <div style="font-size:13px;line-height:1.5;color:#ffffff;margin-top:4px;">You tell us your secret price. <em>&ldquo;I want Palm Springs next weekend. I&rsquo;d pay $175/night.&rdquo;</em> And we&rsquo;ll see if we can find a hotel willing to say yes.</div>
+      </td>
+      <td width="30%" valign="bottom" align="right">
+        <div style="font-family:<%- serif %>;font-size:17px;color:#ffffff;line-height:1.2;">Everyone has a</div>
+        <div style="font-family:<%- serif %>;font-size:24px;color:<%- gold %>;line-height:1.1;">SECRET PRICE.</div>
+        <div style="font-family:<%- serif %>;font-size:14px;color:#ffffff;line-height:1.3;">We&rsquo;re trying to guess yours.</div>
+      </td>
+    </tr></table>
+    <div style="font-size:13px;line-height:1.5;color:#ffffff;margin-top:16px;max-width:400px;">Think blind date &mdash; but for hotel rooms. You tell us what you&rsquo;re looking for and what you&rsquo;d spend. We make the introduction.</div>
+  </td></tr>
 
-<p>In the meantime&hellip;</p>
+  <!-- HOTELS -->
+  <tr><td style="background:#f6f1e7;padding:24px 20px 26px;">
+    <div style="font-family:<%- serif %>;font-size:21px;color:#111111;margin:0 8px 14px;">Meet a few of the independent hotels already playing Deadline. Take a sneak peek.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+      <% [['video-1.jpg','https://youtube.com/shorts/xY0nQUPvJG4'],['video-2.jpg','https://youtube.com/shorts/_TumGnkzqrE'],['video-3.jpg','https://youtube.com/shorts/QuKxi1AETqc']].forEach(function (v, i) { %>
+      <td width="33%" valign="top" style="padding:0 6px;">
+        <a href="<%= v[1] %>" style="text-decoration:none;">
+          <img src="<%= img(v[0]) %>" alt="Watch a hotel sneak peek" width="200" style="display:block;width:100%;height:auto;border-radius:8px 8px 0 0;border:0;">
+          <div style="background:#111111;border-radius:0 0 8px 8px;padding:12px 8px;text-align:center;font-size:10px;letter-spacing:3px;color:<%- gold %>;">WATCH VIDEO &rarr;</div>
+        </a>
+      </td>
+      <% }) %>
+    </tr></table>
+  </td></tr>
 
-<div class="divider"></div>
+  <!-- CLOSING CTA -->
+  <tr><td style="background:#0c0c0c;padding:28px 28px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+      <td width="34%" valign="middle" style="font-family:<%- serif %>;font-size:19px;line-height:1.25;color:#ffffff;">YOUR NEXT TRIP<br><span style="color:<%- gold %>;">MIGHT BE CLOSER</span><br>THAN YOU THINK.</td>
+      <td width="40%" valign="middle" style="padding:0 14px;border-left:1px solid #2a2a2a;font-size:12px;line-height:1.5;color:#d4d4d4;">You&rsquo;re probably wondering how we can get better rates? Easy. It&rsquo;s because you&rsquo;re a verified member.<br><span style="color:<%- gold %>;font-weight:bold;display:inline-block;margin-top:8px;">Life&rsquo;s short. Travel now.</span></td>
+      <td width="26%" valign="middle" align="right"><a href="<%= marketplaceUrl %>" style="display:inline-block;background:<%- gold %>;color:#111111;font-size:11px;font-weight:bold;letter-spacing:1px;text-decoration:none;padding:13px 12px;white-space:nowrap;border-radius:6px;">START GUESSING &rarr;</a></td>
+    </tr></table>
+  </td></tr>
 
-<p><strong>Ready to play?</strong></p>
-<p>Browse the hotels already accepting bids.</p>
-<%- include('./partials/deadline-button', { url: marketplaceUrl, label: 'Start Bidding' }) %>
+  <!-- ONE FAVOR -->
+  <tr><td style="background:#0c0c0c;padding:0 28px 22px;">
+    <div style="border-top:1px solid #1f1f1f;padding-top:20px;font-size:13px;line-height:1.6;color:#d4d4d4;">
+      <strong style="color:#ffffff;">One favor:</strong> is there an indie hotel you&rsquo;d love to see on here? Forward this to the owner or GM, or <a href="<%= referHotelUrl %>" style="color:<%- gold %>;">introduce us directly</a>.<br>
+      <span style="font-style:italic;">Let&rsquo;s goooo! &ndash; Elvina</span>
+    </div>
+  </td></tr>
 
-<div class="divider"></div>
+  <!-- FOOTER -->
+  <tr><td style="background:#0c0c0c;padding:20px 28px 28px;border-top:1px solid #1f1f1f;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+      <td valign="middle" style="font-family:<%- serif %>;color:<%- gold %>;font-size:24px;letter-spacing:3px;">DEADLINE</td>
+      <td valign="middle" align="center" style="font-size:12px;color:#9ca3af;">
+        <a href="<%= instagramUrl %>" style="color:<%- gold %>;text-decoration:none;">Instagram</a> &nbsp;&middot;&nbsp;
+        <a href="https://www.tiktok.com/@podshare" style="color:<%- gold %>;text-decoration:none;">TikTok</a> &nbsp;&middot;&nbsp;
+        <a href="https://www.linkedin.com/company/deadline-travel" style="color:<%- gold %>;text-decoration:none;">LinkedIn</a>
+      </td>
+      <td valign="middle" align="right" style="font-size:12px;line-height:1.5;color:#9ca3af;">Need help?<br><a href="mailto:hotels@deadlinetravel.com" style="color:<%- gold %>;text-decoration:none;">hotels@deadlinetravel.com</a></td>
+    </tr></table>
+    <div style="font-size:11px;color:#6b7280;line-height:1.6;margin-top:16px;">&copy; <%= new Date().getFullYear() %> <%= appName %>. 1617 Cosmo Street Suite 102, Los Angeles, CA 90028</div>
+  </td></tr>
 
-<h3>Follow the journey</h3>
-<p>We're documenting the launch in real time.</p>
-<%- include('./partials/deadline-button', { url: instagramUrl, label: 'Follow us on Instagram' }) %>
-
-<div class="divider"></div>
-
-<h3>One favor</h3>
-<p>Is there an indie hotel you'd love to see on here?</p>
-<p>Simply forward this email to the owner or GM&mdash;or introduce us directly. Every hotel that joins makes the marketplace better for everyone.</p>
-<%- include('./partials/deadline-button', { url: referHotelUrl, label: 'Refer a Hotel' }) %>
-
-<div class="signature">
-  <p class="sign-off">Let's goooo!</p>
-  <p class="sign-name">- Elvina</p>
-</div>
-
-<%- include('./partials/deadline-foot', { appName: appName }) %>
+</table>
+</td></tr>
+</table>
+</body>
+</html>
