@@ -54,24 +54,6 @@
     </tr></table>
   </td></tr>
 
-  <!-- DISCOVER / BID / UNLOCK -->
-  <tr><td style="background:#0c0c0c;padding:22px 20px;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-      <% [['01','DISCOVER','Meet the independents.','Boutique hotels, hidden gems and properties with an actual personality &mdash; not just another room off the interstate.'],
-          ['02','BID','Name your price.','The hotel has a secret number. You have yours. Bid what you&rsquo;d actually pay and see if the two of you match.'],
-          ['03','UNLOCK','Guess it. Get it. Go.','Clear the secret price and you&rsquo;ve unlocked a rate that didn&rsquo;t need to be advertised to everyone else.']].forEach(function (c, i) { %>
-      <td width="33%" valign="top" style="padding:0 <%= i < 2 ? 5 : 0 %>px 0 <%= i > 0 ? 5 : 0 %>px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #2a2a2a;border-radius:8px;background:#111111;"><tr><td style="padding:16px 14px 18px;">
-          <div style="font-family:<%- serif %>;color:<%- gold %>;font-size:22px;">&mdash; <%= c[0] %></div>
-          <div style="font-family:<%- serif %>;font-size:19px;color:#ffffff;margin-top:10px;letter-spacing:1px;"><%= c[1] %></div>
-          <div style="font-size:12px;font-weight:bold;color:<%- gold %>;margin-top:4px;"><%= c[2] %></div>
-          <div style="font-size:12px;line-height:1.5;color:#d4d4d4;margin-top:8px;"><%- c[3] %></div>
-        </td></tr></table>
-      </td>
-      <% }) %>
-    </tr></table>
-  </td></tr>
-
   <!-- JUST GETTING STARTED -->
   <tr><td background="<%= img('waitlist-terrace.jpg') %>" bgcolor="#0c0c0c" style="background-color:#0c0c0c;background-image:url('<%= img('waitlist-terrace.jpg') %>');background-size:cover;background-position:center;background-repeat:no-repeat;padding:26px 28px 28px;">
     <div style="font-size:11px;letter-spacing:6px;color:#ffffff;margin-bottom:14px;">AND WE&rsquo;RE JUST GETTING STARTED.</div>
@@ -90,12 +72,19 @@
         <div style="font-family:<%- serif %>;font-size:14px;color:#ffffff;line-height:1.3;">We&rsquo;re trying to guess yours.</div>
       </td>
     </tr></table>
-    <div style="font-size:13px;line-height:1.5;color:#ffffff;margin-top:16px;max-width:400px;">Think blind date &mdash; but for hotel rooms. You tell us what you&rsquo;re looking for and what you&rsquo;d spend. We make the introduction.</div>
+  </td></tr>
+
+  <!-- BLIND DATE HIGHLIGHT -->
+  <tr><td align="center" style="background:#0c0c0c;padding:34px 40px;">
+    <div style="width:46px;height:2px;background:<%- gold %>;margin:0 auto 20px;"></div>
+    <div style="font-family:<%- serif %>;font-size:26px;line-height:1.3;color:#ffffff;">Think blind date &mdash; <span style="color:<%- gold %>;">but for hotel rooms.</span></div>
+    <div style="font-size:15px;line-height:1.6;color:#d4d4d4;margin-top:14px;">You tell us what you&rsquo;re looking for and what you&rsquo;d spend.<br>We make the introduction.</div>
+    <div style="width:46px;height:2px;background:<%- gold %>;margin:22px auto 0;"></div>
   </td></tr>
 
   <!-- HOTELS -->
   <tr><td style="background:#f6f1e7;padding:24px 20px 26px;">
-    <div style="font-family:<%- serif %>;font-size:21px;color:#111111;margin:0 8px 14px;">Meet a few of the independent hotels already playing Deadline. Take a sneak peek.</div>
+    <div style="font-family:<%- serif %>;font-size:21px;color:#111111;margin:0 8px 14px;">Meet a few of the independent hotels already playing Deadline.</div>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
       <% [['video-1.jpg','https://youtube.com/shorts/xY0nQUPvJG4'],['video-2.jpg','https://youtube.com/shorts/_TumGnkzqrE'],['video-3.jpg','https://youtube.com/shorts/QuKxi1AETqc']].forEach(function (v, i) { %>
       <td width="33%" valign="top" style="padding:0 6px;">
@@ -118,11 +107,15 @@
   </td></tr>
 
   <!-- ONE FAVOR -->
-  <tr><td style="background:#0c0c0c;padding:0 28px 22px;">
-    <div style="border-top:1px solid #1f1f1f;padding-top:20px;font-size:13px;line-height:1.6;color:#d4d4d4;">
-      <strong style="color:#ffffff;">One favor:</strong> is there an indie hotel you&rsquo;d love to see on here? Forward this to the owner or GM, or <a href="<%= referHotelUrl %>" style="color:<%- gold %>;">introduce us directly</a>.<br>
-      <span style="font-style:italic;">Let&rsquo;s goooo! &ndash; Elvina</span>
-    </div>
+  <tr><td style="background:#0c0c0c;padding:0 28px 30px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #2a2a2a;border-radius:10px;background:#111111;"><tr><td style="padding:26px 26px 28px;" align="center">
+      <div style="font-size:11px;letter-spacing:6px;color:<%- gold %>;">ONE FAVOR</div>
+      <div style="font-family:<%- serif %>;font-size:22px;line-height:1.3;color:#ffffff;margin-top:12px;">Know an indie hotel we should meet?</div>
+      <div style="font-size:14px;line-height:1.6;color:#d4d4d4;margin-top:10px;">Forward this email to the owner or GM, or introduce us directly. Every hotel that joins makes Deadline better for everyone.</div>
+      <div style="margin-top:20px;"><a href="https://www.deadlinetravel.com/referrals" style="display:inline-block;background:<%- gold %>;color:#111111;font-size:12px;font-weight:bold;letter-spacing:3px;text-decoration:none;padding:14px 26px;border-radius:6px;">REFER A HOTEL &rarr;</a></div>
+      <div style="font-family:<%- serif %>;font-size:18px;font-style:italic;color:#ffffff;margin-top:24px;">Let&rsquo;s goooo!</div>
+      <div style="font-family:<%- serif %>;font-size:15px;font-style:italic;color:<%- gold %>;margin-top:2px;">&ndash; Elvina</div>
+    </td></tr></table>
   </td></tr>
 
   <!-- FOOTER -->
@@ -136,7 +129,7 @@
       </td>
       <td valign="middle" align="right" style="font-size:12px;line-height:1.5;color:#9ca3af;">Need help?<br><a href="mailto:hotels@deadlinetravel.com" style="color:<%- gold %>;text-decoration:none;">hotels@deadlinetravel.com</a></td>
     </tr></table>
-    <div style="font-size:11px;color:#6b7280;line-height:1.6;margin-top:16px;">&copy; <%= new Date().getFullYear() %> <%= appName %>. 1617 Cosmo Street Suite 102, Los Angeles, CA 90028</div>
+    <div style="font-size:11px;color:#9ca3af;line-height:1.6;margin-top:16px;">&copy; <%= new Date().getFullYear() %> <%= appName %>. <a href="https://www.google.com/maps/search/?api=1&amp;query=1617+Cosmo+Street+Suite+102+Los+Angeles+CA+90028" style="color:#d4d4d4;text-decoration:none;">1617 Cosmo Street Suite 102, Los Angeles, CA 90028</a></div>
   </td></tr>
 
 </table>
