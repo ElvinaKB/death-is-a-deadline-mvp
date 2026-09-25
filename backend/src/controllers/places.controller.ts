@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../libs/config/prisma";
 import { CustomError } from "../libs/utils/CustomError";
-import { PlaceStatus, Prisma, bid_status } from "@prisma/client";
+import { PlaceStatus, Prisma, bid_status, payment_status } from "@prisma/client";
 import {
   CreatePlaceInput,
   UpdatePlaceInput,
@@ -162,6 +162,9 @@ async function getAcceptedBidsCountForDate(
     where: {
       placeId,
       status: bid_status.ACCEPTED,
+      // Only paid bookings occupy a bed — unpaid/abandoned accepted bids must
+      // not understate availability (see inventory.service getSoldOutNightsInRange).
+      payment: { status: payment_status.CAPTURED },
       checkInDate: { lte: dayEnd },
       checkOutDate: { gt: dayStart },
     },
@@ -215,6 +218,8 @@ async function getInventoryStatusesForDate(
       where: {
         placeId: { in: placeIds },
         status: bid_status.ACCEPTED,
+        // Only paid bookings occupy a bed (see getAcceptedBidsCountForDate).
+        payment: { status: payment_status.CAPTURED },
         checkInDate: { lte: dayEnd },
         checkOutDate: { gt: dayStart },
       },
