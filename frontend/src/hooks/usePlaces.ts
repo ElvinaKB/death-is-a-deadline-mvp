@@ -30,15 +30,24 @@ export const usePlace = (id: string) => {
   });
 };
 
-// Public hook - get place by ID with optional date for inventory status
-export const usePublicPlace = (id: string, date?: string) => {
+// Public hook - get place by ID with optional date for inventory status.
+// `previewToken` lets a Draft/Paused listing be viewed via its private preview
+// link (?preview=<token>) before it goes live.
+export const usePublicPlace = (
+  id: string,
+  date?: string,
+  previewToken?: string,
+) => {
   const apiDate = toApiDateOnly(date);
-  const endpoint = apiDate
-    ? `${ENDPOINTS.PLACE_PUBLIC_DETAIL.replace(":id", id)}?date=${encodeURIComponent(apiDate)}`
-    : ENDPOINTS.PLACE_PUBLIC_DETAIL.replace(":id", id);
+  const params = new URLSearchParams();
+  if (apiDate) params.set("date", apiDate);
+  if (previewToken) params.set("preview", previewToken);
+  const qs = params.toString();
+  const base = ENDPOINTS.PLACE_PUBLIC_DETAIL.replace(":id", id);
+  const endpoint = qs ? `${base}?${qs}` : base;
 
   return useApiQuery<PlaceResponse>({
-    queryKey: [...QUERY_KEYS.PLACE(id), "public", apiDate],
+    queryKey: [...QUERY_KEYS.PLACE(id), "public", apiDate, previewToken],
     endpoint,
     enabled: !!id,
   });

@@ -48,6 +48,10 @@ export interface Place {
    * property. false = Model A / full-collection: the full amount is charged now.
    */
   commissionOnly?: boolean;
+  /** Admin only — token for the private pre-launch preview link (?preview=). */
+  previewToken?: string;
+  /** True when this place was served via a preview link (Draft/Paused, not bookable). */
+  isPreview?: boolean;
   blackoutDates: string[]; // Array of ISO date strings
   allowedDaysOfWeek: number[]; // 0=Sunday, 1=Monday, ..., 6=Saturday
   maxInventory: number; // Maximum rooms/beds available per date
