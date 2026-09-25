@@ -42,6 +42,12 @@ export interface Place {
   autoAcceptAboveMinimum?: boolean;
   /** Admin/hotel only — false disables the hidden dynamic premium */
   dynamicPricingEnabled?: boolean;
+  /**
+   * Payment model. true (default) = Model B / commission-only: the guest is
+   * charged only the 7% booking fee now and pays the balance + taxes at the
+   * property. false = Model A / full-collection: the full amount is charged now.
+   */
+  commissionOnly?: boolean;
   blackoutDates: string[]; // Array of ISO date strings
   allowedDaysOfWeek: number[]; // 0=Sunday, 1=Monday, ..., 6=Saturday
   maxInventory: number; // Maximum rooms/beds available per date

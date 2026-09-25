@@ -26,6 +26,8 @@ export interface BidPlace {
   city: string;
   country: string;
   email?: string;
+  /** Payment model. true = commission-only (7% now); false = full amount now. */
+  commissionOnly?: boolean;
   images: { id: string; url: string }[];
 }
 

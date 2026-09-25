@@ -16,7 +16,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Checkbox } from "../ui/checkbox";
 import { formatCurrency, formatCurrencyCents } from "../../../utils/currency";
-import { COMMISSION_ONLY, commissionOf, dueAtHotel } from "../../../config/model.config";
+import { commissionOf, dueAtHotel } from "../../../config/model.config";
 import { BidPriceBreakdown } from "./BidPriceBreakdown";
 import { AcceptedOutcomeSparkles } from "./AcceptedOutcomeSparkles";
 import { Place } from "../../../types/place.types";
@@ -59,6 +59,8 @@ export function BidOutcomePanel({
   scrollToHeaderTrigger,
 }: BidOutcomePanelProps) {
   const isBusy = isRebidding || isProcessingBid;
+  // Per-listing payment model (defaults to commission-only / Model B).
+  const commissionOnly = place.commissionOnly ?? true;
   const rejectedHeaderRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const user = useAppSelector((s) => s.auth.user);
@@ -154,7 +156,7 @@ export function BidOutcomePanel({
             <span>Your Bid</span>
             <span className="text-fg">{formatCurrency(bidPerNight)}/night</span>
           </div>
-          {COMMISSION_ONLY ? (
+          {commissionOnly ? (
             <>
               <div className="flex justify-between pt-1.5 border-t border-line/60 font-semibold text-fg text-base">
                 <span>Paid today (booking fee)</span>
@@ -181,7 +183,7 @@ export function BidOutcomePanel({
             <span className="text-fg">Card charged</span>
           </div>
           <span className="text-xs font-medium text-emerald-400 border border-emerald-500/50 rounded px-2 py-0.5">
-            {COMMISSION_ONLY ? formatCurrencyCents(commissionOf(totalAmount)) : "Paid"}
+            {commissionOnly ? formatCurrencyCents(commissionOf(totalAmount)) : "Paid"}
           </span>
         </div>
 

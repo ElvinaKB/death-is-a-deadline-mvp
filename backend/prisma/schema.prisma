@@ -34,6 +34,15 @@ model Place {
   // to meet the fixed minimum (floor) to win — deterministic "bid exactly $X".
   // When true (default), the flickering premium applies. See dynamicPricing.
   dynamicPricingEnabled  Boolean           @default(true) @map("dynamic_pricing_enabled")
+  // Per-listing payment model:
+  //   true  (default) = Model B / commission-only. The guest is charged only
+  //     the 7% booking fee now; the hotel collects the room balance + taxes at
+  //     the front desk (PaymentCollect "Hotel"). This is the default for every
+  //     new / third-party hotel.
+  //   false = Model A / full-collection (Merchant of Record). Deadline charges
+  //     the full room total now (PaymentCollect "Channel"). Used for our own
+  //     PodShare properties, whose guests prefer to pay the full amount here.
+  commissionOnly         Boolean           @default(true) @map("commission_only")
   autoAcceptAboveMinimum Boolean           @default(true)
   blackoutDates          String[]          @default([])
   allowedDaysOfWeek      Int[]             @default([0, 1, 2, 3, 4, 5, 6]) @map("allowed_days_of_week")

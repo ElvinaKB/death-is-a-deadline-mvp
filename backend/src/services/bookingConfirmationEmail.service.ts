@@ -79,6 +79,8 @@ export async function sendBookingConfirmationEmails(
   };
 
   // Variables for the redesigned hotel (place) email — its own template names.
+  // Per-listing payment model (falls back to the global default if unset).
+  const commissionOnly = place.commissionOnly ?? COMMISSION_ONLY;
   const roomRateNum = Number(bid.totalAmount);
   const commissionNum = Math.round(roomRateNum * COMMISSION_RATE * 100) / 100;
   const guestCount = 1; // Deadline doesn't collect occupancy count yet.
@@ -96,7 +98,7 @@ export async function sendBookingConfirmationEmails(
     roomRate: roomRateNum.toFixed(2),
     commissionAmount: commissionNum.toFixed(2),
     hotelBalance: (roomRateNum - commissionNum).toFixed(2),
-    commissionOnly: COMMISSION_ONLY,
+    commissionOnly,
     googleCalendarUrl: buildGoogleCalendarUrl({
       hotelName: place.name,
       guestName: baseVariables.studentName,
@@ -129,7 +131,7 @@ export async function sendBookingConfirmationEmails(
           variables: {
             ...baseVariables,
             googleCalendarUrl: placeVariables.googleCalendarUrl,
-            commissionOnly: COMMISSION_ONLY,
+            commissionOnly,
             roomRate: roomRateNum.toFixed(2),
             commissionAmount: commissionNum.toFixed(2),
             hotelBalance: (roomRateNum - commissionNum).toFixed(2),
