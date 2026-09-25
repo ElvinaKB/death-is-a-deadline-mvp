@@ -9,6 +9,7 @@ import {
   Mail,
   Search,
   MapPin,
+  Link2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ENDPOINTS } from "../../../config/endpoints.config";
@@ -237,6 +238,25 @@ export function PlacesListPage() {
                 </>
               )}
             </DropdownMenuItem>
+
+            {/* Private pre-launch preview link — for cold outreach to a hotel
+                ("here's the listing I built you"). Only useful before it's Live;
+                the link is unguessable, not on the marketplace, and not bookable. */}
+            {row.status !== PlaceStatus.LIVE && (row as any).previewToken && (
+              <DropdownMenuItem
+                onClick={() => {
+                  const url = `${window.location.origin}/${(row as any).slug}?preview=${(row as any).previewToken}`;
+                  navigator.clipboard.writeText(url).then(
+                    () =>
+                      toast.success("Preview link copied — private, not bookable"),
+                    () => toast.error("Couldn't copy the link"),
+                  );
+                }}
+              >
+                <Link2 className="mr-2 h-4 w-4" />
+                Copy preview link
+              </DropdownMenuItem>
+            )}
 
             {/* Resend invite option in dropdown too — for places without an account */}
             {!(row as any).hasHotelAccount && row.email && (

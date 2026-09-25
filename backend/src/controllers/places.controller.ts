@@ -17,7 +17,7 @@ import {
 } from "../libs/utils/inviteToken";
 import { supabase } from "../libs/config/supabase";
 import { UserRole } from "../types/auth.types";
-import { randomBytes } from "crypto";
+import { randomBytes, createHmac } from "crypto";
 
 // Secret a hotel enters (with its listing slug as the "Property ID") to connect
 // the Deadline channel in Cloudbeds. 24 hex chars — unguessable but easy to
@@ -43,6 +43,20 @@ import {
 } from "../libs/utils/placeSlug";
 
 const APP_URL = process.env.CLIENT_URL;
+
+// Unguessable, stateless preview token for a Draft/Paused listing, so a hotel
+// can be sent a private "here's the listing I built you" link before it's Live.
+// Derived from the place id via HMAC — no DB column, and only our server (which
+// holds the secret) can produce it. Rotating PREVIEW_LINK_SECRET / JWT_SECRET
+// invalidates every outstanding preview link.
+const PREVIEW_SECRET =
+  process.env.PREVIEW_LINK_SECRET || process.env.JWT_SECRET || "deadline-preview";
+export function computePreviewToken(placeId: string): string {
+  return createHmac("sha256", PREVIEW_SECRET)
+    .update(placeId)
+    .digest("hex")
+    .slice(0, 32);
+}
 
 // Helper to format place response
 const formatPlace = (
@@ -81,6 +95,7 @@ const formatPlace = (
   neighborhoodGuideText: place.neighborhoodGuideText || null,
   neighborhoodGuideImageUrl: place.neighborhoodGuideImageUrl || null,
   status: place.status,
+  previewToken: computePreviewToken(place.id),
   createdAt: place.createdAt,
   updatedAt: place.updatedAt,
   latitude: place.latitude,
@@ -128,7 +143,7 @@ const formatPublicPlace = (
   place: Parameters<typeof formatPlace>[0],
   inventoryInfo?: Parameters<typeof formatPlace>[1],
 ) => {
-  const { minimumBid: _minimumBid, autoAcceptAboveMinimum: _auto, thresholdPricingMode: _tpm, minimumBidByDayOfWeek: _mbd, ...rest } =
+  const { minimumBid: _minimumBid, autoAcceptAboveMinimum: _auto, thresholdPricingMode: _tpm, minimumBidByDayOfWeek: _mbd, previewToken: _pt, ...rest } =
     formatPlace(place, inventoryInfo);
   return rest;
 };
@@ -495,9 +510,24 @@ export async function getPublicPlace(req: Request, res: Response) {
     throw new CustomError("Place not found", 404);
   }
 
-  // For public access, only show LIVE places
-  if (place.status !== PlaceStatus.LIVE) {
+  // Public access normally shows only LIVE places. A Draft/Paused listing can
+  // still be viewed via a private preview link (?preview=<token>) so a hotel can
+  // see the listing we built for them before it goes live — but it is never
+  // bookable (the frontend hides bidding in preview mode).
+  const previewParam =
+    typeof req.query.preview === "string" ? req.query.preview : undefined;
+  const isPreview =
+    place.status !== PlaceStatus.LIVE &&
+    !!previewParam &&
+    previewParam === computePreviewToken(place.id);
+
+  if (place.status !== PlaceStatus.LIVE && !isPreview) {
     throw new CustomError("Place not found", 404);
+  }
+
+  if (isPreview) {
+    // A preview is private and pre-launch — never cache it at the edge.
+    res.set("Cache-Control", "no-store");
   }
 
   // If a date is provided, include inventory status
@@ -511,7 +541,7 @@ export async function getPublicPlace(req: Request, res: Response) {
 
   res.status(200).json({
     data: {
-      place: formatPublicPlace(place, inventoryInfo),
+      place: { ...formatPublicPlace(place, inventoryInfo), isPreview },
       // Include a clear message if inventory is exhausted
       ...(inventoryInfo?.isInventoryExhausted && {
         inventoryMessage:

@@ -123,9 +123,18 @@ export function PlaceDetailPage() {
     setShowSoldOutModal(false);
   }, [slugParam]);
 
+  // Private pre-launch preview link (?preview=<token>) lets a hotel view the
+  // Draft listing we built for them. Bidding is hidden in preview mode.
+  const previewToken = searchParams.get("preview") || undefined;
+
   // Use public endpoint for students - includes inventory status when date is provided
-  const { data, isLoading } = usePublicPlace(slugParam || "", inventoryDate);
+  const { data, isLoading } = usePublicPlace(
+    slugParam || "",
+    inventoryDate,
+    previewToken,
+  );
   const place = data?.place;
+  const isPreview = !!place?.isPreview;
   const placeId = place?.id;
   const inventoryMessage = data?.inventoryMessage;
 
@@ -243,6 +252,14 @@ export function PlaceDetailPage() {
     <div className="min-h-screen bg-bg">
       <HomeHeader />
 
+      {isPreview && (
+        <div className="w-full bg-gold/15 border-b border-gold/40 px-4 py-2.5 text-center">
+          <p className="text-sm font-semibold text-gold">
+            PREVIEW — this listing isn&apos;t live yet. Bidding is disabled.
+          </p>
+        </div>
+      )}
+
       <ImageGalleryModal
         images={allImages}
         initialIndex={galleryInitialIndex}
@@ -329,21 +346,34 @@ export function PlaceDetailPage() {
           )}
 
           <aside className="listing-detail-bid self-start lg:sticky lg:top-6">
-            <BidForm
-              variant="listing"
-              place={place}
-              placeId={place.id}
-              contextBidId={contextBidId}
-              onDateChange={(date) => {
-                setUserPickedCheckIn(true);
-                setInventoryDate(toApiDateOnly(date));
-              }}
-              onBookingDatesChange={(checkIn, checkOut) => {
-                setBookingCheckIn(checkIn);
-                setBookingCheckOut(checkOut);
-              }}
-              isInventoryExhausted={place.isInventoryExhausted}
-            />
+            {isPreview ? (
+              <div className="rounded-xl border border-gold/40 bg-glass-2 p-6 text-center">
+                <p className="text-base font-semibold text-fg mb-2">
+                  Listing preview
+                </p>
+                <p className="text-sm text-muted leading-relaxed">
+                  This is a private preview of the listing we built for{" "}
+                  {place.name}. Bidding turns on once the hotel joins Deadline —
+                  guests then place a blind bid and pay only if they win.
+                </p>
+              </div>
+            ) : (
+              <BidForm
+                variant="listing"
+                place={place}
+                placeId={place.id}
+                contextBidId={contextBidId}
+                onDateChange={(date) => {
+                  setUserPickedCheckIn(true);
+                  setInventoryDate(toApiDateOnly(date));
+                }}
+                onBookingDatesChange={(checkIn, checkOut) => {
+                  setBookingCheckIn(checkIn);
+                  setBookingCheckOut(checkOut);
+                }}
+                isInventoryExhausted={place.isInventoryExhausted}
+              />
+            )}
           </aside>
 
           <div className="listing-detail-retail">
