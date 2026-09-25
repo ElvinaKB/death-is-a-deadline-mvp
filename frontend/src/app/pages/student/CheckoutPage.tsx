@@ -26,7 +26,7 @@ import {
 import { Badge } from "../../components/ui/badge";
 import { ROUTES } from "../../../config/routes.config";
 import { formatCurrency, formatCurrencyCents } from "../../../utils/currency";
-import { COMMISSION_ONLY, commissionOf, dueAtHotel } from "../../../config/model.config";
+import { commissionOf, dueAtHotel } from "../../../config/model.config";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
 import { format } from "date-fns";
 import { formatBookingDate } from "../../../utils/dateHelpers";
@@ -299,6 +299,8 @@ export function CheckoutPage() {
 
   const bid = bidData?.bid;
   const existingPayment = paymentData?.payment;
+  // Per-listing payment model (defaults to commission-only / Model B).
+  const commissionOnly = bid?.place?.commissionOnly ?? true;
 
   const isPaymentComplete = (status: PaymentStatus) =>
     [
@@ -518,7 +520,7 @@ export function CheckoutPage() {
               </div>
 
               <div className="border-t border-line pt-4 space-y-1">
-                {COMMISSION_ONLY ? (
+                {commissionOnly ? (
                   <>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted">Room Total:</span>
@@ -550,7 +552,7 @@ export function CheckoutPage() {
               <div className="glass rounded-lg p-4 border border-brand/30">
                 <p className="text-sm text-muted">
                   <strong className="text-fg">Note:</strong>{" "}
-                  {COMMISSION_ONLY
+                  {commissionOnly
                     ? `Your card will be charged the ${formatCurrencyCents(commissionOf(Number(bid.totalAmount)))} booking fee now. You pay the ${formatCurrencyCents(dueAtHotel(Number(bid.totalAmount)))} balance plus taxes at the property at check-in.`
                     : `Your card will be charged $${bid.totalAmount} when you complete payment.`}
                 </p>

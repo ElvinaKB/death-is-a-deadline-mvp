@@ -77,6 +77,7 @@ const formatBid = (bid: any) => {
         city: bid.place.city,
         country: bid.place.country,
         email: bid.place.email,
+        commissionOnly: bid.place.commissionOnly ?? true,
         images: bid.place.images || [],
       }
     : undefined,

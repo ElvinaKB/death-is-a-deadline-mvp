@@ -70,6 +70,7 @@ const formatPlace = (
   thresholdPricingMode: place.thresholdPricingMode ?? "UNIFORM",
   minimumBidByDayOfWeek: (place.minimumBidByDayOfWeek || []).map(Number),
   dynamicPricingEnabled: place.dynamicPricingEnabled ?? true,
+  commissionOnly: place.commissionOnly ?? true,
   autoAcceptAboveMinimum: place.autoAcceptAboveMinimum,
   blackoutDates: place.blackoutDates || [],
   allowedDaysOfWeek: place.allowedDaysOfWeek || [0, 1, 2, 3, 4, 5, 6],

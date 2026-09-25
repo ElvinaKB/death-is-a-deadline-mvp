@@ -209,6 +209,65 @@ export function HotelsCloudbedsPage() {
           </div>
         </section>
 
+        {/* How you get paid */}
+        <section>
+          <h3
+            className="text-2xl font-black uppercase mb-5"
+            style={{ color: NAVY }}
+          >
+            How you get paid
+          </h3>
+          <p className="text-lg leading-relaxed mb-4">
+            Deadline is <span className="font-bold">commission-only</span> — we
+            never hold your room revenue.
+          </p>
+          <ul className="space-y-3">
+            <li className="flex items-start gap-3">
+              <span className="font-bold" style={{ color: GOLD }}>
+                •
+              </span>
+              <span className="text-lg">
+                The guest pays Deadline a{" "}
+                <span className="font-bold">
+                  small booking fee (7% of the room rate)
+                </span>{" "}
+                the moment their bid wins. That&rsquo;s the only money that moves
+                through us.
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="font-bold" style={{ color: GOLD }}>
+                •
+              </span>
+              <span className="text-lg">
+                You collect the{" "}
+                <span className="font-bold">
+                  room balance and all taxes directly at check-in
+                </span>
+                , through your own PMS or terminal — just like a walk-in.
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="font-bold" style={{ color: GOLD }}>
+                •
+              </span>
+              <span className="text-lg">
+                No payouts to reconcile, no card processing on your side, and
+                your public rates are never discounted.
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="font-bold" style={{ color: GOLD }}>
+                •
+              </span>
+              <span className="text-lg">
+                The guest&rsquo;s card is securely saved for no-show protection,
+                per your Deadline agreement.
+              </span>
+            </li>
+          </ul>
+        </section>
+
         {/* What is myallocator */}
         <section>
           <h3

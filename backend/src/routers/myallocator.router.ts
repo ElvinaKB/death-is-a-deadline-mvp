@@ -49,6 +49,10 @@ interface OtaPlace {
   slug: string;
   name: string;
   accommodationType: string;
+  // Per-listing payment model. true = Model B (hotel collects balance at desk ->
+  // PaymentCollect "Hotel"); false = Model A / MoR (Deadline collected the full
+  // amount -> "Channel"). Optional so the synthetic sandbox place can omit it.
+  commissionOnly?: boolean;
 }
 
 // Deadline models one bookable unit type per Place (no separate room-type
@@ -533,10 +537,14 @@ router.post("/GetBookingId", async (req: Request, res: Response) => {
       OrderCustomers: 1,
       TotalCurrency: "USD",
       TotalPrice: Number(bid.totalAmount),
-      // Model B (commission-only): the hotel collects the room balance + taxes
-      // at the desk, so the PMS shows a balance due -> PaymentCollect "Hotel".
-      // MoR: Deadline collected the full amount -> "Channel".
-      PaymentCollect: STRIPE_CONFIG.COMMISSION_ONLY_MODE ? "Hotel" : "Channel",
+      // Per-listing payment model. Model B (commission-only): the hotel collects
+      // the room balance + taxes at the desk, so the PMS shows a balance due ->
+      // PaymentCollect "Hotel". Model A / MoR: Deadline collected the full
+      // amount -> "Channel". Falls back to the global default if unset.
+      PaymentCollect:
+        (place.commissionOnly ?? STRIPE_CONFIG.COMMISSION_ONLY_MODE)
+          ? "Hotel"
+          : "Channel",
       Customers: [
         {
           // TODO: Deadline doesn't collect guest country of residence;

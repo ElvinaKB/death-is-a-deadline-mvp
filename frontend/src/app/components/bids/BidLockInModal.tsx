@@ -12,7 +12,6 @@ import { formatCurrency, formatCurrencyCents } from "../../../utils/currency";
 import { Place } from "../../../types/place.types";
 import { BidPriceBreakdown } from "./BidPriceBreakdown";
 import {
-  COMMISSION_ONLY,
   commissionOf,
   dueAtHotel,
 } from "../../../config/model.config";
@@ -61,6 +60,8 @@ export function BidLockInModal({
   isSubmitting,
 }: BidLockInModalProps) {
   const [lockInSeconds, setLockInSeconds] = useState(LOCK_IN_DURATION_SECONDS);
+  // Per-listing payment model (defaults to commission-only / Model B).
+  const commissionOnly = place.commissionOnly ?? true;
 
   useEffect(() => {
     if (!open) {
@@ -265,7 +266,7 @@ export function BidLockInModal({
                 <span>{formatCurrency(mandatoryFeeTotal)}</span>
               </div>
             )}
-            {COMMISSION_ONLY ? (
+            {commissionOnly ? (
               <>
                 <div className="flex justify-between text-fg font-medium">
                   <span>Booking fee charged today (7%)</span>
@@ -317,7 +318,7 @@ export function BidLockInModal({
           </div>
 
           <p className="text-sm text-muted text-center leading-relaxed">
-            {COMMISSION_ONLY ? (
+            {commissionOnly ? (
               <>
                 Once you confirm, if your bid meets the hotel&apos;s private
                 price your room is instantly booked and only the{" "}

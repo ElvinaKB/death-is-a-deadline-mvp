@@ -308,7 +308,11 @@ export async function createPaymentIntent(req: Request, res: Response) {
   //   hotel at the front desk, so we don't charge them here.
   // - MoR (full-collection): charge the full room total + mandatory fee.
   const roomTotal = Number(bid.totalAmount);
-  const commissionOnly = STRIPE_CONFIG.COMMISSION_ONLY_MODE;
+  // Per-listing payment model (falls back to the global default if unset):
+  // Model B places charge only the 7% fee; Model A (our PodShare properties)
+  // charge the full room total + mandatory fee.
+  const commissionOnly =
+    bid.place.commissionOnly ?? STRIPE_CONFIG.COMMISSION_ONLY_MODE;
   const amountInCents = commissionOnly
     ? Math.round(roomTotal * STRIPE_CONFIG.PLATFORM_COMMISSION_RATE * 100)
     : Math.round((roomTotal + Number(bid.mandatoryFeeAmount || 0)) * 100);

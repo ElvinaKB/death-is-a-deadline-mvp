@@ -131,7 +131,7 @@ export function HotelSignupPage() {
             </h1>
             <p className="text-lg text-muted mb-10">
               You've been invited to list your property on our platform. Create
-              your account to start managing bookings and payouts.
+              your account to start managing bookings and inventory.
             </p>
 
             <div className="space-y-6 mb-10">

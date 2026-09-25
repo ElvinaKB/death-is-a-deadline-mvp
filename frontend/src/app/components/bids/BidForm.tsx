@@ -44,7 +44,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useBidForPlace, useCreateBid } from "../../../hooks/useBids";
 import { useProfilePhone } from "../../../hooks/useProfilePhone";
-import { COMMISSION_ONLY, commissionOf, dueAtHotel } from "../../../config/model.config";
+import { commissionOf, dueAtHotel } from "../../../config/model.config";
 import { usePlaceSoldOutNights } from "../../../hooks/usePlaces";
 import {
   useConfirmPayment,
@@ -426,6 +426,8 @@ function BidFormInner({
   const location = useLocation();
   const stripe = useStripe();
   const elements = useElements();
+  // Per-listing payment model (defaults to commission-only / Model B).
+  const commissionOnly = place.commissionOnly ?? true;
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   const queryClient = useQueryClient();
   const createBid = useCreateBid();
@@ -2207,7 +2209,7 @@ function BidFormInner({
                   Privacy Policy
                 </Link>
                 .
-                {COMMISSION_ONLY && (
+                {commissionOnly && (
                   <>
                     {" "}
                     I authorize Deadline to charge the booking fee to my card now
@@ -2487,7 +2489,7 @@ function BidFormInner({
                 />
               )}
             <p className="text-xs text-warning border border-warning/30 rounded-md p-2 bg-warning/5">
-              {COMMISSION_ONLY
+              {commissionOnly
                 ? `Binding bid: if accepted, only the ${formatCurrencyCents(commissionOf(calculateTotalAmount()))} booking fee is charged now — you pay the ${formatCurrencyCents(dueAtHotel(calculateTotalAmount()))} balance plus taxes at the property. Rejected bids are not charged.`
                 : "Binding bid: if accepted, your card is charged immediately for the full amount. Rejected bids are not charged."}
             </p>
@@ -2550,7 +2552,7 @@ function BidFormInner({
                 ,{" "}
                 <Link to={ROUTES.PRIVACY} className="text-gold underline" target="_blank">Privacy Policy</Link>
                 , and cancellation terms.{" "}
-                {COMMISSION_ONLY
+                {commissionOnly
                   ? "I authorize Deadline to charge the booking fee now and, per the no-show policy, the first night's room rate to my card on file if I don't check in."
                   : "If my bid is accepted, my card will be charged immediately."}
               </Label>
