@@ -59,6 +59,11 @@ async function checkInventoryForBidDates(
       where: {
         placeId,
         status: bid_status.ACCEPTED,
+        // A bed is occupied only once its booking is PAID. Counting unpaid/
+        // abandoned accepted bids here would falsely reject a real guest at
+        // payment ("sold out") even though nothing is actually booked. Matches
+        // the calendar + availability counts, which also require CAPTURED.
+        payment: { status: payment_status.CAPTURED },
         checkInDate: { lt: checkOutDate },
         checkOutDate: { gt: checkInDate },
         ...(excludeBidId && { id: { not: excludeBidId } }),

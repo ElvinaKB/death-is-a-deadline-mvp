@@ -1,4 +1,4 @@
-import { bid_status } from "@prisma/client";
+import { bid_status, payment_status } from "@prisma/client";
 import { addDays, eachDayOfInterval, format } from "date-fns";
 import { prisma } from "../libs/config/prisma";
 import {
@@ -73,6 +73,11 @@ export async function getSoldOutNightsInRange(
       where: {
         placeId,
         status: bid_status.ACCEPTED,
+        // Only a PAID booking occupies inventory. An accepted-but-unpaid bid
+        // (declined card, abandoned checkout, test bid) must not mark a night
+        // sold out — otherwise it phantom-blocks the calendar for real guests.
+        // Mirrors the PMS pull + overlap guards (both require CAPTURED).
+        payment: { status: payment_status.CAPTURED },
         checkInDate: { lt: rangeEnd },
         checkOutDate: { gt: from },
       },
