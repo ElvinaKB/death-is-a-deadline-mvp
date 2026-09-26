@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  BarChart3,
+  Dumbbell,
   Car,
   ChefHat,
   Footprints,
@@ -22,7 +22,7 @@ export const PLACE_KEYWORD_IDS = [
   "laundry_machines",
   "free_parking",
   "full_kitchen",
-  "workspace",
+  "fitness_center",
   "metro_nearby",
 ] as const;
 
@@ -43,7 +43,7 @@ export const PLACE_KEYWORD_OPTIONS: PlaceKeywordOption[] = [
   { id: "laundry_machines", label: "Laundry Machines", icon: WashingMachine },
   { id: "free_parking", label: "Free Parking", icon: Car },
   { id: "full_kitchen", label: "Full Kitchen", icon: ChefHat },
-  { id: "workspace", label: "Workspace", icon: BarChart3 },
+  { id: "fitness_center", label: "Fitness Center", icon: Dumbbell },
   { id: "metro_nearby", label: "Metro Nearby", icon: TrainFront },
 ];
 

@@ -65,6 +65,9 @@ export interface Place {
   verticalVideoUrl?: string | null;
   neighborhoodGuideText?: string | null;
   neighborhoodGuideImageUrl?: string | null;
+  checkInTime?: string | null;
+  checkOutTime?: string | null;
+  goodToKnowText?: string | null;
   status: PlaceStatus;
   createdAt: string;
   updatedAt: string;
@@ -109,6 +112,12 @@ export interface CreatePlaceRequest {
   maxInventory: number;
   mandatoryResortFeeAmount: number;
   mandatoryParkingFeeAmount: number;
+  verticalVideoUrl?: string | null;
+  neighborhoodGuideText?: string | null;
+  neighborhoodGuideImageUrl?: string | null;
+  checkInTime?: string | null;
+  checkOutTime?: string | null;
+  goodToKnowText?: string | null;
   status: PlaceStatus;
   keywords?: string[];
 }
@@ -169,6 +178,9 @@ export interface CreatePlacePayload {
   verticalVideoUrl?: string | null;
   neighborhoodGuideText?: string | null;
   neighborhoodGuideImageUrl?: string | null;
+  checkInTime?: string | null;
+  checkOutTime?: string | null;
+  goodToKnowText?: string | null;
   status: PlaceStatus;
   keywords?: string[];
 }

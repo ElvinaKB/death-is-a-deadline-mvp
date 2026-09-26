@@ -100,6 +100,16 @@ export const useCreatePlace = () => {
         allowedDaysOfWeek: data.allowedDaysOfWeek,
         status: data.status,
         prospect: data.prospect,
+        // These were previously omitted here, so they silently didn't save on
+        // create (only on edit) — the backend create already reads them.
+        reservationPhone: data.reservationPhone,
+        dynamicPricingEnabled: data.dynamicPricingEnabled,
+        verticalVideoUrl: data.verticalVideoUrl,
+        neighborhoodGuideText: data.neighborhoodGuideText,
+        neighborhoodGuideImageUrl: data.neighborhoodGuideImageUrl,
+        checkInTime: data.checkInTime,
+        checkOutTime: data.checkOutTime,
+        goodToKnowText: data.goodToKnowText,
         keywords: data.keywords ?? [],
         images: (data.imageUrls || []).map((url, index) => ({
           url,

@@ -79,6 +79,9 @@ export const createPlaceSchema = z.object({
     .nullable()
     .or(z.literal("")),
   neighborhoodGuideText: z.string().max(2000).optional().nullable(),
+  checkInTime: z.string().max(60).optional().nullable(),
+  checkOutTime: z.string().max(60).optional().nullable(),
+  goodToKnowText: z.string().max(2000).optional().nullable(),
   neighborhoodGuideImageUrl: z
     .string()
     .url("Must be a valid URL")
@@ -132,6 +135,9 @@ export const updatePlaceSchema = z.object({
     .nullable()
     .or(z.literal("")),
   neighborhoodGuideText: z.string().max(2000).optional().nullable(),
+  checkInTime: z.string().max(60).optional().nullable(),
+  checkOutTime: z.string().max(60).optional().nullable(),
+  goodToKnowText: z.string().max(2000).optional().nullable(),
   neighborhoodGuideImageUrl: z
     .string()
     .url("Must be a valid URL")

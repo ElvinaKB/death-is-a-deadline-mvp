@@ -7,7 +7,7 @@ export const PLACE_KEYWORD_IDS = [
   "laundry_machines",
   "free_parking",
   "full_kitchen",
-  "workspace",
+  "fitness_center",
   "metro_nearby",
 ] as const;
 
