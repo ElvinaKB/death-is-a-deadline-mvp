@@ -25,6 +25,8 @@ import {
   PlacesResponse,
 } from "../../../types/place.types";
 import { BidForm } from "../../components/bids/BidForm";
+import { PreviewBidDemo } from "../../components/bids/PreviewBidDemo";
+import { HotelInquiryForm } from "../../components/bids/HotelInquiryForm";
 import { useBidForPlace } from "../../../hooks/useBids";
 import { formatCurrency } from "../../../utils/currency";
 import { resolvePlaceKeywords } from "../../../utils/amenities";
@@ -347,15 +349,20 @@ export function PlaceDetailPage() {
 
           <aside className="listing-detail-bid self-start lg:sticky lg:top-6">
             {isPreview ? (
-              <div className="rounded-xl border border-gold/40 bg-glass-2 p-6 text-center">
-                <p className="text-base font-semibold text-fg mb-2">
-                  Listing preview
-                </p>
-                <p className="text-sm text-muted leading-relaxed">
-                  This is a private preview of the listing we built for{" "}
-                  {place.name}. Bidding turns on once the hotel joins Deadline —
-                  guests then place a blind bid and pay only if they win.
-                </p>
+              <div className="space-y-4">
+                <PreviewBidDemo retailPrice={place.retailPrice} />
+                <div className="rounded-xl border border-gold/40 bg-glass-2 p-5">
+                  <p className="text-base font-bold text-fg mb-2">
+                    Deadline gamifies booking to fill your last-minute rooms
+                  </p>
+                  <p className="text-sm text-muted leading-relaxed">
+                    Once a traveler is verified, they bid their budget against
+                    your secret minimum. Once it&rsquo;s exceeded, their
+                    card on file is charged and they win the room. You collect
+                    the rate and taxes at check-in — we just pre-charge a 7%
+                    commission.
+                  </p>
+                </div>
               </div>
             ) : (
               <BidForm
@@ -404,6 +411,12 @@ export function PlaceDetailPage() {
         </div>
 
           <Testimonials placeId={place.id} />
+
+          {isPreview && (
+            <div className="mt-8 sm:mt-12">
+              <HotelInquiryForm placeId={place.id} placeName={place.name} />
+            </div>
+          )}
 
           {/* FAQ Accordion (+ vertical video alongside it when the hotel has added one) */}
           <div className="mt-8 sm:mt-12">
@@ -491,46 +504,67 @@ export function PlaceDetailPage() {
                 }
               >
                 <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <MapPin className="h-5 w-5 text-muted" />
-                    <h3 className="text-lg font-semibold text-fg">Location</h3>
-                  </div>
-                  <p className="text-muted mb-4">{place.address}</p>
-                  <div className="relative w-full h-56 sm:h-72 md:h-80 rounded-lg overflow-hidden">
+                  <h3 className="text-lg font-semibold text-fg mb-4">Location</h3>
+                  <div className="relative w-full h-56 sm:h-72 md:h-80 rounded-xl overflow-hidden border border-line">
                     <Map
                       initialViewState={{
                         latitude: place.latitude,
                         longitude: place.longitude,
-                        zoom: 14,
+                        zoom: 15,
                       }}
                       style={{ width: "100%", height: "100%" }}
                       mapStyle="mapbox://styles/mapbox/dark-v11"
                       mapboxAccessToken={MAPBOX_TOKEN}
+                      scrollZoom={false}
+                      dragRotate={false}
                     >
-                      <NavigationControl position="top-right" />
+                      <NavigationControl
+                        position="top-right"
+                        showCompass={false}
+                      />
+                      {/* Airbnb-style approximate-area circle + center pin. */}
                       <Marker
                         latitude={place.latitude}
                         longitude={place.longitude}
-                        anchor="bottom"
+                        anchor="center"
                       >
                         <div
                           style={{
-                            background:
-                              "linear-gradient(180deg, #283B66, #1E2A44)",
-                            color: "#F5F3EE",
-                            border: "1px solid #93A4C9",
-                            padding: "6px 12px",
-                            borderRadius: "12px",
-                            fontWeight: 600,
-                            fontSize: "12px",
-                            boxShadow: "0 0 14px rgba(140, 160, 255, 0.45)",
+                            position: "relative",
+                            width: 150,
+                            height: 150,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
                           }}
                         >
-                          BID
+                          <div
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              borderRadius: "50%",
+                              background: "rgba(201, 162, 75, 0.16)",
+                              border: "1px solid rgba(201, 162, 75, 0.5)",
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: 16,
+                              height: 16,
+                              borderRadius: "50%",
+                              background: "#C9A24B",
+                              border: "2px solid #0b0b0b",
+                              boxShadow: "0 0 10px rgba(201, 162, 75, 0.85)",
+                            }}
+                          />
                         </div>
                       </Marker>
                     </Map>
                   </div>
+                  <p className="text-sm text-muted mt-3 flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4 shrink-0 text-gold" />
+                    {place.address}
+                  </p>
                 </div>
 
                 {(place.neighborhoodGuideText ||

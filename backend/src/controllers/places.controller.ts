@@ -9,7 +9,7 @@ import {
   ListPlacesQuery,
   PublicPlacesQuery,
 } from "../validations/places/places.validation";
-import { sendEmail } from "../email/sendEmail";
+import { sendEmail, sendPlainEmail } from "../email/sendEmail";
 import { EmailType } from "../email/emailTypes";
 import {
   createHotelInviteToken,
@@ -554,6 +554,62 @@ export async function getPublicPlace(req: Request, res: Response) {
       }),
     },
   });
+}
+
+/**
+ * Public contact form on a preview listing (cold outreach). Emails the inquiry
+ * to our hotel-partner inbox with the guest's contact details and which listing
+ * they were looking at, with Reply-To set to their email so we can reply direct.
+ */
+export async function submitHotelInquiry(req: Request, res: Response) {
+  const { id: ref } = req.params;
+  const { name, email, phone, message } = req.body as {
+    name: string;
+    email: string;
+    phone: string;
+    message?: string;
+  };
+
+  const place = await findPlaceByRef(ref);
+  if (!place) {
+    throw new CustomError("Place not found", 404);
+  }
+
+  const inbox =
+    process.env.HOTEL_INQUIRY_INBOX_EMAIL || "hotels@deadlinetravel.com";
+  const safe = (s: string) =>
+    String(s || "").replace(/[<>&]/g, (c) =>
+      c === "<" ? "&lt;" : c === ">" ? "&gt;" : "&amp;",
+    );
+  const listing = `${place.name}${place.city ? `, ${place.city}` : ""}`;
+
+  const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;color:#111827;max-width:560px;">
+      <p style="font-size:16px;"><strong>New hotel inquiry from a Deadline listing preview</strong></p>
+      <p style="font-size:14px;color:#475569;">Listing: <strong>${safe(listing)}</strong> (${safe(place.slug)})</p>
+      <table cellpadding="6" style="font-size:14px;border-collapse:collapse;">
+        <tr><td style="color:#64748b;">Name</td><td><strong>${safe(name)}</strong></td></tr>
+        <tr><td style="color:#64748b;">Email</td><td><a href="mailto:${safe(email)}">${safe(email)}</a></td></tr>
+        <tr><td style="color:#64748b;">Phone</td><td><a href="tel:${safe(phone)}">${safe(phone)}</a></td></tr>
+      </table>
+      ${message ? `<p style="font-size:14px;margin-top:12px;"><strong>Message:</strong><br>${safe(message).replace(/\n/g, "<br>")}</p>` : ""}
+      <p style="font-size:12px;color:#94a3b8;margin-top:16px;">Reply directly to this email to reach them.</p>
+    </div>`;
+
+  const text = `New hotel inquiry — ${listing} (${place.slug})
+Name: ${name}
+Email: ${email}
+Phone: ${phone}${message ? `\nMessage: ${message}` : ""}`;
+
+  await sendPlainEmail({
+    to: inbox,
+    replyTo: email,
+    subject: `New hotel inquiry — ${place.name}`,
+    html,
+    text,
+  });
+
+  res.status(200).json({ success: true, message: "Inquiry sent" });
 }
 
 /** Sold-out calendar nights for bid date picker (public, LIVE places only). */
