@@ -12,6 +12,7 @@ import {
   publicPlacesQuerySchema,
   resendHotelInviteSchema,
   unavailableNightsQuerySchema,
+  hotelInquirySchema,
 } from "../validations/places/places.validation";
 import { UserRole } from "../types/auth.types";
 
@@ -54,6 +55,15 @@ router.post(
   validate(resendHotelInviteSchema),
   authenticate(UserRole.ADMIN),
   placesController.resendHotelInvite,
+);
+
+// Public route - hotel inquiry from a preview listing's contact form
+// (cold-outreach lead capture). Must be before "/public/:id".
+router.post(
+  "/public/:id/inquiry",
+  validate(placeRefParamSchema, "params"),
+  validate(hotelInquirySchema),
+  placesController.submitHotelInquiry,
 );
 
 // Public route - get single place by ID (for students - includes inventory status)

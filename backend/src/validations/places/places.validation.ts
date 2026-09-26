@@ -210,6 +210,14 @@ export const resendHotelInviteSchema = z.object({
   placeId: z.string().uuid({ message: "Invalid place id" }),
 });
 
+// Hotel inquiry from a preview listing's contact form (cold-outreach lead capture).
+export const hotelInquirySchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120),
+  email: z.string().trim().email("A valid email is required").max(200),
+  phone: z.string().trim().min(7, "A phone number is required").max(40),
+  message: z.string().trim().max(2000).optional().default(""),
+});
+
 const calendarDateKeySchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be yyyy-MM-dd");
