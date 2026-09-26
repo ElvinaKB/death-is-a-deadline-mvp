@@ -48,6 +48,8 @@ export interface Place {
    * property. false = Model A / full-collection: the full amount is charged now.
    */
   commissionOnly?: boolean;
+  /** Cold-outreach prospect (shown in the Prospects tab, not main Listings). */
+  prospect?: boolean;
   /** Admin only — token for the private pre-launch preview link (?preview=). */
   previewToken?: string;
   /** True when this place was served via a preview link (Draft/Paused, not bookable). */
@@ -101,6 +103,7 @@ export interface CreatePlaceRequest {
   minimumBidByDayOfWeek?: number[];
   autoAcceptAboveMinimum: boolean;
   dynamicPricingEnabled?: boolean;
+  prospect?: boolean;
   blackoutDates: string[];
   allowedDaysOfWeek: number[];
   maxInventory: number;
@@ -157,6 +160,7 @@ export interface CreatePlacePayload {
   minimumBidByDayOfWeek?: number[];
   autoAcceptAboveMinimum: boolean;
   dynamicPricingEnabled?: boolean;
+  prospect?: boolean;
   blackoutDates: string[];
   allowedDaysOfWeek: number[];
   maxInventory: number;

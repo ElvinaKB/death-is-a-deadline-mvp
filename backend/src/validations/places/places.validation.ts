@@ -50,6 +50,7 @@ export const createPlaceSchema = z.object({
     .optional(),
   autoAcceptAboveMinimum: z.boolean().optional().default(true),
   dynamicPricingEnabled: z.boolean().optional().default(true),
+  prospect: z.boolean().optional().default(false),
   blackoutDates: z.array(z.string()).optional().default([]),
   allowedDaysOfWeek: z
     .array(z.number().int().min(0).max(6))

@@ -60,24 +60,29 @@ type PlaceRow = PlacesResponse["places"][0];
 
 export function PlacesListPage() {
   const navigate = useNavigate();
+  // Listings = real hotels; Prospects = cold-outreach listings we built to pitch.
+  const [view, setView] = useState<"listings" | "prospects">("listings");
   const [filter, setFilter] = useState<PlaceStatus | "ALL">("ALL");
   const [search, setSearch] = useState("");
   // Track which placeId is currently sending an invite to show per-row loading
   const [resendingId, setResendingId] = useState<string | null>(null);
 
+  const prospectParam = view === "prospects" ? "true" : "false";
+
   // Fetch the full set (not paginated) so grouping-by-city and search work
   // across every hotel, not just one page. Fine for the foreseeable hotel
   // count; when this grows past a few hundred, move grouping/search server-side.
   const { data, isLoading } = useApiQuery<PlacesResponse>({
-    queryKey: [QUERY_KEYS.PLACES, filter],
+    queryKey: [QUERY_KEYS.PLACES, view, filter],
     endpoint: ENDPOINTS.PLACES_LIST,
     params: {
       limit: 1000,
+      prospect: prospectParam,
       ...(filter !== "ALL" ? { status: filter } : {}),
     },
   });
 
-  const updateStatus = useUpdatePlaceStatus([QUERY_KEYS.PLACES, filter]);
+  const updateStatus = useUpdatePlaceStatus([QUERY_KEYS.PLACES, view, filter]);
 
   const resendInvite = useApiMutation<{ message: string }, { placeId: string }>(
     {
@@ -330,15 +335,40 @@ export function PlacesListPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-fg">Places</h1>
-          <p className="text-muted mt-1">Manage your accommodation listings</p>
+          <p className="text-muted mt-1">
+            {view === "prospects"
+              ? "Cold-outreach listings you built to pitch hotels — they move to Listings when a hotel engages."
+              : "Manage your accommodation listings"}
+          </p>
         </div>
         <Button
-          onClick={() => navigate(ROUTES.ADMIN_PLACES_NEW)}
+          onClick={() =>
+            navigate(
+              view === "prospects"
+                ? `${ROUTES.ADMIN_PLACES_NEW}?prospect=1`
+                : ROUTES.ADMIN_PLACES_NEW,
+            )
+          }
           className="btn-bid"
         >
           <Plus className="mr-2 h-4 w-4" />
-          Add New Place
+          {view === "prospects" ? "New prospect" : "Add New Place"}
         </Button>
+      </div>
+
+      {/* Primary split: real Listings vs cold-outreach Prospects */}
+      <div className="inline-flex rounded-lg border border-line bg-glass p-1">
+        {(["listings", "prospects"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`rounded-md px-4 py-1.5 text-sm font-semibold capitalize transition-colors ${
+              view === v ? "bg-gold text-black" : "text-muted hover:text-fg"
+            }`}
+          >
+            {v}
+          </button>
+        ))}
       </div>
 
       <Tabs

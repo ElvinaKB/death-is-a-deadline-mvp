@@ -85,6 +85,7 @@ const formatPlace = (
   minimumBidByDayOfWeek: (place.minimumBidByDayOfWeek || []).map(Number),
   dynamicPricingEnabled: place.dynamicPricingEnabled ?? true,
   commissionOnly: place.commissionOnly ?? true,
+  prospect: place.prospect ?? false,
   autoAcceptAboveMinimum: place.autoAcceptAboveMinimum,
   blackoutDates: place.blackoutDates || [],
   allowedDaysOfWeek: place.allowedDaysOfWeek || [0, 1, 2, 3, 4, 5, 6],
@@ -269,7 +270,16 @@ export async function listPlaces(req: Request, res: Response) {
   } = req.query as unknown as ListPlacesQuery;
   const skip = (page - 1) * limit;
 
-  const where: Prisma.PlaceWhereInput = status ? { status } : {};
+  // `prospect` splits the dashboard into Listings (false) and Prospects (true).
+  const prospectParam = req.query.prospect;
+  const where: Prisma.PlaceWhereInput = {
+    ...(status ? { status } : {}),
+    ...(prospectParam === "true"
+      ? { prospect: true }
+      : prospectParam === "false"
+        ? { prospect: false }
+        : {}),
+  };
 
   const [places, total] = await Promise.all([
     prisma.place.findMany({
@@ -575,6 +585,12 @@ export async function submitHotelInquiry(req: Request, res: Response) {
     throw new CustomError("Place not found", 404);
   }
 
+  // The hotel engaged — promote it out of the cold-outreach Prospects tab into
+  // Listings so it surfaces at the forefront. Best-effort; never block the email.
+  await prisma.place
+    .update({ where: { id: place.id }, data: { prospect: false } })
+    .catch(() => {});
+
   const inbox =
     process.env.HOTEL_INQUIRY_INBOX_EMAIL || "hotels@deadlinetravel.com";
   const safe = (s: string) =>
@@ -683,6 +699,7 @@ export async function createPlace(req: Request, res: Response) {
       thresholdPricingMode: threshold.thresholdPricingMode,
       minimumBidByDayOfWeek: threshold.minimumBidByDayOfWeek,
       dynamicPricingEnabled: data.dynamicPricingEnabled ?? true,
+      prospect: data.prospect ?? false,
       autoAcceptAboveMinimum: true,
       blackoutDates: data.blackoutDates ?? [],
       allowedDaysOfWeek: data.allowedDaysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
@@ -935,7 +952,8 @@ export async function updatePlaceStatus(req: Request, res: Response) {
 
   const place = await prisma.place.update({
     where: { id },
-    data: { status },
+    // Going LIVE means the hotel is on board — promote it out of Prospects.
+    data: { status, ...(status === PlaceStatus.LIVE ? { prospect: false } : {}) },
     include: { images: { orderBy: { order: "asc" } } },
   });
 
