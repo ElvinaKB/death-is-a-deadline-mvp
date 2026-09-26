@@ -95,6 +95,9 @@ const formatPlace = (
   verticalVideoUrl: place.verticalVideoUrl || null,
   neighborhoodGuideText: place.neighborhoodGuideText || null,
   neighborhoodGuideImageUrl: place.neighborhoodGuideImageUrl || null,
+  checkInTime: place.checkInTime || null,
+  checkOutTime: place.checkOutTime || null,
+  goodToKnowText: place.goodToKnowText || null,
   status: place.status,
   previewToken: computePreviewToken(place.id),
   createdAt: place.createdAt,
@@ -709,6 +712,9 @@ export async function createPlace(req: Request, res: Response) {
       verticalVideoUrl: data.verticalVideoUrl || null,
       neighborhoodGuideText: data.neighborhoodGuideText || null,
       neighborhoodGuideImageUrl: data.neighborhoodGuideImageUrl || null,
+      checkInTime: data.checkInTime || null,
+      checkOutTime: data.checkOutTime || null,
+      goodToKnowText: data.goodToKnowText || null,
       keywords: data.keywords ?? [],
       timezone:
         data.timezone?.trim() ||

@@ -176,6 +176,9 @@ export function PlaceFormPage() {
       verticalVideoUrl: existingPlace?.verticalVideoUrl || "",
       neighborhoodGuideText: existingPlace?.neighborhoodGuideText || "",
       neighborhoodGuideImageUrl: existingPlace?.neighborhoodGuideImageUrl || "",
+      checkInTime: existingPlace?.checkInTime || "",
+      checkOutTime: existingPlace?.checkOutTime || "",
+      goodToKnowText: existingPlace?.goodToKnowText || "",
       autoAcceptAboveMinimum: true,
       dynamicPricingEnabled: existingPlace?.dynamicPricingEnabled ?? true,
       status: existingPlace?.status || PlaceStatus.DRAFT,
@@ -667,6 +670,58 @@ export function PlaceFormPage() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Good to know */}
+        <Card className="glass-2 border-white/10">
+          <CardHeader>
+            <CardTitle className="text-fg">Good to know</CardTitle>
+            <CardDescription className="text-muted">
+              Check-in/out times and policies shown to guests — great for the
+              pay-at-desk details (ID + card required, incidental hold, taxes
+              collected at check-in).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="checkInTime" className="text-fg">
+                  Check-in time
+                </Label>
+                <Input
+                  id="checkInTime"
+                  {...formik.getFieldProps("checkInTime")}
+                  placeholder="e.g., 3:00 PM"
+                />
+              </div>
+              <div>
+                <Label htmlFor="checkOutTime" className="text-fg">
+                  Check-out time
+                </Label>
+                <Input
+                  id="checkOutTime"
+                  {...formik.getFieldProps("checkOutTime")}
+                  placeholder="e.g., 11:00 AM"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="goodToKnowText" className="text-fg">
+                Good-to-know policies
+              </Label>
+              <Textarea
+                id="goodToKnowText"
+                rows={5}
+                {...formik.getFieldProps("goodToKnowText")}
+                placeholder={
+                  "One per line, e.g.\nPhoto ID + credit card required at check-in\n$100/night incidental hold at the desk\nApplicable taxes collected at check-in\n18+ to book · Non-smoking · No pets"
+                }
+              />
+              <p className="text-sm text-muted mt-1">
+                One item per line — shown as a bulleted list on the listing.
+              </p>
+            </div>
           </CardContent>
         </Card>
 

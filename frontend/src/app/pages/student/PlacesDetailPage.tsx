@@ -419,6 +419,57 @@ export function PlaceDetailPage() {
           </div>
         </div>
 
+          {(place.checkInTime ||
+            place.checkOutTime ||
+            place.goodToKnowText) && (
+            <div className="mt-8 border-t border-line pt-6">
+              <h2 className="text-lg font-semibold text-fg mb-4">
+                Good to know
+              </h2>
+              {(place.checkInTime || place.checkOutTime) && (
+                <div className="flex flex-wrap gap-3 mb-4">
+                  {place.checkInTime && (
+                    <div className="rounded-lg border border-line bg-glass-2 px-4 py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted">
+                        Check-in
+                      </p>
+                      <p className="text-sm font-semibold text-fg">
+                        {place.checkInTime}
+                      </p>
+                    </div>
+                  )}
+                  {place.checkOutTime && (
+                    <div className="rounded-lg border border-line bg-glass-2 px-4 py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted">
+                        Check-out
+                      </p>
+                      <p className="text-sm font-semibold text-fg">
+                        {place.checkOutTime}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+              {place.goodToKnowText && (
+                <ul className="space-y-2">
+                  {place.goodToKnowText
+                    .split("\n")
+                    .map((line) => line.trim())
+                    .filter(Boolean)
+                    .map((line, i) => (
+                      <li
+                        key={i}
+                        className="flex gap-2 text-sm text-muted leading-relaxed"
+                      >
+                        <span className="text-gold shrink-0">•</span>
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
+          )}
+
           <Testimonials placeId={place.id} />
 
           {isPreview && (

@@ -68,6 +68,12 @@ model Place {
   verticalVideoUrl          String?        @map("vertical_video_url")
   neighborhoodGuideText     String?        @map("neighborhood_guide_text")
   neighborhoodGuideImageUrl String?        @map("neighborhood_guide_image_url")
+  // "Good to know" section on the listing — sets guest expectations (esp. for
+  // Model B, where the hotel collects balance + taxes + incidentals at the desk).
+  // goodToKnowText is one bullet per line.
+  checkInTime               String?        @map("check_in_time")
+  checkOutTime              String?        @map("check_out_time")
+  goodToKnowText            String?        @map("good_to_know_text")
   status                 PlaceStatus       @default(DRAFT)
   // Affiliate/referral: who referred this hotel + when it started (the 1-year
   // referral window runs from referralStartedAt).
