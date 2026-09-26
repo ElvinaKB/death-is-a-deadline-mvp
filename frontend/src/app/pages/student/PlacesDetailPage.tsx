@@ -25,7 +25,7 @@ import {
   PlacesResponse,
 } from "../../../types/place.types";
 import { BidForm } from "../../components/bids/BidForm";
-import { PreviewBidDemo } from "../../components/bids/PreviewBidDemo";
+import { PreviewExperience } from "../../components/bids/PreviewExperience";
 import { HotelInquiryForm } from "../../components/bids/HotelInquiryForm";
 import { useBidForPlace } from "../../../hooks/useBids";
 import { formatCurrency } from "../../../utils/currency";
@@ -350,17 +350,26 @@ export function PlaceDetailPage() {
           <aside className="listing-detail-bid self-start lg:sticky lg:top-6">
             {isPreview ? (
               <div className="space-y-4">
-                <PreviewBidDemo retailPrice={place.retailPrice} />
-                <div className="rounded-xl border border-gold/40 bg-glass-2 p-5">
-                  <p className="text-base font-bold text-fg mb-2">
-                    Deadline gamifies booking to fill your last-minute rooms
-                  </p>
-                  <p className="text-sm text-muted leading-relaxed">
+                <div>
+                  <h2 className="text-xl font-bold text-fg leading-snug">
+                    Deadline gamifies the booking to fill your last-minute rooms
+                  </h2>
+                  <p className="text-sm text-muted mt-1.5">
                     Once a traveler is verified, they bid their budget against
-                    your secret minimum. Once it&rsquo;s exceeded, their
-                    card on file is charged and they win the room. You collect
-                    the rate and taxes at check-in — we just pre-charge a 7%
-                    commission.
+                    your secret minimum.
+                  </p>
+                </div>
+                <PreviewExperience retailPrice={place.retailPrice} />
+                <div className="rounded-xl border border-line bg-glass-2 p-5 space-y-3">
+                  <p className="text-[15px] text-fg leading-relaxed">
+                    Once the bid exceeds your secret nightly price, their card on
+                    file is charged and they win the room.
+                  </p>
+                  <p className="text-[15px] font-bold text-fg">
+                    <span className="text-gold">
+                      You collect the rate and taxes at check-in
+                    </span>{" "}
+                    — we just pre-charge a 7% commission.
                   </p>
                 </div>
               </div>

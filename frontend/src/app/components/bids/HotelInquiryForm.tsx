@@ -70,13 +70,12 @@ export function HotelInquiryForm({
 
   return (
     <div className="rounded-2xl border border-gold/40 bg-glass-2 p-6 sm:p-8">
-      <h2 className="text-2xl sm:text-3xl font-black uppercase text-fg text-center mb-1">
-        Activate this listing
+      <h2 className="font-serif text-3xl text-fg text-center mb-2">
+        List {placeName}&rsquo;s empty nights
       </h2>
-      <p className="text-center text-muted mb-6">
-        Start filling {placeName}&rsquo;s empty nights for a 7% commission — no
-        platform to manage, no card handling. Drop your details and we&rsquo;ll
-        take it from here.
+      <p className="text-center text-muted mb-6 max-w-xl mx-auto">
+        No commitment. Leave your best reservations contact and we&rsquo;ll set
+        your secret price, room count and days together on a quick call.
       </p>
       <form onSubmit={submit} className="space-y-3 max-w-xl mx-auto">
         <div className="grid sm:grid-cols-2 gap-3">
@@ -90,7 +89,7 @@ export function HotelInquiryForm({
           <input
             className={inputCls}
             type="tel"
-            placeholder="Phone *"
+            placeholder="Best contact number *"
             value={form.phone}
             onChange={set("phone")}
             required
@@ -99,15 +98,14 @@ export function HotelInquiryForm({
         <input
           className={inputCls}
           type="email"
-          placeholder="Email *"
+          placeholder="Reservations email *"
           value={form.email}
           onChange={set("email")}
           required
         />
-        <textarea
+        <input
           className={inputCls}
-          placeholder="Any questions? (optional)"
-          rows={3}
+          placeholder="Anything we should know? (optional)"
           value={form.message}
           onChange={set("message")}
         />
@@ -120,10 +118,14 @@ export function HotelInquiryForm({
         <button
           type="submit"
           disabled={!canSubmit}
-          className="w-full rounded-full bg-gold px-8 py-4 text-lg font-black uppercase tracking-wide text-black transition-transform hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
+          className="btn-bid-premium w-full h-14 text-base uppercase tracking-wider disabled:opacity-50"
         >
-          {status === "sending" ? "Sending…" : "Send & activate →"}
+          {status === "sending" ? "Sending…" : "List my hotel →"}
         </button>
+        <p className="text-center text-muted text-xs">
+          Prefer to ask first? Same form — add your question above and
+          we&rsquo;ll reach out.
+        </p>
       </form>
     </div>
   );
