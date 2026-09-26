@@ -43,6 +43,11 @@ model Place {
   //     the full room total now (PaymentCollect "Channel"). Used for our own
   //     PodShare properties, whose guests prefer to pay the full amount here.
   commissionOnly         Boolean           @default(true) @map("commission_only")
+  // Cold-outreach prospect: a listing we built to pitch a hotel (private preview
+  // link) that hasn't engaged yet. Kept out of the main Listings view so the
+  // dashboard isn't flooded. Auto-cleared (promoted to Listings) when the hotel
+  // engages — submits the preview contact form, or the listing goes LIVE.
+  prospect               Boolean           @default(false) @map("prospect")
   autoAcceptAboveMinimum Boolean           @default(true)
   blackoutDates          String[]          @default([])
   allowedDaysOfWeek      Int[]             @default([0, 1, 2, 3, 4, 5, 6]) @map("allowed_days_of_week")

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toApiDateOnly } from "../../../utils/dateHelpers";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import {
@@ -119,6 +119,8 @@ export function PlaceFormPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
+  const [searchParams] = useSearchParams();
+  const isProspect = searchParams.get("prospect") === "1";
 
   const { data, isLoading: isLoadingPlace } = usePlace(id || "");
   const createPlace = useCreatePlace();
@@ -244,7 +246,9 @@ export function PlaceFormPage() {
         if (isEditMode && id) {
           await updatePlace.mutateAsync({ ...data, id });
         } else {
-          await createPlace.mutateAsync(data);
+          // Created from the "New prospect" funnel (?prospect=1) → tag it so it
+          // lands in the Prospects tab, not the main Listings view.
+          await createPlace.mutateAsync({ ...data, prospect: isProspect });
         }
 
         navigate(ROUTES.ADMIN_PLACES);
