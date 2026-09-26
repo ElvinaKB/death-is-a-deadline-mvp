@@ -174,6 +174,10 @@ export const placeRefParamSchema = z.object({
 // Query schema for listing
 export const listPlacesQuerySchema = z.object({
   status: placeStatusSchema.optional(),
+  // "true" = Prospects tab, "false" = Listings tab. Kept here so the validate
+  // middleware (which strips unknown query keys) doesn't drop it before the
+  // controller filters on it.
+  prospect: z.enum(["true", "false"]).optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   // The admin Places page deliberately requests limit=1000 to fetch every
   // hotel unpaginated (so client-side grouping/search work across all of
