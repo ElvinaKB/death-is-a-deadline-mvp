@@ -899,6 +899,15 @@ export async function updatePlace(req: Request, res: Response) {
       ...(data.neighborhoodGuideImageUrl !== undefined && {
         neighborhoodGuideImageUrl: data.neighborhoodGuideImageUrl || null,
       }),
+      ...(data.checkInTime !== undefined && {
+        checkInTime: data.checkInTime || null,
+      }),
+      ...(data.checkOutTime !== undefined && {
+        checkOutTime: data.checkOutTime || null,
+      }),
+      ...(data.goodToKnowText !== undefined && {
+        goodToKnowText: data.goodToKnowText || null,
+      }),
       ...(data.keywords !== undefined && { keywords: data.keywords }),
       ...(data.timezone !== undefined && {
         timezone:
