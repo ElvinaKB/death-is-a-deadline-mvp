@@ -172,14 +172,16 @@ export function PreviewExperience({ retailPrice }: { retailPrice: number }) {
         .dl-confetti i{position:absolute;top:30%;width:7px;height:7px;border-radius:1px;animation:dl-fall 1.1s ease-in forwards}
       `}</style>
 
-      <button className="btn-bid-premium h-11 px-5 text-sm uppercase tracking-wider mb-3" onClick={startTour}>
-        ▶ See how it works
-      </button>
-      {replayable && (
-        <button className="ml-3 text-sm font-semibold text-gold underline" onClick={startTour}>
-          Replay
+      <div className="text-center mb-3">
+        <button className="btn-bid-premium h-11 px-6 text-sm uppercase tracking-wider" onClick={startTour}>
+          ▶ See how it works
         </button>
-      )}
+        {replayable && (
+          <button className="ml-3 text-sm font-semibold text-gold underline" onClick={startTour}>
+            Replay
+          </button>
+        )}
+      </div>
 
       {/* Demo module */}
       <div
@@ -187,17 +189,21 @@ export function PreviewExperience({ retailPrice }: { retailPrice: number }) {
         style={spot(modRef)}
         className="rounded-2xl border border-gold/40 bg-glass-2 p-4"
       >
-        <p className="text-center text-[11px] font-bold uppercase tracking-[0.2em] text-gold">How it works</p>
-        <p className="text-center text-[11px] text-muted mb-3">A live look at the bidding game</p>
+        <p className="text-center text-base font-semibold text-fg mb-3">
+          A live look at our bidding game
+        </p>
 
         <div ref={datesRef} style={spot(datesRef)} className="rounded-xl border border-line bg-bg/40 px-3 py-2 mb-2">
           <div className="text-[9px] uppercase tracking-wide text-muted">Your dates</div>
           <div className="text-sm font-semibold text-fg">2 nights · midweek</div>
         </div>
 
-        <div className="flex items-center justify-between text-xs text-muted mb-2 px-1">
-          <span>Public retail</span>
-          <span className="font-serif text-fg">{cur(retailPrice)} / night</span>
+        <div className="flex items-center justify-between rounded-xl border border-line bg-bg/40 px-3 py-2 mb-2">
+          <span className="text-[11px] uppercase tracking-wide text-muted">Public retail</span>
+          <span className="font-serif text-fg text-xl leading-none">
+            {cur(retailPrice)}
+            <span className="text-xs text-muted"> / night</span>
+          </span>
         </div>
 
         <div ref={bidRef} style={spot(bidRef)} className="relative overflow-hidden rounded-xl border border-line bg-bg/40 px-4 py-3 mb-2">

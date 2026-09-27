@@ -255,11 +255,38 @@ export function PlaceDetailPage() {
       <HomeHeader />
 
       {isPreview && (
-        <div className="w-full bg-gold/15 border-b border-gold/40 px-4 py-2.5 text-center">
-          <p className="text-sm font-semibold text-gold">
-            PREVIEW — this listing isn&apos;t live yet. Bidding is disabled.
-          </p>
-        </div>
+        <>
+          <div className="w-full bg-gold/15 border-b border-gold/40 px-4 py-2.5 text-center">
+            <p className="text-sm font-semibold text-gold">
+              PREVIEW — this listing isn&apos;t live yet. Bidding is disabled.
+            </p>
+          </div>
+          <div className="w-full border-b border-line bg-glass-2">
+            <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-center gap-x-6 gap-y-2 px-4 py-3 text-center text-xs sm:text-sm text-muted">
+              <span>
+                Built by a{" "}
+                <a
+                  href="https://social-construct.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-gold hover:underline"
+                >
+                  14-year hotelier
+                </a>
+              </span>
+              <span className="hidden sm:inline text-line">•</span>
+              <span>
+                <span className="font-semibold text-fg">10,000-traveler</span>{" "}
+                waitlist — opening as we reach 100 partner hotels
+              </span>
+              <span className="hidden sm:inline text-line">•</span>
+              <span>
+                <span className="font-semibold text-fg">Cloudbeds-integrated</span>{" "}
+                · more channels pending
+              </span>
+            </div>
+          </div>
+        </>
       )}
 
       <ImageGalleryModal
