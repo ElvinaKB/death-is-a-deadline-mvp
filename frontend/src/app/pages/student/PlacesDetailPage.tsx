@@ -446,57 +446,6 @@ export function PlaceDetailPage() {
           </div>
         </div>
 
-          {(place.checkInTime ||
-            place.checkOutTime ||
-            place.goodToKnowText) && (
-            <div className="mt-8 border-t border-line pt-6">
-              <h2 className="text-lg font-semibold text-fg mb-4">
-                Good to know
-              </h2>
-              {(place.checkInTime || place.checkOutTime) && (
-                <div className="flex flex-wrap gap-3 mb-4">
-                  {place.checkInTime && (
-                    <div className="rounded-lg border border-line bg-glass-2 px-4 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-muted">
-                        Check-in
-                      </p>
-                      <p className="text-sm font-semibold text-fg">
-                        {place.checkInTime}
-                      </p>
-                    </div>
-                  )}
-                  {place.checkOutTime && (
-                    <div className="rounded-lg border border-line bg-glass-2 px-4 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-muted">
-                        Check-out
-                      </p>
-                      <p className="text-sm font-semibold text-fg">
-                        {place.checkOutTime}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-              {place.goodToKnowText && (
-                <ul className="space-y-2">
-                  {place.goodToKnowText
-                    .split("\n")
-                    .map((line) => line.trim())
-                    .filter(Boolean)
-                    .map((line, i) => (
-                      <li
-                        key={i}
-                        className="flex gap-2 text-sm text-muted leading-relaxed"
-                      >
-                        <span className="text-gold shrink-0">•</span>
-                        <span>{line}</span>
-                      </li>
-                    ))}
-                </ul>
-              )}
-            </div>
-          )}
-
           <Testimonials placeId={place.id} />
 
           {isPreview && (
@@ -505,11 +454,15 @@ export function PlaceDetailPage() {
             </div>
           )}
 
-          {/* FAQ Accordion (+ vertical video alongside it when the hotel has added one) */}
+          {/* FAQ Accordion + "Good to know" alongside it (most listings have
+              Good to know; the vertical video, when present, gets its own
+              section below since not every listing will have one). */}
           <div className="mt-8 sm:mt-12">
             <div
               className={
-                place.verticalVideoUrl
+                place.checkInTime ||
+                place.checkOutTime ||
+                place.goodToKnowText
                   ? "grid grid-cols-1 lg:grid-cols-2 gap-8 items-start"
                   : ""
               }
@@ -550,35 +503,92 @@ export function PlaceDetailPage() {
                 </Accordion>
               </div>
 
-              {place.verticalVideoUrl && (
-                <div className="mx-auto w-full max-w-[300px] lg:max-w-none">
-                  {(() => {
-                    const embedUrl = getYouTubeEmbedUrl(place.verticalVideoUrl);
-                    return embedUrl ? (
-                      <iframe
-                        key={embedUrl}
-                        src={embedUrl}
-                        className="w-full aspect-[9/16] rounded-xl bg-black lg:max-h-[520px] lg:w-auto lg:mx-auto"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        title="Property video"
-                      />
-                    ) : (
-                      <video
-                        key={place.verticalVideoUrl}
-                        src={place.verticalVideoUrl}
-                        className="w-full aspect-[9/16] rounded-xl object-cover bg-black lg:max-h-[520px] lg:w-auto lg:mx-auto"
-                        controls
-                        playsInline
-                        muted
-                        loop
-                      />
-                    );
-                  })()}
+              {(place.checkInTime ||
+                place.checkOutTime ||
+                place.goodToKnowText) && (
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-fg mb-4 sm:mb-6">
+                    Good to know
+                  </h2>
+                  {(place.checkInTime || place.checkOutTime) && (
+                    <div className="flex flex-wrap gap-3 mb-4">
+                      {place.checkInTime && (
+                        <div className="rounded-lg border border-line bg-glass-2 px-4 py-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted">
+                            Check-in
+                          </p>
+                          <p className="text-sm font-semibold text-fg">
+                            {place.checkInTime}
+                          </p>
+                        </div>
+                      )}
+                      {place.checkOutTime && (
+                        <div className="rounded-lg border border-line bg-glass-2 px-4 py-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted">
+                            Check-out
+                          </p>
+                          <p className="text-sm font-semibold text-fg">
+                            {place.checkOutTime}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {place.goodToKnowText && (
+                    <ul className="space-y-2">
+                      {place.goodToKnowText
+                        .split("\n")
+                        .map((line) => line.trim())
+                        .filter(Boolean)
+                        .map((line, i) => (
+                          <li
+                            key={i}
+                            className="flex gap-2 text-sm text-muted leading-relaxed"
+                          >
+                            <span className="text-gold shrink-0">•</span>
+                            <span>{line}</span>
+                          </li>
+                        ))}
+                    </ul>
+                  )}
                 </div>
               )}
             </div>
           </div>
+
+          {/* Property video — its own section (optional per listing). */}
+          {place.verticalVideoUrl && (
+            <div className="mt-8 sm:mt-12">
+              <h2 className="text-xl sm:text-2xl font-bold text-fg mb-4 sm:mb-6">
+                Property video
+              </h2>
+              <div className="mx-auto w-full max-w-[320px]">
+                {(() => {
+                  const embedUrl = getYouTubeEmbedUrl(place.verticalVideoUrl);
+                  return embedUrl ? (
+                    <iframe
+                      key={embedUrl}
+                      src={embedUrl}
+                      className="w-full aspect-[9/16] rounded-xl bg-black"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      title="Property video"
+                    />
+                  ) : (
+                    <video
+                      key={place.verticalVideoUrl}
+                      src={place.verticalVideoUrl}
+                      className="w-full aspect-[9/16] rounded-xl object-cover bg-black"
+                      controls
+                      playsInline
+                      muted
+                      loop
+                    />
+                  );
+                })()}
+              </div>
+            </div>
+          )}
 
           {/* Map Section - Only show if lat/lng exist */}
           {place.latitude && place.longitude && (
