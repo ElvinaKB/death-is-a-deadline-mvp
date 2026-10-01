@@ -815,6 +815,36 @@ export async function updatePlace(req: Request, res: Response) {
     throw new CustomError("Place not found", 404);
   }
 
+  // A hotel owner may only edit their own listing (same check as getPlace —
+  // 404 so we don't reveal the id exists), and may not change the fields that
+  // tie the listing to its owner or control its visibility.
+  const user = req.user;
+  const role = user?.role || user?.user_metadata?.role;
+  if (role === UserRole.HOTEL_OWNER) {
+    const email = user?.email?.toLowerCase();
+    if (
+      !email ||
+      !existingPlace.email ||
+      existingPlace.email.toLowerCase() !== email
+    ) {
+      throw new CustomError("Place not found", 404);
+    }
+    const body = req.body as Record<string, unknown>;
+    const adminOnlyFields = [
+      "email",
+      "status",
+      "commissionOnly",
+      "supplySource",
+      "prospect",
+    ].filter((field) => body[field] !== undefined);
+    if (adminOnlyFields.length > 0) {
+      throw new CustomError(
+        `Hotel owners cannot change: ${adminOnlyFields.join(", ")}`,
+        403,
+      );
+    }
+  }
+
   // Validate threshold pricing against retail price
   const retailPrice = data.retailPrice ?? existingPlace.retailPrice;
   const threshold = resolvePlaceThresholdPayload({
