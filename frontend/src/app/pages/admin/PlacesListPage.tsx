@@ -83,6 +83,9 @@ export function PlacesListPage() {
   const { data, isLoading } = useApiQuery<PlacesResponse>({
     queryKey: [QUERY_KEYS.PLACES, view, filter],
     endpoint: ENDPOINTS.PLACES_LIST,
+    // Don't show the previous tab's hotels while this one loads — switching
+    // Listings → Wholesale must never look like direct hotels are wholesale.
+    placeholderData: undefined,
     params: {
       limit: 1000,
       ...(view === "wholesale"
