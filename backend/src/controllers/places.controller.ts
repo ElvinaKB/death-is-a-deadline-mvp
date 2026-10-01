@@ -873,7 +873,10 @@ export async function updatePlace(req: Request, res: Response) {
     where: { id },
     data: {
       ...(slug && { slug }),
-      ...(data.supplySource && { supplySource: data.supplySource }),
+      // Only an admin can move a listing between wholesale and direct.
+      ...(data.supplySource &&
+        (req.user?.role || req.user?.user_metadata?.role) ===
+          UserRole.ADMIN && { supplySource: data.supplySource }),
       ...(data.name && { name: data.name }),
       ...(data.shortDescription && { shortDescription: data.shortDescription }),
       ...(data.fullDescription && { fullDescription: data.fullDescription }),

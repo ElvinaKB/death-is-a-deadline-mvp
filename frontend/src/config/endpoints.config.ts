@@ -45,6 +45,10 @@ export const ENDPOINTS = {
   HOTEL_PLACES_LIST: "/api/places/hotel",
   HOTEL_DASHBOARD_STATS: "/api/places/hotel-stats",
 
+  // Wholesale (Nuitee)
+  WHOLESALE_QUOTE: "/api/wholesale/quote/:id",
+  WHOLESALE_IMPORT: "/api/wholesale/import",
+
   // Bids
   BIDS_CREATE: "/api/bids",
   BIDS_MY: "/api/bids/my",

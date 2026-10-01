@@ -46,6 +46,7 @@ export class ApiClient {
           statusCode: response.status,
           code: (data as { code?: string }).code,
           errors: data.error?.errors,
+          data: (data as { data?: unknown }).data ?? undefined,
         };
         throw error;
       }

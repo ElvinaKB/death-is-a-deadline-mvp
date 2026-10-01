@@ -61,6 +61,17 @@ export function PlaceListItem({
           <div className="flex items-center gap-1 text-[hsl(0_0%_65%)] text-sm mb-2">
             <MapPin className="h-3.5 w-3.5 shrink-0" />
             <span>{place.city}</span>
+            {place.starRating ? (
+              <span className="ml-2 text-gold" aria-label={`${place.starRating} star hotel`}>
+                {"★".repeat(Math.round(place.starRating))}
+              </span>
+            ) : null}
+            {place.guestRating ? (
+              <span className="ml-2 text-xs">
+                {place.guestRating.toFixed(1)}/10
+                {place.guestReviewCount ? ` (${place.guestReviewCount})` : ""}
+              </span>
+            ) : null}
           </div>
 
           {place.shortDescription && (

@@ -50,6 +50,17 @@ export interface Place {
   commissionOnly?: boolean;
   /** Cold-outreach prospect (shown in the Prospects tab, not main Listings). */
   prospect?: boolean;
+  /**
+   * "direct" = partner hotel (Cloudbeds / payment link); "wholesale" = imported
+   * from Nuitee, priced live and booked through Nuitee. Switch a wholesale
+   * hotel to "direct" when it signs with us — same listing.
+   */
+  supplySource?: "direct" | "wholesale";
+  /** Admin only — Nuitee hotel id (wholesale import / de-duplication). */
+  liteapiHotelId?: string | null;
+  starRating?: number | null;
+  guestRating?: number | null;
+  guestReviewCount?: number | null;
   /** Admin only — token for the private pre-launch preview link (?preview=). */
   previewToken?: string;
   /** True when this place was served via a preview link (Draft/Paused, not bookable). */

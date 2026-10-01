@@ -227,7 +227,7 @@ export async function createBid(req: Request, res: Response) {
       const reveal = losing >= WHOLESALE_CONFIG.REVEAL_AFTER_LOSING_BIDS;
       throw new CustomError(
         reveal
-          ? `So close! Tonight's best member price is $${wholesale.memberPricePerNight}/night.`
+          ? `Your bid is very low — so here's the answer: the best member price for these dates is $${wholesale.memberPricePerNight}/night.`
           : `Your bid is very low, try again by increasing it.`,
         400,
         {
