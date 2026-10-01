@@ -5,6 +5,7 @@ import { supabase } from "../libs/config/supabase";
 import { STRIPE_CONFIG } from "../libs/config/stripe";
 import { sendBookingConfirmationEmails } from "./bookingConfirmationEmail.service";
 import { notifyBookingConfirmed } from "./myallocatorNotify.service";
+import { fulfilWholesaleBid } from "./wholesale.service";
 
 const HANDLED_EVENT_TYPES = new Set([
   "payment_intent.succeeded",
@@ -84,6 +85,8 @@ interface PaymentSucceededResult {
   bidId: string | null;
   // Place slug = the OTA property id for the myallocator NotifyBooking callback.
   otaPropertyId: string | null;
+  // Wholesale bids are booked with Nuitee instead of pushed to Cloudbeds.
+  wholesale: boolean;
 }
 
 async function handlePaymentIntentSucceeded(
@@ -120,7 +123,9 @@ async function handlePaymentIntentSucceeded(
           ? paymentIntent.customer
           : paymentIntent.customer?.toString() ?? payment.stripeCustomerId,
     },
-    include: { bid: { include: { place: { select: { slug: true } } } } },
+    include: {
+      bid: { include: { place: { select: { slug: true, supplySource: true } } } },
+    },
   });
 
   if (succeededPayment.bid) {
@@ -141,6 +146,7 @@ async function handlePaymentIntentSucceeded(
     referralCreditAppliedCents,
     bidId: succeededPayment.bidId ?? null,
     otaPropertyId: succeededPayment.bid?.place?.slug ?? null,
+    wholesale: succeededPayment.bid?.place?.supplySource === "wholesale",
   };
 }
 
@@ -271,6 +277,20 @@ export async function processStripeWebhookEvent(event: Stripe.Event): Promise<vo
       }
     },
   );
+
+  if (succeededResult?.wholesale && succeededResult.bidId) {
+    // Book the room with Nuitee now that the member has paid. On failure the
+    // member is refunded automatically, so no confirmation email or credit
+    // deduction.
+    const fulfilment = await fulfilWholesaleBid(succeededResult.bidId);
+    if (!fulfilment.ok) return;
+    await sendBookingConfirmationEmails(succeededResult.paymentId);
+    await deductReferralCredit(
+      succeededResult.studentId,
+      succeededResult.referralCreditAppliedCents,
+    );
+    return;
+  }
 
   if (succeededResult) {
     await sendBookingConfirmationEmails(succeededResult.paymentId);

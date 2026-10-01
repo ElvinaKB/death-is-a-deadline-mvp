@@ -37,6 +37,14 @@ import {
 } from "../libs/utils/hotelDates";
 import { getOccupiedNights } from "../services/thresholdPricing.service";
 import { isBidAboveDynamicStayThreshold } from "../services/dynamicPricing.service";
+import {
+  countLosingBids,
+  getWholesaleQuote,
+  isWholesale,
+  WHOLESALE_CONFIG,
+  WholesaleQuote,
+} from "../services/wholesale.service";
+import { cancelBooking } from "../services/liteapi.service";
 
 // Helper to format bid response
 const formatBid = (bid: any) => {
@@ -55,6 +63,8 @@ const formatBid = (bid: any) => {
   totalNights: bid.totalNights,
   totalAmount: Number(bid.totalAmount),
   mandatoryFeeAmount: Number(bid.mandatoryFeeAmount || 0),
+  payAtHotelAmount: Number(bid.payAtHotelAmount || 0),
+  supplierConfirmationCode: bid.supplierConfirmationCode ?? null,
   platformCommission: bid.platformCommission
     ? Number(bid.platformCommission)
     : null,
@@ -78,6 +88,7 @@ const formatBid = (bid: any) => {
         country: bid.place.country,
         email: bid.place.email,
         commissionOnly: bid.place.commissionOnly ?? true,
+        supplySource: bid.place.supplySource ?? "direct",
         images: bid.place.images || [],
       }
     : undefined,
@@ -171,11 +182,66 @@ export async function createBid(req: Request, res: Response) {
     );
   }
 
-  // Total Stay Threshold: sum of each night's dynamic minimum vs total bid.
-  // The floor is fixed, but the effective threshold drifts within a bounded
-  // range (inventory scarcity, lead time, recent bid activity) — never
-  // exposed to the traveler, only the accept/reject outcome is.
-  if (
+  // Wholesale (Nuitee) hotels: the secret price is Nuitee's live cost plus our
+  // margin, checked fresh on every bid. Losing bids are recorded as demand
+  // data; after a few misses on the same dates the member is shown the price.
+  let wholesale: WholesaleQuote | null = null;
+  if (isWholesale(place)) {
+    if (!WHOLESALE_CONFIG.ENABLED) {
+      throw new CustomError(
+        "This place is not available for bidding",
+        400,
+        null,
+        ErrorCode.PLACE_NOT_AVAILABLE,
+      );
+    }
+    wholesale = await getWholesaleQuote(place, checkInDate, checkOutDate);
+    if (!wholesale) {
+      throw new CustomError(
+        "This hotel is sold out for your dates. Please try other dates or another hotel.",
+        409,
+        null,
+        ErrorCode.INVENTORY_SOLD_OUT,
+      );
+    }
+    if (data.bidPerNight < wholesale.memberPricePerNight) {
+      await prisma.bid.create({
+        data: {
+          placeId: data.placeId,
+          studentId,
+          checkInDate,
+          checkOutDate,
+          bidPerNight: data.bidPerNight,
+          totalNights,
+          totalAmount,
+          status: bid_status.REJECTED,
+          rejectionReason: "Bid below member price",
+        },
+      });
+      const losing = await countLosingBids(
+        data.placeId,
+        studentId,
+        checkInDate,
+        checkOutDate,
+      );
+      const reveal = losing >= WHOLESALE_CONFIG.REVEAL_AFTER_LOSING_BIDS;
+      throw new CustomError(
+        reveal
+          ? `So close! Tonight's best member price is $${wholesale.memberPricePerNight}/night.`
+          : `Your bid is very low, try again by increasing it.`,
+        400,
+        {
+          losingBids: losing,
+          revealAfter: WHOLESALE_CONFIG.REVEAL_AFTER_LOSING_BIDS,
+          ...(reveal && {
+            revealedPricePerNight: wholesale.memberPricePerNight,
+            payAtHotel: wholesale.payAtHotel,
+          }),
+        },
+        ErrorCode.BID_TOO_LOW,
+      );
+    }
+  } else if (
     !(await isBidAboveDynamicStayThreshold(
       place,
       checkInDate,
@@ -257,10 +323,13 @@ export async function createBid(req: Request, res: Response) {
   // Snapshot the hotel's mandatory fee (if any) at booking time — charged to
   // the guest on top of totalAmount, passed through to the hotel in full,
   // and never used as the basis for platform commission. See Bid.mandatoryFeeAmount.
-  const mandatoryFeeAmount =
-    ((place.mandatoryResortFeeAmount || 0) +
-      (place.mandatoryParkingFeeAmount || 0)) *
-    totalNights;
+  // Wholesale: fees are collected by the hotel at check-in (payAtHotelAmount),
+  // never charged by us.
+  const mandatoryFeeAmount = wholesale
+    ? 0
+    : ((place.mandatoryResortFeeAmount || 0) +
+        (place.mandatoryParkingFeeAmount || 0)) *
+      totalNights;
 
   // Create the bid
   const bid = await prisma.bid.create({
@@ -274,6 +343,11 @@ export async function createBid(req: Request, res: Response) {
       totalAmount,
       mandatoryFeeAmount,
       status,
+      ...(wholesale && {
+        supplierOfferId: wholesale.offer.offerId,
+        supplierCost: wholesale.offer.cost,
+        payAtHotelAmount: wholesale.payAtHotel,
+      }),
     },
     include: {
       place: {
@@ -797,6 +871,21 @@ export async function cancelBid(req: Request, res: Response) {
 
   if (!existingBid.payment.stripePaymentIntentId) {
     throw new CustomError("No payment intent found for this bid", 400);
+  }
+
+  // Wholesale: cancel the Nuitee reservation too. Most last-minute wholesale
+  // rates are non-refundable, so Deadline may still owe Nuitee — logged so
+  // the cost is visible, but the member's refund goes ahead regardless.
+  if (existingBid.supplierBookingId) {
+    try {
+      const status = await cancelBooking(existingBid.supplierBookingId);
+      await prisma.bid.update({ where: { id }, data: { supplierStatus: status } });
+    } catch (error) {
+      console.error(
+        `[wholesale] Nuitee cancellation failed for bid ${id} — check the Nuitee dashboard:`,
+        error,
+      );
+    }
   }
 
   let refund;

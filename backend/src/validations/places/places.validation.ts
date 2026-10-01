@@ -102,6 +102,8 @@ export const createPlaceSchema = z.object({
 
 // Update place schema (all fields optional except id)
 export const updatePlaceSchema = z.object({
+  // Switch a wholesale hotel to direct once it signs with us (same listing).
+  supplySource: z.enum(["direct", "wholesale"]).optional(),
   name: z.string().min(3).optional(),
   shortDescription: z.string().min(1).max(100).optional(),
   fullDescription: z.string().min(50).optional(),
@@ -184,6 +186,8 @@ export const listPlacesQuerySchema = z.object({
   // middleware (which strips unknown query keys) doesn't drop it before the
   // controller filters on it.
   prospect: z.enum(["true", "false"]).optional(),
+  // Supply tab: direct partners (default) vs wholesale (Nuitee) listings.
+  source: z.enum(["direct", "wholesale"]).optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   // The admin Places page deliberately requests limit=1000 to fetch every
   // hotel unpaginated (so client-side grouping/search work across all of
@@ -215,6 +219,8 @@ export const publicPlacesQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(100).optional().default(12),
   date: z.string().optional(),
+  // Marketplace tab: direct partners (default) or wholesale (Nuitee) hotels.
+  source: z.enum(["direct", "wholesale"]).optional().default("direct"),
 });
 
 export const resendHotelInviteSchema = z.object({

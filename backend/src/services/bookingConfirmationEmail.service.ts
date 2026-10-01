@@ -136,6 +136,11 @@ export async function sendBookingConfirmationEmails(
             commissionAmount: commissionNum.toFixed(2),
             hotelBalance: (roomRateNum - commissionNum).toFixed(2),
             dashboardUrl: `${clientUrl}/member/my-bids`,
+            payAtHotelAmount:
+              Number(bid.payAtHotelAmount || 0) > 0
+                ? Number(bid.payAtHotelAmount).toFixed(2)
+                : null,
+            hotelConfirmationCode: bid.supplierConfirmationCode ?? null,
           },
         }).catch((error) =>
           console.error("Failed to send student confirmation email:", error),
@@ -151,7 +156,11 @@ export async function sendBookingConfirmationEmails(
           console.error("Failed to send place confirmation email:", error),
         )
       : Promise.resolve(),
-    sendEmail({
+    // Wholesale bookings get their own team email (wholesale.service) — the
+    // hotel-copy template's 7% / pay-at-desk math doesn't apply to them.
+    place.supplySource === "wholesale"
+      ? Promise.resolve()
+      : sendEmail({
       type: EmailType.BOOKING_CONFIRMED_PLACE,
       to: internalCopyInbox,
       subject: `[Booking Copy] ${place.name} — ${student.email || "guest"}`,
