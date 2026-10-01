@@ -48,6 +48,16 @@ model Place {
   // dashboard isn't flooded. Auto-cleared (promoted to Listings) when the hotel
   // engages — submits the preview contact form, or the listing goes LIVE.
   prospect               Boolean           @default(false) @map("prospect")
+  // Supply source: "direct" (partner hotel — Cloudbeds or payment link) or
+  // "wholesale" (imported from Nuitee/LiteAPI, booked through Nuitee). When a
+  // wholesale hotel signs direct, flip this to "direct" and keep
+  // liteapiHotelId so the nightly import never re-creates it.
+  supplySource           String            @default("direct") @map("supply_source")
+  liteapiHotelId         String?           @unique @map("liteapi_hotel_id")
+  starRating             Float?            @map("star_rating")
+  guestRating            Float?            @map("guest_rating")
+  guestReviewCount       Int?              @map("guest_review_count")
+  wholesaleSyncedAt      DateTime?         @map("wholesale_synced_at") @db.Timestamptz(6)
   autoAcceptAboveMinimum Boolean           @default(true)
   blackoutDates          String[]          @default([])
   allowedDaysOfWeek      Int[]             @default([0, 1, 2, 3, 4, 5, 6]) @map("allowed_days_of_week")
@@ -320,6 +330,16 @@ model Bid {
   isPaidToHotel      Boolean    @default(false) @map("is_paid_to_hotel")
   paidToHotelAt      DateTime?  @map("paid_to_hotel_at") @db.Timestamptz(6)
   payoutNotes        String?    @map("payout_notes")
+  // Wholesale (Nuitee) snapshot — null for direct listings. supplierCost is
+  // what Nuitee charges Deadline; payAtHotelAmount is mandatory fees/taxes the
+  // hotel collects at check-in (displayed, never charged by us).
+  supplierOfferId          String?    @map("supplier_offer_id")
+  supplierCost             Decimal?   @map("supplier_cost") @db.Decimal(10, 2)
+  payAtHotelAmount         Decimal    @default(0) @map("pay_at_hotel_amount") @db.Decimal(10, 2)
+  supplierPrebookId        String?    @map("supplier_prebook_id")
+  supplierBookingId        String?    @map("supplier_booking_id")
+  supplierConfirmationCode String?    @map("supplier_confirmation_code")
+  supplierStatus           String?    @map("supplier_status")
   status             bid_status @default(PENDING)
   rejectionReason    String?    @map("rejection_reason")
   createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)

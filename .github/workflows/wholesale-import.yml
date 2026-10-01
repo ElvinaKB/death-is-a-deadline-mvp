@@ -1,0 +1,36 @@
+name: Nightly wholesale import
+
+# Refreshes wholesale (Nuitee) listings across the California markets every
+# night: adds newly available hotels and updates retail anchors. Needs two repo
+# secrets: BACKEND_API_URL (e.g. https://api.deadlinetravel.com) and
+# WHOLESALE_CRON_SECRET (same value as the backend env var). Skips quietly if
+# they aren't set yet.
+
+on:
+  schedule:
+    - cron: "0 10 * * *" # 3am Pacific (daylight time)
+  workflow_dispatch:
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger import
+        env:
+          API: ${{ secrets.BACKEND_API_URL }}
+          SECRET: ${{ secrets.WHOLESALE_CRON_SECRET }}
+        run: |
+          if [ -z "$API" ] || [ -z "$SECRET" ]; then
+            echo "BACKEND_API_URL / WHOLESALE_CRON_SECRET not set — skipping."
+            exit 0
+          fi
+          # One city per request (the backend is serverless).
+          curl -fsS "$API/api/wholesale/markets" \
+            | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin)["data"]["markets"]))' \
+            | while IFS= read -r city; do
+                echo "Importing $city"
+                curl -sS -X POST -G "$API/api/wholesale/import/cron" \
+                  --data-urlencode "city=$city" \
+                  -H "x-cron-secret: $SECRET" --max-time 280 || echo "  failed: $city"
+                echo
+              done

@@ -43,6 +43,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useBidForPlace, useCreateBid } from "../../../hooks/useBids";
+import { WholesalePricePanel } from "./WholesalePricePanel";
 import { useProfilePhone } from "../../../hooks/useProfilePhone";
 import { commissionOf, dueAtHotel } from "../../../config/model.config";
 import { usePlaceSoldOutNights } from "../../../hooks/usePlaces";
@@ -428,6 +429,10 @@ function BidFormInner({
   const elements = useElements();
   // Per-listing payment model (defaults to commission-only / Model B).
   const commissionOnly = place.commissionOnly ?? true;
+  // Wholesale (Nuitee) hotel: show the live member price + "Book now" above
+  // the bid box; low bids still count, and the API reveals the price after a
+  // few misses.
+  const isWholesalePlace = place.supplySource === "wholesale";
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   const queryClient = useQueryClient();
   const createBid = useCreateBid();
@@ -1223,6 +1228,17 @@ function BidFormInner({
           });
           setRejectedScrollTrigger((n) => n + 1);
           trackEvent(ANALYTICS_EVENTS.REJECTED_BID, { place_id: placeId });
+          // Wholesale: after a few misses the API reveals the member price —
+          // fill it in so one more tap books the room.
+          const revealed = (error.data as { revealedPricePerNight?: number } | undefined)
+            ?.revealedPricePerNight;
+          if (revealed) {
+            void formik.setFieldValue("bidPerNight", String(revealed));
+            toast.success(
+              `The member price is ${formatCurrency(revealed)}/night — we've filled it in. Bid again to book it.`,
+              { duration: 8000 },
+            );
+          }
         } else if (isBidOverlapRejection(error)) {
           setPaymentError(
             error.message ||
@@ -1958,6 +1974,18 @@ function BidFormInner({
                 {overlapDatesError}
               </p>
             )}
+            {isWholesalePlace && (
+              <WholesalePricePanel
+                placeId={placeId}
+                checkInDate={toApiDateOnly(formik.values.checkInDate)}
+                checkOutDate={toApiDateOnly(formik.values.checkOutDate)}
+                isAuthenticated={isAuthenticated}
+                onUseMemberPrice={(price) => {
+                  setPaymentError(null);
+                  void formik.setFieldValue("bidPerNight", String(price));
+                }}
+              />
+            )}
             <div>
               <Label htmlFor="bidPerNightListing" className="listing-bid-amount-label mb-2 block">
                 <span className="text-fg">Your bid per night </span>
@@ -2424,6 +2452,18 @@ function BidFormInner({
 
         {bidStep === "amount" && (
           <div className="space-y-3">
+            {isWholesalePlace && (
+              <WholesalePricePanel
+                placeId={placeId}
+                checkInDate={toApiDateOnly(formik.values.checkInDate)}
+                checkOutDate={toApiDateOnly(formik.values.checkOutDate)}
+                isAuthenticated={isAuthenticated}
+                onUseMemberPrice={(price) => {
+                  setPaymentError(null);
+                  void formik.setFieldValue("bidPerNight", String(price));
+                }}
+              />
+            )}
             <Label htmlFor="bidPerNight" className="text-sm text-muted mb-1.5 block">
               Your bid per night
             </Label>

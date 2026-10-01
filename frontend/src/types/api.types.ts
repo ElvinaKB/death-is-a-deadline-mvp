@@ -3,6 +3,8 @@ export interface ApiError {
   statusCode?: number;
   code?: string;
   errors?: Record<string, string[]>;
+  /** Structured details from the API's CustomError (e.g. a wholesale price reveal). */
+  data?: unknown;
 }
 
 export interface ApiResponse<T = unknown> {

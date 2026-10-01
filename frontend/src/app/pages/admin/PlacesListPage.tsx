@@ -10,12 +10,16 @@ import {
   Search,
   MapPin,
   Link2,
+  RefreshCw,
+  Handshake,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ENDPOINTS } from "../../../config/endpoints.config";
+import { ENDPOINTS, getEndpoint } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
 import { ROUTES, getRoute } from "../../../config/routes.config";
 import { useApiQuery, useApiMutation } from "../../../hooks/useApi";
+import { apiClient } from "../../../lib/apiClient";
 import { useUpdatePlaceStatus } from "../../../hooks/usePlaces";
 import {
   ACCOMMODATION_TYPE_LABELS,
@@ -60,8 +64,12 @@ type PlaceRow = PlacesResponse["places"][0];
 
 export function PlacesListPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   // Listings = real hotels; Prospects = cold-outreach listings we built to pitch.
-  const [view, setView] = useState<"listings" | "prospects">("listings");
+  // Wholesale = hotels imported from Nuitee (booked through Nuitee, not direct).
+  const [view, setView] = useState<"listings" | "prospects" | "wholesale">(
+    "listings",
+  );
   const [filter, setFilter] = useState<PlaceStatus | "ALL">("ALL");
   const [search, setSearch] = useState("");
   // Track which placeId is currently sending an invite to show per-row loading
@@ -77,12 +85,57 @@ export function PlacesListPage() {
     endpoint: ENDPOINTS.PLACES_LIST,
     params: {
       limit: 1000,
-      prospect: prospectParam,
+      ...(view === "wholesale"
+        ? { source: "wholesale" }
+        : { prospect: prospectParam }),
       ...(filter !== "ALL" ? { status: filter } : {}),
     },
   });
 
   const updateStatus = useUpdatePlaceStatus([QUERY_KEYS.PLACES, view, filter]);
+
+  // One city per request (the backend is serverless) — step through the
+  // California markets and report progress.
+  const [importProgress, setImportProgress] = useState<string | null>(null);
+  const runWholesaleImport = async () => {
+    try {
+      const { markets } = await apiClient.get<{ markets: string[] }>(
+        ENDPOINTS.WHOLESALE_MARKETS,
+      );
+      let created = 0;
+      let updated = 0;
+      for (const [i, city] of markets.entries()) {
+        setImportProgress(`${city} (${i + 1}/${markets.length})`);
+        try {
+          const r = await apiClient.post<{ created: number; updated: number }>(
+            `${ENDPOINTS.WHOLESALE_IMPORT}?city=${encodeURIComponent(city)}`,
+            {},
+          );
+          created += r.created;
+          updated += r.updated;
+        } catch {
+          toast.error(`Import failed for ${city} — skipping`);
+        }
+      }
+      toast.success(`Wholesale import done: ${created} new, ${updated} refreshed.`);
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PLACES] });
+    } finally {
+      setImportProgress(null);
+    }
+  };
+
+  const switchToDirect = useApiMutation<unknown, { id: string }>({
+    endpoint: (v) => getEndpoint(ENDPOINTS.PLACE_UPDATE, { id: v.id }),
+    method: "PUT",
+    transformVariables: () => ({ supplySource: "direct" }),
+    showErrorToast: true,
+    onSuccess: () => {
+      toast.success(
+        "Moved to direct. Edit it to set the hotel's secret price, inventory, payment model and email.",
+      );
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PLACES] });
+    },
+  });
 
   const resendInvite = useApiMutation<{ message: string }, { placeId: string }>(
     {
@@ -263,6 +316,26 @@ export function PlacesListPage() {
               </DropdownMenuItem>
             )}
 
+            {(row as any).supplySource === "wholesale" && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Switch ${row.name} to a direct partner listing? Bookings will stop going through Nuitee.`,
+                      )
+                    ) {
+                      switchToDirect.mutate({ id: row.id });
+                    }
+                  }}
+                >
+                  <Handshake className="mr-2 h-4 w-4" />
+                  Hotel signed — switch to direct
+                </DropdownMenuItem>
+              </>
+            )}
+
             {/* Resend invite option in dropdown too — for places without an account */}
             {!(row as any).hasHotelAccount && row.email && (
               <>
@@ -338,9 +411,23 @@ export function PlacesListPage() {
           <p className="text-muted mt-1">
             {view === "prospects"
               ? "Cold-outreach listings you built to pitch hotels — they move to Listings when a hotel engages."
-              : "Manage your accommodation listings"}
+              : view === "wholesale"
+                ? "Hotels imported from Nuitee across California. When one signs with you, switch it to direct from its menu."
+                : "Manage your accommodation listings"}
           </p>
         </div>
+        {view === "wholesale" ? (
+        <Button
+          onClick={() => void runWholesaleImport()}
+          disabled={!!importProgress}
+          className="btn-bid"
+        >
+          <RefreshCw
+            className={`mr-2 h-4 w-4 ${importProgress ? "animate-spin" : ""}`}
+          />
+          {importProgress ? `Importing ${importProgress}…` : "Refresh wholesale hotels"}
+        </Button>
+        ) : (
         <Button
           onClick={() =>
             navigate(
@@ -354,11 +441,12 @@ export function PlacesListPage() {
           <Plus className="mr-2 h-4 w-4" />
           {view === "prospects" ? "New prospect" : "Add New Place"}
         </Button>
+        )}
       </div>
 
       {/* Primary split: real Listings vs cold-outreach Prospects */}
       <div className="inline-flex rounded-lg border border-line bg-glass p-1">
-        {(["listings", "prospects"] as const).map((v) => (
+        {(["listings", "prospects", "wholesale"] as const).map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}

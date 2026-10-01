@@ -11,6 +11,9 @@ import { HowItWorksModal } from "../components/home/HowItWorksModal";
 import { NewsletterSignupModal } from "../components/home/NewsletterSignupModal";
 import { useQueryClient } from "@tanstack/react-query";
 import { toApiDateOnly } from "../../utils/dateHelpers";
+import { WHOLESALE_UI_ENABLED } from "../../hooks/useWholesale";
+
+type SupplyTab = "direct" | "wholesale";
 
 // Mapbox alone is ~1.7MB — split it out of the main bundle so it downloads
 // after the initial page shell instead of delaying first paint for
@@ -25,6 +28,9 @@ export function HomePage() {
   );
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | undefined>();
   const [hoveredPlaceId, setHoveredPlaceId] = useState<string | null>(null);
+  // Partner hotels (the secret-price game) vs wholesale "more hotels".
+  const [supplyTab, setSupplyTab] = useState<SupplyTab>("direct");
+  const source: SupplyTab = WHOLESALE_UI_ENABLED ? supplyTab : "direct";
 
   const searchDebounced = useDebounce(searchQuery, 300);
   const maxBidDebounced = useDebounce(maxBid, 300);
@@ -35,6 +41,7 @@ export function HomePage() {
     searchQuery: searchDebounced,
     ...(maxBidDebounced && { maxPrice: Number(maxBidDebounced) }),
     ...(listDate && { date: listDate }),
+    ...(source === "wholesale" && { source, limit: 100 }),
   };
 
   const queryClient = useQueryClient();
@@ -83,6 +90,36 @@ export function HomePage() {
           {/* Places List */}
           <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 sm:p-4">
             <MarketplaceHero />
+            {WHOLESALE_UI_ENABLED && (
+              <div
+                role="tablist"
+                aria-label="Hotel type"
+                className="mb-3 grid grid-cols-2 gap-1 rounded-xl border border-line bg-glass-2 p-1"
+              >
+                {(
+                  [
+                    ["direct", "Secret deals", "Partner hotels · name your price"],
+                    ["wholesale", "More hotels", "Member prices · book instantly"],
+                  ] as const
+                ).map(([tab, label, hint]) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={supplyTab === tab}
+                    onClick={() => setSupplyTab(tab)}
+                    className={`rounded-lg px-3 py-2 text-left transition-colors ${
+                      supplyTab === tab
+                        ? "bg-gold/15 text-fg ring-1 ring-gold/50"
+                        : "text-muted hover:text-fg"
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold">{label}</span>
+                    <span className="block text-[11px] text-muted">{hint}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             <PlacesSidebar
               places={places}
               isLoading={isLoading || isFetching}

@@ -41,6 +41,7 @@ import {
   generateUniquePlaceSlug,
   isUuid,
 } from "../libs/utils/placeSlug";
+import { WHOLESALE_CONFIG } from "../services/wholesale.service";
 
 const APP_URL = process.env.CLIENT_URL;
 
@@ -86,6 +87,11 @@ const formatPlace = (
   dynamicPricingEnabled: place.dynamicPricingEnabled ?? true,
   commissionOnly: place.commissionOnly ?? true,
   prospect: place.prospect ?? false,
+  supplySource: place.supplySource ?? "direct",
+  liteapiHotelId: place.liteapiHotelId ?? null,
+  starRating: place.starRating ?? null,
+  guestRating: place.guestRating ?? null,
+  guestReviewCount: place.guestReviewCount ?? null,
   autoAcceptAboveMinimum: place.autoAcceptAboveMinimum,
   blackoutDates: place.blackoutDates || [],
   allowedDaysOfWeek: place.allowedDaysOfWeek || [0, 1, 2, 3, 4, 5, 6],
@@ -147,7 +153,7 @@ const formatPublicPlace = (
   place: Parameters<typeof formatPlace>[0],
   inventoryInfo?: Parameters<typeof formatPlace>[1],
 ) => {
-  const { minimumBid: _minimumBid, autoAcceptAboveMinimum: _auto, thresholdPricingMode: _tpm, minimumBidByDayOfWeek: _mbd, previewToken: _pt, ...rest } =
+  const { minimumBid: _minimumBid, autoAcceptAboveMinimum: _auto, thresholdPricingMode: _tpm, minimumBidByDayOfWeek: _mbd, previewToken: _pt, liteapiHotelId: _lh, ...rest } =
     formatPlace(place, inventoryInfo);
   return rest;
 };
@@ -275,7 +281,11 @@ export async function listPlaces(req: Request, res: Response) {
 
   // `prospect` splits the dashboard into Listings (false) and Prospects (true).
   const prospectParam = req.query.prospect;
+  // Wholesale imports can number in the thousands — the admin page fetches
+  // everything at once, so they live behind their own ?source=wholesale tab.
+  const sourceParam = req.query.source === "wholesale" ? "wholesale" : "direct";
   const where: Prisma.PlaceWhereInput = {
+    supplySource: sourceParam,
     ...(status ? { status } : {}),
     ...(prospectParam === "true"
       ? { prospect: true }
@@ -386,13 +396,21 @@ export async function listPublicPlaces(req: Request, res: Response) {
     page = 1,
     limit = 12,
     date,
+    source = "direct",
   } = req.query as unknown as PublicPlacesQuery;
 
   const skip = (page - 1) * limit;
 
-  // Build where clause - only LIVE places
+  if (source === "wholesale" && !WHOLESALE_CONFIG.ENABLED) {
+    return res.status(200).json({
+      data: { places: [], total: 0, page, limit },
+    });
+  }
+
+  // Build where clause - only LIVE places, in the requested supply tab
   const where: Prisma.PlaceWhereInput = {
     status: PlaceStatus.LIVE,
+    supplySource: source,
   };
 
   // City filter (exact match, case-insensitive)
@@ -540,6 +558,9 @@ export async function getPublicPlace(req: Request, res: Response) {
     previewParam === computePreviewToken(place.id);
 
   if (place.status !== PlaceStatus.LIVE && !isPreview) {
+    throw new CustomError("Place not found", 404);
+  }
+  if (place.supplySource === "wholesale" && !WHOLESALE_CONFIG.ENABLED) {
     throw new CustomError("Place not found", 404);
   }
 
@@ -852,6 +873,10 @@ export async function updatePlace(req: Request, res: Response) {
     where: { id },
     data: {
       ...(slug && { slug }),
+      // Only an admin can move a listing between wholesale and direct.
+      ...(data.supplySource &&
+        (req.user?.role || req.user?.user_metadata?.role) ===
+          UserRole.ADMIN && { supplySource: data.supplySource }),
       ...(data.name && { name: data.name }),
       ...(data.shortDescription && { shortDescription: data.shortDescription }),
       ...(data.fullDescription && { fullDescription: data.fullDescription }),
