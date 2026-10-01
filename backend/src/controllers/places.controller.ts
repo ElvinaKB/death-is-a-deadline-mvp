@@ -308,12 +308,17 @@ export async function listPlaces(req: Request, res: Response) {
   // Collect all emails from this page of results
   const emails = places.map((p) => p.email).filter(Boolean);
 
-  // One query to find which emails already have a user account
-  const existingUsers = await supabase.rpc("get_users_by_emails", { emails });
-  if (existingUsers.error)
-    throw new CustomError("Failed to fetch user accounts", 500);
-  // or: prisma query against your users table if you mirror them there
-  const accountEmails = new Set(existingUsers.data.map((u: any) => u.email));
+  // One query to find which emails already have a user account. Skipped when
+  // no row has an email (e.g. the Wholesale tab — imported hotels have none,
+  // and an empty list is also what an empty tab sends).
+  let accountEmails = new Set<string>();
+  if (emails.length > 0) {
+    const existingUsers = await supabase.rpc("get_users_by_emails", { emails });
+    if (existingUsers.error)
+      throw new CustomError("Failed to fetch user accounts", 500);
+    // or: prisma query against your users table if you mirror them there
+    accountEmails = new Set(existingUsers.data.map((u: any) => u.email));
+  }
 
   // Attach the flag to each place
   const data = places.map((place) => ({
