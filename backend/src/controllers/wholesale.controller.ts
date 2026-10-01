@@ -75,21 +75,20 @@ export function requireCronSecret(req: Request, _res: Response, next: () => void
   next();
 }
 
+/** The California go-to-market city list (drives the nightly job + admin button). */
+export async function listMarkets(_req: Request, res: Response) {
+  res.status(200).json({ data: { markets: WHOLESALE_CONFIG.MARKETS } });
+}
+
 /**
- * Run the wholesale import (all California markets, or ?cities=A,B). Runs in
- * the background; results go to the server log.
+ * Import / refresh one city per request (?city=Los Angeles). The backend runs
+ * as Vercel serverless functions, which stop when the response is sent, so the
+ * work happens inside the request and callers step through the cities.
  */
 export async function runImport(req: Request, res: Response) {
-  const cities =
-    typeof req.query.cities === "string" && req.query.cities.trim()
-      ? req.query.cities.split(",").map((c) => c.trim()).filter(Boolean)
-      : WHOLESALE_CONFIG.MARKETS;
-
-  res.status(202).json({ message: "Import started", data: { cities } });
-
-  importWholesaleMarkets(cities)
-    .then((results) =>
-      console.log("[wholesale] import finished:", JSON.stringify(results)),
-    )
-    .catch((err) => console.error("[wholesale] import failed:", err));
+  const city = typeof req.query.city === "string" ? req.query.city.trim() : "";
+  if (!city) throw new CustomError("city is required", 400);
+  const [summary] = await importWholesaleMarkets([city]);
+  console.log("[wholesale] import:", JSON.stringify(summary));
+  res.status(200).json({ data: summary });
 }

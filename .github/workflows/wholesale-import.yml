@@ -24,4 +24,13 @@ jobs:
             echo "BACKEND_API_URL / WHOLESALE_CRON_SECRET not set — skipping."
             exit 0
           fi
-          curl -fsS -X POST "$API/api/wholesale/import/cron" -H "x-cron-secret: $SECRET"
+          # One city per request (the backend is serverless).
+          curl -fsS "$API/api/wholesale/markets" \
+            | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin)["data"]["markets"]))' \
+            | while IFS= read -r city; do
+                echo "Importing $city"
+                curl -sS -X POST -G "$API/api/wholesale/import/cron" \
+                  --data-urlencode "city=$city" \
+                  -H "x-cron-secret: $SECRET" --max-time 280 || echo "  failed: $city"
+                echo
+              done

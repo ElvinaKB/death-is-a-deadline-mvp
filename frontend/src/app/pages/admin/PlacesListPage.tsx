@@ -19,6 +19,7 @@ import { ENDPOINTS, getEndpoint } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
 import { ROUTES, getRoute } from "../../../config/routes.config";
 import { useApiQuery, useApiMutation } from "../../../hooks/useApi";
+import { apiClient } from "../../../lib/apiClient";
 import { useUpdatePlaceStatus } from "../../../hooks/usePlaces";
 import {
   ACCOMMODATION_TYPE_LABELS,
@@ -93,14 +94,35 @@ export function PlacesListPage() {
 
   const updateStatus = useUpdatePlaceStatus([QUERY_KEYS.PLACES, view, filter]);
 
-  const runWholesaleImport = useApiMutation<{ message: string }, void>({
-    endpoint: ENDPOINTS.WHOLESALE_IMPORT,
-    showErrorToast: true,
-    onSuccess: () =>
-      toast.success(
-        "Import started for all California markets — new hotels appear over the next few minutes.",
-      ),
-  });
+  // One city per request (the backend is serverless) — step through the
+  // California markets and report progress.
+  const [importProgress, setImportProgress] = useState<string | null>(null);
+  const runWholesaleImport = async () => {
+    try {
+      const { markets } = await apiClient.get<{ markets: string[] }>(
+        ENDPOINTS.WHOLESALE_MARKETS,
+      );
+      let created = 0;
+      let updated = 0;
+      for (const [i, city] of markets.entries()) {
+        setImportProgress(`${city} (${i + 1}/${markets.length})`);
+        try {
+          const r = await apiClient.post<{ created: number; updated: number }>(
+            `${ENDPOINTS.WHOLESALE_IMPORT}?city=${encodeURIComponent(city)}`,
+            {},
+          );
+          created += r.created;
+          updated += r.updated;
+        } catch {
+          toast.error(`Import failed for ${city} — skipping`);
+        }
+      }
+      toast.success(`Wholesale import done: ${created} new, ${updated} refreshed.`);
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PLACES] });
+    } finally {
+      setImportProgress(null);
+    }
+  };
 
   const switchToDirect = useApiMutation<unknown, { id: string }>({
     endpoint: (v) => getEndpoint(ENDPOINTS.PLACE_UPDATE, { id: v.id }),
@@ -396,12 +418,14 @@ export function PlacesListPage() {
         </div>
         {view === "wholesale" ? (
         <Button
-          onClick={() => runWholesaleImport.mutate()}
-          disabled={runWholesaleImport.isPending}
+          onClick={() => void runWholesaleImport()}
+          disabled={!!importProgress}
           className="btn-bid"
         >
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh wholesale hotels
+          <RefreshCw
+            className={`mr-2 h-4 w-4 ${importProgress ? "animate-spin" : ""}`}
+          />
+          {importProgress ? `Importing ${importProgress}…` : "Refresh wholesale hotels"}
         </Button>
         ) : (
         <Button

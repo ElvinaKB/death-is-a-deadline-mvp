@@ -207,7 +207,20 @@ export async function importWholesaleCity(city: string): Promise<ImportSummary> 
   });
   const byHotelId = new Map(existing.map((p) => [p.liteapiHotelId!, p]));
 
-  for (const [hotelId, offer] of offers) {
+  // New hotels need a details call each; run a few at a time so a big city
+  // (LA ≈ 190 hotels) finishes well inside a serverless request.
+  const entries = [...offers.entries()];
+  const CONCURRENCY = 8;
+  for (let i = 0; i < entries.length; i += CONCURRENCY) {
+    await Promise.all(
+      entries
+        .slice(i, i + CONCURRENCY)
+        .map(([hotelId, offer]) => upsertHotel(hotelId, offer)),
+    );
+  }
+  return summary;
+
+  async function upsertHotel(hotelId: string, offer: WholesaleOffer) {
     const quote = buildQuote(offer, 1);
     const retailPrice = quote.retailPricePerNight ?? quote.memberPricePerNight;
     const current = byHotelId.get(hotelId);
@@ -216,7 +229,7 @@ export async function importWholesaleCity(city: string): Promise<ImportSummary> 
       if (current) {
         if (current.supplySource !== "wholesale") {
           summary.skippedDirect++;
-          continue;
+          return;
         }
         await prisma.place.update({
           where: { id: current.id },
@@ -227,7 +240,7 @@ export async function importWholesaleCity(city: string): Promise<ImportSummary> 
           },
         });
         summary.updated++;
-        continue;
+        return;
       }
 
       const d = await getHotelDetails(hotelId);
@@ -283,8 +296,6 @@ export async function importWholesaleCity(city: string): Promise<ImportSummary> 
       summary.errors.push(`${hotelId}: ${(err as Error).message}`);
     }
   }
-
-  return summary;
 }
 
 export async function importWholesaleMarkets(
@@ -434,7 +445,8 @@ export async function fulfilWholesaleBid(bidId: string): Promise<FulfilmentResul
       },
     });
 
-    notifyTeamOfWholesaleBooking(bid.id).catch((e) =>
+    // Awaited: on serverless, work after the response may never run.
+    await notifyTeamOfWholesaleBooking(bid.id).catch((e) =>
       console.error("[wholesale] booking notification failed:", e),
     );
     return { ok: true };
@@ -481,7 +493,7 @@ async function refundFailedWholesaleBid(bidId: string, reason: string) {
     console.error(`[wholesale] REFUND FAILED for bid ${bid.id} — refund manually:`, err);
   }
 
-  sendPlainEmail({
+  await sendPlainEmail({
     to: WHOLESALE_CONFIG.NOTIFY_EMAIL,
     subject: `Wholesale booking FAILED — ${bid.place.name} (auto-refunded)`,
     html: `<p>Nuitee booking failed for bid ${bid.id} at <strong>${bid.place.name}</strong> (${toCalendarDateKey(bid.checkInDate)} → ${toCalendarDateKey(bid.checkOutDate)}).</p><p>Reason: ${reason}</p><p>The member was automatically refunded. Check Stripe if this email says otherwise.</p>`,
