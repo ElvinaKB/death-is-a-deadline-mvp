@@ -459,6 +459,8 @@ function BidFormInner({
 
   const [bidResult, setBidResult] = useState<BidResultState | null>(null);
   const [rejectedScrollTrigger, setRejectedScrollTrigger] = useState(0);
+  // Wholesale: member price revealed by the API after a few losing bids.
+  const [revealedPricePerNight, setRevealedPricePerNight] = useState<number | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [cardNotice, setCardNotice] = useState<string | null>(null);
@@ -1233,11 +1235,8 @@ function BidFormInner({
           const revealed = (error.data as { revealedPricePerNight?: number } | undefined)
             ?.revealedPricePerNight;
           if (revealed) {
+            setRevealedPricePerNight(revealed);
             void formik.setFieldValue("bidPerNight", String(revealed));
-            toast.success(
-              `The member price is ${formatCurrency(revealed)}/night — we've filled it in. Bid again to book it.`,
-              { duration: 8000 },
-            );
           }
         } else if (isBidOverlapRejection(error)) {
           setPaymentError(
@@ -1441,6 +1440,7 @@ function BidFormInner({
 
   const handleTryAgain = () => {
     setBidResult(null);
+    setRevealedPricePerNight(null);
     setPaymentError(null);
     setCardNotice(null);
     setPaymentId(null);
@@ -1787,6 +1787,7 @@ function BidFormInner({
         isRebidding={isRebidProcessing}
         isProcessingBid={isProcessing}
         paymentError={paymentError}
+        revealedPricePerNight={revealedPricePerNight}
         scrollToHeaderTrigger={
           shouldShowRejectedOutcome(bidResult!.bidStatus)
             ? rejectedScrollTrigger

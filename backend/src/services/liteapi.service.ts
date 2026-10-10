@@ -48,6 +48,7 @@ export class LiteapiError extends Error {
 export interface LiteapiHotelSummary {
   id: string;
   name: string;
+  hotelTypeId?: number | string;
   hotelDescription?: string;
   city?: string;
   country?: string;

@@ -2,8 +2,8 @@ import { Router } from "express";
 import { authenticate } from "../libs/middlewares/authenticate";
 import { validate } from "../libs/middlewares/validate";
 import { rateLimit } from "../libs/middlewares/rateLimit";
-import { placeViewSchema } from "../validations/events/events.validation";
-import { recordPlaceView } from "../controllers/events.controller";
+import { placeExitSchema, placeViewSchema } from "../validations/events/events.validation";
+import { recordPlaceExit, recordPlaceView } from "../controllers/events.controller";
 import { UserRole } from "../types/auth.types";
 
 const router = Router();
@@ -18,6 +18,14 @@ router.post(
   viewRateLimit,
   validate(placeViewSchema),
   recordPlaceView,
+);
+
+router.post(
+  "/place-exit",
+  authenticate(UserRole.STUDENT),
+  viewRateLimit,
+  validate(placeExitSchema),
+  recordPlaceExit,
 );
 
 export { router };

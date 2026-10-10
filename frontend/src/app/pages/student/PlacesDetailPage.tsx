@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { differenceInDays, format } from "date-fns";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ENDPOINTS } from "../../../config/endpoints.config";
@@ -15,8 +15,10 @@ import { getPublicPlacePath } from "../../../utils/placeUrl";
 import { useApiQuery } from "../../../hooks/useApi";
 import { usePublicPlace } from "../../../hooks/usePlaces";
 import { useAppSelector } from "../../../store/hooks";
-import { apiClient } from "../../../lib/apiClient";
+import { apiClient, API_BASE_URL } from "../../../lib/apiClient";
 import { hasCookieConsent } from "../../../utils/cookieConsent";
+import { getAuthToken } from "../../../utils/tokenHelpers";
+import { useWholesaleQuote } from "../../../hooks/useWholesale";
 import { toApiDateOnly } from "../../../utils/dateHelpers";
 import { getYouTubeEmbedUrl } from "../../../utils/videoEmbed";
 import {
@@ -147,6 +149,49 @@ export function PlaceDetailPage() {
     bidId: contextBidId,
   });
 
+  // Wholesale hotels: the hero shows the live public price for the picked
+  // dates (shares the bid form's cached quote) instead of the nightly snapshot.
+  const isWholesalePlace = place?.supplySource === "wholesale";
+  const { data: liveQuote } = useWholesaleQuote(
+    placeId || "",
+    toApiDateOnly(bookingCheckIn),
+    toApiDateOnly(bookingCheckOut),
+    isAuthenticated && isWholesalePlace,
+  );
+
+  // First-party "left the listing" event, paired with bids to find each
+  // session's best-and-final offer. Same consent gate as the view event; sent
+  // with keepalive so it survives the tab closing.
+  const exitDatesRef = useRef<{ checkInDate?: string; checkOutDate?: string }>({});
+  exitDatesRef.current = {
+    checkInDate: toApiDateOnly(bookingCheckIn),
+    checkOutDate: toApiDateOnly(bookingCheckOut),
+  };
+  useEffect(() => {
+    if (!placeId || !isAuthenticated) return;
+    let sent = false;
+    const send = () => {
+      if (sent || !hasCookieConsent()) return;
+      const token = getAuthToken();
+      if (!token) return;
+      sent = true;
+      fetch(`${API_BASE_URL}${ENDPOINTS.EVENTS_PLACE_EXIT}`, {
+        method: "POST",
+        keepalive: true,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ placeId, ...exitDatesRef.current }),
+      }).catch(() => {});
+    };
+    window.addEventListener("pagehide", send);
+    return () => {
+      window.removeEventListener("pagehide", send);
+      send();
+    };
+  }, [placeId, isAuthenticated]);
+
   // First-party browse event: a logged-in traveler viewed this listing.
   // Consent-gated (honors Reject + GPC via hasCookieConsent), fired once per
   // place per session, fire-and-forget. Powers the "explored but didn't bid"
@@ -239,8 +284,20 @@ export function PlaceDetailPage() {
     bookingCheckIn && bookingCheckOut
       ? Math.max(1, differenceInDays(bookingCheckOut, bookingCheckIn))
       : 0;
+  // Wholesale: live public price (incl. mandatory hotel fees) once dates are
+  // picked; otherwise the stored retail anchor.
+  const liveRetailPerNight =
+    isWholesalePlace && liveQuote?.available && liveQuote.bookNowPricePerNight
+      ? liveQuote.bookNowPricePerNight +
+        Math.ceil((liveQuote.payAtHotelNonTax ?? 0) / (liveQuote.nights ?? 1))
+      : null;
+  const heroRetailPrice = liveRetailPerNight ?? place.retailPrice;
   const retailTotal =
-    bookingNights > 0 ? place.retailPrice * bookingNights : 0;
+    bookingNights > 0
+      ? liveQuote?.available && liveQuote.bookNowDisplayTotal && isWholesalePlace
+        ? liveQuote.bookNowDisplayTotal
+        : heroRetailPrice * bookingNights
+      : 0;
 
   const heroRatingBadgeClass =
     "absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-xs backdrop-blur-sm transition-colors hover:bg-black/85 cursor-pointer";
@@ -333,7 +390,7 @@ export function PlaceDetailPage() {
                   Retail price
                 </p>
                 <p className="font-sans font-bold tracking-tight tabular-nums text-3xl leading-tight text-fg sm:text-4xl md:text-5xl">
-                  {formatCurrency(place.retailPrice)}
+                  {formatCurrency(heroRetailPrice)}
                 </p>
                 {bookingNights > 0 && (
                   <p className="hidden text-xs text-muted sm:block">

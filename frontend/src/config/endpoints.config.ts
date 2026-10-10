@@ -93,6 +93,11 @@ export const ENDPOINTS = {
 
   // Events (first-party browse analytics)
   EVENTS_PLACE_VIEW: "/api/events/place-view",
+  EVENTS_PLACE_EXIT: "/api/events/place-exit",
+
+  // Admin analytics
+  ANALYTICS_PLACE_SUMMARY: "/api/analytics/places/:id/summary",
+  ANALYTICS_BIDS_CSV: "/api/analytics/bids.csv",
 
   // Geo (silent, coarse IP hint for proximity ordering)
   GEO_HINT: "/api/geo/hint",

@@ -15,6 +15,7 @@ import {
   book,
   getCheapestOffers,
   getHotelDetails,
+  getHotelsByIds,
   getLiteapiKey,
   isLiteapiSandbox,
   LiteapiError,
@@ -61,6 +62,17 @@ export const WHOLESALE_CONFIG = {
     "Pasadena",
     "South Lake Tahoe",
   ],
+  // Quality bar for imported hotels (Elvina, 2026-10-10): no motels, 3 stars
+  // or more, guest rating 7.5/10 or more. Nuitee hotel type ids — kept:
+  // 204 hotels, 206 resorts, 208 B&Bs/boutique, 218 inns. Everything else
+  // (205 motels, 201 apartments, 219 guesthouses, 220 vacation homes,
+  // 264 hostels, …) is skipped.
+  ALLOWED_HOTEL_TYPE_IDS: [204, 206, 208, 218],
+  MIN_STARS: 3,
+  MIN_GUEST_RATING: 7.5,
+  // Motel brands Nuitee files under "Hotels".
+  EXCLUDED_NAME_PATTERN:
+    /\bmotel\b|motel 6|vagabond|super 8|days inn|econo ?lodge|rodeway|travelodge|americas best value|knights inn|red roof/i,
   // Bookings + daily summaries go here so the team can call the hotel.
   get NOTIFY_EMAIL() {
     return process.env.WHOLESALE_NOTIFY_EMAIL || "hotels@deadlinetravel.com";
@@ -76,9 +88,18 @@ export function isWholesale(place: Pick<Place, "supplySource">): boolean {
 export interface WholesaleQuote {
   offer: WholesaleOffer;
   nights: number;
-  /** The secret price: a bid at or above this (per night) wins. */
+  /**
+   * The secret member price: a bid at or above this (per night) wins. Never
+   * sent to the browser — only revealed after REVEAL_AFTER_LOSING_BIDS misses.
+   */
   memberPricePerNight: number;
   memberTotal: number;
+  /**
+   * "Book now" with no game = the public price (Nuitee's suggested selling
+   * price). The anchor that makes a winning bid look steep. Falls back to the
+   * member price when Nuitee has no public price.
+   */
+  bookNowPricePerNight: number;
   /** Public anchor (Nuitee's suggested selling price), per night. */
   retailPricePerNight: number | null;
   /** Mandatory fees/taxes collected by the hotel at check-in, whole stay. */
@@ -112,11 +133,15 @@ function buildQuote(offer: WholesaleOffer, nights: number): WholesaleQuote {
   const memberPricePerNight = Math.ceil(
     (offer.cost * (1 + WHOLESALE_CONFIG.MARGIN)) / nights,
   );
+  const publicPerNight = offer.suggestedSellingPrice
+    ? Math.ceil(offer.suggestedSellingPrice / nights)
+    : 0;
   return {
     offer,
     nights,
     memberPricePerNight,
     memberTotal: memberPricePerNight * nights,
+    bookNowPricePerNight: Math.max(publicPerNight, memberPricePerNight),
     retailPricePerNight: offer.suggestedSellingPrice
       ? Math.round(offer.suggestedSellingPrice / nights)
       : null,
@@ -158,9 +183,52 @@ function to24h(time?: string): string | null {
   return `${String(h).padStart(2, "0")}:${m[2]}`;
 }
 
+export function meetsQualityBar(
+  h: { name?: string; hotelTypeId?: unknown; stars?: unknown; rating?: unknown } | undefined,
+): boolean {
+  if (!h) return false;
+  const typeId = Number(h.hotelTypeId);
+  return (
+    (WHOLESALE_CONFIG.ALLOWED_HOTEL_TYPE_IDS as readonly number[]).includes(typeId) &&
+    Number(h.stars ?? 0) >= WHOLESALE_CONFIG.MIN_STARS &&
+    Number(h.rating ?? 0) >= WHOLESALE_CONFIG.MIN_GUEST_RATING &&
+    !WHOLESALE_CONFIG.EXCLUDED_NAME_PATTERN.test(h.name ?? "")
+  );
+}
+
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\b(the|hotel|inn|a|an|by|and|santa barbara|los angeles|ca)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isSameHotel(
+  direct: { name: string; latitude: number | null; longitude: number | null },
+  h: { name?: string; latitude?: unknown; longitude?: unknown },
+): boolean {
+  const a = normalizeName(direct.name);
+  const b = normalizeName(h.name ?? "");
+  if (a.length >= 5 && b.length >= 5 && (a === b || a.includes(b) || b.includes(a))) {
+    return true;
+  }
+  const lat = Number(h.latitude);
+  const lng = Number(h.longitude);
+  if (direct.latitude == null || direct.longitude == null || !lat || !lng) return false;
+  // ~150m in degrees at California latitudes.
+  return (
+    Math.abs(direct.latitude - lat) < 0.00135 &&
+    Math.abs(direct.longitude - lng) < 0.0016
+  );
+}
+
 export interface ImportSummary {
   city: string;
   available: number;
+  filteredOut?: number;
+  paused?: number;
   created: number;
   updated: number;
   skippedDirect: number;
@@ -196,6 +264,67 @@ export async function importWholesaleCity(city: string): Promise<ImportSummary> 
       for (const [id, offer] of found) if (!offers.has(id)) offers.set(id, offer);
     } catch (err) {
       summary.errors.push(`${w.checkin}: ${(err as Error).message}`);
+    }
+  }
+  if (offers.size === 0) return summary;
+
+  // Quality filter (type, stars, guest rating, motel brands). Hotels already
+  // imported that no longer qualify are paused, not deleted, so their bid
+  // history stays.
+  const info = await getHotelsByIds([...offers.keys()]);
+  const infoById = new Map(info.map((h) => [h.id, h]));
+  const rejected: string[] = [];
+  for (const id of [...offers.keys()]) {
+    if (!meetsQualityBar(infoById.get(id))) {
+      offers.delete(id);
+      rejected.push(id);
+    }
+  }
+  summary.filteredOut = rejected.length;
+
+  // Also sweep this city's existing wholesale listings against what we store
+  // (stars, guest rating, name) — catches motels imported before the filter
+  // existed even on nights they have no availability.
+  const stale = await prisma.place.findMany({
+    where: { supplySource: "wholesale", status: PlaceStatus.LIVE, city },
+    select: { liteapiHotelId: true, name: true, starRating: true, guestRating: true },
+  });
+  for (const p of stale) {
+    if (
+      p.liteapiHotelId &&
+      !rejected.includes(p.liteapiHotelId) &&
+      ((p.starRating ?? 0) < WHOLESALE_CONFIG.MIN_STARS ||
+        (p.guestRating ?? 0) < WHOLESALE_CONFIG.MIN_GUEST_RATING ||
+        WHOLESALE_CONFIG.EXCLUDED_NAME_PATTERN.test(p.name))
+    ) {
+      rejected.push(p.liteapiHotelId);
+    }
+  }
+  if (rejected.length > 0) {
+    const paused = await prisma.place.updateMany({
+      where: {
+        liteapiHotelId: { in: rejected },
+        supplySource: "wholesale",
+        status: PlaceStatus.LIVE,
+      },
+      data: { status: PlaceStatus.PAUSED },
+    });
+    summary.paused = paused.count;
+  }
+  summary.available = offers.size;
+  if (offers.size === 0) return summary;
+
+  // Never import a hotel we already list directly (same city and either the
+  // same name or within ~150m) — e.g. a partner hotel that's also on Nuitee.
+  const directPlaces = await prisma.place.findMany({
+    where: { supplySource: "direct", city: { equals: city, mode: "insensitive" } },
+    select: { name: true, latitude: true, longitude: true },
+  });
+  for (const id of [...offers.keys()]) {
+    const h = infoById.get(id);
+    if (h && directPlaces.some((d) => isSameHotel(d, h))) {
+      offers.delete(id);
+      summary.skippedDirect++;
     }
   }
   summary.available = offers.size;

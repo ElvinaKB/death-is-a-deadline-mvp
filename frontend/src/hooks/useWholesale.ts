@@ -4,16 +4,15 @@ import { ENDPOINTS, getEndpoint } from "../config/endpoints.config";
 export interface WholesaleQuote {
   available: boolean;
   nights?: number;
-  /** The member price — a bid at or above this (per night) wins. */
-  memberPricePerNight?: number;
-  memberTotal?: number;
-  retailPricePerNight?: number | null;
+  /** "Book now" = the public price (no game). The member price stays secret. */
+  bookNowPricePerNight?: number;
+  bookNowTotal?: number;
   /** Taxes/fees the hotel collects at check-in (whole stay). */
   payAtHotel?: number;
   /** Non-tax part of payAtHotel (resort/service fees) — must be in the shown total. */
   payAtHotelNonTax?: number;
-  /** memberTotal + mandatory non-tax fees: the price to display. */
-  displayTotal?: number;
+  /** bookNowTotal + mandatory non-tax fees: the total to display. */
+  bookNowDisplayTotal?: number;
   refundable?: boolean;
   roomName?: string;
   boardName?: string;

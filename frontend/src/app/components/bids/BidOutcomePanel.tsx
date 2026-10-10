@@ -41,6 +41,8 @@ interface BidOutcomePanelProps {
   paymentError?: string | null;
   /** When set, scrolls the NOT ACCEPTED header into view on change (after submit/rebid rejection). */
   scrollToHeaderTrigger?: number;
+  /** Wholesale: the member price revealed after a few misses (shown as a card). */
+  revealedPricePerNight?: number | null;
 }
 
 export function BidOutcomePanel({
@@ -57,6 +59,7 @@ export function BidOutcomePanel({
   isProcessingBid,
   paymentError,
   scrollToHeaderTrigger,
+  revealedPricePerNight,
 }: BidOutcomePanelProps) {
   const isBusy = isRebidding || isProcessingBid;
   // Per-listing payment model (defaults to commission-only / Model B).
@@ -229,9 +232,36 @@ export function BidOutcomePanel({
         </div>
         <h2 className="outcome-rejected-title">NOT ACCEPTED</h2>
         <p className="outcome-rejected-subtitle">
-          This bid didn&apos;t meet the hotel&apos;s hidden threshold.
+          {place.supplySource === "wholesale"
+            ? "This bid didn't reach the secret member price."
+            : "This bid didn't meet the hotel's hidden threshold."}
         </p>
       </div>
+
+      {revealedPricePerNight ? (
+        <div className="rounded-xl border-2 border-gold bg-gold/10 p-4 text-center space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold">
+            Your member price
+          </p>
+          <p className="text-4xl font-bold text-fg tabular-nums">
+            {formatCurrency(revealedPricePerNight)}
+            <span className="text-base font-normal text-muted"> / night</span>
+          </p>
+          <p className="text-sm text-muted">
+            Three tries earns you the answer. Book it at this price, or keep bidding.
+          </p>
+          {onRebid && (
+            <button
+              type="button"
+              disabled={isRebidding || isProcessingBid}
+              onClick={() => onRebid(revealedPricePerNight)}
+              className="listing-card-bid-btn h-11 w-full rounded-lg text-sm uppercase"
+            >
+              Book it at {formatCurrency(revealedPricePerNight)}/night
+            </button>
+          )}
+        </div>
+      ) : null}
 
       <div className="border-t border-line/40" role="presentation" />
 

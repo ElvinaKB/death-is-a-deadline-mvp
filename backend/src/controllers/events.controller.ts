@@ -20,3 +20,33 @@ export async function recordPlaceView(req: Request, res: Response) {
   // Always 204 — the client doesn't care about the outcome.
   res.status(204).end();
 }
+
+/**
+ * Record that a traveler left a hotel listing (closed it or navigated away).
+ * Sent with fetch keepalive from the client, consent-gated like place views.
+ * Fail open — never errors, even before migration 052 runs.
+ */
+export async function recordPlaceExit(req: Request, res: Response) {
+  const userId = req.user!.id;
+  const { placeId, checkInDate, checkOutDate } = req.body as {
+    placeId: string;
+    checkInDate?: string;
+    checkOutDate?: string;
+  };
+  const day = (d?: string) =>
+    d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(`${d}T00:00:00.000Z`) : null;
+
+  try {
+    await prisma.placeExit.create({
+      data: {
+        userId,
+        placeId,
+        checkInDate: day(checkInDate),
+        checkOutDate: day(checkOutDate),
+      },
+    });
+  } catch (err) {
+    console.warn("[events] place-exit not recorded (migration 052 not run?):", err);
+  }
+  res.status(204).end();
+}

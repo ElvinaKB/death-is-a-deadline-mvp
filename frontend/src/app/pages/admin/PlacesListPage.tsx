@@ -12,6 +12,7 @@ import {
   Link2,
   RefreshCw,
   Handshake,
+  BarChart3,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -83,6 +84,9 @@ export function PlacesListPage() {
   const { data, isLoading } = useApiQuery<PlacesResponse>({
     queryKey: [QUERY_KEYS.PLACES, view, filter],
     endpoint: ENDPOINTS.PLACES_LIST,
+    // Don't show the previous tab's hotels while this one loads — switching
+    // Listings → Wholesale must never look like direct hotels are wholesale.
+    placeholderData: undefined,
     params: {
       limit: 1000,
       ...(view === "wholesale"
@@ -282,6 +286,14 @@ export function PlacesListPage() {
             >
               <MessageSquareQuote className="mr-2 h-4 w-4" />
               Testimonials
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                navigate(getRoute(ROUTES.ADMIN_PLACES_DATA, { id: row.id }))
+              }
+            >
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Data &amp; bids
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleStatusToggle(row)}>
               {row.status === PlaceStatus.LIVE ? (
