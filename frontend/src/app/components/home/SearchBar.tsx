@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { Search, Calendar, ChevronDown } from "lucide-react";
+import { Search, Calendar, ChevronDown, MapPin } from "lucide-react";
+import { useApiQuery } from "../../../hooks/useApi";
+import { ENDPOINTS } from "../../../config/endpoints.config";
+import { QUERY_KEYS } from "../../../config/queryKeys.config";
+import { GeoHint } from "../../../utils/geo";
 import { addDays, format } from "date-fns";
 import { parseApiDate, toApiDateOnly } from "../../../utils/dateHelpers";
 import { Button } from "../ui/button";
@@ -22,6 +26,18 @@ export function SearchBar({ onSearch }: SearchBarProps) {
   const { searchQuery, maxBid, selectedDate, dateOption } = useAppSelector(
     (state) => state.search
   );
+
+  // Show the city the listings are near (same cached IP hint the homepage
+  // uses to sort), so the bar reads "San Francisco" instead of a generic
+  // placeholder. Typing a city still searches as before.
+  const { data: geoHint } = useApiQuery<GeoHint>({
+    queryKey: [QUERY_KEYS.GEO_HINT],
+    endpoint: ENDPOINTS.GEO_HINT,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+  });
+  const nearCity = geoHint?.city || null;
 
   const [isDateOpen, setIsDateOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -80,15 +96,24 @@ export function SearchBar({ onSearch }: SearchBarProps) {
         <label htmlFor="marketplace-location" className="sr-only">
           Location
         </label>
-        <Search className="h-4 w-4 text-gold shrink-0" aria-hidden />
+        {nearCity && !searchQuery ? (
+          <MapPin className="h-5 w-5 text-gold shrink-0" aria-hidden />
+        ) : (
+          <Search className="h-4 w-4 text-gold shrink-0" aria-hidden />
+        )}
         <input
           id="marketplace-location"
           type="search"
-          placeholder="Los Angeles"
+          placeholder={nearCity ? `${nearCity} · change city` : "Search a city"}
+          aria-label={nearCity ? `Showing hotels near ${nearCity}. Type to change city` : "Search a city"}
           value={searchQuery}
           onChange={(e) => dispatch(setSearchQuery(e.target.value))}
           onKeyDown={handleKeyDown}
-          className="w-full bg-transparent border-0 outline-none text-sm text-fg placeholder:text-muted"
+          className={`w-full bg-transparent border-0 outline-none text-base text-fg ${
+            nearCity
+              ? "placeholder:text-fg placeholder:font-semibold"
+              : "placeholder:text-muted"
+          }`}
         />
         {searchQuery && (
           <button

@@ -63,11 +63,6 @@ export function PlacesSidebar({
               onHover={onPlaceHover}
             />
           ))}
-          {(places.length > 0 || moreLoading) && (
-            <p className="pt-2 text-sm font-semibold uppercase tracking-[0.14em] text-muted">
-              More hotels near you · bid below the public price
-            </p>
-          )}
         </div>
       )}
       {moreLoading &&
