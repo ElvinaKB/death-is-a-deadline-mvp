@@ -221,6 +221,12 @@ export const publicPlacesQuerySchema = z.object({
   date: z.string().optional(),
   // Marketplace tab: direct partners (default) or wholesale (Nuitee) hotels.
   source: z.enum(["direct", "wholesale"]).optional().default("direct"),
+  // Viewer location "lat,lng" — when set, results are ordered nearest-first
+  // across the whole inventory (not just within one page).
+  near: z
+    .string()
+    .regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/)
+    .optional(),
 });
 
 export const resendHotelInviteSchema = z.object({

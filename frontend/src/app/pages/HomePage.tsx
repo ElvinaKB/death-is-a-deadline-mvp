@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { ENDPOINTS } from "../../config/endpoints.config";
 import { QUERY_KEYS } from "../../config/queryKeys.config";
 import { useApiQuery } from "../../hooks/useApi";
@@ -13,8 +13,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toApiDateOnly } from "../../utils/dateHelpers";
 import { WHOLESALE_UI_ENABLED } from "../../hooks/useWholesale";
 
-type SupplyTab = "direct" | "wholesale";
-
 // Mapbox alone is ~1.7MB — split it out of the main bundle so it downloads
 // after the initial page shell instead of delaying first paint for
 // everyone (the map is also hidden on mobile entirely).
@@ -22,70 +20,87 @@ const PlacesMap = lazy(() =>
   import("../components/home/PlacesMap").then((m) => ({ default: m.PlacesMap })),
 );
 
+const WHOLESALE_PAGE = 24;
+
 export function HomePage() {
   const { searchQuery, maxBid, selectedDate } = useAppSelector(
     (state) => state.search,
   );
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | undefined>();
   const [hoveredPlaceId, setHoveredPlaceId] = useState<string | null>(null);
-  // Partner hotels (the secret-price game) vs wholesale "more hotels".
-  const [supplyTab, setSupplyTab] = useState<SupplyTab>("direct");
-  const source: SupplyTab = WHOLESALE_UI_ENABLED ? supplyTab : "direct";
 
   const searchDebounced = useDebounce(searchQuery, 300);
   const maxBidDebounced = useDebounce(maxBid, 300);
 
   const listDate = toApiDateOnly(selectedDate);
 
-  const params = {
-    searchQuery: searchDebounced,
-    ...(maxBidDebounced && { maxPrice: Number(maxBidDebounced) }),
-    ...(listDate && { date: listDate }),
-    ...(source === "wholesale" && { source, limit: 100 }),
-  };
-
-  const queryClient = useQueryClient();
-  const { data, isLoading, isFetching } = useApiQuery<PlacesResponse>({
-    queryKey: [QUERY_KEYS.PLACES, "public", params],
-    endpoint: ENDPOINTS.PLACES_PUBLIC,
-    params,
-  });
-
   // Silent, coarse IP-based location hint (Vercel edge headers — no prompt).
-  // Used only to reorder listings nearest-first; full inventory still shows.
-  // One hint per session is plenty, so never refetch.
-  const { data: geoHint } = useApiQuery<GeoHint>({
+  // Drives nearest-first ordering. One hint per session is plenty.
+  const {
+    data: geoHint,
+    isFetched: geoFetched,
+    isError: geoError,
+  } = useApiQuery<GeoHint>({
     queryKey: [QUERY_KEYS.GEO_HINT],
     endpoint: ENDPOINTS.GEO_HINT,
     staleTime: Infinity,
     gcTime: Infinity,
     retry: false,
   });
+  // Rounded so nearby viewers share the edge-cached response.
+  const near =
+    typeof geoHint?.latitude === "number" && typeof geoHint?.longitude === "number"
+      ? `${geoHint.latitude.toFixed(1)},${geoHint.longitude.toFixed(1)}`
+      : undefined;
 
-  // On the wholesale tab, pin matching direct partners on top as "Secret
-  // deal" cards — the real secret prices sit above the wholesale list.
-  const featuredParams = {
+  const baseParams = {
     searchQuery: searchDebounced,
+    ...(maxBidDebounced && { maxPrice: Number(maxBidDebounced) }),
     ...(listDate && { date: listDate }),
   };
-  const { data: featuredData } = useApiQuery<PlacesResponse>({
-    queryKey: [QUERY_KEYS.PLACES, "public", "featured", featuredParams],
-    endpoint: ENDPOINTS.PLACES_PUBLIC,
-    params: featuredParams,
-    enabled: source === "wholesale",
-  });
-  const featuredPlaces = useMemo(
-    () =>
-      source === "wholesale"
-        ? sortPlacesByProximity(featuredData?.places ?? [], geoHint).slice(0, 3)
-        : [],
-    [source, featuredData?.places, geoHint],
-  );
 
-  const places = useMemo(
+  // 1) Direct partner hotels — the real secret prices. Few rows, loads first
+  //    and renders at the top as gold "Secret deal" cards.
+  const params = { ...baseParams, limit: 50 };
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useApiQuery<PlacesResponse>({
+    queryKey: [QUERY_KEYS.PLACES, "public", params],
+    endpoint: ENDPOINTS.PLACES_PUBLIC,
+    params,
+  });
+
+  // 2) Wholesale hotels below, nearest-first across all of California, a
+  //    page at a time ("Show more hotels"). Waits for the location hint so
+  //    the first page is already the closest hotels.
+  const [wholesaleLimit, setWholesaleLimit] = useState(WHOLESALE_PAGE);
+  useEffect(() => {
+    setWholesaleLimit(WHOLESALE_PAGE);
+  }, [searchDebounced, listDate, maxBidDebounced]);
+  const wholesaleParams = {
+    ...baseParams,
+    source: "wholesale",
+    limit: wholesaleLimit,
+    ...(near && { near }),
+  };
+  const {
+    data: wholesaleData,
+    isLoading: wholesaleLoading,
+    isFetching: wholesaleFetching,
+  } = useApiQuery<PlacesResponse>({
+    queryKey: [QUERY_KEYS.PLACES, "public", "wholesale", wholesaleParams],
+    endpoint: ENDPOINTS.PLACES_PUBLIC,
+    params: wholesaleParams,
+    enabled: WHOLESALE_UI_ENABLED && (geoFetched || geoError),
+  });
+
+  const directPlaces = useMemo(
     () => sortPlacesByProximity(data?.places ?? [], geoHint),
     [data?.places, geoHint],
   );
+  const wholesalePlaces = wholesaleData?.places ?? [];
+  const wholesaleTotal = wholesaleData?.total ?? 0;
+  const places = WHOLESALE_UI_ENABLED ? wholesalePlaces : directPlaces;
+  const featuredPlaces = WHOLESALE_UI_ENABLED ? directPlaces : [];
 
   const handleSearch = useCallback(() => {
     queryClient.invalidateQueries({
@@ -110,43 +125,26 @@ export function HomePage() {
           {/* Places List */}
           <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 sm:p-4">
             <MarketplaceHero />
-            {WHOLESALE_UI_ENABLED && (
-              <div
-                role="tablist"
-                aria-label="Hotel type"
-                className="mb-3 grid grid-cols-2 gap-1 rounded-xl border border-line bg-glass-2 p-1"
-              >
-                {(
-                  [
-                    ["direct", "Secret deals", "Partner hotels · bid your price"],
-                    ["wholesale", "More hotels", "Member prices · book instantly"],
-                  ] as const
-                ).map(([tab, label, hint]) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    role="tab"
-                    aria-selected={supplyTab === tab}
-                    onClick={() => setSupplyTab(tab)}
-                    className={`rounded-lg px-3 py-2 text-left transition-colors ${
-                      supplyTab === tab
-                        ? "bg-gold/15 text-fg ring-1 ring-gold/50"
-                        : "text-muted hover:text-fg"
-                    }`}
-                  >
-                    <span className="block text-sm font-semibold">{label}</span>
-                    <span className="block text-[11px] text-muted">{hint}</span>
-                  </button>
-                ))}
-              </div>
-            )}
             <PlacesSidebar
               places={places}
-              isLoading={isLoading || isFetching}
+              isLoading={isLoading}
+              moreLoading={WHOLESALE_UI_ENABLED && (wholesaleLoading || !wholesaleData)}
               selectedPlaceId={hoveredPlaceId || selectedPlaceId}
               onPlaceHover={handlePlaceHover}
               featuredPlaces={featuredPlaces}
             />
+            {WHOLESALE_UI_ENABLED && wholesalePlaces.length < wholesaleTotal && (
+              <button
+                type="button"
+                onClick={() => setWholesaleLimit((n) => n + WHOLESALE_PAGE)}
+                disabled={wholesaleFetching}
+                className="mt-4 h-12 w-full rounded-xl border border-gold/50 text-base font-semibold text-gold hover:bg-gold/10 disabled:opacity-60"
+              >
+                {wholesaleFetching
+                  ? "Loading…"
+                  : `Show more hotels (${wholesaleTotal - wholesalePlaces.length} more)`}
+              </button>
+            )}
           </div>
         </div>
 
@@ -157,7 +155,7 @@ export function HomePage() {
           />
           <Suspense fallback={<div className="flex-1 bg-bg" />}>
             <PlacesMap
-              places={featuredPlaces.length ? [...featuredPlaces, ...places] : places}
+              places={[...featuredPlaces, ...places]}
               selectedPlaceId={hoveredPlaceId || selectedPlaceId}
               onPlaceSelect={setSelectedPlaceId}
             />

@@ -11,6 +11,8 @@ interface PlacesSidebarProps {
   title?: string;
   /** Direct partners pinned above the list as "Secret deal" cards. */
   featuredPlaces?: Place[];
+  /** The (wholesale) list below the featured cards is still loading. */
+  moreLoading?: boolean;
 }
 
 export function PlacesSidebar({
@@ -20,6 +22,7 @@ export function PlacesSidebar({
   onPlaceHover,
   title,
   featuredPlaces = [],
+  moreLoading = false,
 }: PlacesSidebarProps) {
   if (isLoading) {
     return (
@@ -31,7 +34,7 @@ export function PlacesSidebar({
     );
   }
 
-  if (places.length === 0 && featuredPlaces.length === 0) {
+  if (places.length === 0 && featuredPlaces.length === 0 && !moreLoading) {
     return (
       <div className="text-center py-8">
         <MapPin className="mx-auto h-12 w-12 text-muted mb-3" />
@@ -57,13 +60,18 @@ export function PlacesSidebar({
               onHover={onPlaceHover}
             />
           ))}
-          {places.length > 0 && (
+          {(places.length > 0 || moreLoading) && (
             <p className="pt-2 text-sm font-semibold uppercase tracking-[0.14em] text-muted">
-              More hotels · bid below the public price
+              More hotels near you · bid below the public price
             </p>
           )}
         </div>
       )}
+      {moreLoading &&
+        places.length === 0 &&
+        [1, 2, 3].map((i) => (
+          <SkeletonLoader key={`more-${i}`} className="h-[7.7rem] rounded-xl bg-glass" />
+        ))}
       {places.map((place) => (
         <PlaceListItem
           key={place.id}
