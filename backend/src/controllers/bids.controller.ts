@@ -40,11 +40,12 @@ import { isBidAboveDynamicStayThreshold } from "../services/dynamicPricing.servi
 import {
   countLosingBids,
   getWholesaleQuote,
+  isWholesaleTester,
   isWholesale,
   WHOLESALE_CONFIG,
   WholesaleQuote,
 } from "../services/wholesale.service";
-import { cancelBooking } from "../services/liteapi.service";
+import { cancelBooking, isLiteapiSandbox } from "../services/liteapi.service";
 
 // Helper to format bid response
 const formatBid = (bid: any) => {
@@ -239,6 +240,30 @@ export async function createBid(req: Request, res: Response) {
           }),
         },
         ErrorCode.BID_TOO_LOW,
+      );
+    }
+    // Sandbox key = fake hotel bookings, but the Stripe charge would be real.
+    // Until the production Nuitee key is in, only listed testers can book;
+    // everyone else's winning bids are recorded but stop here.
+    if (isLiteapiSandbox() && !isWholesaleTester(req.user?.email)) {
+      await prisma.bid.create({
+        data: {
+          placeId: data.placeId,
+          studentId,
+          checkInDate,
+          checkOutDate,
+          bidPerNight: data.bidPerNight,
+          totalNights,
+          totalAmount,
+          status: bid_status.REJECTED,
+          rejectionReason: "Winning bid — wholesale booking not open yet (sandbox)",
+        },
+      });
+      throw new CustomError(
+        "Your bid would have won! Booking for this hotel opens soon — you haven't been charged.",
+        409,
+        { bookingNotOpenYet: true },
+        ErrorCode.PLACE_NOT_AVAILABLE,
       );
     }
   } else if (
