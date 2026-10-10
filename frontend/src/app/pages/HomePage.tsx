@@ -3,8 +3,8 @@ import { ENDPOINTS } from "../../config/endpoints.config";
 import { QUERY_KEYS } from "../../config/queryKeys.config";
 import { useApiQuery } from "../../hooks/useApi";
 import { useDebounce } from "../../hooks/useDebounce";
-import { PlacesResponse } from "../../types/place.types";
-import { GeoHint, sortPlacesByProximity } from "../../utils/geo";
+import { Place, PlacesResponse } from "../../types/place.types";
+import { GeoHint, haversineKm, sortPlacesByProximity } from "../../utils/geo";
 import { useAppSelector } from "../../store/hooks";
 import { HomeHeader, MarketplaceHero, PlacesSidebar } from "../components/home";
 import { HowItWorksModal } from "../components/home/HowItWorksModal";
@@ -21,6 +21,8 @@ const PlacesMap = lazy(() =>
 );
 
 const WHOLESALE_PAGE = 24;
+// Partner hotels within this distance of the viewer are pinned on top.
+const NEARBY_KM = 80;
 
 export function HomePage() {
   const { searchQuery, maxBid, selectedDate } = useAppSelector(
@@ -99,8 +101,43 @@ export function HomePage() {
   );
   const wholesalePlaces = wholesaleData?.places ?? [];
   const wholesaleTotal = wholesaleData?.total ?? 0;
-  const places = WHOLESALE_UI_ENABLED ? wholesalePlaces : directPlaces;
-  const featuredPlaces = WHOLESALE_UI_ENABLED ? directPlaces : [];
+
+  // Partner hotels near the viewer (or matching their search) are pinned on
+  // top; partners in other cities slot into the wholesale list at their real
+  // distance, so an SF visitor sees SF deals first and LA deals among LA hotels.
+  const { featuredPlaces, places } = useMemo(() => {
+    if (!WHOLESALE_UI_ENABLED) {
+      return { featuredPlaces: [] as Place[], places: directPlaces };
+    }
+    const lat = geoHint?.latitude;
+    const lng = geoHint?.longitude;
+    const searching = !!searchDebounced?.trim();
+    if (searching || typeof lat !== "number" || typeof lng !== "number") {
+      return { featuredPlaces: directPlaces, places: wholesalePlaces };
+    }
+    const dist = (p: Place) =>
+      typeof p.latitude === "number" && typeof p.longitude === "number"
+        ? haversineKm(lat, lng, p.latitude, p.longitude)
+        : Number.POSITIVE_INFINITY;
+    const nearby = directPlaces.filter((p) => dist(p) <= NEARBY_KM);
+    const far = directPlaces.filter((p) => dist(p) > NEARBY_KM);
+    // Only merge far partners up to the farthest wholesale hotel loaded so
+    // far; the rest appear as "Show more hotels" reaches their distance.
+    const allLoaded = wholesalePlaces.length >= wholesaleTotal;
+    const reach = wholesalePlaces.length
+      ? dist(wholesalePlaces[wholesalePlaces.length - 1]!)
+      : 0;
+    const merged = [
+      ...wholesalePlaces,
+      ...far.filter((p) => allLoaded || dist(p) <= reach),
+    ].sort((a, b) => dist(a) - dist(b));
+    return { featuredPlaces: nearby, places: merged };
+  }, [directPlaces, wholesalePlaces, wholesaleTotal, geoHint, searchDebounced]);
+  // Frame the map on what the viewer sees first, not every pin statewide.
+  const mapFocus = useMemo(
+    () => [...featuredPlaces, ...places.slice(0, 8)],
+    [featuredPlaces, places],
+  );
 
   const handleSearch = useCallback(() => {
     queryClient.invalidateQueries({
@@ -132,6 +169,7 @@ export function HomePage() {
               selectedPlaceId={hoveredPlaceId || selectedPlaceId}
               onPlaceHover={handlePlaceHover}
               featuredPlaces={featuredPlaces}
+              highlightDirect={WHOLESALE_UI_ENABLED}
             />
             {WHOLESALE_UI_ENABLED && wholesalePlaces.length < wholesaleTotal && (
               <button
@@ -156,6 +194,7 @@ export function HomePage() {
           <Suspense fallback={<div className="flex-1 bg-bg" />}>
             <PlacesMap
               places={[...featuredPlaces, ...places]}
+              focusPlaces={mapFocus}
               selectedPlaceId={hoveredPlaceId || selectedPlaceId}
               onPlaceSelect={setSelectedPlaceId}
             />

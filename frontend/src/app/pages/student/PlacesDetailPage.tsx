@@ -18,7 +18,7 @@ import { useAppSelector } from "../../../store/hooks";
 import { apiClient, API_BASE_URL } from "../../../lib/apiClient";
 import { hasCookieConsent } from "../../../utils/cookieConsent";
 import { getAuthToken } from "../../../utils/tokenHelpers";
-import { useWholesaleQuote } from "../../../hooks/useWholesale";
+import { useWholesaleQuote, WHOLESALE_UI_ENABLED } from "../../../hooks/useWholesale";
 import { toApiDateOnly } from "../../../utils/dateHelpers";
 import { getYouTubeEmbedUrl } from "../../../utils/videoEmbed";
 import {
@@ -237,10 +237,26 @@ export function PlaceDetailPage() {
     enabled: !!placeId && !!place?.city,
   });
 
-  // Filter out current place and limit to 3
-  const similarPlaces = (similarData?.places ?? [])
+  // Nearby wholesale hotels, closest to this one first.
+  const nearThis =
+    typeof place?.latitude === "number" && typeof place?.longitude === "number"
+      ? `${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}`
+      : undefined;
+  const { data: similarWholesale } = useApiQuery<PlacesResponse>({
+    queryKey: [QUERY_KEYS.PLACES, "similar-wholesale", placeId, nearThis],
+    endpoint: ENDPOINTS.PLACES_PUBLIC,
+    params: { limit: 7, source: "wholesale", ...(nearThis ? { near: nearThis } : { city: place?.city }) },
+    enabled: WHOLESALE_UI_ENABLED && !!placeId && !!place?.city,
+  });
+
+  // Partner hotels first (gold), then the nearest wholesale hotels; skip the
+  // current listing; 6 in total.
+  const similarPlaces = [
+    ...(similarData?.places ?? []),
+    ...(similarWholesale?.places ?? []),
+  ]
     .filter((p) => p.id !== placeId)
-    .slice(0, 3);
+    .slice(0, 6);
 
   const openGallery = (index: number) => {
     setGalleryInitialIndex(index);
@@ -751,17 +767,22 @@ export function PlaceDetailPage() {
           {similarPlaces.length > 0 && (
             <div className="mt-8 sm:mt-12">
               <h2 className="text-xl sm:text-2xl font-bold text-fg mb-4 sm:mb-6">
-                {place.city} Listings
+                More in {place.city}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {similarPlaces.map((listing) => {
                   const imageUrl =
                     (listing.images[0] as any)?.url ||
                     "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400";
+                  const isPartner = listing.supplySource !== "wholesale";
                   return (
                     <Card
                       key={listing.id}
-                      className="cursor-pointer group gap-0 gold-card border-gold/20 hover:border-gold/40 transition-colors"
+                      className={`cursor-pointer group gap-0 transition-colors ${
+                        isPartner
+                          ? "gold-card border-2 border-gold shadow-[0_0_28px_hsl(var(--gold)/0.35)]"
+                          : "border-line hover:border-gold/40"
+                      }`}
                       onClick={() => navigate(getPublicPlacePath(listing))}
                     >
                       {/* Image */}
@@ -776,6 +797,11 @@ export function PlaceDetailPage() {
                       {/* Content */}
                       <div className="flex flex-col p-2 flex-1  justify-between">
                         <div>
+                          {isPartner && (
+                            <span className="inline-block mb-2 rounded-full bg-gold px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-black">
+                              Secret deal · Partner hotel
+                            </span>
+                          )}
                           <h3 className="font-semibold text-fg mb-1 group-hover:text-brand transition-colors">
                             {listing.name}
                           </h3>
