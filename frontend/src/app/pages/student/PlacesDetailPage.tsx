@@ -6,7 +6,6 @@ import {
 import { differenceInDays, format } from "date-fns";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
-import Map, { Marker, NavigationControl } from "react-map-gl/mapbox";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ENDPOINTS } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
@@ -19,6 +18,7 @@ import { apiClient, API_BASE_URL } from "../../../lib/apiClient";
 import { hasCookieConsent } from "../../../utils/cookieConsent";
 import { getAuthToken } from "../../../utils/tokenHelpers";
 import { useWholesaleQuote, WHOLESALE_UI_ENABLED } from "../../../hooks/useWholesale";
+import { WhatsNearby } from "../../components/listing/WhatsNearby";
 import { toApiDateOnly } from "../../../utils/dateHelpers";
 import { getYouTubeEmbedUrl } from "../../../utils/videoEmbed";
 import {
@@ -673,69 +673,13 @@ export function PlaceDetailPage() {
                     : ""
                 }
               >
-                <div>
-                  <h3 className="text-lg font-semibold text-fg mb-4">Location</h3>
-                  <div className="relative w-full h-56 sm:h-72 md:h-80 rounded-xl overflow-hidden border border-line">
-                    <Map
-                      initialViewState={{
-                        latitude: place.latitude,
-                        longitude: place.longitude,
-                        zoom: 15,
-                      }}
-                      style={{ width: "100%", height: "100%" }}
-                      mapStyle="mapbox://styles/mapbox/dark-v11"
-                      mapboxAccessToken={MAPBOX_TOKEN}
-                      scrollZoom={false}
-                      dragRotate={false}
-                    >
-                      <NavigationControl
-                        position="top-right"
-                        showCompass={false}
-                      />
-                      {/* Airbnb-style approximate-area circle + center pin. */}
-                      <Marker
-                        latitude={place.latitude}
-                        longitude={place.longitude}
-                        anchor="center"
-                      >
-                        <div
-                          style={{
-                            position: "relative",
-                            width: 150,
-                            height: 150,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <div
-                            style={{
-                              position: "absolute",
-                              inset: 0,
-                              borderRadius: "50%",
-                              background: "rgba(201, 162, 75, 0.16)",
-                              border: "1px solid rgba(201, 162, 75, 0.5)",
-                            }}
-                          />
-                          <div
-                            style={{
-                              width: 16,
-                              height: 16,
-                              borderRadius: "50%",
-                              background: "#C9A24B",
-                              border: "2px solid #0b0b0b",
-                              boxShadow: "0 0 10px rgba(201, 162, 75, 0.85)",
-                            }}
-                          />
-                        </div>
-                      </Marker>
-                    </Map>
-                  </div>
-                  <p className="text-sm text-muted mt-3 flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4 shrink-0 text-gold" />
-                    {place.address}
-                  </p>
-                </div>
+                <WhatsNearby
+                  placeId={place.id}
+                  latitude={place.latitude}
+                  longitude={place.longitude}
+                  address={place.address}
+                  mapboxToken={MAPBOX_TOKEN}
+                />
 
                 {(place.neighborhoodGuideText ||
                   place.neighborhoodGuideImageUrl) && (
