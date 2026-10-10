@@ -13,6 +13,8 @@ interface PlacesSidebarProps {
   featuredPlaces?: Place[];
   /** The (wholesale) list below the featured cards is still loading. */
   moreLoading?: boolean;
+  /** Show direct partners inside the main list as gold "Secret deal" cards. */
+  highlightDirect?: boolean;
 }
 
 export function PlacesSidebar({
@@ -23,6 +25,7 @@ export function PlacesSidebar({
   title,
   featuredPlaces = [],
   moreLoading = false,
+  highlightDirect = false,
 }: PlacesSidebarProps) {
   if (isLoading) {
     return (
@@ -76,6 +79,7 @@ export function PlacesSidebar({
         <PlaceListItem
           key={place.id}
           place={place}
+          featured={highlightDirect && place.supplySource !== "wholesale"}
           isSelected={place.id === selectedPlaceId}
           onHover={onPlaceHover}
         />

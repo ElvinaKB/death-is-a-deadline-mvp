@@ -33,12 +33,16 @@ function BidMarker({
 
 interface PlacesMapProps {
   places: Place[];
+  /** When set, the map frames these (e.g. the hotels nearest the viewer)
+   * instead of every pin — so one far-away listing doesn't zoom out the map. */
+  focusPlaces?: Place[];
   selectedPlaceId?: string;
   onPlaceSelect?: (placeId: string) => void;
 }
 
 export function PlacesMap({
   places,
+  focusPlaces,
   selectedPlaceId,
   onPlaceSelect,
 }: PlacesMapProps) {
@@ -95,13 +99,20 @@ export function PlacesMap({
   );
 
   // Calculate bounds for the map
+  const framed = useMemo(() => {
+    const focus = (focusPlaces ?? []).filter(
+      (p) => typeof p.latitude === "number" && typeof p.longitude === "number",
+    );
+    return focus.length > 0 ? focus : placesWithCoords;
+  }, [focusPlaces, placesWithCoords]);
+
   const bounds = useMemo(() => {
-    if (placesWithCoords.length === 0) {
+    if (framed.length === 0) {
       return null;
     }
 
-    const lats = placesWithCoords.map((p) => p.latitude!);
-    const lngs = placesWithCoords.map((p) => p.longitude!);
+    const lats = framed.map((p) => p.latitude!);
+    const lngs = framed.map((p) => p.longitude!);
 
     return {
       minLng: Math.min(...lngs),
@@ -109,7 +120,7 @@ export function PlacesMap({
       minLat: Math.min(...lats),
       maxLat: Math.max(...lats),
     };
-  }, [placesWithCoords]);
+  }, [framed]);
 
   // Helper: Haversine distance in km
   function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
@@ -198,7 +209,7 @@ export function PlacesMap({
 
   // Fit bounds when places change
   useEffect(() => {
-    if (mapRef.current && bounds && placesWithCoords.length > 1) {
+    if (mapRef.current && bounds && framed.length > 1) {
       mapRef.current.fitBounds(
         [
           [bounds.minLng - 0.02, bounds.minLat - 0.02],
@@ -207,7 +218,7 @@ export function PlacesMap({
         { padding: 50, duration: 1000, maxZoom: 14 },
       );
     }
-  }, [bounds, placesWithCoords.length]);
+  }, [bounds, framed.length]);
 
   // Show message if no places have coordinates
   if (placesWithCoords.length === 0) {
