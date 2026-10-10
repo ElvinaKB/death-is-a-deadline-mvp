@@ -98,7 +98,7 @@ export function HomePage() {
               >
                 {(
                   [
-                    ["direct", "Secret deals", "Partner hotels · name your price"],
+                    ["direct", "Secret deals", "Partner hotels · bid your price"],
                     ["wholesale", "More hotels", "Member prices · book instantly"],
                   ] as const
                 ).map(([tab, label, hint]) => (

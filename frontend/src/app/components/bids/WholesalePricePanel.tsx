@@ -33,29 +33,38 @@ export function WholesalePricePanel({
 
   if (!isAuthenticated) {
     return (
-      <div className="rounded-xl border border-line bg-glass-2 p-4 text-sm text-muted">
-        Log in to name your price — members win rooms below the public price.
+      <div className="rounded-xl border border-gold/40 bg-glass-2 p-4 text-center">
+        <p className="text-lg font-bold text-gold">Bid your price below.</p>
+        <p className="text-base text-fg mt-1">
+          Log in to guess the price and win the room.
+        </p>
       </div>
     );
   }
   if (!checkInDate || !checkOutDate) return null;
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-line bg-glass-2 p-4 text-sm text-muted">
-        <Loader2 className="h-4 w-4 animate-spin" /> Checking member price…
+      <div className="flex items-center gap-2 rounded-xl border border-line bg-glass-2 p-4 text-base text-muted">
+        <Loader2 className="h-5 w-5 animate-spin" /> Checking today&apos;s price…
       </div>
     );
   }
   if (!quote?.available || !quote.bookNowPricePerNight) {
     return (
-      <div className="rounded-xl border border-line bg-glass-2 p-4 text-sm text-muted">
-        Sold out for these dates — try other dates.
+      <div
+        role="alert"
+        className="rounded-xl border-2 border-urgent bg-urgent/10 p-4 text-center shadow-[0_0_24px_hsl(var(--urgent)/0.35)]"
+      >
+        <p className="text-xl font-bold uppercase tracking-wide text-urgent">
+          Sold out for these dates
+        </p>
+        <p className="text-base text-fg mt-1">Pick different dates to bid.</p>
       </div>
     );
   }
 
   const nights = quote.nights ?? 1;
-  const perNight = quote.bookNowPricePerNight!;
+  const perNight = quote.bookNowPricePerNight;
   const nonTaxFees = quote.payAtHotelNonTax ?? 0;
   const taxesAtHotel = Math.max(0, (quote.payAtHotel ?? 0) - nonTaxFees);
   // FTC Junk Fees Rule / CA SB 478: the most prominent price must include
@@ -66,38 +75,39 @@ export function WholesalePricePanel({
 
   return (
     <div className="rounded-xl border border-line bg-glass-2 p-4 space-y-3">
-      <div>
-        <p className="text-[10px] font-semibold tracking-[0.14em] text-muted uppercase">
-          Book now · public price
-        </p>
-        <p className="text-2xl font-bold text-fg">
-          {formatCurrency(displayPerNight)}
-          <span className="text-sm font-normal text-muted"> / night</span>
-        </p>
-        <p className="text-xs text-muted mt-1">
-          {nights} night{nights === 1 ? "" : "s"} · {formatCurrency(displayTotal)} total
-          {nonTaxFees > 0 &&
-            ` (${formatCurrency(perNight * nights)} now + ${formatCurrency(nonTaxFees)} hotel fee at check-in)`}
-          {taxesAtHotel > 0 &&
-            ` · + ${formatCurrency(taxesAtHotel)} local taxes at check-in`}
-        </p>
-        <p className="text-xs text-muted mt-0.5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold uppercase tracking-wide text-muted">
+            Public price
+          </p>
+          <p className="text-2xl font-bold text-fg leading-tight">
+            {formatCurrency(displayPerNight)}
+            <span className="text-base font-normal text-muted"> / night</span>
+          </p>
+        </div>
+        <button
+          type="button"
+          className="shrink-0 h-11 rounded-lg border border-line px-4 text-sm font-semibold uppercase tracking-wide text-fg hover:bg-glass inline-flex items-center gap-2"
+          onClick={() => onUseMemberPrice(perNight)}
+        >
+          <Zap className="h-4 w-4" /> Book now
+        </button>
+      </div>
+      <p className="text-base text-muted leading-snug">
+        {nights} night{nights === 1 ? "" : "s"} · {formatCurrency(displayTotal)} total
+        {nonTaxFees > 0 &&
+          ` (incl. ${formatCurrency(nonTaxFees)} hotel fee paid at check-in)`}
+        {taxesAtHotel > 0 &&
+          ` · + ${formatCurrency(taxesAtHotel)} local taxes at check-in`}
+        <br />
+        <span className="line-clamp-1">
           {quote.roomName}
           {quote.refundable ? " · Free cancellation" : " · Non-refundable"}
-        </p>
-      </div>
-      <button
-        type="button"
-        className="h-10 w-full rounded-lg border border-line text-sm font-semibold uppercase tracking-wide text-fg hover:bg-glass inline-flex items-center justify-center gap-2"
-        onClick={() => onUseMemberPrice(perNight)}
-      >
-        <Zap className="h-4 w-4" /> Book now at {formatCurrency(displayTotal)}
-      </button>
-      <div className="rounded-lg bg-gold/10 border border-gold/40 p-3 text-center">
-        <p className="text-sm font-semibold text-gold">Members pay less — name your price below.</p>
-        <p className="text-xs text-muted mt-0.5">
-          Bid under the public price. Hit the secret member price and the room is yours.
-        </p>
+        </span>
+      </p>
+      <div className="rounded-lg bg-gold/10 border border-gold/40 px-3 py-2.5 text-center">
+        <p className="text-lg font-bold text-gold">Bid your price below.</p>
+        <p className="text-base text-fg">Guess the price, win the room.</p>
       </div>
     </div>
   );
