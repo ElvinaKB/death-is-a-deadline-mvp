@@ -79,6 +79,20 @@ export const WHOLESALE_CONFIG = {
   },
 } as const;
 
+/**
+ * Emails allowed to complete wholesale bookings while the Nuitee sandbox key
+ * is in use (WHOLESALE_TEST_EMAILS, comma-separated). Ignored once the
+ * production key (LITEAPI_API_KEY) is set.
+ */
+export function isWholesaleTester(email: string | undefined | null): boolean {
+  if (!email) return false;
+  const list = (process.env.WHOLESALE_TEST_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(email.toLowerCase());
+}
+
 export function isWholesale(place: Pick<Place, "supplySource">): boolean {
   return place.supplySource === "wholesale";
 }

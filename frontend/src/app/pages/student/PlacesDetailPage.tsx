@@ -481,12 +481,12 @@ export function PlaceDetailPage() {
                 <PrivateThresholdBadgeIcon className="h-[54px] w-[54px] shrink-0 text-gold" />
                 <div className="min-w-0 pt-0.5">
                   <p className="text-sm font-semibold text-fg leading-snug">
-                    Private hotel threshold
+                    {isWholesalePlace ? "Secret member price" : "Private hotel threshold"}
                   </p>
                   <p className="mt-1.5 text-sm text-[hsl(0_0%_72%)] leading-relaxed">
-                    Hotels set hidden minimum prices for each night. If your bid
-                    meets the hotel&apos;s private threshold, you instantly win the
-                    room.
+                    {isWholesalePlace
+                      ? "Every night has a hidden member price below the public price. If your bid meets it, you instantly win the room."
+                      : "Hotels set hidden minimum prices for each night. If your bid meets the hotel's private threshold, you instantly win the room."}
                   </p>
                 </div>
               </div>

@@ -10,12 +10,15 @@ interface PlaceListItemProps {
   place: Place;
   isSelected?: boolean;
   onHover?: (placeId: string | null) => void;
+  /** Direct partner shown as a "Secret deal" above wholesale hotels. */
+  featured?: boolean;
 }
 
 export function PlaceListItem({
   place,
   isSelected,
   onHover,
+  featured,
 }: PlaceListItemProps) {
   const navigate = useNavigate();
   const { selectedDate } = useAppSelector((state) => state.search);
@@ -34,7 +37,11 @@ export function PlaceListItem({
   return (
     <div
       className={`listing-place-card flex flex-col sm:flex-row gap-3 sm:gap-4 p-3.5 min-h-[11rem] sm:min-h-[9rem] cursor-pointer transition-all duration-200 ${
-        isSelected ? "ring-1 ring-gold/50" : ""
+        featured
+          ? "ring-2 ring-gold shadow-[0_0_28px_hsl(var(--gold)/0.35)]"
+          : isSelected
+            ? "ring-1 ring-gold/50"
+            : ""
       }`}
       onClick={handleClick}
       onMouseEnter={() => onHover?.(place.id)}
@@ -50,9 +57,15 @@ export function PlaceListItem({
 
       <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
         <div>
-          <span className="listing-type-pill inline-block mb-2">
-            {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
-          </span>
+          {featured ? (
+            <span className="inline-block mb-2 rounded-full bg-gold px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-black">
+              Secret deal · Partner hotel
+            </span>
+          ) : (
+            <span className="listing-type-pill inline-block mb-2">
+              {ACCOMMODATION_TYPE_LABELS[place.accommodationType]}
+            </span>
+          )}
 
           <h3 className="font-semibold text-fg text-base mb-1 truncate">
             {place.name}

@@ -41,7 +41,7 @@ const howItWorksSteps = [
   {
     icon: DollarSign,
     title: "2. Place Your Bid",
-    description: "Name your price, compared to the retail cost.",
+    description: "Bid your price, compared to the retail cost.",
   },
   {
     icon: Zap,

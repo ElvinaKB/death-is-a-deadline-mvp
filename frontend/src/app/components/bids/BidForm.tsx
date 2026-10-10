@@ -140,12 +140,12 @@ const BID_CALENDAR_CLASS_NAMES = {
     "text-muted-foreground opacity-40 hover:bg-transparent hover:text-muted-foreground cursor-not-allowed",
 };
 
-const HOTEL_TAXES_ACK_ERROR =
-  "Please acknowledge that hotel taxes and fees may be collected separately at check-in.";
-const TERMS_ACK_ERROR =
-  "Please agree to the Terms of Use, Privacy Policy, and cancellation terms.";
-const DATA_USE_ACK_ERROR =
-  "Please acknowledge how we use your bidding activity.";
+// The listing form has one combined agreement checkbox covering all three, so
+// they share one message.
+const AGREEMENT_ERROR = "Please check the agreement box to place your bid.";
+const HOTEL_TAXES_ACK_ERROR = AGREEMENT_ERROR;
+const TERMS_ACK_ERROR = AGREEMENT_ERROR;
+const DATA_USE_ACK_ERROR = AGREEMENT_ERROR;
 const BID_AMOUNT_ERROR = "Enter your bid amount.";
 const PHONE_REQUIRED_ERROR =
   "Enter a contact phone number so the hotel can reach you about your stay.";
@@ -1492,6 +1492,12 @@ function BidFormInner({
       return;
     }
 
+    // Wholesale: the price is set by Nuitee, not negotiable — no lock-in
+    // timer, submit straight away. Direct hotels keep the lock-in pop-up.
+    if (isWholesalePlace) {
+      handleLockInConfirm();
+      return;
+    }
     setLockInOpen(true);
   };
 
@@ -2191,44 +2197,21 @@ function BidFormInner({
                 lock-in timer.
               </p>
             </div>
-            <div className="flex items-start gap-3">
-              <Checkbox
-                id="listing-hotel-taxes-ack"
-                checked={acceptedHotelTaxes}
-                onCheckedChange={handleAcceptedHotelTaxesChange}
-                className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
-              />
-              <Label htmlFor="listing-hotel-taxes-ack" className="text-xs text-muted leading-relaxed cursor-pointer">
-                Hotel taxes and government-imposed fees may be collected separately
-                by the hotel at check-in.
-              </Label>
-            </div>
-            <div className="flex items-start gap-3">
-              <Checkbox
-                id="listing-data-use-ack"
-                checked={acceptedDataUse}
-                onCheckedChange={handleAcceptedDataUseChange}
-                className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
-              />
-              <Label htmlFor="listing-data-use-ack" className="block text-xs text-muted leading-relaxed cursor-pointer">
-                I understand that Deadline records my bidding activity and uses it
-                &mdash; grouped with similar travelers by behavior, not personal
-                identity &mdash; to match me with hotels and, at times, to invite
-                me to bid again. See our{" "}
-                <Link to={ROUTES.PRIVACY} className="text-gold underline" target="_blank">
-                  Privacy Policy
-                </Link>
-                .
-              </Label>
-            </div>
+            {/* One agreement checkbox (was three). It still covers every
+                disclosure: Terms + Privacy, taxes/fees collected at check-in,
+                and bid-data use. Checking it sets all three acknowledgements. */}
             <div className="flex items-start gap-3">
               <Checkbox
                 id="listing-terms-ack"
-                checked={acceptedTerms}
-                onCheckedChange={handleAcceptedTermsChange}
-                className="mt-0.5 border-gold/50 data-[state=checked]:bg-gold"
+                checked={acceptedTerms && acceptedHotelTaxes && acceptedDataUse}
+                onCheckedChange={(v) => {
+                  handleAcceptedHotelTaxesChange(v);
+                  handleAcceptedDataUseChange(v);
+                  handleAcceptedTermsChange(v);
+                }}
+                className="mt-0.5 h-5 w-5 border-gold/50 data-[state=checked]:bg-gold"
               />
-              <Label htmlFor="listing-terms-ack" className="block text-xs text-muted leading-relaxed cursor-pointer">
+              <Label htmlFor="listing-terms-ack" className="block text-sm text-muted leading-relaxed cursor-pointer">
                 I agree to the{" "}
                 <Link to={ROUTES.TERMS} className="text-gold underline" target="_blank">
                   Terms of Use
@@ -2237,7 +2220,9 @@ function BidFormInner({
                 <Link to={ROUTES.PRIVACY} className="text-gold underline" target="_blank">
                   Privacy Policy
                 </Link>
-                .
+                . I understand the hotel may collect taxes and government fees at
+                check-in, and that Deadline records my bids to match me with
+                hotels and invite me to bid again.
                 {commissionOnly && (
                   <>
                     {" "}
@@ -2278,7 +2263,7 @@ function BidFormInner({
               }
             >
               <ArrowRight className="mr-2 h-4 w-4" />
-              {isProcessing ? "PROCESSING YOUR BID..." : "LOCK IN BID"}
+              {isProcessing ? "PROCESSING YOUR BID..." : isWholesalePlace ? "PLACE BID" : "LOCK IN BID"}
             </Button>
             <div className="listing-lock-hint">
               <p className="flex items-start gap-2 text-xs text-muted leading-relaxed text-left">
