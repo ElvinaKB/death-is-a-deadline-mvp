@@ -385,6 +385,48 @@ export async function listHotelPlaces(req: Request, res: Response) {
   });
 }
 
+// Marketplace list rows only need card fields: one photo, short copy. Full
+// descriptions / galleries / policies stay on the listing endpoint (this cut
+// the wholesale list from ~420KB to a fraction for 100 hotels).
+const formatPublicListPlace = (place: Parameters<typeof formatPlace>[0]) => {
+  const p = formatPublicPlace(place) as Record<string, unknown>;
+  const images = (p.images as unknown[] | undefined) ?? [];
+  return {
+    ...p,
+    images: images.slice(0, 1),
+    fullDescription: undefined,
+    goodToKnowText: undefined,
+    neighborhoodGuideText: undefined,
+    neighborhoodGuideImageUrl: undefined,
+    verticalVideoUrl: undefined,
+  };
+};
+
+function findPublicPage(
+  where: Prisma.PlaceWhereInput,
+  orderBy?: Prisma.PlaceOrderByWithRelationInput,
+  skip?: number,
+  take?: number,
+) {
+  return prisma.place.findMany({
+    where,
+    include: { images: { orderBy: { order: "asc" }, take: 1 } },
+    ...(orderBy && { orderBy }),
+    ...(skip !== undefined && { skip }),
+    ...(take !== undefined && { take }),
+  });
+}
+
+function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 // List public places (for students marketplace - with filters)
 export async function listPublicPlaces(req: Request, res: Response) {
   // Cache the public marketplace at Vercel's edge: serve instantly for 60s and
@@ -402,6 +444,7 @@ export async function listPublicPlaces(req: Request, res: Response) {
     limit = 12,
     date,
     source = "direct",
+    near,
   } = req.query as unknown as PublicPlacesQuery;
 
   const skip = (page - 1) * limit;
@@ -451,16 +494,37 @@ export async function listPublicPlaces(req: Request, res: Response) {
   const orderBy: Prisma.PlaceOrderByWithRelationInput =
     sortBy === "price-desc" ? { retailPrice: "desc" } : { retailPrice: "asc" };
 
-  let [places, total] = await Promise.all([
-    prisma.place.findMany({
+  let places: Awaited<ReturnType<typeof findPublicPage>>;
+  let total: number;
+  if (near) {
+    // Nearest-first across the whole inventory: rank every match by distance
+    // using only id + coordinates, then load full rows for just this page.
+    const [lat, lng] = near.split(",").map(Number) as [number, number];
+    const coords = await prisma.place.findMany({
       where,
-      include: { images: { orderBy: { order: "asc" } } },
-      orderBy,
-      skip,
-      take: limit,
-    }),
-    prisma.place.count({ where }),
-  ]);
+      select: { id: true, latitude: true, longitude: true, retailPrice: true },
+    });
+    const ranked = coords
+      .map((c) => ({
+        id: c.id,
+        d:
+          c.latitude == null || c.longitude == null
+            ? Number.POSITIVE_INFINITY
+            : distanceKm(lat, lng, c.latitude, c.longitude),
+        price: c.retailPrice,
+      }))
+      .sort((a, b) => a.d - b.d || a.price - b.price);
+    total = ranked.length;
+    const pageIds = ranked.slice(skip, skip + limit).map((r) => r.id);
+    const rows = await findPublicPage({ id: { in: pageIds } });
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    places = pageIds.map((id) => byId.get(id)!).filter(Boolean);
+  } else {
+    [places, total] = await Promise.all([
+      findPublicPage(where, orderBy, skip, limit),
+      prisma.place.count({ where }),
+    ]);
+  }
 
   // Filter out places with blackoutDates containing the requested date (yyyy-MM-dd strings)
   if (date) {
@@ -485,11 +549,13 @@ export async function listPublicPlaces(req: Request, res: Response) {
     );
   }
 
-  total = places.length;
+  // With `near`, total is the full match count (drives "Load more");
+  // otherwise keep the legacy page-length behaviour.
+  if (!near) total = places.length;
 
   res.status(200).json({
     data: {
-      places: places.map((p) => formatPublicPlace(p)),
+      places: places.map((p) => formatPublicListPlace(p)),
       total,
       page,
       limit,
