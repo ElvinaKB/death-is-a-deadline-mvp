@@ -183,6 +183,34 @@ export function meetsQualityBar(
   );
 }
 
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\b(the|hotel|inn|a|an|by|and|santa barbara|los angeles|ca)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isSameHotel(
+  direct: { name: string; latitude: number | null; longitude: number | null },
+  h: { name?: string; latitude?: unknown; longitude?: unknown },
+): boolean {
+  const a = normalizeName(direct.name);
+  const b = normalizeName(h.name ?? "");
+  if (a.length >= 5 && b.length >= 5 && (a === b || a.includes(b) || b.includes(a))) {
+    return true;
+  }
+  const lat = Number(h.latitude);
+  const lng = Number(h.longitude);
+  if (direct.latitude == null || direct.longitude == null || !lat || !lng) return false;
+  // ~150m in degrees at California latitudes.
+  return (
+    Math.abs(direct.latitude - lat) < 0.00135 &&
+    Math.abs(direct.longitude - lng) < 0.0016
+  );
+}
+
 export interface ImportSummary {
   city: string;
   available: number;
@@ -269,6 +297,22 @@ export async function importWholesaleCity(city: string): Promise<ImportSummary> 
       data: { status: PlaceStatus.PAUSED },
     });
     summary.paused = paused.count;
+  }
+  summary.available = offers.size;
+  if (offers.size === 0) return summary;
+
+  // Never import a hotel we already list directly (same city and either the
+  // same name or within ~150m) — e.g. a partner hotel that's also on Nuitee.
+  const directPlaces = await prisma.place.findMany({
+    where: { supplySource: "direct", city: { equals: city, mode: "insensitive" } },
+    select: { name: true, latitude: true, longitude: true },
+  });
+  for (const id of [...offers.keys()]) {
+    const h = infoById.get(id);
+    if (h && directPlaces.some((d) => isSameHotel(d, h))) {
+      offers.delete(id);
+      summary.skippedDirect++;
+    }
   }
   summary.available = offers.size;
   if (offers.size === 0) return summary;
