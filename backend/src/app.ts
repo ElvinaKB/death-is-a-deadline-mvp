@@ -30,6 +30,7 @@ import { router as payoutsRouter } from "./routers/payouts.router";
 import { router as referrersRouter } from "./routers/referrers.router";
 import { router as myallocatorRouter } from "./routers/myallocator.router";
 import { router as wholesaleRouter } from "./routers/wholesale.router";
+import { router as analyticsRouter } from "./routers/analytics.router";
 
 const app = express();
 
@@ -109,6 +110,7 @@ app.use("/api/events", eventsRouter);
 app.use("/api/geo", geoRouter);
 app.use("/api/payouts", payoutsRouter);
 app.use("/api/wholesale", wholesaleRouter);
+app.use("/api/analytics", analyticsRouter);
 app.use("/api/referrers", referrersRouter);
 app.use("/api/myallocator", myallocatorRouter);
 

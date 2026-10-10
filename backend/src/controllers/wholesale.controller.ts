@@ -40,19 +40,21 @@ export async function getQuote(req: Request, res: Response) {
     return res.status(200).json({ data: { available: false } });
   }
 
+  // The member price (the bid floor) is deliberately NOT returned: it's the
+  // secret a bid has to reach. Only the public "Book now" price goes out.
+  const nonTax = quote.payAtHotelNonTax;
   res.status(200).json({
     data: {
       available: true,
       nights: quote.nights,
-      memberPricePerNight: quote.memberPricePerNight,
-      memberTotal: quote.memberTotal,
-      retailPricePerNight: quote.retailPricePerNight,
+      bookNowPricePerNight: quote.bookNowPricePerNight,
+      bookNowTotal: quote.bookNowPricePerNight * quote.nights,
       // Collected by the hotel at check-in. Non-tax mandatory fees (resort /
       // service) must be included in the displayed total (FTC Junk Fees Rule,
       // CA SB 478); government taxes may be disclosed separately.
       payAtHotel: quote.payAtHotel,
-      payAtHotelNonTax: quote.payAtHotelNonTax,
-      displayTotal: quote.memberTotal + quote.payAtHotelNonTax,
+      payAtHotelNonTax: nonTax,
+      bookNowDisplayTotal: quote.bookNowPricePerNight * quote.nights + nonTax,
       refundable: quote.refundable,
       roomName: quote.offer.roomName,
       boardName: quote.offer.boardName,

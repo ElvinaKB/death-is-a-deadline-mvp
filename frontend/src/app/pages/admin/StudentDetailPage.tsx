@@ -19,7 +19,8 @@ import {
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
-import { ArrowLeft, Check, X, MailCheck, MailX } from "lucide-react";
+import { ArrowLeft, Check, X, MailCheck, MailX, Download } from "lucide-react";
+import { downloadCsv } from "../../../utils/downloadCsv";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
 import { Timeline, type TimelineItem } from "../../components/ui/timeline";
@@ -421,6 +422,18 @@ export function StudentDetailPage() {
         <div>
           <h1 className="text-3xl font-bold text-fg">Traveler Details</h1>
         </div>
+        <Button
+          className="btn-bid ml-auto"
+          onClick={() =>
+            downloadCsv(
+              `${ENDPOINTS.ANALYTICS_BIDS_CSV}?studentId=${encodeURIComponent(id ?? "")}&days=365`,
+              `deadline-bids-member-${id}.csv`,
+            ).catch((e) => toast.error((e as Error).message))
+          }
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export bids CSV
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

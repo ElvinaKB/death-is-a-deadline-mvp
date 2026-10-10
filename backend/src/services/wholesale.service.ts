@@ -88,9 +88,18 @@ export function isWholesale(place: Pick<Place, "supplySource">): boolean {
 export interface WholesaleQuote {
   offer: WholesaleOffer;
   nights: number;
-  /** The secret price: a bid at or above this (per night) wins. */
+  /**
+   * The secret member price: a bid at or above this (per night) wins. Never
+   * sent to the browser — only revealed after REVEAL_AFTER_LOSING_BIDS misses.
+   */
   memberPricePerNight: number;
   memberTotal: number;
+  /**
+   * "Book now" with no game = the public price (Nuitee's suggested selling
+   * price). The anchor that makes a winning bid look steep. Falls back to the
+   * member price when Nuitee has no public price.
+   */
+  bookNowPricePerNight: number;
   /** Public anchor (Nuitee's suggested selling price), per night. */
   retailPricePerNight: number | null;
   /** Mandatory fees/taxes collected by the hotel at check-in, whole stay. */
@@ -124,11 +133,15 @@ function buildQuote(offer: WholesaleOffer, nights: number): WholesaleQuote {
   const memberPricePerNight = Math.ceil(
     (offer.cost * (1 + WHOLESALE_CONFIG.MARGIN)) / nights,
   );
+  const publicPerNight = offer.suggestedSellingPrice
+    ? Math.ceil(offer.suggestedSellingPrice / nights)
+    : 0;
   return {
     offer,
     nights,
     memberPricePerNight,
     memberTotal: memberPricePerNight * nights,
+    bookNowPricePerNight: Math.max(publicPerNight, memberPricePerNight),
     retailPricePerNight: offer.suggestedSellingPrice
       ? Math.round(offer.suggestedSellingPrice / nights)
       : null,

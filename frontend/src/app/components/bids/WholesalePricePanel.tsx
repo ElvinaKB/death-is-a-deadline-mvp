@@ -7,15 +7,15 @@ interface WholesalePricePanelProps {
   checkInDate?: string;
   checkOutDate?: string;
   isAuthenticated: boolean;
-  /** Fill the bid box with the member price (then the normal bid flow books it). */
+  /** Fill the bid box with the public price (then the normal bid flow books it). */
   onUseMemberPrice: (pricePerNight: number) => void;
 }
 
 /**
- * "Book now" for wholesale hotels: the live members-only price, shown only to
- * logged-in members (closed user group). Members can still name a lower price
- * in the bid box — every bid is recorded as demand data — and after a few
- * misses the API reveals this price anyway.
+ * Wholesale hotels: "Book now" at the live public price (no game), and the
+ * invitation to bid lower. The secret member price (Nuitee cost + margin) is
+ * never sent to the browser — it's only revealed by the API after a few
+ * losing bids. Every bid is recorded as demand data.
  */
 export function WholesalePricePanel({
   placeId,
@@ -34,7 +34,7 @@ export function WholesalePricePanel({
   if (!isAuthenticated) {
     return (
       <div className="rounded-xl border border-line bg-glass-2 p-4 text-sm text-muted">
-        Log in to see tonight&apos;s member price — or name your own.
+        Log in to name your price — members win rooms below the public price.
       </div>
     );
   }
@@ -46,7 +46,7 @@ export function WholesalePricePanel({
       </div>
     );
   }
-  if (!quote?.available || !quote.memberPricePerNight) {
+  if (!quote?.available || !quote.bookNowPricePerNight) {
     return (
       <div className="rounded-xl border border-line bg-glass-2 p-4 text-sm text-muted">
         Sold out for these dates — try other dates.
@@ -55,58 +55,50 @@ export function WholesalePricePanel({
   }
 
   const nights = quote.nights ?? 1;
-  const perNight = quote.memberPricePerNight;
+  const perNight = quote.bookNowPricePerNight!;
   const nonTaxFees = quote.payAtHotelNonTax ?? 0;
   const taxesAtHotel = Math.max(0, (quote.payAtHotel ?? 0) - nonTaxFees);
   // FTC Junk Fees Rule / CA SB 478: the most prominent price must include
   // mandatory non-tax fees (resort/service), even though the hotel collects
   // them at check-in. Government taxes may be disclosed separately.
   const displayPerNight = perNight + Math.ceil(nonTaxFees / nights);
-  const displayTotal = quote.displayTotal ?? perNight * nights + nonTaxFees;
-  const showRetail =
-    quote.retailPricePerNight != null &&
-    quote.retailPricePerNight > displayPerNight;
+  const displayTotal = quote.bookNowDisplayTotal ?? perNight * nights + nonTaxFees;
 
   return (
-    <div className="rounded-xl border border-gold/40 bg-glass-2 p-4 space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-gold uppercase">
-            Member price
-          </p>
-          <p className="text-2xl font-bold text-fg">
-            {showRetail && (
-              <span className="mr-2 text-base font-medium text-muted line-through">
-                {formatCurrency(quote.retailPricePerNight!)}
-              </span>
-            )}
-            {formatCurrency(displayPerNight)}
-            <span className="text-sm font-normal text-muted"> / night</span>
-          </p>
-          <p className="text-xs text-muted mt-1">
-            {nights} night{nights === 1 ? "" : "s"} ·{" "}
-            {formatCurrency(displayTotal)} total
-            {nonTaxFees > 0 &&
-              ` (${formatCurrency(perNight * nights)} now + ${formatCurrency(nonTaxFees)} hotel fee at check-in)`}
-            {taxesAtHotel > 0 &&
-              ` · + ${formatCurrency(taxesAtHotel)} local taxes at check-in`}
-          </p>
-          <p className="text-xs text-muted mt-0.5">
-            {quote.roomName}
-            {quote.refundable ? " · Free cancellation" : " · Non-refundable"}
-          </p>
-        </div>
+    <div className="rounded-xl border border-line bg-glass-2 p-4 space-y-3">
+      <div>
+        <p className="text-[10px] font-semibold tracking-[0.14em] text-muted uppercase">
+          Book now · public price
+        </p>
+        <p className="text-2xl font-bold text-fg">
+          {formatCurrency(displayPerNight)}
+          <span className="text-sm font-normal text-muted"> / night</span>
+        </p>
+        <p className="text-xs text-muted mt-1">
+          {nights} night{nights === 1 ? "" : "s"} · {formatCurrency(displayTotal)} total
+          {nonTaxFees > 0 &&
+            ` (${formatCurrency(perNight * nights)} now + ${formatCurrency(nonTaxFees)} hotel fee at check-in)`}
+          {taxesAtHotel > 0 &&
+            ` · + ${formatCurrency(taxesAtHotel)} local taxes at check-in`}
+        </p>
+        <p className="text-xs text-muted mt-0.5">
+          {quote.roomName}
+          {quote.refundable ? " · Free cancellation" : " · Non-refundable"}
+        </p>
       </div>
       <button
         type="button"
-        className="listing-card-bid-btn h-11 w-full rounded-lg text-sm uppercase inline-flex items-center justify-center gap-2"
+        className="h-10 w-full rounded-lg border border-line text-sm font-semibold uppercase tracking-wide text-fg hover:bg-glass inline-flex items-center justify-center gap-2"
         onClick={() => onUseMemberPrice(perNight)}
       >
-        <Zap className="h-4 w-4" /> Book now · {formatCurrency(displayTotal)} total
+        <Zap className="h-4 w-4" /> Book now at {formatCurrency(displayTotal)}
       </button>
-      <p className="text-xs text-muted text-center">
-        Or name your price below — if it&apos;s high enough, it&apos;s yours.
-      </p>
+      <div className="rounded-lg bg-gold/10 border border-gold/40 p-3 text-center">
+        <p className="text-sm font-semibold text-gold">Members pay less — name your price below.</p>
+        <p className="text-xs text-muted mt-0.5">
+          Bid under the public price. Hit the secret member price and the room is yours.
+        </p>
+      </div>
     </div>
   );
 }

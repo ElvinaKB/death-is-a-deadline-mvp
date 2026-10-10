@@ -53,6 +53,7 @@ export const ROUTES = {
   ADMIN_PLACES_NEW: "/admin/places/new",
   ADMIN_PLACES_EDIT: "/admin/places/:id/edit",
   ADMIN_PLACES_TESTIMONIALS: "/admin/places/:id/testimonials",
+  ADMIN_PLACES_DATA: "/admin/places/:id/data",
   ADMIN_BIDS: "/admin/bids",
   ADMIN_NEWSLETTER: "/admin/newsletter",
   ADMIN_HOTEL_APPLICATIONS: "/admin/hotel-applications",
