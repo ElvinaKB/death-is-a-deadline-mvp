@@ -9,6 +9,8 @@ interface PlacesSidebarProps {
   selectedPlaceId?: string;
   onPlaceHover?: (placeId: string | null) => void;
   title?: string;
+  /** Direct partners pinned above the list as "Secret deal" cards. */
+  featuredPlaces?: Place[];
 }
 
 export function PlacesSidebar({
@@ -17,6 +19,7 @@ export function PlacesSidebar({
   selectedPlaceId,
   onPlaceHover,
   title,
+  featuredPlaces = [],
 }: PlacesSidebarProps) {
   if (isLoading) {
     return (
@@ -28,7 +31,7 @@ export function PlacesSidebar({
     );
   }
 
-  if (places.length === 0) {
+  if (places.length === 0 && featuredPlaces.length === 0) {
     return (
       <div className="text-center py-8">
         <MapPin className="mx-auto h-12 w-12 text-muted mb-3" />
@@ -43,6 +46,24 @@ export function PlacesSidebar({
       {title ? (
         <h2 className="sr-only">{title}</h2>
       ) : null}
+      {featuredPlaces.length > 0 && (
+        <div className="space-y-3 pb-2">
+          {featuredPlaces.map((place) => (
+            <PlaceListItem
+              key={`featured-${place.id}`}
+              place={place}
+              featured
+              isSelected={place.id === selectedPlaceId}
+              onHover={onPlaceHover}
+            />
+          ))}
+          {places.length > 0 && (
+            <p className="pt-2 text-sm font-semibold uppercase tracking-[0.14em] text-muted">
+              More hotels · bid below the public price
+            </p>
+          )}
+        </div>
+      )}
       {places.map((place) => (
         <PlaceListItem
           key={place.id}

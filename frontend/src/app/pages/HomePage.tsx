@@ -62,6 +62,26 @@ export function HomePage() {
     retry: false,
   });
 
+  // On the wholesale tab, pin matching direct partners on top as "Secret
+  // deal" cards — the real secret prices sit above the wholesale list.
+  const featuredParams = {
+    searchQuery: searchDebounced,
+    ...(listDate && { date: listDate }),
+  };
+  const { data: featuredData } = useApiQuery<PlacesResponse>({
+    queryKey: [QUERY_KEYS.PLACES, "public", "featured", featuredParams],
+    endpoint: ENDPOINTS.PLACES_PUBLIC,
+    params: featuredParams,
+    enabled: source === "wholesale",
+  });
+  const featuredPlaces = useMemo(
+    () =>
+      source === "wholesale"
+        ? sortPlacesByProximity(featuredData?.places ?? [], geoHint).slice(0, 3)
+        : [],
+    [source, featuredData?.places, geoHint],
+  );
+
   const places = useMemo(
     () => sortPlacesByProximity(data?.places ?? [], geoHint),
     [data?.places, geoHint],
@@ -125,6 +145,7 @@ export function HomePage() {
               isLoading={isLoading || isFetching}
               selectedPlaceId={hoveredPlaceId || selectedPlaceId}
               onPlaceHover={handlePlaceHover}
+              featuredPlaces={featuredPlaces}
             />
           </div>
         </div>
@@ -136,7 +157,7 @@ export function HomePage() {
           />
           <Suspense fallback={<div className="flex-1 bg-bg" />}>
             <PlacesMap
-              places={places}
+              places={featuredPlaces.length ? [...featuredPlaces, ...places] : places}
               selectedPlaceId={hoveredPlaceId || selectedPlaceId}
               onPlaceSelect={setSelectedPlaceId}
             />

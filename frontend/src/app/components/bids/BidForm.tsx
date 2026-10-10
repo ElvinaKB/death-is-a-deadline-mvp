@@ -1492,6 +1492,12 @@ function BidFormInner({
       return;
     }
 
+    // Wholesale: the price is set by Nuitee, not negotiable — no lock-in
+    // timer, submit straight away. Direct hotels keep the lock-in pop-up.
+    if (isWholesalePlace) {
+      handleLockInConfirm();
+      return;
+    }
     setLockInOpen(true);
   };
 
@@ -2257,7 +2263,7 @@ function BidFormInner({
               }
             >
               <ArrowRight className="mr-2 h-4 w-4" />
-              {isProcessing ? "PROCESSING YOUR BID..." : "LOCK IN BID"}
+              {isProcessing ? "PROCESSING YOUR BID..." : isWholesalePlace ? "PLACE BID" : "LOCK IN BID"}
             </Button>
             <div className="listing-lock-hint">
               <p className="flex items-start gap-2 text-xs text-muted leading-relaxed text-left">
