@@ -50,6 +50,11 @@ export const usePublicPlace = (
     queryKey: [...QUERY_KEYS.PLACE(id), "public", apiDate, previewToken],
     endpoint,
     enabled: !!id,
+    // A slow/failed server response (5xx, network) is retried a few times
+    // before the page gives up; a real 404 shows "Place not found" at once.
+    retry: (count, err) =>
+      (err as { statusCode?: number })?.statusCode !== 404 && count < 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
   });
 };
 
