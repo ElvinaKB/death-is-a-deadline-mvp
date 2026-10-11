@@ -66,6 +66,13 @@ router.post(
   placesController.submitHotelInquiry,
 );
 
+// Public route - what's within walking distance (must be before "/public/:id")
+router.get(
+  "/public/:id/nearby",
+  validate(placeRefParamSchema, "params"),
+  placesController.getPublicPlaceNearby,
+);
+
 // Public route - get single place by ID (for students - includes inventory status)
 router.get(
   "/public/:id",

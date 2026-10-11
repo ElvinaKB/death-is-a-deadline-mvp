@@ -42,6 +42,7 @@ import {
   isUuid,
 } from "../libs/utils/placeSlug";
 import { WHOLESALE_CONFIG } from "../services/wholesale.service";
+import { getNearbyForPlace } from "../services/nearby.service";
 
 const APP_URL = process.env.CLIENT_URL;
 
@@ -1197,4 +1198,23 @@ export async function getHotelDashboardStats(req: Request, res: Response) {
   };
 
   res.status(200).json({ data });
+}
+
+/**
+ * Public: restaurants, cafés, bars, groceries and shops within walking
+ * distance of a listing (cached monthly per place). Edge-cached for a day.
+ */
+export async function getPublicPlaceNearby(req: Request, res: Response) {
+  const place = await findPlaceByRef(req.params.id!);
+  if (!place || place.status !== PlaceStatus.LIVE) {
+    throw new CustomError("Place not found", 404);
+  }
+  let items: Awaited<ReturnType<typeof getNearbyForPlace>> = [];
+  try {
+    items = await getNearbyForPlace(place as any);
+  } catch (err) {
+    console.warn("[nearby] lookup failed:", (err as Error).message);
+  }
+  res.set("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=604800");
+  res.status(200).json({ data: { items } });
 }

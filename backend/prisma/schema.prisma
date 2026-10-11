@@ -58,6 +58,9 @@ model Place {
   guestRating            Float?            @map("guest_rating")
   guestReviewCount       Int?              @map("guest_review_count")
   wholesaleSyncedAt      DateTime?         @map("wholesale_synced_at") @db.Timestamptz(6)
+  // "What's nearby" cache (Mapbox category search), refreshed monthly.
+  nearbyJson             Json?             @map("nearby_json")
+  nearbyFetchedAt        DateTime?         @map("nearby_fetched_at") @db.Timestamptz(6)
   autoAcceptAboveMinimum Boolean           @default(true)
   blackoutDates          String[]          @default([])
   allowedDaysOfWeek      Int[]             @default([0, 1, 2, 3, 4, 5, 6]) @map("allowed_days_of_week")
