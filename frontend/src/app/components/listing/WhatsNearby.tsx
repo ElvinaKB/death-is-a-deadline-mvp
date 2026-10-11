@@ -1,5 +1,5 @@
 import "mapbox-gl/dist/mapbox-gl.css";
-import { useMemo, useRef, useState } from "react";
+import { Component, ReactNode, useMemo, useRef, useState } from "react";
 import Map, {
   Layer,
   MapRef,
@@ -59,6 +59,23 @@ function circlePolygon(lat: number, lng: number, radiusM: number) {
   };
 }
 
+/** A map failure must never blank the whole hotel page. */
+class MapErrorBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(err: unknown) {
+    console.error("[WhatsNearby] map failed:", err);
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
 interface WhatsNearbyProps {
   placeId: string;
   latitude: number;
@@ -73,7 +90,24 @@ interface WhatsNearbyProps {
  * "What's walkable" list with walking times. Data comes from our cached
  * /nearby endpoint (Mapbox category search, refreshed monthly per hotel).
  */
-export function WhatsNearby({
+export function WhatsNearby(props: WhatsNearbyProps) {
+  return (
+    <MapErrorBoundary
+      fallback={
+        props.address ? (
+          <p className="text-base text-muted flex items-center gap-1.5">
+            <MapPin className="h-4 w-4 shrink-0 text-gold" />
+            {props.address}
+          </p>
+        ) : null
+      }
+    >
+      <WhatsNearbyInner {...props} />
+    </MapErrorBoundary>
+  );
+}
+
+function WhatsNearbyInner({
   placeId,
   latitude,
   longitude,
@@ -83,6 +117,9 @@ export function WhatsNearby({
   const mapRef = useRef<MapRef>(null);
   const [filter, setFilter] = useState<Category | "all">("all");
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Mapbox Standard loads in stages; adding our ring layer before the style
+  // finishes throws ("Style is not done loading"). Only add it after onLoad.
+  const [mapReady, setMapReady] = useState(false);
 
   const { data } = useApiQuery<{ items: NearbyItem[] }>({
     queryKey: ["places", "nearby", placeId],
@@ -144,9 +181,13 @@ export function WhatsNearby({
             } catch {
               /* older style — falls back to default look */
             }
+            // Changing the basemap config reloads parts of the style; wait
+            // until the map is fully settled before adding our layers.
+            map.once?.("idle", () => setMapReady(true));
           }}
         >
           <NavigationControl position="top-right" showCompass={false} />
+          {mapReady && (
           <Source id="walk-ring" type="geojson" data={ring}>
             <Layer
               id="walk-ring-fill"
@@ -164,6 +205,7 @@ export function WhatsNearby({
               }}
             />
           </Source>
+          )}
 
           {shown.map((item) => {
             const { Icon, color } = CATEGORY[item.category];
