@@ -82,6 +82,8 @@ interface WhatsNearbyProps {
   longitude: number;
   address?: string | null;
   mapboxToken: string;
+  /** Shown beside the map on wide screens (e.g. the Neighborhood guide). */
+  aside?: ReactNode;
 }
 
 /**
@@ -113,6 +115,7 @@ function WhatsNearbyInner({
   longitude,
   address,
   mapboxToken,
+  aside,
 }: WhatsNearbyProps) {
   const mapRef = useRef<MapRef>(null);
   const [filter, setFilter] = useState<Category | "all">("all");
@@ -155,6 +158,8 @@ function WhatsNearbyInner({
 
   return (
     <div>
+      <div className={aside ? "grid grid-cols-1 lg:grid-cols-2 gap-8 items-start" : ""}>
+      <div>
       <h3 className="text-xl font-semibold text-fg mb-1">What&apos;s walkable</h3>
       <p className="text-base text-muted mb-4">
         Food, coffee, drinks and shops within a short walk. The gold ring is
@@ -261,6 +266,9 @@ function WhatsNearbyInner({
           {address}
         </p>
       )}
+      </div>
+      {aside}
+      </div>
 
       {items.length > 0 && (
         <div className="mt-5">
@@ -284,11 +292,11 @@ function WhatsNearbyInner({
               );
             })}
           </div>
-          <ul className="divide-y divide-line rounded-xl border border-line">
+          <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-px overflow-hidden rounded-xl border border-line bg-line">
             {shown.map((item) => {
               const { Icon, color, label } = CATEGORY[item.category];
               return (
-                <li key={item.id}>
+                <li key={item.id} className="bg-bg">
                   <button
                     type="button"
                     onClick={() => focus(item)}

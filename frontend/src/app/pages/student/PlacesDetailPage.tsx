@@ -535,7 +535,8 @@ export function PlaceDetailPage() {
               className={
                 place.checkInTime ||
                 place.checkOutTime ||
-                place.goodToKnowText
+                place.goodToKnowText ||
+                place.verticalVideoUrl
                   ? "grid grid-cols-1 lg:grid-cols-2 gap-8 items-start"
                   : ""
               }
@@ -578,7 +579,12 @@ export function PlaceDetailPage() {
 
               {(place.checkInTime ||
                 place.checkOutTime ||
-                place.goodToKnowText) && (
+                place.goodToKnowText ||
+                place.verticalVideoUrl) && (
+                <div className="space-y-8">
+                {(place.checkInTime ||
+                  place.checkOutTime ||
+                  place.goodToKnowText) && (
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold text-fg mb-4 sm:mb-6">
                     Good to know
@@ -625,17 +631,14 @@ export function PlaceDetailPage() {
                     </ul>
                   )}
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Property video — its own section (optional per listing). */}
-          {place.verticalVideoUrl && (
-            <div className="mt-8 sm:mt-12">
-              <h2 className="text-xl sm:text-2xl font-bold text-fg mb-4 sm:mb-6">
-                Property video
-              </h2>
-              <div className="mx-auto w-full max-w-[320px]">
+                )}
+                {/* Property video beside the FAQ (optional per listing). */}
+                {place.verticalVideoUrl && (
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-fg mb-4 sm:mb-6">
+                      Property video
+                    </h2>
+              <div className="w-full max-w-[320px]">
                 {(() => {
                   const embedUrl = getYouTubeEmbedUrl(place.verticalVideoUrl);
                   return embedUrl ? (
@@ -660,50 +663,47 @@ export function PlaceDetailPage() {
                   );
                 })()}
               </div>
-            </div>
-          )}
-
-          {/* Map Section - Only show if lat/lng exist */}
-          {place.latitude && place.longitude && (
-            <div className="mt-8">
-              <div
-                className={
-                  place.neighborhoodGuideText || place.neighborhoodGuideImageUrl
-                    ? "grid grid-cols-1 lg:grid-cols-2 gap-8 items-start"
-                    : ""
-                }
-              >
-                <WhatsNearby
-                  placeId={place.id}
-                  latitude={place.latitude}
-                  longitude={place.longitude}
-                  address={place.address}
-                  mapboxToken={MAPBOX_TOKEN}
-                />
-
-                {(place.neighborhoodGuideText ||
-                  place.neighborhoodGuideImageUrl) && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-fg mb-4">
-                      Neighborhood
-                    </h3>
-                    {place.neighborhoodGuideImageUrl && (
-                      <div className="w-full h-56 sm:h-72 md:h-80 rounded-lg overflow-hidden mb-4">
-                        <img
-                          src={place.neighborhoodGuideImageUrl}
-                          alt={`${place.city} neighborhood`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    {place.neighborhoodGuideText && (
-                      <p className="text-sm text-muted leading-relaxed whitespace-pre-line">
-                        {place.neighborhoodGuideText}
-                      </p>
-                    )}
                   </div>
                 )}
-              </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* What's walkable map + Neighborhood side by side; the nearby
+              list runs full width under both. */}
+          {place.latitude && place.longitude && (
+            <div className="mt-8">
+              <WhatsNearby
+                placeId={place.id}
+                latitude={place.latitude}
+                longitude={place.longitude}
+                address={place.address}
+                mapboxToken={MAPBOX_TOKEN}
+                aside={
+                  place.neighborhoodGuideText || place.neighborhoodGuideImageUrl ? (
+                    <div>
+                      <h3 className="text-xl font-semibold text-fg mb-4">
+                        Neighborhood
+                      </h3>
+                      {place.neighborhoodGuideImageUrl && (
+                        <div className="w-full h-56 sm:h-72 md:h-80 rounded-lg overflow-hidden mb-4">
+                          <img
+                            src={place.neighborhoodGuideImageUrl}
+                            alt={`${place.city} neighborhood`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      {place.neighborhoodGuideText && (
+                        <p className="text-base text-muted leading-relaxed whitespace-pre-line">
+                          {place.neighborhoodGuideText}
+                        </p>
+                      )}
+                    </div>
+                  ) : undefined
+                }
+              />
             </div>
           )}
 
