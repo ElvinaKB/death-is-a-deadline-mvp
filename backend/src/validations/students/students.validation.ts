@@ -10,7 +10,15 @@ export const studentApproveRejectSchema = z.object({
 
 export const addStudentSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
-  email: z.string().email("Valid email is required"),
+  // Strip whitespace and invisible characters (zero-width spaces, joiners,
+  // BOM) that paste/autofill can sneak in — they're invisible on screen but
+  // make a valid-looking address fail .email(). Emails never contain these.
+  email: z
+    .string()
+    .transform((v) =>
+      v.replace(/[\s​-‍⁠﻿]/g, "").toLowerCase(),
+    )
+    .pipe(z.string().email("Valid email is required")),
   // Optional contact phone — when provided it's saved to the traveler's
   // profile so the bid form won't ask again and it pushes to the hotel's PMS.
   phone: z
