@@ -67,6 +67,7 @@ import { ENDPOINTS } from "../../../config/endpoints.config";
 import { LocationPicker } from "../../components/common/LocationPicker";
 import {
   PLACE_KEYWORD_OPTIONS,
+  isPlaceKeywordId,
   type PlaceKeywordId,
 } from "../../../constants/placeKeywords";
 
@@ -162,7 +163,11 @@ export function PlaceFormPage() {
       address: existingPlace?.address || "",
       email: existingPlace?.email || "",
       reservationPhone: existingPlace?.reservationPhone || "",
-      keywords: (existingPlace?.keywords ?? []) as PlaceKeywordId[],
+      // Drop any stored amenity that's no longer a valid option (e.g. the
+      // retired "workspace") so old listings can still be saved.
+      keywords: (existingPlace?.keywords ?? []).filter(
+        isPlaceKeywordId,
+      ) as PlaceKeywordId[],
       latitude: existingPlace?.latitude ?? null,
       longitude: existingPlace?.longitude ?? null,
       images: [] as File[],
