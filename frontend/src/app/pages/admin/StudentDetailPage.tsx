@@ -525,8 +525,9 @@ export function StudentDetailPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <CardTitle className="text-fg">LinkedIn Verification</CardTitle>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
+                className="border-line text-fg"
                 onClick={() => handleEditLinkedin(student.linkedinProfileUrl)}
                 disabled={linkedinMutation.isPending}
               >
