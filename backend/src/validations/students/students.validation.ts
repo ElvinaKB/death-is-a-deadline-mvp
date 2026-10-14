@@ -36,3 +36,13 @@ export const addStudentSchema = z.object({
     .optional()
     .or(z.literal("")),
 });
+
+// Admin correcting a traveler's LinkedIn link. Share/tracking parameters are
+// dropped so the stored link is the plain profile URL; "" clears it.
+export const updateStudentLinkedinSchema = z.object({
+  linkedinProfileUrl: z
+    .string()
+    .trim()
+    .transform((v) => v.split(/[?#]/)[0])
+    .pipe(z.string().url("Enter a valid URL").or(z.literal(""))),
+});

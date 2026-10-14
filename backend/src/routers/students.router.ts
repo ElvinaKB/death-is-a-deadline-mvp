@@ -6,6 +6,7 @@ import {
   studentIdParamSchema,
   studentApproveRejectSchema,
   addStudentSchema,
+  updateStudentLinkedinSchema,
 } from "../validations/students/students.validation";
 import { UserRole } from "../types/auth.types";
 
@@ -56,6 +57,14 @@ router.post(
   "/:id/reject",
   validate(studentApproveRejectSchema, "params"),
   studentsController.rejectStudent
+);
+
+// PATCH /api/students/:id/linkedin — admin corrects a traveler's LinkedIn link
+router.patch(
+  "/:id/linkedin",
+  validate(studentIdParamSchema, "params"),
+  validate(updateStudentLinkedinSchema),
+  studentsController.updateStudentLinkedin
 );
 
 // POST /api/students/:id/ban
