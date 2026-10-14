@@ -14,6 +14,7 @@ export interface Student {
   banned?: boolean;
   banReason?: string | null;
   linkedinProfileUrl?: string | null;
+  linkedinEditedByAdmin?: boolean;
   verifiedVia?: string | null;
 }
 

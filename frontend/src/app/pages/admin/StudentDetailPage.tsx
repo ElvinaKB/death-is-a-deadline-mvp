@@ -19,7 +19,7 @@ import {
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
-import { ArrowLeft, Check, X, MailCheck, MailX, Download } from "lucide-react";
+import { ArrowLeft, Check, X, MailCheck, MailX, Download, Pencil } from "lucide-react";
 import { downloadCsv } from "../../../utils/downloadCsv";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
@@ -223,7 +223,7 @@ function buildTimeline(
     dated.push({
       id: "approved",
       title: "Account Approved",
-      description: "Admin approved the student",
+      description: "Admin approved the traveler",
       timestamp: student.updatedAt,
       status: "completed",
     });
@@ -231,7 +231,7 @@ function buildTimeline(
     dated.push({
       id: "rejected",
       title: "Account Rejected",
-      description: student.rejectionReason ?? "Admin rejected the student",
+      description: student.rejectionReason ?? "Admin rejected the traveler",
       timestamp: student.updatedAt,
       status: "error",
     });
@@ -311,7 +311,7 @@ export function StudentDetailPage() {
     endpoint: getEndpoint(ENDPOINTS.STUDENT_APPROVE, { id: id! }),
     method: "POST",
     onSuccess: () => {
-      toast.success("Student approved successfully");
+      toast.success("Traveler approved");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STUDENTS_LIST] });
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.STUDENT_DETAIL, id],
@@ -324,7 +324,7 @@ export function StudentDetailPage() {
     endpoint: getEndpoint(ENDPOINTS.STUDENT_REJECT, { id: id! }),
     method: "POST",
     onSuccess: () => {
-      toast.success("Student rejected");
+      toast.success("Traveler rejected");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STUDENTS_LIST] });
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.STUDENT_DETAIL, id],
@@ -333,10 +333,43 @@ export function StudentDetailPage() {
     },
   });
 
+  const linkedinMutation = useApiMutation<void, { linkedinProfileUrl: string }>({
+    endpoint: getEndpoint(ENDPOINTS.STUDENT_UPDATE_LINKEDIN, { id: id! }),
+    method: "PATCH",
+    onSuccess: () => {
+      toast.success("LinkedIn updated");
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STUDENT_DETAIL, id],
+      });
+    },
+  });
+
+  const handleEditLinkedin = async (current: string | null | undefined) => {
+    const result = await Swal.fire({
+      title: current ? "Edit LinkedIn" : "Add LinkedIn",
+      input: "url",
+      inputValue: current ?? "",
+      inputPlaceholder: "https://www.linkedin.com/in/…",
+      showCancelButton: true,
+      confirmButtonColor: "#22c55e",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Save",
+      cancelButtonText: "Cancel",
+      inputValidator: (value) =>
+        value && !/linkedin\.com\//i.test(value)
+          ? "Enter a LinkedIn profile link"
+          : undefined,
+    });
+
+    if (result.isConfirmed) {
+      linkedinMutation.mutate({ linkedinProfileUrl: result.value ?? "" });
+    }
+  };
+
   const handleApprove = async () => {
     const result = await Swal.fire({
-      title: "Approve Student?",
-      text: "This student will be able to access the marketplace",
+      title: "Approve Traveler?",
+      text: "This traveler will be able to access the marketplace",
       icon: "question",
       showCancelButton: true,
       confirmButtonColor: "#22c55e",
@@ -352,7 +385,7 @@ export function StudentDetailPage() {
 
   const handleReject = async () => {
     const result = await Swal.fire({
-      title: "Reject Student?",
+      title: "Reject Traveler?",
       text: "You can optionally provide a reason",
       icon: "warning",
       input: "textarea",
@@ -488,27 +521,41 @@ export function StudentDetailPage() {
             </CardContent>
           </Card>
 
-          {student.linkedinProfileUrl && (
-            <Card className="glass-2 border-white/10">
-              <CardHeader>
-                <CardTitle className="text-fg">LinkedIn Verification</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted mb-3">
-                  LinkedIn confirmed this person owns the email above.
-                  Click through to review their profile before approving.
-                </p>
-                <a
-                  href={student.linkedinProfileUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 text-brand hover:underline font-medium break-all"
-                >
-                  {student.linkedinProfileUrl}
-                </a>
-              </CardContent>
-            </Card>
-          )}
+          <Card className="glass-2 border-white/10">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-fg">LinkedIn Verification</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleEditLinkedin(student.linkedinProfileUrl)}
+                disabled={linkedinMutation.isPending}
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                {student.linkedinProfileUrl ? "Edit" : "Add LinkedIn"}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {student.linkedinProfileUrl ? (
+                <>
+                  <p className="text-sm text-muted mb-3">
+                    {student.linkedinEditedByAdmin
+                      ? "Link corrected by an admin. Click through to review their profile before approving."
+                      : "LinkedIn confirmed this person owns the email above. Click through to review their profile before approving."}
+                  </p>
+                  <a
+                    href={student.linkedinProfileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 text-brand hover:underline font-medium break-all"
+                  >
+                    {student.linkedinProfileUrl}
+                  </a>
+                </>
+              ) : (
+                <p className="text-sm text-muted">No LinkedIn on file.</p>
+              )}
+            </CardContent>
+          </Card>
 
           {student.studentIdUrl && (
             <Card className="glass-2 border-white/10">
@@ -647,14 +694,14 @@ export function StudentDetailPage() {
                   className="w-full bg-success hover:bg-success/90 disabled:opacity-50"
                   onClick={handleApprove}
                   disabled={approveMutation.isPending || !student.emailConfirmedAt}
-                  title={!student.emailConfirmedAt ? "Student must verify their email before approval" : undefined}
+                  title={!student.emailConfirmedAt ? "Traveler must verify their email before approval" : undefined}
                 >
                   <Check className="h-4 w-4 mr-2" />
-                  Approve Student
+                  Approve Traveler
                 </Button>
                 {!student.emailConfirmedAt && (
                   <p className="text-xs text-error text-center">
-                    Approval blocked — student has not verified their email
+                    Approval blocked — traveler has not verified their email
                   </p>
                 )}
                 <Button
@@ -664,7 +711,7 @@ export function StudentDetailPage() {
                   disabled={rejectMutation.isPending}
                 >
                   <X className="h-4 w-4 mr-2" />
-                  Reject Student
+                  Reject Traveler
                 </Button>
               </CardContent>
             </Card>
@@ -677,7 +724,7 @@ export function StudentDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-center py-4 text-sm text-muted">
-                  Student has been rejected
+                  Traveler has been rejected
                   {student.rejectionReason && (
                     <p className="mt-2 text-fg">{student.rejectionReason}</p>
                   )}

@@ -25,6 +25,7 @@ export const getRawStudent = (item: RawUser) => ({
   banned: item.raw_user_meta_data?.banned ?? false,
   banReason: item.raw_user_meta_data?.banReason ?? null,
   linkedinProfileUrl: item.raw_user_meta_data?.linkedinProfileUrl ?? null,
+  linkedinEditedByAdmin: item.raw_user_meta_data?.linkedinEditedByAdmin ?? false,
   verifiedVia: item.raw_user_meta_data?.verifiedVia ?? null,
 });
 
@@ -160,6 +161,32 @@ export async function rejectStudent(req: Request, res: Response) {
   });
 
   res.status(200).json({ message: "Student rejected" });
+}
+
+/**
+ * Admin-only: correct (or clear) a traveler's LinkedIn link, e.g. a typo made
+ * at signup. Flags the link as admin-edited so the detail page no longer
+ * presents it as the one LinkedIn confirmed.
+ */
+export async function updateStudentLinkedin(req: Request, res: Response) {
+  const { id } = req.params;
+  const { linkedinProfileUrl } = req.body as { linkedinProfileUrl: string };
+
+  const { data: existing, error: fetchError } =
+    await supabase.auth.admin.getUserById(id);
+  if (fetchError || !existing.user) throw new CustomError("Student not found", 404);
+  const meta = (existing.user.user_metadata ?? {}) as Record<string, any>;
+
+  const { error } = await supabase.auth.admin.updateUserById(id, {
+    user_metadata: {
+      ...meta,
+      linkedinProfileUrl: linkedinProfileUrl || null,
+      linkedinEditedByAdmin: true,
+    },
+  });
+  if (error) throw new CustomError(error.message, 400);
+
+  res.status(200).json({ message: "LinkedIn updated" });
 }
 
 export async function banStudent(req: Request, res: Response) {
