@@ -87,7 +87,7 @@ export function WholesalePricePanel({
         </div>
         <button
           type="button"
-          className="shrink-0 h-11 rounded-lg border border-line px-4 text-sm font-semibold uppercase tracking-wide text-fg hover:bg-glass inline-flex items-center gap-2"
+          className="btn-bid-premium shrink-0 h-12 rounded-lg px-5 text-sm font-semibold uppercase tracking-wide inline-flex items-center gap-2"
           onClick={() => onUseMemberPrice(perNight)}
         >
           <Zap className="h-4 w-4" /> Book now

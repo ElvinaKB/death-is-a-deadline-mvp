@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Confirming…</title></head>
+<body style="font-family:sans-serif;text-align:center;padding:40px;color:#555">
+Payment received — confirming your room…
+<script>
+  // Nuitee redirects here (inside the payment iframe) after payment; send the
+  // whole window to the booking-complete page.
+  var bid = new URLSearchParams(location.hash.slice(1)).get("bid") || "";
+  var target = "/member/booking-complete/" + encodeURIComponent(bid);
+  try { window.top.location.href = target; } catch (e) { location.href = target; }
+</script>
+</body>
+</html>
