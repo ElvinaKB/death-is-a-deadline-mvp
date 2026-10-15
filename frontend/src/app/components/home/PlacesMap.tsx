@@ -231,8 +231,20 @@ export function PlacesMap({
     },
     [bounds, framed],
   );
+  // The map can be created lazily or reused from a previous page (reuseMaps),
+  // in which case onLoad never fires again — so wait until it's ready, then fit.
   useEffect(() => {
-    fitToHotels();
+    let tries = 0;
+    const timer = window.setInterval(() => {
+      const map = mapRef.current?.getMap?.();
+      if (map && map.loaded()) {
+        window.clearInterval(timer);
+        fitToHotels();
+      } else if (++tries > 60) {
+        window.clearInterval(timer);
+      }
+    }, 150);
+    return () => window.clearInterval(timer);
   }, [fitToHotels]);
 
   // Show message if no places have coordinates
