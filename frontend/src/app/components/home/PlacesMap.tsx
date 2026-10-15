@@ -170,6 +170,15 @@ export function PlacesMap({
   }
 
   const initialViewState = useMemo(() => {
+    if (bounds) {
+      return {
+        bounds: [
+          [bounds.minLng - 0.02, bounds.minLat - 0.02],
+          [bounds.maxLng + 0.02, bounds.maxLat + 0.02],
+        ] as [[number, number], [number, number]],
+        fitBoundsOptions: { padding: 50, maxZoom: 14 },
+      };
+    }
     if (placesWithCoords.length === 0) {
       return {
         longitude: -74,
@@ -205,7 +214,7 @@ export function PlacesMap({
       latitude: avgLat,
       zoom: 12,
     };
-  }, [placesWithCoords]);
+  }, [placesWithCoords, bounds]);
 
   // Fit to the hotels the viewer sees first — when they change, and also once
   // the map itself finishes loading (the map script loads lazily, so the hotel
@@ -235,16 +244,30 @@ export function PlacesMap({
   // in which case onLoad never fires again — so wait until it's ready, then fit.
   useEffect(() => {
     let tries = 0;
+    let cancelled = false;
+    let attached: any = null;
+    const refit = () => {
+      if (!cancelled) fitToHotels(0);
+    };
+    // Wait only for the map object to exist (it's created lazily); camera
+    // moves work before tiles finish loading, and we fit again once the map
+    // is idle in case a slow first load (e.g. incognito, cold cache) reset it.
     const timer = window.setInterval(() => {
       const map = mapRef.current?.getMap?.();
-      if (map && map.loaded()) {
+      if (map) {
         window.clearInterval(timer);
-        fitToHotels();
-      } else if (++tries > 60) {
+        fitToHotels(0);
+        attached = map;
+        map.once("idle", refit);
+      } else if (++tries > 200) {
         window.clearInterval(timer);
       }
-    }, 150);
-    return () => window.clearInterval(timer);
+    }, 100);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      attached?.off?.("idle", refit);
+    };
   }, [fitToHotels]);
 
   // Show message if no places have coordinates
