@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Loader2, Lock, X } from "lucide-react";
 import { formatCurrencyCents } from "../../../utils/currency";
 
@@ -34,9 +35,20 @@ export function NuiteeCheckout({
     bid: session.bidId,
   }).toString()}`;
 
-  return (
+  // Lock page scroll while the checkout is open.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  // Rendered into <body> so no parent's sticky/stacking layout (the bid
+  // panel) can trap it under the photo gallery.
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4"
+      className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-black/85 p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Complete your booking"
@@ -85,6 +97,7 @@ export function NuiteeCheckout({
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
