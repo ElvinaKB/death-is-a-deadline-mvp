@@ -207,18 +207,33 @@ export function PlacesMap({
     };
   }, [placesWithCoords]);
 
-  // Fit bounds when places change
-  useEffect(() => {
-    if (mapRef.current && bounds && framed.length > 1) {
+  // Fit to the hotels the viewer sees first — when they change, and also once
+  // the map itself finishes loading (the map script loads lazily, so the hotel
+  // list can arrive first; without this the map stayed at its start point).
+  const fitToHotels = useCallback(
+    (duration = 1000) => {
+      if (!mapRef.current || !bounds) return;
+      if (framed.length === 1) {
+        mapRef.current.flyTo({
+          center: [framed[0]!.longitude!, framed[0]!.latitude!],
+          zoom: 13,
+          duration,
+        });
+        return;
+      }
       mapRef.current.fitBounds(
         [
           [bounds.minLng - 0.02, bounds.minLat - 0.02],
           [bounds.maxLng + 0.02, bounds.maxLat + 0.02],
         ],
-        { padding: 50, duration: 1000, maxZoom: 14 },
+        { padding: 50, duration, maxZoom: 14 },
       );
-    }
-  }, [bounds, framed.length]);
+    },
+    [bounds, framed],
+  );
+  useEffect(() => {
+    fitToHotels();
+  }, [fitToHotels]);
 
   // Show message if no places have coordinates
   if (placesWithCoords.length === 0) {
@@ -243,6 +258,7 @@ export function PlacesMap({
         style={{ width: "100%", height: "100%" }}
         mapStyle="mapbox://styles/mapbox/dark-v11"
         reuseMaps
+        onLoad={() => fitToHotels(0)}
       >
         <NavigationControl position="top-left" />
 

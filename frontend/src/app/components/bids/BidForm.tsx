@@ -2017,9 +2017,12 @@ function BidFormInner({
                 checkInDate={toApiDateOnly(formik.values.checkInDate)}
                 checkOutDate={toApiDateOnly(formik.values.checkOutDate)}
                 isAuthenticated={isAuthenticated}
-                onUseMemberPrice={(price) => {
+                onUseMemberPrice={async (price) => {
+                  // One click: fill the public price and place the bid. The
+                  // submit still checks the agreement box and phone.
                   setPaymentError(null);
-                  void formik.setFieldValue("bidPerNight", String(price));
+                  await formik.setFieldValue("bidPerNight", String(price));
+                  void formik.submitForm();
                 }}
               />
             )}
@@ -2288,6 +2291,9 @@ function BidFormInner({
                 No availability for selected date. Try different dates.
               </p>
             )}
+            {/* Stays pinned to the bottom of the screen while the bid panel
+                scrolls, so the bid button is never below the fold. */}
+            <div className="sticky bottom-3 z-20 rounded-xl bg-bg/95 p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.6)] backdrop-blur">
             <Button
               type="button"
               className="w-full listing-cta-gradient h-12 text-base uppercase tracking-wider"
@@ -2302,6 +2308,7 @@ function BidFormInner({
               <ArrowRight className="mr-2 h-4 w-4" />
               {isProcessing ? "PROCESSING YOUR BID..." : isWholesalePlace ? "PLACE BID" : "LOCK IN BID"}
             </Button>
+            </div>
             <div className="listing-lock-hint">
               <p className="flex items-start gap-2 text-xs text-muted leading-relaxed text-left">
                 <Lock className="h-3.5 w-3.5 shrink-0 mt-0.5 text-fg" />
@@ -2481,9 +2488,12 @@ function BidFormInner({
                 checkInDate={toApiDateOnly(formik.values.checkInDate)}
                 checkOutDate={toApiDateOnly(formik.values.checkOutDate)}
                 isAuthenticated={isAuthenticated}
-                onUseMemberPrice={(price) => {
+                onUseMemberPrice={async (price) => {
+                  // One click: fill the public price and place the bid. The
+                  // submit still checks the agreement box and phone.
                   setPaymentError(null);
-                  void formik.setFieldValue("bidPerNight", String(price));
+                  await formik.setFieldValue("bidPerNight", String(price));
+                  void formik.submitForm();
                 }}
               />
             )}

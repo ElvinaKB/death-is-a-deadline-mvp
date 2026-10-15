@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Loader2, Lock, X } from "lucide-react";
 import { formatCurrencyCents } from "../../../utils/currency";
 
@@ -9,29 +9,6 @@ export interface NuiteeCheckoutSession {
   environment: "sandbox" | "live";
   price: number;
   currency: string;
-}
-
-const SDK_URL = "https://payment-wrapper.liteapi.travel/dist/liteAPIPayment.js?v=a1";
-
-declare global {
-  interface Window {
-    LiteAPIPayment?: new (config: Record<string, unknown>) => { handlePayment: () => void };
-  }
-}
-
-function loadSdk(): Promise<void> {
-  if (window.LiteAPIPayment) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(`script[src="${SDK_URL}"]`);
-    const script = existing ?? document.createElement("script");
-    script.addEventListener("load", () => resolve());
-    script.addEventListener("error", () => reject(new Error("Payment form failed to load")));
-    if (!existing) {
-      script.src = SDK_URL;
-      script.async = true;
-      document.body.appendChild(script);
-    }
-  });
 }
 
 /**
@@ -48,29 +25,14 @@ export function NuiteeCheckout({
   hotelName: string;
   onClose: () => void;
 }) {
-  const mounted = useRef(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (mounted.current) return;
-    mounted.current = true;
-    loadSdk()
-      .then(() => {
-        const Payment = window.LiteAPIPayment;
-        if (!Payment) throw new Error("Payment form failed to load");
-        new Payment({
-          publicKey: session.environment,
-          secretKey: session.secretKey,
-          targetElement: "#nuitee-payment",
-          returnUrl: `${window.location.origin}/member/booking-complete/${session.bidId}`,
-          appearance: { theme: "flat" },
-          options: { business: { name: "Deadline Travel" } },
-        }).handlePayment();
-      })
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [session]);
+  const [loaded, setLoaded] = useState(false);
+  // Nuitee's form runs in its own isolated page (public/nuitee-pay.html) so the
+  // site's Stripe.js can't interfere; the hash never leaves the browser.
+  const src = `/nuitee-pay.html#${new URLSearchParams({
+    sk: session.secretKey,
+    env: session.environment,
+    bid: session.bidId,
+  }).toString()}`;
 
   return (
     <div
@@ -108,14 +70,19 @@ export function NuiteeCheckout({
             Test mode: use card 4242 4242 4242 4242, any future date, any CVC.
           </p>
         )}
-        <div className="mt-5 min-h-[260px] rounded-xl bg-white p-3">
-          {loading && (
-            <div className="flex items-center justify-center gap-2 py-16 text-base text-gray-600">
+        <div className="relative mt-5 overflow-hidden rounded-xl bg-white">
+          {!loaded && (
+            <div className="absolute inset-0 flex items-center justify-center gap-2 text-base text-gray-600">
               <Loader2 className="h-5 w-5 animate-spin" /> Loading secure payment…
             </div>
           )}
-          {error && <p className="py-10 text-center text-base text-red-600">{error}</p>}
-          <div id="nuitee-payment" />
+          <iframe
+            title="Secure payment by Nuitée"
+            src={src}
+            onLoad={() => setLoaded(true)}
+            className="block h-[560px] w-full border-0"
+            allow="payment *"
+          />
         </div>
       </div>
     </div>

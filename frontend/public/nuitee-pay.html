@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Secure payment</title>
+<style>
+  html, body { margin: 0; background: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  #nuitee-payment { padding: 4px; }
+  .msg { padding: 32px 12px; text-align: center; color: #555; font-size: 16px; }
+  /* Nuitee's SDK renders a plain <button>; make it a clear, large pay button. */
+  #nuitee-payment button {
+    display: block; width: 100%; margin-top: 16px; padding: 16px;
+    border: 0; border-radius: 10px; cursor: pointer;
+    background: linear-gradient(135deg, #C9A24B, #E7C873); color: #111;
+    font-size: 18px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  #nuitee-payment button:disabled { opacity: 0.6; cursor: wait; }
+  #st-error-message { color: #c0392b; font-size: 15px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<!-- Isolated page for Nuitee's hosted payment form (Nuitee is merchant of
+     record for wholesale bookings). Loaded in an iframe from the bid form so
+     the site's own Stripe.js can't interfere. Params arrive in the URL hash
+     (never sent to any server): sk = Nuitee client secret, env, bid. -->
+<div id="loading" class="msg">Loading secure payment…</div>
+<div id="nuitee-payment"></div>
+<script>
+  (function () {
+    var p = new URLSearchParams(location.hash.slice(1));
+    var sk = p.get("sk"), env = p.get("env"), bid = p.get("bid");
+    function fail(m) { document.getElementById("loading").textContent = m; }
+    if (!sk || !bid || (env !== "sandbox" && env !== "live")) return fail("Payment link is invalid. Please close and try again.");
+    var s = document.createElement("script");
+    s.src = "https://payment-wrapper.liteapi.travel/dist/liteAPIPayment.js?v=a1";
+    s.onerror = function () { fail("Payment form failed to load. Please close and try again."); };
+    s.onload = function () {
+      new LiteAPIPayment({
+        publicKey: env,
+        secretKey: sk,
+        targetElement: "#nuitee-payment",
+        returnUrl: location.origin + "/nuitee-return.html#bid=" + encodeURIComponent(bid),
+        appearance: { theme: "flat" },
+        options: { business: { name: "Deadline Travel" } },
+        submitButton: { text: "Pay and book" }
+      }).handlePayment();
+      var t = setInterval(function () {
+        if (document.querySelector("#nuitee-payment iframe")) {
+          document.getElementById("loading").style.display = "none";
+          clearInterval(t);
+        }
+      }, 300);
+      setTimeout(function () { clearInterval(t); }, 20000);
+    };
+    document.body.appendChild(s);
+  })();
+</script>
+</body>
+</html>
