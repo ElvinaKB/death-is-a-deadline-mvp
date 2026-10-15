@@ -185,6 +185,9 @@ interface RatesQuery {
   countryCode?: string;
   adults?: number;
   limit?: number;
+  /** Deadline's markup in percent; Nuitee adds it to the price and pays it
+   * back to us as commission (used when Nuitee is merchant of record). */
+  margin?: number;
 }
 
 /** Cheapest offer per hotel for the stay. Hotels with no availability are absent. */
@@ -198,6 +201,7 @@ export async function getCheapestOffers(
     guestNationality: "US",
     occupancies: [{ adults: q.adults ?? DEFAULT_ADULTS }],
     timeout: 20,
+    ...(q.margin !== undefined && { margin: q.margin }),
   };
   if (q.hotelIds) body.hotelIds = q.hotelIds;
   if (q.cityName) {
@@ -229,6 +233,40 @@ export async function getCheapestOffers(
     }
   }
   return result;
+}
+
+// ---------- Booking via Nuitee Payment SDK (Nuitee is merchant of record) ----------
+
+export interface SdkPrebookResult {
+  prebookId: string;
+  transactionId: string;
+  secretKey: string;
+  price: number;
+  commission: number;
+  currency: string;
+}
+
+/** Prebook for Nuitee's hosted payment form; the guest pays Nuitee directly. */
+export async function prebookForPaymentSdk(offerId: string): Promise<SdkPrebookResult> {
+  try {
+    const { data } = await axios.post(
+      `${BOOK_BASE}/rates/prebook`,
+      { offerId, usePaymentSdk: true },
+      { headers: headers(), timeout: 45_000 },
+    );
+    const d = data.data;
+    return {
+      prebookId: d.prebookId,
+      transactionId: d.transactionId,
+      secretKey: d.secretKey,
+      price: Number(d.price),
+      commission: Number(d.commission ?? 0),
+      currency: d.currency,
+    };
+  } catch (err) {
+    const msg = describeError(err);
+    throw new LiteapiError(`prebook: ${msg}`, /availab|sold|expired/i.test(msg));
+  }
 }
 
 // ---------- Booking ----------
@@ -280,6 +318,7 @@ export async function book(
   prebookId: string,
   guest: BookGuest,
   clientReference: string,
+  payment: Record<string, string> = { method: "ACC_CREDIT_CARD" },
 ): Promise<BookResult> {
   try {
     const { data } = await axios.post(
@@ -289,7 +328,7 @@ export async function book(
         // Idempotency key: a retried webhook can't double-book the same bid.
         clientReference,
         holder: guest,
-        payment: { method: "ACC_CREDIT_CARD" },
+        payment,
         customTags: { CHANNEL: "DEADLINETRAVEL" },
         guests: [
           {

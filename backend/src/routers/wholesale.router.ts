@@ -2,6 +2,8 @@ import { Router } from "express";
 import { authenticate } from "../libs/middlewares/authenticate";
 import { UserRole } from "../types/auth.types";
 import {
+  completeCheckout,
+  startCheckout,
   getQuote,
   listMarkets,
   requireCronSecret,
@@ -14,6 +16,10 @@ const router = Router();
 router.get("/quote/:id", authenticate(), getQuote);
 
 router.get("/markets", listMarkets);
+
+// Nuitee-as-merchant checkout for a winning wholesale bid.
+router.post("/checkout/:bidId", authenticate(UserRole.STUDENT), startCheckout);
+router.post("/checkout/:bidId/complete", authenticate(UserRole.STUDENT), completeCheckout);
 
 // Import / refresh one city — admin button, or the nightly scheduler.
 router.post("/import", authenticate(UserRole.ADMIN), runImport);

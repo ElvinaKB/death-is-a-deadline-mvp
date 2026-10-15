@@ -3,7 +3,10 @@ import { timingSafeEqual } from "crypto";
 import { prisma } from "../libs/config/prisma";
 import { CustomError } from "../libs/utils/CustomError";
 import { parseBookingDateOnly } from "../libs/utils/hotelDates";
+import { LiteapiError } from "../services/liteapi.service";
 import {
+  completeWholesaleCheckout,
+  startWholesaleCheckout,
   getWholesaleQuote,
   importWholesaleMarkets,
   isWholesale,
@@ -93,4 +96,35 @@ export async function runImport(req: Request, res: Response) {
   const [summary] = await importWholesaleMarkets([city]);
   console.log("[wholesale] import:", JSON.stringify(summary));
   res.status(200).json({ data: summary });
+}
+
+/** Winning wholesale bid → Nuitee payment session (Nuitee charges the member). */
+export async function startCheckout(req: Request, res: Response) {
+  try {
+    const session = await startWholesaleCheckout(req.params.bidId!, req.user!.id);
+    res.set("Cache-Control", "private, no-store");
+    res.status(200).json({ data: session });
+  } catch (err) {
+    const e = err as LiteapiError;
+    throw new CustomError(
+      e.noAvailability
+        ? "Sorry — this room just sold out or changed price. You haven't been charged. Please bid again or try another hotel."
+        : e.message || "Couldn't start checkout",
+      e.noAvailability ? 409 : 400,
+    );
+  }
+}
+
+/** After Nuitee's payment form: confirm the booking with Nuitee. */
+export async function completeCheckout(req: Request, res: Response) {
+  const result = await completeWholesaleCheckout(req.params.bidId!, req.user!.id);
+  res.set("Cache-Control", "private, no-store");
+  if (!result.ok) {
+    throw new CustomError(
+      "Your payment went through but we couldn't confirm the room with the hotel yet. Our team has been alerted and will email you shortly — you won't be charged for a room you don't get.",
+      502,
+      { reason: result.reason },
+    );
+  }
+  res.status(200).json({ data: { confirmationCode: result.confirmationCode } });
 }

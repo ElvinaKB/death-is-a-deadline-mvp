@@ -20,8 +20,11 @@ import {
   isLiteapiSandbox,
   LiteapiError,
   prebook,
+  prebookForPaymentSdk,
   WholesaleOffer,
 } from "./liteapi.service";
+import { bid_status as BidStatus, payment_status as PayStatus } from "@prisma/client";
+import { sendBookingConfirmationEmails } from "./bookingConfirmationEmail.service";
 
 // Wholesale supply (Nuitee/LiteAPI). Wholesale hotels are imported as real
 // Place rows (supplySource = "wholesale") and booked through Nuitee after the
@@ -686,7 +689,7 @@ export async function notifyTeamOfWholesaleBooking(bidId: string): Promise<void>
           <tr><td style="color:#64748b;">Hotel</td><td><strong>${p.name}</strong>, ${p.city}</td></tr>
           <tr><td style="color:#64748b;">Hotel phone</td><td>${p.reservationPhone || "—"}</td></tr>
           <tr><td style="color:#64748b;">Stay</td><td>${toCalendarDateKey(bid.checkInDate)} → ${toCalendarDateKey(bid.checkOutDate)} (${bid.totalNights} night${bid.totalNights === 1 ? "" : "s"})</td></tr>
-          <tr><td style="color:#64748b;">Member paid</td><td>${money(bid.totalAmount)} (Nuitee cost ${money(bid.supplierCost)}, margin ${money(bid.platformCommission)})</td></tr>
+          <tr><td style="color:#64748b;">Member paid Nuitee</td><td>${money(bid.totalAmount)} (Deadline commission ${money(bid.platformCommission)}, paid out by Nuitee)</td></tr>
           <tr><td style="color:#64748b;">Hotel confirmation</td><td>${bid.supplierConfirmationCode || "—"}</td></tr>
         </table>
         <p style="font-size:14px;margin-top:12px;"><strong>Last 30 days at this hotel:</strong>
@@ -694,4 +697,200 @@ export async function notifyTeamOfWholesaleBooking(bidId: string): Promise<void>
         <p style="font-size:13px;color:#475569;">Pitch: lead with the guest and the demand numbers above, then ask for a private member rate direct at 7%. Don't mention Nuitee or their wholesale rate.</p>
       </div>`,
   });
+}
+
+// ---------- Checkout with Nuitee as merchant of record ----------
+//
+// The member pays Nuitee directly through Nuitee's hosted payment form, so
+// Nuitee handles card processing, refunds and chargebacks, and pays Deadline
+// its commission. We ask Nuitee to price the room at the member's winning bid
+// by sending our markup as a per-request margin (price = cost × (1 + margin)).
+
+export interface WholesaleCheckoutSession {
+  bidId: string;
+  paymentId: string;
+  secretKey: string;
+  environment: "sandbox" | "live";
+  price: number;
+  currency: string;
+}
+
+const BOOKABLE_PAYMENT_STATES = new Set<string>([
+  PayStatus.PENDING,
+  PayStatus.REQUIRES_ACTION,
+  PayStatus.FAILED,
+  PayStatus.CANCELLED,
+  PayStatus.EXPIRED,
+]);
+
+export async function startWholesaleCheckout(
+  bidId: string,
+  studentId: string,
+): Promise<WholesaleCheckoutSession> {
+  const bid = await prisma.bid.findUnique({
+    where: { id: bidId },
+    include: { place: true, payment: true },
+  });
+  if (!bid || bid.studentId !== studentId) throw new LiteapiError("Bid not found");
+  if (!isWholesale(bid.place)) throw new LiteapiError("Not a wholesale listing");
+  if (bid.status !== BidStatus.ACCEPTED) throw new LiteapiError("Bid was not accepted");
+  if (bid.payment && !BOOKABLE_PAYMENT_STATES.has(bid.payment.status)) {
+    throw new LiteapiError("This booking is already paid");
+  }
+
+  const total = Number(bid.totalAmount);
+  // Live cost at zero markup, then the markup that lands on the bid total.
+  const base = await getWholesaleQuote(bid.place, bid.checkInDate, bid.checkOutDate);
+  if (!base) throw new LiteapiError("Room no longer available", true);
+  const floorPct = WHOLESALE_CONFIG.MARGIN * 100;
+  const pct = Math.floor(((total / base.offer.cost - 1) * 100) * 100) / 100;
+  if (pct < floorPct - 0.01) {
+    throw new LiteapiError("The hotel's price went up since your bid", true);
+  }
+  const offers = await getCheapestOffers({
+    hotelIds: [bid.place.liteapiHotelId!],
+    checkin: toCalendarDateKey(bid.checkInDate),
+    checkout: toCalendarDateKey(bid.checkOutDate),
+    margin: pct,
+  });
+  const offer = offers.get(bid.place.liteapiHotelId!);
+  if (!offer) throw new LiteapiError("Room no longer available", true);
+
+  const pb = await prebookForPaymentSdk(offer.offerId);
+  // Never charge more than the member agreed to (allow cent rounding).
+  if (pb.price > total + 0.5) {
+    throw new LiteapiError("The hotel's price went up since your bid", true);
+  }
+
+  const paymentIntentId = pb.secretKey.split("_secret_")[0] || null;
+  const metadata = {
+    processor: "nuitee",
+    transactionId: pb.transactionId,
+    prebookId: pb.prebookId,
+    commission: pb.commission,
+    marginPct: pct,
+  };
+  const payment = await prisma.payment.upsert({
+    where: { bidId: bid.id },
+    create: {
+      bidId: bid.id,
+      studentId,
+      amount: pb.price,
+      currency: (pb.currency || "USD").toLowerCase(),
+      stripePaymentIntentId: paymentIntentId,
+      status: PayStatus.PENDING,
+      metadata,
+    },
+    update: {
+      amount: pb.price,
+      stripePaymentIntentId: paymentIntentId,
+      status: PayStatus.PENDING,
+      failureReason: null,
+      failedAt: null,
+      metadata,
+    },
+  });
+  await prisma.bid.update({
+    where: { id: bid.id },
+    data: {
+      supplierPrebookId: pb.prebookId,
+      supplierOfferId: offer.offerId,
+      supplierCost: Math.round((pb.price - pb.commission) * 100) / 100,
+      supplierStatus: "AWAITING_PAYMENT",
+    },
+  });
+
+  return {
+    bidId: bid.id,
+    paymentId: payment.id,
+    secretKey: pb.secretKey,
+    environment: isLiteapiSandbox() ? "sandbox" : "live",
+    price: pb.price,
+    currency: pb.currency,
+  };
+}
+
+/**
+ * After Nuitee's payment form redirects back: confirm the booking with Nuitee
+ * using the payment's transaction id. Idempotent (safe to call twice).
+ */
+export async function completeWholesaleCheckout(
+  bidId: string,
+  studentId: string,
+): Promise<{ ok: true; confirmationCode: string | null } | { ok: false; reason: string }> {
+  const bid = await prisma.bid.findUnique({
+    where: { id: bidId },
+    include: { place: true, payment: true, users: true },
+  });
+  if (!bid || bid.studentId !== studentId || !bid.payment) {
+    return { ok: false, reason: "Booking not found" };
+  }
+  if (bid.supplierBookingId) {
+    return { ok: true, confirmationCode: bid.supplierConfirmationCode };
+  }
+  const meta = (bid.payment.metadata ?? {}) as Record<string, any>;
+  if (meta.processor !== "nuitee" || !meta.transactionId || !bid.supplierPrebookId) {
+    return { ok: false, reason: "No Nuitee payment found for this booking" };
+  }
+
+  const email = bid.users?.email || "";
+  const userMeta = (bid.users?.raw_user_meta_data ?? {}) as Record<string, any>;
+  const { firstName, lastName } = splitName(userMeta.name, email);
+
+  try {
+    const result = await book(
+      bid.supplierPrebookId,
+      {
+        firstName,
+        lastName,
+        email,
+        ...(userMeta.phone && { phone: String(userMeta.phone) }),
+      },
+      `deadline-${bid.id}`,
+      { method: "TRANSACTION_ID", transactionId: String(meta.transactionId) },
+    );
+    await prisma.$transaction([
+      prisma.payment.update({
+        where: { id: bid.payment.id },
+        data: { status: PayStatus.CAPTURED, capturedAt: new Date() },
+      }),
+      prisma.bid.update({
+        where: { id: bid.id },
+        data: {
+          supplierBookingId: result.bookingId,
+          supplierConfirmationCode: result.hotelConfirmationCode,
+          supplierStatus: result.status,
+          // Deadline's commission, paid out by Nuitee; nothing owed to the
+          // hotel through our payout queue.
+          platformCommission: Number(meta.commission ?? 0),
+          payableToHotel: 0,
+          payoutMethod: "nuitee-commission",
+          isPaidToHotel: true,
+          paidToHotelAt: new Date(),
+        },
+      }),
+    ]);
+    await sendBookingConfirmationEmails(bid.payment.id).catch((e) =>
+      console.error("[wholesale] confirmation email failed:", e),
+    );
+    await notifyTeamOfWholesaleBooking(bid.id).catch((e) =>
+      console.error("[wholesale] booking notification failed:", e),
+    );
+    return { ok: true, confirmationCode: result.hotelConfirmationCode };
+  } catch (err) {
+    const reason = (err as Error).message;
+    console.error(`[wholesale] Nuitee booking failed after payment, bid ${bid.id}:`, err);
+    await prisma.payment
+      .update({
+        where: { id: bid.payment.id },
+        data: { failureReason: `Nuitee booking failed after payment: ${reason}` },
+      })
+      .catch(() => undefined);
+    await sendPlainEmail({
+      to: WHOLESALE_CONFIG.NOTIFY_EMAIL,
+      subject: `ACTION: member paid Nuitee but booking failed — ${bid.place.name}`,
+      html: `<p>Bid ${bid.id} (${bid.place.name}, ${toCalendarDateKey(bid.checkInDate)} → ${toCalendarDateKey(bid.checkOutDate)}). The member paid through Nuitee (transaction ${meta.transactionId}) but the booking call failed: ${reason}.</p><p>Nuitee is merchant of record — contact Nuitee support to refund the member or retry, and reply to the member.</p>`,
+    }).catch(() => undefined);
+    return { ok: false, reason };
+  }
 }

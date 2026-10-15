@@ -27,7 +27,7 @@ import {
   getOrCreateStripeCustomerForStudent,
 } from "../services/stripeCustomer.service";
 import { getEffectiveCapByDate } from "../services/inventory.service";
-import { isWholesale, prebookForBid } from "../services/wholesale.service";
+import { isWholesale } from "../services/wholesale.service";
 
 /**
  * Check inventory availability for all dates in a bid's date range
@@ -313,35 +313,14 @@ export async function createPaymentIntent(req: Request, res: Response) {
     }
   }
 
-  // Wholesale: lock the room with Nuitee before charging, so we only take the
-  // member's money for a room we can actually book. The bid's total must
-  // still cover Nuitee's (possibly re-quoted) cost.
+  // Wholesale bookings are paid to Nuitee (merchant of record) through
+  // /api/wholesale/checkout — never through Deadline's Stripe.
   if (wholesale) {
-    try {
-      const pb = await prebookForBid(bid);
-      await prisma.bid.update({
-        where: { id: bid.id },
-        data: {
-          supplierPrebookId: pb.prebookId,
-          supplierOfferId: pb.offerId,
-          supplierCost: pb.cost,
-        },
-      });
-    } catch (error) {
-      await prisma.bid.update({
-        where: { id: bid.id },
-        data: {
-          status: bid_status.REJECTED,
-          rejectionReason: `Wholesale prebook failed: ${(error as Error).message}`,
-        },
-      });
-      throw new CustomError(
-        "Sorry — this room just sold out or changed price. You haven't been charged. Please bid again or try another hotel.",
-        409,
-        null,
-        ErrorCode.INVENTORY_SOLD_OUT,
-      );
-    }
+    throw new CustomError(
+      "Please complete this booking through the hotel checkout.",
+      400,
+      { useWholesaleCheckout: true },
+    );
   }
 
   // Amount to charge (cents).
@@ -353,10 +332,8 @@ export async function createPaymentIntent(req: Request, res: Response) {
   // Per-listing payment model (falls back to the global default if unset):
   // Model B places charge only the 7% fee; Model A (our PodShare properties)
   // charge the full room total + mandatory fee.
-  // Wholesale is always full-collection: Deadline pays Nuitee up front.
-  const commissionOnly = wholesale
-    ? false
-    : bid.place.commissionOnly ?? STRIPE_CONFIG.COMMISSION_ONLY_MODE;
+  const commissionOnly =
+    bid.place.commissionOnly ?? STRIPE_CONFIG.COMMISSION_ONLY_MODE;
   const amountInCents = commissionOnly
     ? Math.round(roomTotal * STRIPE_CONFIG.PLATFORM_COMMISSION_RATE * 100)
     : Math.round((roomTotal + Number(bid.mandatoryFeeAmount || 0)) * 100);
