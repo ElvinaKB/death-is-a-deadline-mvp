@@ -50,6 +50,8 @@ export const ENDPOINTS = {
   // Wholesale (Nuitee)
   WHOLESALE_QUOTE: "/api/wholesale/quote/:id",
   WHOLESALE_IMPORT: "/api/wholesale/import",
+  WHOLESALE_CHECKOUT: "/api/wholesale/checkout/:bidId",
+  WHOLESALE_CHECKOUT_COMPLETE: "/api/wholesale/checkout/:bidId/complete",
   WHOLESALE_MARKETS: "/api/wholesale/markets",
 
   // Bids

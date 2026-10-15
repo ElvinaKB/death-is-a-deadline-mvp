@@ -44,6 +44,9 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useBidForPlace, useCreateBid } from "../../../hooks/useBids";
 import { WholesalePricePanel } from "./WholesalePricePanel";
+import { NuiteeCheckout, NuiteeCheckoutSession } from "./NuiteeCheckout";
+import { apiClient } from "../../../lib/apiClient";
+import { ENDPOINTS, getEndpoint } from "../../../config/endpoints.config";
 import { useProfilePhone } from "../../../hooks/useProfilePhone";
 import { commissionOf, dueAtHotel } from "../../../config/model.config";
 import { usePlaceSoldOutNights } from "../../../hooks/usePlaces";
@@ -461,6 +464,8 @@ function BidFormInner({
   const [rejectedScrollTrigger, setRejectedScrollTrigger] = useState(0);
   // Wholesale: member price revealed by the API after a few losing bids.
   const [revealedPricePerNight, setRevealedPricePerNight] = useState<number | null>(null);
+  // Wholesale: Nuitee payment session for a winning bid (Nuitee charges).
+  const [nuiteeCheckout, setNuiteeCheckout] = useState<NuiteeCheckoutSession | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [cardNotice, setCardNotice] = useState<string | null>(null);
@@ -973,7 +978,11 @@ function BidFormInner({
         return;
       }
 
-      const paymentReady = await ensurePaymentReadyForBid();
+      // Wholesale (Nuitee) hotels: the card is taken by Nuitee's own form
+      // after the bid wins, not by our Stripe up front.
+      const paymentReady = isWholesalePlace
+        ? { ok: true as const, chargePaymentMethodId: "nuitee", error: undefined }
+        : await ensurePaymentReadyForBid();
       if (!paymentReady.ok || !paymentReady.chargePaymentMethodId) {
         const paymentMsg =
           paymentReady.error || "Please fix payment details before continuing.";
@@ -1087,7 +1096,19 @@ function BidFormInner({
           ...extras,
         });
 
-        if (result.status === BidStatus.ACCEPTED && result.bid) {
+        if (
+          isWholesalePlace &&
+          result.status === BidStatus.ACCEPTED &&
+          result.bid
+        ) {
+          // Nuitee is merchant of record: open Nuitee's payment form.
+          const session = await apiClient.post<NuiteeCheckoutSession>(
+            getEndpoint(ENDPOINTS.WHOLESALE_CHECKOUT, { bidId: result.bid.id }),
+            {},
+          );
+          setNuiteeCheckout(session);
+          setIsProcessing(false);
+        } else if (result.status === BidStatus.ACCEPTED && result.bid) {
           const paymentResult = await createPaymentIntent.mutateAsync({
             bidId: result.bid.id,
           });
@@ -1484,7 +1505,9 @@ function BidFormInner({
       return;
     }
 
-    const paymentReady = await ensurePaymentReadyForBid();
+    const paymentReady = isWholesalePlace
+      ? { ok: true as const, error: undefined }
+      : await ensurePaymentReadyForBid();
     if (!paymentReady.ok) {
       setPaymentError(
         paymentReady.error || "Please fix payment details before continuing.",
@@ -1857,6 +1880,13 @@ function BidFormInner({
 
     return (
       <>
+        {nuiteeCheckout && (
+          <NuiteeCheckout
+            session={nuiteeCheckout}
+            hotelName={place.name}
+            onClose={() => setNuiteeCheckout(null)}
+          />
+        )}
         <BidLockInModal
           open={lockInOpen}
           onOpenChange={setLockInOpen}
@@ -2061,6 +2091,12 @@ function BidFormInner({
               </p>
             </div>
             )}
+            {isWholesalePlace ? (
+              <p className="rounded-lg border border-line bg-glass-2 px-4 py-3 text-sm text-muted leading-relaxed">
+                No card needed to bid. If your bid wins, you&apos;ll pay securely
+                in the next step through our booking partner Nuitée.
+              </p>
+            ) : (
             <div className="space-y-2">
               <Label className="text-[10px] font-semibold tracking-[0.12em] text-muted uppercase">
                 Pay with
@@ -2197,6 +2233,7 @@ function BidFormInner({
                 lock-in timer.
               </p>
             </div>
+            )}
             {/* One agreement checkbox (was three). It still covers every
                 disclosure: Terms + Privacy, taxes/fees collected at check-in,
                 and bid-data use. Checking it sets all three acknowledgements. */}

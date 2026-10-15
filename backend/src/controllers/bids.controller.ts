@@ -898,6 +898,49 @@ export async function cancelBid(req: Request, res: Response) {
     throw new CustomError("No payment intent found for this bid", 400);
   }
 
+  // Nuitee-paid wholesale booking: Nuitee is merchant of record, so the
+  // cancellation (and any refund, per the rate's policy) goes through Nuitee,
+  // not Deadline's Stripe.
+  const paidViaNuitee =
+    (existingBid.payment.metadata as Record<string, any> | null)?.processor === "nuitee";
+  if (paidViaNuitee) {
+    if (!existingBid.supplierBookingId) {
+      throw new CustomError("No Nuitee booking to cancel", 400);
+    }
+    let nuiteeStatus: string;
+    try {
+      nuiteeStatus = await cancelBooking(existingBid.supplierBookingId);
+    } catch (error: any) {
+      throw new CustomError(`Nuitee cancellation failed: ${error.message}`, 502);
+    }
+    const bid = await prisma.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: existingBid.payment!.id },
+        data: {
+          status: payment_status.REFUNDED,
+          refundedAt: new Date(),
+          adminNotes: `Cancelled via Nuitee (${nuiteeStatus}); refund per rate policy is issued by Nuitee.`,
+        },
+      });
+      return tx.bid.update({
+        where: { id },
+        data: { status: bid_status.CANCELLED, rejectionReason: reason, supplierStatus: nuiteeStatus },
+        include: {
+          place: { include: { images: { orderBy: { order: "asc" }, take: 1 } } },
+          payment: true,
+          users: true,
+        },
+      });
+    });
+    sendBookingCancellationEmail(bid.id).catch((error) =>
+      console.error("Failed to send booking cancellation email:", error),
+    );
+    return res.status(200).json({
+      message: "Booking cancelled with Nuitee. Any refund follows the rate's cancellation policy and is issued by Nuitee.",
+      data: { bid: formatBid(bid) },
+    });
+  }
+
   // Wholesale: cancel the Nuitee reservation too. Most last-minute wholesale
   // rates are non-refundable, so Deadline may still owe Nuitee — logged so
   // the cost is visible, but the member's refund goes ahead regardless.
