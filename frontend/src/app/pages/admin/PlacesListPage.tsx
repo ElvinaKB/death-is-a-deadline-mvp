@@ -424,7 +424,7 @@ export function PlacesListPage() {
             {view === "prospects"
               ? "Cold-outreach listings you built to pitch hotels — they move to Listings when a hotel engages."
               : view === "wholesale"
-                ? "Hotels imported from Nuitee across California. When one signs with you, switch it to direct from its menu."
+                ? "Hotels imported from Nuitee across the top US cities. When one signs with you, switch it to direct from its menu."
                 : "Manage your accommodation listings"}
           </p>
         </div>

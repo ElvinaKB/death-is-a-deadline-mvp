@@ -85,13 +85,20 @@ export function WholesalePricePanel({
             <span className="text-base font-normal text-muted"> / night</span>
           </p>
         </div>
-        <button
-          type="button"
-          className="btn-bid-premium shrink-0 h-12 rounded-lg px-5 text-sm font-semibold uppercase tracking-wide inline-flex items-center gap-2"
-          onClick={() => onUseMemberPrice(perNight)}
-        >
-          <Zap className="h-4 w-4" /> Book now
-        </button>
+        <div className="shrink-0 flex flex-col items-center gap-1">
+          <p className="text-xs text-muted text-center leading-tight">
+            Skip the game and
+            <br />
+            pay the normal price.
+          </p>
+          <button
+            type="button"
+            className="btn-bid-premium h-12 rounded-lg px-5 text-sm font-semibold uppercase tracking-wide inline-flex items-center gap-2"
+            onClick={() => onUseMemberPrice(perNight)}
+          >
+            <Zap className="h-4 w-4" /> Book now
+          </button>
+        </div>
       </div>
       <p className="text-base text-muted leading-snug">
         {nights} night{nights === 1 ? "" : "s"} · {formatCurrency(displayTotal)} total
@@ -106,7 +113,9 @@ export function WholesalePricePanel({
         </span>
       </p>
       <div className="rounded-lg bg-gold/10 border border-gold/40 px-3 py-2.5 text-center">
-        <p className="text-lg font-bold text-gold">Bid your price below.</p>
+        <p className="text-lg font-bold text-gold">
+          <span className="text-fg font-semibold">or</span> bid your price below.
+        </p>
         <p className="text-base text-fg">Guess the price, win the room.</p>
       </div>
     </div>
