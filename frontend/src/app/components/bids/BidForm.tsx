@@ -1041,8 +1041,21 @@ function BidFormInner({
       try {
         // PAYMENT_FLOW_V2 START — Step 1: bid create or resume pending payment
         const activeBids = existingBidData?.activeBids ?? [];
-        const resumeBid =
-          activeBids.find(
+        const sameDay = (a?: Date | string | null, b?: Date | string | null) =>
+          !!a && !!b && toApiDateOnly(a) === toApiDateOnly(b);
+        // Wholesale: only reopen an unpaid win for exactly these dates and
+        // amount. Anything else is a new bid (otherwise an old, abandoned
+        // checkout for other dates pops up instead).
+        const resumeBid = isWholesalePlace
+          ? activeBids.find(
+              (b) =>
+                b.status === BidStatus.ACCEPTED &&
+                isDbPaymentAwaitingCapture(b.payment?.status) &&
+                sameDay(b.checkInDate, values.checkInDate) &&
+                sameDay(b.checkOutDate, values.checkOutDate) &&
+                Number(b.bidPerNight) === Number(values.bidPerNight),
+            )
+          : activeBids.find(
             (b) =>
               b.status === BidStatus.ACCEPTED &&
               isDbPaymentAwaitingCapture(b.payment?.status) &&
