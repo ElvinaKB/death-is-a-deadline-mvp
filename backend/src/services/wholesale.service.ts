@@ -461,7 +461,12 @@ export async function importWholesaleCity(market: string): Promise<ImportSummary
 
   async function upsertHotel(hotelId: string, offer: WholesaleOffer) {
     const quote = buildQuote(offer, 1);
-    const retailPrice = quote.retailPricePerNight ?? quote.memberPricePerNight;
+    // All-in like the live price on the hotel page: includes the hotel's
+    // mandatory non-tax fee (paid at check-in), so the card and the page
+    // don't show two different prices.
+    const retailPrice =
+      (quote.retailPricePerNight ?? quote.memberPricePerNight) +
+      Math.round(quote.payAtHotelNonTax);
     const current = byHotelId.get(hotelId);
 
     try {
@@ -807,6 +812,8 @@ export interface WholesaleCheckoutSession {
   environment: "sandbox" | "live";
   price: number;
   currency: string;
+  /** Collected by the hotel at check-in (resort fee, local taxes), not by us. */
+  payAtHotel: number;
 }
 
 const BOOKABLE_PAYMENT_STATES = new Set<string>([
@@ -901,6 +908,7 @@ export async function startWholesaleCheckout(
     environment: isLiteapiSandbox() ? "sandbox" : "live",
     price: pb.price,
     currency: pb.currency,
+    payAtHotel: Number(bid.payAtHotelAmount ?? 0),
   };
 }
 
