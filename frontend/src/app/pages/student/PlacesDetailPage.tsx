@@ -12,6 +12,7 @@ import { QUERY_KEYS } from "../../../config/queryKeys.config";
 import { ROUTES } from "../../../config/routes.config";
 import { getPublicPlacePath } from "../../../utils/placeUrl";
 import { useApiQuery } from "../../../hooks/useApi";
+import { rememberReturnTo } from "../../../utils/returnTo";
 import { usePublicPlace } from "../../../hooks/usePlaces";
 import { useAppSelector } from "../../../store/hooks";
 import { apiClient, API_BASE_URL } from "../../../lib/apiClient";
@@ -117,6 +118,13 @@ export function PlaceDetailPage() {
   const [heroImageIndex, setHeroImageIndex] = useState(0);
   const [bookingCheckIn, setBookingCheckIn] = useState<Date | undefined>();
   const [bookingCheckOut, setBookingCheckOut] = useState<Date | undefined>();
+
+  // Signing in / up from here should come back to this hotel.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      rememberReturnTo(window.location.pathname + window.location.search);
+    }
+  }, [slugParam, isAuthenticated]);
 
   // Scroll to top when slug changes
   useEffect(() => {
