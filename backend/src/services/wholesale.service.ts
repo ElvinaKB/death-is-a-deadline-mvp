@@ -216,6 +216,27 @@ export function meetsQualityBar(
   );
 }
 
+// Nuitee matches cities by name only, so "Pasadena" also returns Pasadena,
+// Texas. Each market keeps only hotels inside its own region.
+const NYC_MARKETS = new Set(["New York", "Brooklyn"]);
+const REGIONS = {
+  // California (rough state box).
+  CA: { minLat: 32.4, maxLat: 42.1, minLng: -124.6, maxLng: -114.0 },
+  // New York City's five boroughs.
+  NYC: { minLat: 40.45, maxLat: 40.95, minLng: -74.3, maxLng: -73.65 },
+};
+export function inMarketRegion(
+  city: string,
+  lat: unknown,
+  lng: unknown,
+): boolean {
+  const la = Number(lat);
+  const lo = Number(lng);
+  if (!Number.isFinite(la) || !Number.isFinite(lo)) return true;
+  const r = NYC_MARKETS.has(city) ? REGIONS.NYC : REGIONS.CA;
+  return la >= r.minLat && la <= r.maxLat && lo >= r.minLng && lo <= r.maxLng;
+}
+
 function normalizeName(name: string): string {
   return name
     .toLowerCase()
@@ -295,7 +316,8 @@ export async function importWholesaleCity(city: string): Promise<ImportSummary> 
   const infoById = new Map(info.map((h) => [h.id, h]));
   const rejected: string[] = [];
   for (const id of [...offers.keys()]) {
-    if (!meetsQualityBar(infoById.get(id))) {
+    const h = infoById.get(id);
+    if (!meetsQualityBar(h) || !inMarketRegion(city, h?.latitude, h?.longitude)) {
       offers.delete(id);
       rejected.push(id);
     }
@@ -307,7 +329,14 @@ export async function importWholesaleCity(city: string): Promise<ImportSummary> 
   // existed even on nights they have no availability.
   const stale = await prisma.place.findMany({
     where: { supplySource: "wholesale", status: PlaceStatus.LIVE, city },
-    select: { liteapiHotelId: true, name: true, starRating: true, guestRating: true },
+    select: {
+      liteapiHotelId: true,
+      name: true,
+      starRating: true,
+      guestRating: true,
+      latitude: true,
+      longitude: true,
+    },
   });
   for (const p of stale) {
     if (
@@ -315,7 +344,8 @@ export async function importWholesaleCity(city: string): Promise<ImportSummary> 
       !rejected.includes(p.liteapiHotelId) &&
       ((p.starRating ?? 0) < WHOLESALE_CONFIG.MIN_STARS ||
         (p.guestRating ?? 0) < WHOLESALE_CONFIG.MIN_GUEST_RATING ||
-        WHOLESALE_CONFIG.EXCLUDED_NAME_PATTERN.test(p.name))
+        WHOLESALE_CONFIG.EXCLUDED_NAME_PATTERN.test(p.name) ||
+        !inMarketRegion(city, p.latitude, p.longitude))
     ) {
       rejected.push(p.liteapiHotelId);
     }
