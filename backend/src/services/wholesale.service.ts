@@ -49,8 +49,11 @@ export const WHOLESALE_CONFIG = {
   MARKETS: [
     "Los Angeles, CA", "Santa Barbara, CA", "San Diego, CA", "San Francisco, CA", "Santa Monica, CA", "West Hollywood, CA", "Long Beach, CA", "Anaheim, CA", "Palm Springs, CA", "Monterey, CA", "Carmel-by-the-Sea, CA", "Napa, CA", "Sonoma, CA", "San Jose, CA", "Sacramento, CA", "Malibu, CA", "Laguna Beach, CA", "Newport Beach, CA", "Pasadena, CA", "South Lake Tahoe, CA", "Oakland, CA", "Irvine, CA",
     "New York, NY", "Brooklyn, NY", "Buffalo, NY", "Niagara Falls, NY", "Saratoga Springs, NY",
+    "Long Island City, NY", "Astoria, NY", "Flushing, NY", "Jamaica, NY", "East Elmhurst, NY", "Bronx, NY", "Staten Island, NY", "White Plains, NY", "Tarrytown, NY", "Yonkers, NY", "Rye Brook, NY", "Garden City, NY", "Uniondale, NY", "Huntington, NY", "Melville, NY", "Hauppauge, NY", "Ronkonkoma, NY", "Southampton, NY", "East Hampton, NY", "Montauk, NY",
     "Jersey City, NJ", "Hoboken, NJ", "Newark, NJ", "Atlantic City, NJ", "Princeton, NJ",
+    "Secaucus, NJ", "Weehawken, NJ", "Edgewater, NJ", "Fort Lee, NJ", "Elizabeth, NJ", "East Rutherford, NJ", "Paramus, NJ", "Mahwah, NJ", "Morristown, NJ", "Parsippany, NJ", "Iselin, NJ", "New Brunswick, NJ", "Somerset, NJ", "Red Bank, NJ", "Asbury Park, NJ", "Cape May, NJ", "Cherry Hill, NJ", "Mount Laurel, NJ",
     "Stamford, CT", "Greenwich, CT", "New Haven, CT", "Hartford, CT",
+    "Norwalk, CT", "Westport, CT", "Danbury, CT", "Bridgeport, CT", "Milford, CT", "Shelton, CT", "Mystic, CT", "Mashantucket, CT", "Uncasville, CT", "Old Saybrook, CT",
     "Boston, MA", "Cambridge, MA",
     "Providence, RI", "Newport, RI",
     "Portland, ME",
@@ -64,6 +67,7 @@ export const WHOLESALE_CONFIG = {
     "Charleston, SC", "Myrtle Beach, SC",
     "Atlanta, GA", "Savannah, GA",
     "Miami, FL", "Miami Beach, FL", "Orlando, FL", "Tampa, FL", "Fort Lauderdale, FL", "Key West, FL", "St. Petersburg, FL", "Naples, FL", "Jacksonville, FL",
+    "Kissimmee, FL", "Lake Buena Vista, FL", "Winter Park, FL", "Clearwater, FL", "Clearwater Beach, FL", "St. Pete Beach, FL", "Bradenton, FL", "Sarasota, FL", "Siesta Key, FL", "Fort Myers, FL", "Fort Myers Beach, FL", "Sanibel, FL", "Marco Island, FL", "West Palm Beach, FL", "Palm Beach, FL", "Jupiter, FL", "Stuart, FL", "Vero Beach, FL", "Boca Raton, FL", "Delray Beach, FL", "Pompano Beach, FL", "Hollywood, FL", "Aventura, FL", "Sunny Isles Beach, FL", "Bal Harbour, FL", "Coral Gables, FL", "Doral, FL", "Key Largo, FL", "Islamorada, FL", "Marathon, FL", "Daytona Beach, FL", "St. Augustine, FL", "Fernandina Beach, FL", "Cocoa Beach, FL", "Melbourne, FL", "Destin, FL", "Miramar Beach, FL", "Santa Rosa Beach, FL", "Panama City Beach, FL", "Pensacola, FL", "Pensacola Beach, FL", "Tallahassee, FL", "Gainesville, FL", "Ocala, FL", "Lakeland, FL",
     "Nashville, TN", "Memphis, TN",
     "Louisville, KY",
     "New Orleans, LA",
@@ -246,7 +250,17 @@ export function parseMarket(market: string): { city: string; state: string } {
 
 // Rough boxes for listings we only have coordinates for (the ZIP isn't
 // stored): used to sweep out hotels imported before the state check existed.
-const NYC_CITIES = new Set(["New York", "Brooklyn"]);
+const NYC_CITIES = new Set([
+  "New York",
+  "Brooklyn",
+  "Long Island City",
+  "Astoria",
+  "Flushing",
+  "Jamaica",
+  "East Elmhurst",
+  "Bronx",
+  "Staten Island",
+]);
 const REGIONS = {
   CA: { minLat: 32.4, maxLat: 42.1, minLng: -124.6, maxLng: -114.0 },
   NYC: { minLat: 40.45, maxLat: 40.95, minLng: -74.3, maxLng: -73.65 },
