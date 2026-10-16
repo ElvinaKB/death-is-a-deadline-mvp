@@ -464,6 +464,7 @@ function BidFormInner({
   const [rejectedScrollTrigger, setRejectedScrollTrigger] = useState(0);
   // Wholesale: member price revealed by the API after a few losing bids.
   const [revealedPricePerNight, setRevealedPricePerNight] = useState<number | null>(null);
+  const [revealTriesLeft, setRevealTriesLeft] = useState<number | null>(null);
   // Wholesale: Nuitee payment session for a winning bid (Nuitee charges).
   const [nuiteeCheckout, setNuiteeCheckout] = useState<NuiteeCheckoutSession | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
@@ -1266,8 +1267,15 @@ function BidFormInner({
           trackEvent(ANALYTICS_EVENTS.REJECTED_BID, { place_id: placeId });
           // Wholesale: after a few misses the API reveals the member price —
           // fill it in so one more tap books the room.
-          const revealed = (error.data as { revealedPricePerNight?: number } | undefined)
-            ?.revealedPricePerNight;
+          const lowBid = error.data as
+            | { revealedPricePerNight?: number; losingBids?: number; revealAfter?: number }
+            | undefined;
+          const revealed = lowBid?.revealedPricePerNight;
+          setRevealTriesLeft(
+            lowBid?.revealAfter
+              ? Math.max(0, lowBid.revealAfter - (lowBid.losingBids ?? 0))
+              : null,
+          );
           if (revealed) {
             setRevealedPricePerNight(revealed);
             void formik.setFieldValue("bidPerNight", String(revealed));
@@ -1475,6 +1483,7 @@ function BidFormInner({
   const handleTryAgain = () => {
     setBidResult(null);
     setRevealedPricePerNight(null);
+    setRevealTriesLeft(null);
     setPaymentError(null);
     setCardNotice(null);
     setPaymentId(null);
@@ -1846,6 +1855,7 @@ function BidFormInner({
         isProcessingBid={isProcessing}
         paymentError={paymentError}
         revealedPricePerNight={revealedPricePerNight}
+        revealTriesLeft={revealTriesLeft}
         scrollToHeaderTrigger={
           shouldShowRejectedOutcome(bidResult!.bidStatus)
             ? rejectedScrollTrigger
