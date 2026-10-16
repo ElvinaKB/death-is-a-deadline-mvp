@@ -202,7 +202,10 @@ export function HomePage() {
         </div>
 
         {/* Right Side - Map */}
-        <div className="hidden md:flex w-1/2 flex-1 relative">
+        {/* The map stays on screen while the list scrolls (sticky under the
+            75px header). Without a fixed height it stretched to the whole
+            list (5,000px+) and centred the pins far below the fold. */}
+        <div className="hidden md:flex w-1/2 flex-1 relative md:sticky md:top-[75px] md:self-start md:h-[calc(100dvh-75px)]">
           <HowItWorksModal
             triggerClassName="absolute top-4 right-4 z-10 text-sm font-medium text-fg hover:text-fg/80 transition-colors"
           />
