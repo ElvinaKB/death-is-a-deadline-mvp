@@ -43,6 +43,8 @@ interface BidOutcomePanelProps {
   scrollToHeaderTrigger?: number;
   /** Wholesale: the member price revealed after a few misses (shown as a card). */
   revealedPricePerNight?: number | null;
+  /** Wholesale: misses left before the member price is revealed. */
+  revealTriesLeft?: number | null;
 }
 
 export function BidOutcomePanel({
@@ -60,6 +62,7 @@ export function BidOutcomePanel({
   paymentError,
   scrollToHeaderTrigger,
   revealedPricePerNight,
+  revealTriesLeft,
 }: BidOutcomePanelProps) {
   const isBusy = isRebidding || isProcessingBid;
   // Per-listing payment model (defaults to commission-only / Model B).
@@ -261,6 +264,12 @@ export function BidOutcomePanel({
             </button>
           )}
         </div>
+      ) : revealTriesLeft ? (
+        <p className="rounded-xl border border-gold/40 bg-gold/5 px-4 py-3 text-center text-sm text-fg">
+          {revealTriesLeft === 1
+            ? "One more try and we'll show you the member price."
+            : `${revealTriesLeft} more tries and we'll show you the member price.`}
+        </p>
       ) : null}
 
       <div className="border-t border-line/40" role="presentation" />
