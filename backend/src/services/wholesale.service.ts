@@ -25,6 +25,7 @@ import {
 } from "./liteapi.service";
 import { bid_status as BidStatus, payment_status as PayStatus } from "@prisma/client";
 import { sendBookingConfirmationEmails } from "./bookingConfirmationEmail.service";
+import { stateTimezone, zipToState } from "../libs/utils/usStates";
 
 // Wholesale supply (Nuitee/LiteAPI). Wholesale hotels are imported as real
 // Place rows (supplySource = "wholesale") and booked through Nuitee after the
@@ -41,32 +42,53 @@ export const WHOLESALE_CONFIG = {
   // After this many losing bids on the same hotel + dates, the member is shown
   // the price instead of being left guessing.
   REVEAL_AFTER_LOSING_BIDS: Number(process.env.WHOLESALE_REVEAL_AFTER ?? 3),
-  // Go-to-market: California + New York City. Each nightly import pulls the hotels that have
-  // live availability in these cities. Add a city here to roll out.
+  // Go-to-market: top US hotel cities, written "City, ST". Each nightly
+  // import pulls the hotels with live availability in that city; the ST
+  // keeps same-name cities in other states out (Pasadena, TX). Add a
+  // city here to roll out.
   MARKETS: [
-    "Los Angeles",
-    "Santa Barbara",
-    "San Diego",
-    "San Francisco",
-    "Santa Monica",
-    "West Hollywood",
-    "Long Beach",
-    "Anaheim",
-    "Palm Springs",
-    "Monterey",
-    "Carmel-by-the-Sea",
-    "Napa",
-    "Sonoma",
-    "San Jose",
-    "Sacramento",
-    "Malibu",
-    "Laguna Beach",
-    "Newport Beach",
-    "Pasadena",
-    "South Lake Tahoe",
-    // New York (added 2026-10-16 for member demand).
-    "New York",
-    "Brooklyn",
+    "Los Angeles, CA", "Santa Barbara, CA", "San Diego, CA", "San Francisco, CA", "Santa Monica, CA", "West Hollywood, CA", "Long Beach, CA", "Anaheim, CA", "Palm Springs, CA", "Monterey, CA", "Carmel-by-the-Sea, CA", "Napa, CA", "Sonoma, CA", "San Jose, CA", "Sacramento, CA", "Malibu, CA", "Laguna Beach, CA", "Newport Beach, CA", "Pasadena, CA", "South Lake Tahoe, CA", "Oakland, CA", "Irvine, CA",
+    "New York, NY", "Brooklyn, NY", "Buffalo, NY", "Niagara Falls, NY", "Saratoga Springs, NY",
+    "Jersey City, NJ", "Hoboken, NJ", "Newark, NJ", "Atlantic City, NJ", "Princeton, NJ",
+    "Stamford, CT", "Greenwich, CT", "New Haven, CT", "Hartford, CT",
+    "Boston, MA", "Cambridge, MA",
+    "Providence, RI", "Newport, RI",
+    "Portland, ME",
+    "Burlington, VT",
+    "Portsmouth, NH",
+    "Philadelphia, PA", "Pittsburgh, PA",
+    "Washington, DC",
+    "Baltimore, MD",
+    "Arlington, VA", "Alexandria, VA", "Virginia Beach, VA", "Richmond, VA",
+    "Charlotte, NC", "Raleigh, NC", "Asheville, NC",
+    "Charleston, SC", "Myrtle Beach, SC",
+    "Atlanta, GA", "Savannah, GA",
+    "Miami, FL", "Miami Beach, FL", "Orlando, FL", "Tampa, FL", "Fort Lauderdale, FL", "Key West, FL", "St. Petersburg, FL", "Naples, FL", "Jacksonville, FL",
+    "Nashville, TN", "Memphis, TN",
+    "Louisville, KY",
+    "New Orleans, LA",
+    "Austin, TX", "Dallas, TX", "Houston, TX", "San Antonio, TX", "Fort Worth, TX",
+    "Chicago, IL",
+    "Minneapolis, MN",
+    "Milwaukee, WI",
+    "Detroit, MI",
+    "Columbus, OH", "Cleveland, OH", "Cincinnati, OH",
+    "Indianapolis, IN",
+    "St. Louis, MO", "Kansas City, MO",
+    "Omaha, NE",
+    "Oklahoma City, OK",
+    "Denver, CO", "Boulder, CO", "Aspen, CO", "Colorado Springs, CO",
+    "Salt Lake City, UT", "Park City, UT",
+    "Phoenix, AZ", "Scottsdale, AZ", "Sedona, AZ", "Tucson, AZ",
+    "Las Vegas, NV", "Reno, NV",
+    "Santa Fe, NM", "Albuquerque, NM",
+    "Seattle, WA",
+    "Portland, OR",
+    "Boise, ID",
+    "Bozeman, MT",
+    "Jackson, WY",
+    "Honolulu, HI", "Kailua-Kona, HI",
+    "Anchorage, AK",
   ],
   // Quality bar for imported hotels (Elvina, 2026-10-10): no motels, 3 stars
   // or more, guest rating 7.5/10 or more. Nuitee hotel type ids — kept:
@@ -216,6 +238,45 @@ export function meetsQualityBar(
   );
 }
 
+/** "Portland, OR" → { city: "Portland", state: "OR" } (no state → CA). */
+export function parseMarket(market: string): { city: string; state: string } {
+  const m = market.trim().match(/^(.*?),\s*([A-Z]{2})$/);
+  return m ? { city: m[1]!.trim(), state: m[2]! } : { city: market.trim(), state: "CA" };
+}
+
+// Rough boxes for listings we only have coordinates for (the ZIP isn't
+// stored): used to sweep out hotels imported before the state check existed.
+const NYC_CITIES = new Set(["New York", "Brooklyn"]);
+const REGIONS = {
+  CA: { minLat: 32.4, maxLat: 42.1, minLng: -124.6, maxLng: -114.0 },
+  NYC: { minLat: 40.45, maxLat: 40.95, minLng: -74.3, maxLng: -73.65 },
+};
+function outsideKnownRegion(
+  city: string,
+  state: string,
+  lat: unknown,
+  lng: unknown,
+): boolean {
+  const r = state === "CA" ? REGIONS.CA : NYC_CITIES.has(city) ? REGIONS.NYC : null;
+  const la = Number(lat);
+  const lo = Number(lng);
+  if (!r || lat == null || lng == null || !Number.isFinite(la) || !Number.isFinite(lo)) {
+    return false;
+  }
+  return la < r.minLat || la > r.maxLat || lo < r.minLng || lo > r.maxLng;
+}
+
+/** Nuitee matches cities by name only; the hotel's ZIP decides its state. */
+function inMarketState(
+  h: { zip?: string; latitude?: number; longitude?: number } | undefined,
+  city: string,
+  state: string,
+): boolean {
+  const zipState = zipToState(h?.zip);
+  if (zipState) return zipState === state;
+  return !outsideKnownRegion(city, state, h?.latitude, h?.longitude);
+}
+
 function normalizeName(name: string): string {
   return name
     .toLowerCase()
@@ -261,9 +322,11 @@ export interface ImportSummary {
  * listings for new ones, and refresh the retail anchor on existing ones.
  * Hotels that have been switched to direct are never touched.
  */
-export async function importWholesaleCity(city: string): Promise<ImportSummary> {
+export async function importWholesaleCity(market: string): Promise<ImportSummary> {
+  const { city, state } = parseMarket(market);
+  const timezone = stateTimezone(state);
   const summary: ImportSummary = {
-    city,
+    city: market,
     available: 0,
     created: 0,
     updated: 0,
@@ -295,9 +358,14 @@ export async function importWholesaleCity(city: string): Promise<ImportSummary> 
   const infoById = new Map(info.map((h) => [h.id, h]));
   const rejected: string[] = [];
   for (const id of [...offers.keys()]) {
-    if (!meetsQualityBar(infoById.get(id))) {
+    const h = infoById.get(id);
+    if (!meetsQualityBar(h)) {
       offers.delete(id);
       rejected.push(id);
+    } else if (!inMarketState(h, city, state)) {
+      // Same-name city in another state: it belongs to that state's market
+      // (if we have one), so skip it here without pausing it.
+      offers.delete(id);
     }
   }
   summary.filteredOut = rejected.length;
@@ -307,7 +375,14 @@ export async function importWholesaleCity(city: string): Promise<ImportSummary> 
   // existed even on nights they have no availability.
   const stale = await prisma.place.findMany({
     where: { supplySource: "wholesale", status: PlaceStatus.LIVE, city },
-    select: { liteapiHotelId: true, name: true, starRating: true, guestRating: true },
+    select: {
+      liteapiHotelId: true,
+      name: true,
+      starRating: true,
+      guestRating: true,
+      latitude: true,
+      longitude: true,
+    },
   });
   for (const p of stale) {
     if (
@@ -315,7 +390,8 @@ export async function importWholesaleCity(city: string): Promise<ImportSummary> 
       !rejected.includes(p.liteapiHotelId) &&
       ((p.starRating ?? 0) < WHOLESALE_CONFIG.MIN_STARS ||
         (p.guestRating ?? 0) < WHOLESALE_CONFIG.MIN_GUEST_RATING ||
-        WHOLESALE_CONFIG.EXCLUDED_NAME_PATTERN.test(p.name))
+        WHOLESALE_CONFIG.EXCLUDED_NAME_PATTERN.test(p.name) ||
+        outsideKnownRegion(city, state, p.latitude, p.longitude))
     ) {
       rejected.push(p.liteapiHotelId);
     }
@@ -385,6 +461,7 @@ export async function importWholesaleCity(city: string): Promise<ImportSummary> 
           data: {
             retailPrice,
             minimumBid: quote.memberPricePerNight,
+            timezone,
             wholesaleSyncedAt: new Date(),
           },
         });
@@ -411,7 +488,7 @@ export async function importWholesaleCity(city: string): Promise<ImportSummary> 
           city: d.city || city,
           country: d.country === "US" ? "United States" : d.country || "United States",
           address: d.address || "",
-          timezone: "America/Los_Angeles",
+          timezone,
           reservationPhone: d.phone || null,
           latitude: d.location?.latitude ?? null,
           longitude: d.location?.longitude ?? null,
