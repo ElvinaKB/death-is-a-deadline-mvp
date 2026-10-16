@@ -9,6 +9,7 @@ export interface NuiteeCheckoutSession {
   secretKey: string;
   environment: "sandbox" | "live";
   price: number;
+  payAtHotel?: number;
   currency: string;
 }
 
@@ -63,14 +64,22 @@ export function NuiteeCheckout({
           <X className="h-5 w-5" />
         </button>
         <p className="text-sm font-semibold uppercase tracking-[0.14em] text-gold">
-          Your bid won!
+          Your room is held
         </p>
         <h2 className="mt-1 text-2xl font-bold text-fg">Complete your booking</h2>
         <p className="mt-1 text-base text-muted">{hotelName}</p>
         <p className="mt-3 text-3xl font-bold text-fg">
           {formatCurrencyCents(session.price)}
-          <span className="ml-1 text-base font-normal text-muted">total</span>
+          <span className="ml-1 text-base font-normal text-muted">
+            {session.payAtHotel ? "due now" : "total"}
+          </span>
         </p>
+        {!!session.payAtHotel && (
+          <p className="mt-1 text-base text-fg">
+            + {formatCurrencyCents(session.payAtHotel)} paid at the hotel at
+            check-in (hotel fee / local taxes)
+          </p>
+        )}
         <p className="mt-2 flex items-start gap-2 text-sm text-muted">
           <Lock className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
           Payment is processed securely by our booking partner Nuitée, who
