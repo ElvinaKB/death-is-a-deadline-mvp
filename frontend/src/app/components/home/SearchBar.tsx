@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search, Calendar, ChevronDown, MapPin } from "lucide-react";
 import { useApiQuery } from "../../../hooks/useApi";
 import { ENDPOINTS } from "../../../config/endpoints.config";
@@ -12,10 +12,58 @@ import { Calendar as CalendarComponent } from "../ui/calendar";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import {
   setSearchQuery,
+  setLocation,
   setMaxBid,
   setSelectedDate,
   setDateOption,
 } from "../../../store/slices/searchSlice";
+
+const MAPBOX_TOKEN = import.meta.env.VITE_APP_MAPBOX as string | undefined;
+
+interface CitySuggestion {
+  id: string;
+  label: string; // "Newark, NJ"
+  detail: string; // "New Jersey, United States"
+  latitude: number;
+  longitude: number;
+}
+
+/** US cities/towns matching what's typed, like a map search box. */
+async function fetchCitySuggestions(
+  query: string,
+  near: { latitude: number | null; longitude: number | null } | undefined,
+  signal: AbortSignal,
+): Promise<CitySuggestion[]> {
+  if (!MAPBOX_TOKEN) return [];
+  const params = new URLSearchParams({
+    q: query,
+    country: "us",
+    types: "place,locality",
+    autocomplete: "true",
+    limit: "6",
+    access_token: MAPBOX_TOKEN,
+  });
+  if (typeof near?.latitude === "number" && typeof near?.longitude === "number") {
+    params.set("proximity", `${near.longitude},${near.latitude}`);
+  }
+  const res = await fetch(
+    `https://api.mapbox.com/search/geocode/v6/forward?${params}`,
+    { signal },
+  );
+  if (!res.ok) return [];
+  const json = await res.json();
+  return (json.features ?? []).map((f: any) => {
+    const p = f.properties ?? {};
+    const region = p.context?.region;
+    return {
+      id: p.mapbox_id ?? f.id,
+      label: region?.region_code ? `${p.name}, ${region.region_code}` : p.name,
+      detail: p.place_formatted ?? "",
+      latitude: p.coordinates?.latitude ?? f.geometry?.coordinates?.[1],
+      longitude: p.coordinates?.longitude ?? f.geometry?.coordinates?.[0],
+    };
+  });
+}
 
 interface SearchBarProps {
   onSearch?: () => void;
@@ -23,7 +71,7 @@ interface SearchBarProps {
 
 export function SearchBar({ onSearch }: SearchBarProps) {
   const dispatch = useAppDispatch();
-  const { searchQuery, maxBid, selectedDate, dateOption } = useAppSelector(
+  const { searchQuery, location, maxBid, selectedDate, dateOption } = useAppSelector(
     (state) => state.search
   );
 
@@ -44,9 +92,79 @@ export function SearchBar({ onSearch }: SearchBarProps) {
 
   const parsedDate = selectedDate ? new Date(selectedDate) : undefined;
 
+  // What's typed. Picking a suggested city sets the search location (hotels
+  // nearest that city first); "Search hotel names" keeps keyword search.
+  const [text, setText] = useState(location?.label ?? searchQuery);
+  const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const q = text.trim();
+    if (q.length < 2 || q === location?.label) {
+      setSuggestions([]);
+      return;
+    }
+    const ctrl = new AbortController();
+    const t = window.setTimeout(() => {
+      fetchCitySuggestions(q, geoHint, ctrl.signal)
+        .then((list) => {
+          setSuggestions(list);
+          setActive(0);
+        })
+        .catch(() => {});
+    }, 200);
+    return () => {
+      window.clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [text, location?.label, geoHint]);
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  const pickCity = (c: CitySuggestion) => {
+    dispatch(setLocation({ label: c.label, latitude: c.latitude, longitude: c.longitude }));
+    dispatch(setSearchQuery(""));
+    setText(c.label);
+    setOpen(false);
+    onSearch?.();
+  };
+  const searchNames = () => {
+    dispatch(setLocation(null));
+    dispatch(setSearchQuery(text.trim()));
+    setOpen(false);
+    onSearch?.();
+  };
+  const clearSearch = () => {
+    dispatch(setLocation(null));
+    dispatch(setSearchQuery(""));
+    setText("");
+    setSuggestions([]);
+  };
+  const optionCount = suggestions.length + (text.trim() ? 1 : 0);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && onSearch) {
-      onSearch();
+    if (e.key === "ArrowDown" && optionCount > 0) {
+      e.preventDefault();
+      setOpen(true);
+      setActive((i) => (i + 1) % optionCount);
+    } else if (e.key === "ArrowUp" && optionCount > 0) {
+      e.preventDefault();
+      setActive((i) => (i - 1 + optionCount) % optionCount);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (active < suggestions.length) pickCity(suggestions[active]!);
+      else if (text.trim()) searchNames();
+      else onSearch?.();
     }
   };
 
@@ -92,11 +210,14 @@ export function SearchBar({ onSearch }: SearchBarProps) {
         onSearch?.();
       }}
     >
-      <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 flex-1 min-w-0 relative">
+      <div
+        ref={boxRef}
+        className="flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 flex-1 min-w-0 relative"
+      >
         <label htmlFor="marketplace-location" className="sr-only">
           Location
         </label>
-        {nearCity && !searchQuery ? (
+        {(location || nearCity) && !text ? (
           <MapPin className="h-5 w-5 text-gold shrink-0" aria-hidden />
         ) : (
           <Search className="h-4 w-4 text-gold shrink-0" aria-hidden />
@@ -104,10 +225,20 @@ export function SearchBar({ onSearch }: SearchBarProps) {
         <input
           id="marketplace-location"
           type="search"
+          role="combobox"
+          aria-expanded={open && optionCount > 0}
+          aria-controls="marketplace-location-options"
+          aria-autocomplete="list"
+          autoComplete="off"
           placeholder={nearCity ? `${nearCity} · change city` : "Search a city"}
           aria-label={nearCity ? `Showing hotels near ${nearCity}. Type to change city` : "Search a city"}
-          value={searchQuery}
-          onChange={(e) => dispatch(setSearchQuery(e.target.value))}
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+            setOpen(true);
+            if (!e.target.value) clearSearch();
+          }}
+          onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
           className={`w-full bg-transparent border-0 outline-none text-base text-fg ${
             nearCity
@@ -115,17 +246,60 @@ export function SearchBar({ onSearch }: SearchBarProps) {
               : "placeholder:text-muted"
           }`}
         />
-        {searchQuery && (
+        {text && (
           <button
             type="button"
             aria-label="Clear search"
             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-glass transition-colors"
-            onClick={() => dispatch(setSearchQuery(""))}
+            onClick={clearSearch}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
+        )}
+        {open && optionCount > 0 && (
+          <ul
+            id="marketplace-location-options"
+            role="listbox"
+            className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-line bg-bg shadow-2xl"
+          >
+            {suggestions.map((c, i) => (
+              <li key={c.id} role="option" aria-selected={i === active}>
+                <button
+                  type="button"
+                  onMouseEnter={() => setActive(i)}
+                  onClick={() => pickCity(c)}
+                  className={`flex w-full items-center gap-3 px-4 py-3 text-left ${
+                    i === active ? "bg-glass" : ""
+                  }`}
+                >
+                  <MapPin className="h-4 w-4 shrink-0 text-gold" aria-hidden />
+                  <span className="min-w-0">
+                    <span className="block truncate text-base font-semibold text-fg">
+                      {c.label}
+                    </span>
+                    <span className="block truncate text-sm text-muted">{c.detail}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+            {text.trim() && (
+              <li role="option" aria-selected={active === suggestions.length}>
+                <button
+                  type="button"
+                  onMouseEnter={() => setActive(suggestions.length)}
+                  onClick={searchNames}
+                  className={`flex w-full items-center gap-3 border-t border-line px-4 py-3 text-left text-sm text-muted ${
+                    active === suggestions.length ? "bg-glass" : ""
+                  }`}
+                >
+                  <Search className="h-4 w-4 shrink-0" aria-hidden />
+                  Search hotel names for &ldquo;{text.trim()}&rdquo;
+                </button>
+              </li>
+            )}
+          </ul>
         )}
       </div>
 

@@ -25,7 +25,7 @@ const WHOLESALE_PAGE = 24;
 const NEARBY_KM = 80;
 
 export function HomePage() {
-  const { searchQuery, maxBid, selectedDate } = useAppSelector(
+  const { searchQuery, location, maxBid, selectedDate } = useAppSelector(
     (state) => state.search,
   );
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | undefined>();
@@ -39,7 +39,7 @@ export function HomePage() {
   // Silent, coarse IP-based location hint (Vercel edge headers — no prompt).
   // Drives nearest-first ordering. One hint per session is plenty.
   const {
-    data: geoHint,
+    data: ipGeoHint,
     isFetched: geoFetched,
     isError: geoError,
   } = useApiQuery<GeoHint>({
@@ -49,6 +49,21 @@ export function HomePage() {
     gcTime: Infinity,
     retry: false,
   });
+  // A city picked in the search bar replaces the viewer's own location:
+  // hotels nearest that city first, partner deals there pinned on top.
+  const geoHint = useMemo<GeoHint | undefined>(
+    () =>
+      location
+        ? {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            city: location.label,
+            region: null,
+            country: null,
+          }
+        : ipGeoHint,
+    [location, ipGeoHint],
+  );
   // Rounded so nearby viewers share the edge-cached response.
   const near =
     typeof geoHint?.latitude === "number" && typeof geoHint?.longitude === "number"
@@ -77,7 +92,7 @@ export function HomePage() {
   const [wholesaleLimit, setWholesaleLimit] = useState(WHOLESALE_PAGE);
   useEffect(() => {
     setWholesaleLimit(WHOLESALE_PAGE);
-  }, [searchDebounced, listDate, maxBidDebounced]);
+  }, [searchDebounced, listDate, maxBidDebounced, location]);
   const wholesaleParams = {
     ...baseParams,
     source: "wholesale",
