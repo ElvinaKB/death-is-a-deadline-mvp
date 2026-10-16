@@ -11,6 +11,7 @@ import { HowItWorksModal } from "../components/home/HowItWorksModal";
 import { NewsletterSignupModal } from "../components/home/NewsletterSignupModal";
 import { useQueryClient } from "@tanstack/react-query";
 import { toApiDateOnly } from "../../utils/dateHelpers";
+import { clearReturnTo } from "../../utils/returnTo";
 import { WHOLESALE_UI_ENABLED } from "../../hooks/useWholesale";
 
 // Mapbox alone is ~1.7MB — split it out of the main bundle so it downloads
@@ -30,6 +31,11 @@ export function HomePage() {
   );
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | undefined>();
   const [hoveredPlaceId, setHoveredPlaceId] = useState<string | null>(null);
+
+  // Back on the marketplace: signing in from here should stay here.
+  useEffect(() => {
+    clearReturnTo();
+  }, []);
 
   const searchDebounced = useDebounce(searchQuery, 300);
   const maxBidDebounced = useDebounce(maxBid, 300);

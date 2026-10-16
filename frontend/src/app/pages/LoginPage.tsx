@@ -9,6 +9,7 @@ import { getFieldError, getFieldDescribedBy, getFieldErrorId } from "../../utils
 import { useApiMutation } from "../../hooks/useApi";
 import { ENDPOINTS } from "../../config/endpoints.config";
 import { ROUTES } from "../../config/routes.config";
+import { takeReturnTo } from "../../utils/returnTo";
 import {
   LoginRequest,
   AuthResponse,
@@ -87,7 +88,7 @@ export function LoginPage() {
           navigate(ROUTES.ADMIN_DASHBOARD);
           break;
         case UserRole.STUDENT:
-          navigate(ROUTES.HOME);
+          navigate(takeReturnTo() ?? ROUTES.HOME);
           break;
         case UserRole.HOTEL_OWNER:
           // Auto-select first hotel on login

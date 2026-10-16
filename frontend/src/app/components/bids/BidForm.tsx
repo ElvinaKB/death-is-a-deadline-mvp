@@ -1121,6 +1121,11 @@ function BidFormInner({
             {},
           );
           setNuiteeCheckout(session);
+          // Leave the Not Accepted / reveal panel so the payment pop-up
+          // (rendered with the bid form) actually shows.
+          setBidResult(null);
+          setRevealedPricePerNight(null);
+          setRevealTriesLeft(null);
           setIsProcessing(false);
         } else if (result.status === BidStatus.ACCEPTED && result.bid) {
           const paymentResult = await createPaymentIntent.mutateAsync({
@@ -1632,7 +1637,8 @@ function BidFormInner({
       );
       return;
     }
-    if (!rebidPaymentMethodAvailable) {
+    // Wholesale needs no saved card: Nuitee takes payment after the win.
+    if (!rebidPaymentMethodAvailable && !isWholesalePlace) {
       toast.error(
         "Use a saved card below, or tap Try again to re-enter payment details.",
       );
