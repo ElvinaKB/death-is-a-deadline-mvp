@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { apiClient } from "../../../lib/apiClient";
+import { getPublicPlacePath } from "../../../utils/placeUrl";
+import type { Place, PlacesResponse } from "../../../types/place.types";
 import { Search, Calendar, ChevronDown, MapPin } from "lucide-react";
 import { useApiQuery } from "../../../hooks/useApi";
 import { ENDPOINTS } from "../../../config/endpoints.config";
@@ -65,6 +69,30 @@ async function fetchCitySuggestions(
   });
 }
 
+/** Our own hotels whose name matches (partners first, then independents). */
+async function fetchHotelMatches(query: string): Promise<Place[]> {
+  const q = encodeURIComponent(query);
+  const [direct, wholesale] = await Promise.all(
+    ["direct", "wholesale"].map((source) =>
+      apiClient
+        .get<PlacesResponse>(
+          `${ENDPOINTS.PLACES_PUBLIC}?searchQuery=${q}&source=${source}&limit=20`,
+        )
+        .then((r) => r.places ?? [])
+        .catch(() => [] as Place[]),
+    ),
+  );
+  const needle = query.toLowerCase();
+  const byName = (p: Place) => p.name.toLowerCase().includes(needle);
+  const indieFirst = (a: Place, b: Place) =>
+    Number(!!(a as { isChain?: boolean }).isChain) -
+    Number(!!(b as { isChain?: boolean }).isChain);
+  return [
+    ...direct!.filter(byName),
+    ...wholesale!.filter(byName).sort(indieFirst),
+  ].slice(0, 3);
+}
+
 interface SearchBarProps {
   onSearch?: () => void;
 }
@@ -96,6 +124,8 @@ export function SearchBar({ onSearch }: SearchBarProps) {
   // nearest that city first); "Search hotel names" keeps keyword search.
   const [text, setText] = useState(location?.label ?? searchQuery);
   const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
+  const [hotels, setHotels] = useState<Place[]>([]);
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -104,17 +134,25 @@ export function SearchBar({ onSearch }: SearchBarProps) {
     const q = text.trim();
     if (q.length < 2 || q === location?.label) {
       setSuggestions([]);
+      setHotels([]);
       return;
     }
     const ctrl = new AbortController();
     const t = window.setTimeout(() => {
       fetchCitySuggestions(q, geoHint, ctrl.signal)
         .then((list) => {
-          setSuggestions(list);
+          setSuggestions(list.slice(0, 5));
           setActive(0);
         })
         .catch(() => {});
-    }, 200);
+      if (q.length >= 3) {
+        fetchHotelMatches(q).then((list) => {
+          if (!ctrl.signal.aborted) setHotels(list);
+        });
+      } else {
+        setHotels([]);
+      }
+    }, 250);
     return () => {
       window.clearTimeout(t);
       ctrl.abort();
@@ -148,7 +186,14 @@ export function SearchBar({ onSearch }: SearchBarProps) {
     setText("");
     setSuggestions([]);
   };
-  const optionCount = suggestions.length + (text.trim() ? 1 : 0);
+  const openHotel = (p: Place) => {
+    setOpen(false);
+    navigate(getPublicPlacePath(p));
+  };
+  // Options in order: cities, our matching hotels, "search hotel names".
+  const hotelStart = suggestions.length;
+  const namesIndex = suggestions.length + hotels.length;
+  const optionCount = namesIndex + (text.trim() ? 1 : 0);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown" && optionCount > 0) {
@@ -163,6 +208,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (active < suggestions.length) pickCity(suggestions[active]!);
+      else if (active < namesIndex) openHotel(hotels[active - hotelStart]!);
       else if (text.trim()) searchNames();
       else onSearch?.();
     }
@@ -284,14 +330,53 @@ export function SearchBar({ onSearch }: SearchBarProps) {
                 </button>
               </li>
             ))}
+            {hotels.length > 0 && (
+              <li
+                role="presentation"
+                className="border-t border-line px-4 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted"
+              >
+                Hotels
+              </li>
+            )}
+            {hotels.map((p, j) => {
+              const i = hotelStart + j;
+              return (
+                <li key={p.id} role="option" aria-selected={i === active}>
+                  <button
+                    type="button"
+                    onMouseEnter={() => setActive(i)}
+                    onClick={() => openHotel(p)}
+                    className={`flex w-full items-center gap-3 px-4 py-2.5 text-left ${
+                      i === active ? "bg-glass" : ""
+                    }`}
+                  >
+                    {p.images?.[0] ? (
+                      <img
+                        src={(p.images[0] as { url?: string }).url}
+                        alt=""
+                        className="h-9 w-9 shrink-0 rounded-md object-cover"
+                      />
+                    ) : (
+                      <span className="h-9 w-9 shrink-0 rounded-md bg-glass" />
+                    )}
+                    <span className="min-w-0">
+                      <span className="block truncate text-base font-semibold text-fg">
+                        {p.name}
+                      </span>
+                      <span className="block truncate text-sm text-muted">{p.city}</span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
             {text.trim() && (
-              <li role="option" aria-selected={active === suggestions.length}>
+              <li role="option" aria-selected={active === namesIndex}>
                 <button
                   type="button"
-                  onMouseEnter={() => setActive(suggestions.length)}
+                  onMouseEnter={() => setActive(namesIndex)}
                   onClick={searchNames}
                   className={`flex w-full items-center gap-3 border-t border-line px-4 py-3 text-left text-sm text-muted ${
-                    active === suggestions.length ? "bg-glass" : ""
+                    active === namesIndex ? "bg-glass" : ""
                   }`}
                 >
                   <Search className="h-4 w-4 shrink-0" aria-hidden />

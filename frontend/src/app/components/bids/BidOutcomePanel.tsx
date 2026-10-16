@@ -229,16 +229,31 @@ export function BidOutcomePanel({
         ref={rejectedHeaderRef}
         className="outcome-rejected-status scroll-mt-24 text-center relative"
       >
-        <div className="outcome-confetti outcome-confetti--red" aria-hidden />
-        <div className="outcome-rejected-icon mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-urgent">
-          <X className="h-9 w-9 text-white stroke-[3]" aria-hidden />
-        </div>
-        <h2 className="outcome-rejected-title">NOT ACCEPTED</h2>
-        <p className="outcome-rejected-subtitle">
-          {place.supplySource === "wholesale"
-            ? "This bid didn't reach the secret member price."
-            : "This bid didn't meet the hotel's hidden threshold."}
-        </p>
+        {revealedPricePerNight ? (
+          // After three misses the answer is shown — lead with that, not a
+          // red "not accepted".
+          <>
+            <h2 className="text-2xl font-bold uppercase tracking-wide text-gold">
+              Here&apos;s the secret price
+            </h2>
+            <p className="outcome-rejected-subtitle">
+              That bid was a little low, so we&apos;re showing you the answer.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="outcome-confetti outcome-confetti--red" aria-hidden />
+            <div className="outcome-rejected-icon mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-urgent">
+              <X className="h-9 w-9 text-white stroke-[3]" aria-hidden />
+            </div>
+            <h2 className="outcome-rejected-title">NOT ACCEPTED</h2>
+            <p className="outcome-rejected-subtitle">
+              {place.supplySource === "wholesale"
+                ? "This bid didn't reach the secret member price."
+                : "This bid didn't meet the hotel's hidden threshold."}
+            </p>
+          </>
+        )}
       </div>
 
       {revealedPricePerNight ? (
@@ -346,7 +361,7 @@ export function BidOutcomePanel({
         </div>
       )}
 
-      {user && (
+      {user && place.supplySource !== "wholesale" && (
         <div className="listing-pay-card flex items-center justify-between text-xs">
           <span className="flex items-center gap-2 text-muted">
             <CreditCard className="h-3.5 w-3.5" />
