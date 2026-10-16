@@ -319,6 +319,22 @@ function isSameHotel(
   );
 }
 
+/** Nuitee sometimes lists one hotel twice ("New York-New York" and
+ * "New York-New York Hotel & Casino"): same core name, a few hundred metres. */
+function isDuplicateListing(
+  a: { name: string; latitude: unknown; longitude: unknown },
+  b: { name: string; latitude: unknown; longitude: unknown },
+): boolean {
+  const x = normalizeName(a.name);
+  const y = normalizeName(b.name);
+  if (x.length < 5 || y.length < 5 || !(x === y || x.includes(y) || y.includes(x))) {
+    return false;
+  }
+  const [la, lo, lb, mb] = [a.latitude, a.longitude, b.latitude, b.longitude].map(Number);
+  if (![la, lo, lb, mb].every((v) => Number.isFinite(v) && v !== 0)) return false;
+  return Math.abs(la! - lb!) < 0.003 && Math.abs(lo! - mb!) < 0.004;
+}
+
 export interface ImportSummary {
   city: string;
   available: number;
@@ -327,6 +343,7 @@ export interface ImportSummary {
   created: number;
   updated: number;
   skippedDirect: number;
+  skippedDuplicate?: number;
   errors: string[];
 }
 
@@ -437,6 +454,51 @@ export async function importWholesaleCity(market: string): Promise<ImportSummary
       summary.skippedDirect++;
     }
   }
+  // Duplicates of a hotel we already list (or of another hotel in this
+  // batch): keep the listing with more reviews, skip or pause the other.
+  const liveHere = await prisma.place.findMany({
+    where: { supplySource: "wholesale", status: PlaceStatus.LIVE, city },
+    select: {
+      id: true,
+      name: true,
+      latitude: true,
+      longitude: true,
+      liteapiHotelId: true,
+      guestReviewCount: true,
+    },
+    orderBy: { guestReviewCount: { sort: "desc", nulls: "last" } },
+  });
+  const kept: { name: string; latitude: unknown; longitude: unknown; id: string | null }[] = [];
+  const pauseIds: string[] = [];
+  for (const p of liveHere) {
+    if (kept.some((k) => isDuplicateListing(k, p))) pauseIds.push(p.id);
+    else kept.push({ ...p, id: p.liteapiHotelId });
+  }
+  if (pauseIds.length > 0) {
+    await prisma.place.updateMany({
+      where: { id: { in: pauseIds } },
+      data: { status: PlaceStatus.PAUSED },
+    });
+    summary.paused = (summary.paused ?? 0) + pauseIds.length;
+  }
+  const knownIds = new Set(liveHere.map((p) => p.liteapiHotelId));
+  const newOnes = [...offers.keys()]
+    .filter((id) => !knownIds.has(id))
+    .sort(
+      (a, b) =>
+        Number(infoById.get(b)?.reviewCount ?? 0) - Number(infoById.get(a)?.reviewCount ?? 0),
+    );
+  for (const id of newOnes) {
+    const h = infoById.get(id);
+    const candidate = { name: h?.name ?? "", latitude: h?.latitude, longitude: h?.longitude };
+    if (kept.some((k) => isDuplicateListing(k, candidate))) {
+      offers.delete(id);
+      summary.skippedDuplicate = (summary.skippedDuplicate ?? 0) + 1;
+    } else {
+      kept.push({ ...candidate, id });
+    }
+  }
+
   summary.available = offers.size;
   if (offers.size === 0) return summary;
 
