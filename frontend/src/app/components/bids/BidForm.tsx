@@ -955,19 +955,19 @@ function BidFormInner({
       setCardNotice(null);
 
       if (isAuthenticated && !acceptedHotelTaxes) {
-        setPaymentError(HOTEL_TAXES_ACK_ERROR);
+        flagAgreement();
         submitInFlightRef.current = false;
         return;
       }
 
       if (isAuthenticated && !acceptedDataUse) {
-        setPaymentError(DATA_USE_ACK_ERROR);
+        flagAgreement();
         submitInFlightRef.current = false;
         return;
       }
 
       if (isAuthenticated && !acceptedTerms) {
-        setPaymentError(TERMS_ACK_ERROR);
+        flagAgreement();
         submitInFlightRef.current = false;
         return;
       }
@@ -1041,8 +1041,21 @@ function BidFormInner({
       try {
         // PAYMENT_FLOW_V2 START — Step 1: bid create or resume pending payment
         const activeBids = existingBidData?.activeBids ?? [];
-        const resumeBid =
-          activeBids.find(
+        const sameDay = (a?: Date | string | null, b?: Date | string | null) =>
+          !!a && !!b && toApiDateOnly(a) === toApiDateOnly(b);
+        // Wholesale: only reopen an unpaid win for exactly these dates and
+        // amount. Anything else is a new bid (otherwise an old, abandoned
+        // checkout for other dates pops up instead).
+        const resumeBid = isWholesalePlace
+          ? activeBids.find(
+              (b) =>
+                b.status === BidStatus.ACCEPTED &&
+                isDbPaymentAwaitingCapture(b.payment?.status) &&
+                sameDay(b.checkInDate, values.checkInDate) &&
+                sameDay(b.checkOutDate, values.checkOutDate) &&
+                Number(b.bidPerNight) === Number(values.bidPerNight),
+            )
+          : activeBids.find(
             (b) =>
               b.status === BidStatus.ACCEPTED &&
               isDbPaymentAwaitingCapture(b.payment?.status) &&
@@ -1493,15 +1506,15 @@ function BidFormInner({
       return;
     }
     if (!acceptedHotelTaxes) {
-      setPaymentError(HOTEL_TAXES_ACK_ERROR);
+      flagAgreement();
       return;
     }
     if (!acceptedDataUse) {
-      setPaymentError(DATA_USE_ACK_ERROR);
+      flagAgreement();
       return;
     }
     if (!acceptedTerms) {
-      setPaymentError(TERMS_ACK_ERROR);
+      flagAgreement();
       return;
     }
 
@@ -1687,6 +1700,22 @@ function BidFormInner({
 
   const canProceedFromDates =
     !datesProceedError && !isInventoryExhausted && !overlapDatesError;
+
+  // Show the agreement error where the box is: scroll it into view and
+  // pulse it, so members aren't left clicking Book now / Place bid with no
+  // visible reaction.
+  function flagAgreement() {
+    setPaymentError(AGREEMENT_ERROR);
+    const box =
+      document.getElementById("listing-terms-ack") ||
+      document.getElementById("bid-terms-ack");
+    if (!box) return;
+    box.scrollIntoView({ behavior: "smooth", block: "center" });
+    box.focus({ preventScroll: true });
+    box.classList.remove("agreement-attention");
+    void box.offsetWidth;
+    box.classList.add("agreement-attention");
+  }
 
   const canProceedFromAmount =
     formik.values.bidPerNight && Number(formik.values.bidPerNight) > 0;
@@ -2312,8 +2341,9 @@ function BidFormInner({
             <div className="listing-lock-hint">
               <p className="flex items-start gap-2 text-xs text-muted leading-relaxed text-left">
                 <Lock className="h-3.5 w-3.5 shrink-0 mt-0.5 text-fg" />
-                Once you click LOCK IN, you can still go back until the timer hits
-                zero.
+                {isWholesalePlace
+                  ? "If your bid wins, you'll pay in the next step. Nothing is charged until then."
+                  : "Once you click LOCK IN, you can still go back until the timer hits zero."}
               </p>
             </div>
             </>
