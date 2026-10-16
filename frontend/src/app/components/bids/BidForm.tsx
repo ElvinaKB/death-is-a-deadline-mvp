@@ -955,19 +955,19 @@ function BidFormInner({
       setCardNotice(null);
 
       if (isAuthenticated && !acceptedHotelTaxes) {
-        setPaymentError(HOTEL_TAXES_ACK_ERROR);
+        flagAgreement();
         submitInFlightRef.current = false;
         return;
       }
 
       if (isAuthenticated && !acceptedDataUse) {
-        setPaymentError(DATA_USE_ACK_ERROR);
+        flagAgreement();
         submitInFlightRef.current = false;
         return;
       }
 
       if (isAuthenticated && !acceptedTerms) {
-        setPaymentError(TERMS_ACK_ERROR);
+        flagAgreement();
         submitInFlightRef.current = false;
         return;
       }
@@ -1493,15 +1493,15 @@ function BidFormInner({
       return;
     }
     if (!acceptedHotelTaxes) {
-      setPaymentError(HOTEL_TAXES_ACK_ERROR);
+      flagAgreement();
       return;
     }
     if (!acceptedDataUse) {
-      setPaymentError(DATA_USE_ACK_ERROR);
+      flagAgreement();
       return;
     }
     if (!acceptedTerms) {
-      setPaymentError(TERMS_ACK_ERROR);
+      flagAgreement();
       return;
     }
 
@@ -1687,6 +1687,22 @@ function BidFormInner({
 
   const canProceedFromDates =
     !datesProceedError && !isInventoryExhausted && !overlapDatesError;
+
+  // Show the agreement error where the box is: scroll it into view and
+  // pulse it, so members aren't left clicking Book now / Place bid with no
+  // visible reaction.
+  function flagAgreement() {
+    setPaymentError(AGREEMENT_ERROR);
+    const box =
+      document.getElementById("listing-terms-ack") ||
+      document.getElementById("bid-terms-ack");
+    if (!box) return;
+    box.scrollIntoView({ behavior: "smooth", block: "center" });
+    box.focus({ preventScroll: true });
+    box.classList.remove("agreement-attention");
+    void box.offsetWidth;
+    box.classList.add("agreement-attention");
+  }
 
   const canProceedFromAmount =
     formik.values.bidPerNight && Number(formik.values.bidPerNight) > 0;
@@ -2312,8 +2328,9 @@ function BidFormInner({
             <div className="listing-lock-hint">
               <p className="flex items-start gap-2 text-xs text-muted leading-relaxed text-left">
                 <Lock className="h-3.5 w-3.5 shrink-0 mt-0.5 text-fg" />
-                Once you click LOCK IN, you can still go back until the timer hits
-                zero.
+                {isWholesalePlace
+                  ? "If your bid wins, you'll pay in the next step. Nothing is charged until then."
+                  : "Once you click LOCK IN, you can still go back until the timer hits zero."}
               </p>
             </div>
             </>

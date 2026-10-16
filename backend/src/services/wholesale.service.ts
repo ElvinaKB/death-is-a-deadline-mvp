@@ -41,7 +41,7 @@ export const WHOLESALE_CONFIG = {
   // After this many losing bids on the same hotel + dates, the member is shown
   // the price instead of being left guessing.
   REVEAL_AFTER_LOSING_BIDS: Number(process.env.WHOLESALE_REVEAL_AFTER ?? 3),
-  // Go-to-market: California. Each nightly import pulls the hotels that have
+  // Go-to-market: California + New York City. Each nightly import pulls the hotels that have
   // live availability in these cities. Add a city here to roll out.
   MARKETS: [
     "Los Angeles",
@@ -64,6 +64,9 @@ export const WHOLESALE_CONFIG = {
     "Newport Beach",
     "Pasadena",
     "South Lake Tahoe",
+    // New York (added 2026-10-16 for member demand).
+    "New York",
+    "Brooklyn",
   ],
   // Quality bar for imported hotels (Elvina, 2026-10-10): no motels, 3 stars
   // or more, guest rating 7.5/10 or more. Nuitee hotel type ids — kept:
