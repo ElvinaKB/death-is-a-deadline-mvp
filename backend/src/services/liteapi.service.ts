@@ -60,6 +60,8 @@ export interface LiteapiHotelSummary {
   stars?: number;
   rating?: number;
   reviewCount?: number;
+  chain?: string;
+  chainId?: number;
 }
 
 export interface LiteapiHotelDetails {

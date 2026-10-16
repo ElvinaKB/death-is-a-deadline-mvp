@@ -319,6 +319,16 @@ function isSameHotel(
   );
 }
 
+/** Nuitee's chain field: "Not Available" / empty means an independent hotel. */
+function chainOf(h: { chain?: string; chainId?: number } | undefined): {
+  chainName: string | null;
+  isChain: boolean;
+} {
+  const name = (h?.chain ?? "").trim();
+  const isChain = !!name && !/^(not available|n\/a|none|independent)$/i.test(name);
+  return { chainName: isChain ? name : null, isChain };
+}
+
 /** Nuitee sometimes lists one hotel twice ("New York-New York" and
  * "New York-New York Hotel & Casino"): same core name, a few hundred metres. */
 function isDuplicateListing(
@@ -522,6 +532,7 @@ export async function importWholesaleCity(market: string): Promise<ImportSummary
   return summary;
 
   async function upsertHotel(hotelId: string, offer: WholesaleOffer) {
+    const chain = chainOf(infoById.get(hotelId));
     const quote = buildQuote(offer, 1);
     // All-in like the live price on the hotel page: includes the hotel's
     // mandatory non-tax fee (paid at check-in), so the card and the page
@@ -543,6 +554,7 @@ export async function importWholesaleCity(market: string): Promise<ImportSummary
             retailPrice,
             minimumBid: quote.memberPricePerNight,
             timezone,
+            ...chain,
             wholesaleSyncedAt: new Date(),
           },
         });
@@ -594,6 +606,7 @@ export async function importWholesaleCity(market: string): Promise<ImportSummary
           starRating: d.starRating ? Number(d.starRating) : null,
           guestRating: d.rating ? Number(d.rating) : null,
           guestReviewCount: d.reviewCount ? Number(d.reviewCount) : null,
+          ...chain,
           wholesaleSyncedAt: new Date(),
           images: { create: images },
         },

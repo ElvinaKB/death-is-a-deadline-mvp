@@ -57,6 +57,9 @@ model Place {
   starRating             Float?            @map("star_rating")
   guestRating            Float?            @map("guest_rating")
   guestReviewCount       Int?              @map("guest_review_count")
+  // Nuitee chain ("Hilton", "Marriott"…); isChain false = independent hotel.
+  chainName              String?           @map("chain_name")
+  isChain                Boolean?          @map("is_chain")
   wholesaleSyncedAt      DateTime?         @map("wholesale_synced_at") @db.Timestamptz(6)
   // "What's nearby" cache (Mapbox category search), refreshed monthly.
   nearbyJson             Json?             @map("nearby_json")
