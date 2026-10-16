@@ -503,18 +503,26 @@ export async function listPublicPlaces(req: Request, res: Response) {
     const [lat, lng] = near.split(",").map(Number) as [number, number];
     const coords = await prisma.place.findMany({
       where,
-      select: { id: true, latitude: true, longitude: true, retailPrice: true },
+      select: { id: true, latitude: true, longitude: true, retailPrice: true, isChain: true },
     });
+    // Within the searched area (~25 miles) independent hotels come first,
+    // then chains, each nearest-first; beyond that, purely by distance.
+    const LOCAL_KM = 40;
     const ranked = coords
-      .map((c) => ({
-        id: c.id,
-        d:
+      .map((c) => {
+        const d =
           c.latitude == null || c.longitude == null
             ? Number.POSITIVE_INFINITY
-            : distanceKm(lat, lng, c.latitude, c.longitude),
-        price: c.retailPrice,
-      }))
-      .sort((a, b) => a.d - b.d || a.price - b.price);
+            : distanceKm(lat, lng, c.latitude, c.longitude);
+        const local = d <= LOCAL_KM;
+        return {
+          id: c.id,
+          d,
+          tier: local ? (c.isChain ? 1 : 0) : 2,
+          price: c.retailPrice,
+        };
+      })
+      .sort((a, b) => a.tier - b.tier || a.d - b.d || a.price - b.price);
     total = ranked.length;
     const pageIds = ranked.slice(skip, skip + limit).map((r) => r.id);
     const rows = await findPublicPage({ id: { in: pageIds } });
