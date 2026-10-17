@@ -724,13 +724,56 @@ export async function listBids(req: Request, res: Response) {
 // does NOT remove card-chargeback liability — only card pass-through does that.)
 export const PAYOUT_HOLD_HOURS = 48;
 
+// Money we actually owe a hotel: a paid booking at a partner (direct) hotel
+// where we collected the full price. Excludes wins the member never paid for
+// and Nuitée bookings (Nuitée pays the hotel; we only earn commission).
+const PAYOUT_OWED_WHERE: Prisma.BidWhereInput = {
+  status: bid_status.ACCEPTED,
+  isPaidToHotel: false,
+  payment: { status: payment_status.CAPTURED },
+  place: { supplySource: "direct" },
+  payableToHotel: { gt: 0 },
+  NOT: { payoutMethod: "nuitee-commission" },
+};
+
+// Partner payouts still owed, oldest checkout first (admin Bids page).
+export async function listPayoutsOwed(_req: Request, res: Response) {
+  const holdMs = PAYOUT_HOLD_HOURS * 60 * 60 * 1000;
+  const bids = await prisma.bid.findMany({
+    where: PAYOUT_OWED_WHERE,
+    orderBy: { checkOutDate: "asc" },
+    include: {
+      place: { select: { id: true, name: true, city: true } },
+      users: { select: { email: true, raw_user_meta_data: true } },
+    },
+  });
+  res.set("Cache-Control", "private, no-store");
+  res.status(200).json({
+    data: {
+      payouts: bids.map((b) => ({
+        id: b.id,
+        placeId: b.place.id,
+        hotel: b.place.name,
+        city: b.place.city,
+        guest:
+          (b.users?.raw_user_meta_data as any)?.name || b.users?.email || "Guest",
+        checkInDate: b.checkInDate,
+        checkOutDate: b.checkOutDate,
+        totalAmount: Number(b.totalAmount),
+        payableToHotel: Number(b.payableToHotel ?? 0),
+        due: Date.now() >= new Date(b.checkOutDate).getTime() + holdMs,
+      })),
+    },
+  });
+}
+
 // Payout summary (admin only) — powers the "payouts due" dashboard alert.
 export async function getPayoutSummary(_req: Request, res: Response) {
   const holdMs = PAYOUT_HOLD_HOURS * 60 * 60 * 1000;
   const now = Date.now();
 
   const openBids = await prisma.bid.findMany({
-    where: { status: bid_status.ACCEPTED, isPaidToHotel: false },
+    where: PAYOUT_OWED_WHERE,
     select: { checkOutDate: true, payableToHotel: true },
   });
 
@@ -748,7 +791,11 @@ export async function getPayoutSummary(_req: Request, res: Response) {
   }
 
   const paidCount = await prisma.bid.count({
-    where: { status: bid_status.ACCEPTED, isPaidToHotel: true },
+    where: {
+      status: bid_status.ACCEPTED,
+      isPaidToHotel: true,
+      place: { supplySource: "direct" },
+    },
   });
 
   res.status(200).json({

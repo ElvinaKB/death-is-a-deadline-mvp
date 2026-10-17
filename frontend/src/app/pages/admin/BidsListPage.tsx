@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { CancelBidModal } from "../../components/bids/CancelBidModal";
 import { useDebounce } from "../../../hooks/useDebounce";
 import { useApiQuery, useApiMutation } from "../../../hooks/useApi";
+import { apiClient } from "../../../lib/apiClient";
 import { ENDPOINTS, getEndpoint } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
 
@@ -311,6 +312,8 @@ export function BidsListPage() {
           ))}
         </div>
       )}
+
+      <PayoutsOwed formatCurrency={formatCurrency} />
 
       <div className="inline-flex rounded-lg border border-line bg-glass p-1">
         {(
@@ -667,5 +670,126 @@ function MemberBids({
         </tbody>
       </table>
     </div>
+  );
+}
+
+interface PayoutOwed {
+  id: string;
+  placeId: string;
+  hotel: string;
+  city: string;
+  guest: string;
+  checkInDate: string;
+  checkOutDate: string;
+  totalAmount: number;
+  payableToHotel: number;
+  due: boolean;
+}
+
+/** Partner bookings where we collected the full price and still owe the
+ * hotel its share (the old full-charge model, e.g. PodShare / Social Stays).
+ * Send one transfer per hotel, then mark them paid here. Hidden when none. */
+function PayoutsOwed({ formatCurrency }: { formatCurrency: (n: number) => string }) {
+  const queryClient = useQueryClient();
+  const { data } = useApiQuery<{ payouts: PayoutOwed[] }>({
+    queryKey: ["payouts-owed"],
+    endpoint: ENDPOINTS.BID_PAYOUTS_OWED,
+    staleTime: 30_000,
+  });
+  const [busy, setBusy] = useState<string | null>(null);
+  const payouts = data?.payouts ?? [];
+  if (payouts.length === 0) return null;
+
+  const byHotel = new Map<string, PayoutOwed[]>();
+  for (const p of payouts) byHotel.set(p.hotel, [...(byHotel.get(p.hotel) ?? []), p]);
+
+  const markPaid = async (key: string, items: PayoutOwed[]) => {
+    if (!window.confirm(`Mark ${items.length} booking(s) as paid to the hotel? Do this after the transfer has gone out.`)) return;
+    setBusy(key);
+    try {
+      for (const p of items) {
+        await apiClient.patch(getEndpoint(ENDPOINTS.BID_PAYOUT, { id: p.id }), {
+          isPaidToHotel: true,
+          payoutMethod: "bank-transfer",
+        });
+      }
+      toast.success("Marked paid");
+      await queryClient.invalidateQueries({ queryKey: ["payouts-owed"] });
+      await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PAYOUT_SUMMARY] });
+    } catch (e) {
+      toast.error((e as Error).message || "Couldn't mark paid");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const total = payouts.reduce((s, p) => s + p.payableToHotel, 0);
+  return (
+    <Card className="border-gold/40 bg-glass">
+      <CardHeader>
+        <CardTitle className="text-fg">
+          Payouts owed to partner hotels{" "}
+          <span className="text-muted font-normal">
+            ({payouts.length} · {formatCurrency(total)})
+          </span>
+        </CardTitle>
+        <p className="text-sm text-muted">
+          Full-charge bookings (before the 7% model) where we hold the hotel&apos;s
+          share. Send one bank transfer per hotel, then mark it paid. &ldquo;Not yet
+          due&rdquo; = within 48h of checkout.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {[...byHotel.entries()].map(([hotel, items]) => {
+          const sum = items.reduce((s, p) => s + p.payableToHotel, 0);
+          return (
+            <div key={hotel} className="rounded-lg border border-line p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-semibold text-fg">
+                  {hotel} <span className="text-muted font-normal">· {items[0]!.city}</span>
+                </p>
+                <div className="flex items-center gap-3">
+                  <span className="text-lg font-bold text-fg">{formatCurrency(sum)}</span>
+                  <Button
+                    size="sm"
+                    className="btn-bid"
+                    disabled={busy === hotel}
+                    onClick={() => void markPaid(hotel, items)}
+                  >
+                    {busy === hotel ? "Saving…" : `Mark all ${items.length} paid`}
+                  </Button>
+                </div>
+              </div>
+              <table className="mt-2 w-full text-sm">
+                <tbody>
+                  {items.map((p) => (
+                    <tr key={p.id} className="border-t border-line/50">
+                      <td className="py-1.5 pr-3 text-fg">{p.guest}</td>
+                      <td className="py-1.5 pr-3 text-muted whitespace-nowrap">
+                        {formatBookingDate(p.checkInDate, "MMM d")} →{" "}
+                        {formatBookingDate(p.checkOutDate, "MMM d")}
+                      </td>
+                      <td className="py-1.5 pr-3 text-muted whitespace-nowrap">
+                        guest paid {formatCurrency(p.totalAmount)}
+                      </td>
+                      <td className="py-1.5 pr-3 font-medium text-fg whitespace-nowrap">
+                        owe {formatCurrency(p.payableToHotel)}
+                      </td>
+                      <td className="py-1.5 whitespace-nowrap">
+                        {p.due ? (
+                          <span className="text-success">Due</span>
+                        ) : (
+                          <span className="text-warning">Not yet due</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
 }

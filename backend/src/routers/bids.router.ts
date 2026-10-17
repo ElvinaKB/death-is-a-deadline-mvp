@@ -26,6 +26,7 @@ import {
   updateBidStatus,
   updatePayout,
   getPayoutSummary,
+  listPayoutsOwed,
   cancelBid,
   listHotelBids,
   repushBookingToChannel,
@@ -75,6 +76,7 @@ router.get(
   authenticate(UserRole.ADMIN),
   getPayoutSummary,
 );
+router.get("/payouts-owed", authenticate(UserRole.ADMIN), listPayoutsOwed);
 
 // Get single bid by ID (student can view own, admin can view all)
 router.get(

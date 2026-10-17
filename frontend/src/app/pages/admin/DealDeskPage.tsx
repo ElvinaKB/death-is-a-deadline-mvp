@@ -149,7 +149,7 @@ function stayLabel(o: Opportunity) {
 }
 
 export function DealDeskPage() {
-  const [maxGap, setMaxGap] = useState(10);
+  const [maxGap, setMaxGap] = useState(100);
   const [days, setDays] = useState(3);
   const [includeCalled, setIncludeCalled] = useState(false);
   const [tonightOnly, setTonightOnly] = useState(false);
