@@ -66,6 +66,7 @@ export const ENDPOINTS = {
   BID_CANCEL: "/api/bids/:id/cancel",
   BID_REPUSH_CHANNEL: "/api/bids/:id/repush-channel",
   BID_PAYOUT_SUMMARY: "/api/bids/payout-summary",
+  BID_PAYOUTS_OWED: "/api/bids/payouts-owed",
   MERCURY_HEALTH: "/api/payouts/mercury/health",
   MERCURY_RECIPIENTS: "/api/payouts/mercury/recipients",
   MERCURY_PAY: "/api/payouts/mercury/pay",
