@@ -38,7 +38,10 @@ export async function exportBidsCsv(req: Request, res: Response) {
 export async function recentPlaces(req: Request, res: Response) {
   const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 25));
   res.set("Cache-Control", "private, no-store");
-  res.status(200).json({ data: { places: await recentlyBidPlaces(limit) } });
+  const tab = ["listings", "prospects", "wholesale"].includes(String(req.query.tab))
+    ? (String(req.query.tab) as "listings" | "prospects" | "wholesale")
+    : undefined;
+  res.status(200).json({ data: { places: await recentlyBidPlaces(limit, tab) } });
 }
 
 /** Bids page "By member": one row per member, latest activity first. */
