@@ -20,6 +20,8 @@ import { ENDPOINTS, getEndpoint } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
 import { ROUTES, getRoute } from "../../../config/routes.config";
 import { useApiQuery, useApiMutation } from "../../../hooks/useApi";
+import { useDebounce } from "../../../hooks/useDebounce";
+import { format } from "date-fns";
 import { apiClient } from "../../../lib/apiClient";
 import { useUpdatePlaceStatus } from "../../../hooks/usePlaces";
 import {
@@ -73,6 +75,7 @@ export function PlacesListPage() {
   );
   const [filter, setFilter] = useState<PlaceStatus | "ALL">("ALL");
   const [search, setSearch] = useState("");
+  const serverSearch = useDebounce(search.trim(), 350);
   // Track which placeId is currently sending an invite to show per-row loading
   const [resendingId, setResendingId] = useState<string | null>(null);
 
@@ -82,7 +85,7 @@ export function PlacesListPage() {
   // across every hotel, not just one page. Fine for the foreseeable hotel
   // count; when this grows past a few hundred, move grouping/search server-side.
   const { data, isLoading } = useApiQuery<PlacesResponse>({
-    queryKey: [QUERY_KEYS.PLACES, view, filter],
+    queryKey: [QUERY_KEYS.PLACES, view, filter, serverSearch],
     endpoint: ENDPOINTS.PLACES_LIST,
     // Don't show the previous tab's hotels while this one loads — switching
     // Listings → Wholesale must never look like direct hotels are wholesale.
@@ -93,7 +96,30 @@ export function PlacesListPage() {
         ? { source: "wholesale" }
         : { prospect: prospectParam }),
       ...(filter !== "ALL" ? { status: filter } : {}),
+      // Searched on the server, so all 7,000+ wholesale hotels are findable
+      // (the list itself is capped at 1,000).
+      ...(serverSearch ? { search: serverSearch } : {}),
     },
+  });
+
+  // Hotels most recently bid on (any tab), newest first.
+  const { data: recentData } = useApiQuery<{
+    places: {
+      id: string;
+      name: string;
+      city: string;
+      supplySource: string;
+      bids: number;
+      bidders: number;
+      booked: number;
+      lastBidAt: string;
+      highestBidPerNight: number;
+    }[];
+  }>({
+    queryKey: ["recently-bid-places"],
+    endpoint: ENDPOINTS.ANALYTICS_RECENT_PLACES,
+    params: { limit: 15 },
+    staleTime: 60_000,
   });
 
   const updateStatus = useUpdatePlaceStatus([QUERY_KEYS.PLACES, view, filter]);
@@ -471,6 +497,75 @@ export function PlacesListPage() {
         ))}
       </div>
 
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gold" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={`Search ${view} by hotel name or city…`}
+          className="h-12 bg-glass border-line pl-12 text-base text-fg"
+        />
+      </div>
+
+      {!search.trim() && (recentData?.places.length ?? 0) > 0 && (
+        <Card className="glass-2 border-gold/40">
+          <CardHeader>
+            <CardTitle className="text-fg">Recently bid on</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-muted">
+                    <th className="pb-2 pr-3 font-medium">Hotel</th>
+                    <th className="pb-2 pr-3 font-medium">Bids</th>
+                    <th className="pb-2 pr-3 font-medium">Members</th>
+                    <th className="pb-2 pr-3 font-medium">Booked</th>
+                    <th className="pb-2 pr-3 font-medium">Highest bid</th>
+                    <th className="pb-2 pr-3 font-medium">Last bid</th>
+                    <th className="pb-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentData!.places.map((p) => (
+                    <tr key={p.id} className="border-t border-line/60">
+                      <td className="py-2 pr-3">
+                        <span className="font-medium text-fg">{p.name}</span>
+                        <span className="text-muted">
+                          {" "}
+                          · {p.city} ·{" "}
+                          {p.supplySource === "wholesale" ? "Wholesale" : "Partner"}
+                        </span>
+                      </td>
+                      <td className="py-2 pr-3 text-fg">{p.bids}</td>
+                      <td className="py-2 pr-3 text-fg">{p.bidders}</td>
+                      <td className="py-2 pr-3 text-fg">{p.booked}</td>
+                      <td className="py-2 pr-3 text-fg">
+                        ${Math.round(p.highestBidPerNight)}/night
+                      </td>
+                      <td className="py-2 pr-3 text-muted whitespace-nowrap">
+                        {format(new Date(p.lastBidAt), "MMM d, h:mm a")}
+                      </td>
+                      <td className="py-2 text-right">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(ROUTES.ADMIN_PLACES_DATA.replace(":id", p.id))
+                          }
+                          className="font-semibold text-gold underline whitespace-nowrap"
+                        >
+                          Data &amp; bids →
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs
         defaultValue="ALL"
         value={filter}
@@ -511,15 +606,7 @@ export function PlacesListPage() {
                   ? "Places List"
                   : `${filtered.length} place${filtered.length === 1 ? "" : "s"} · ${cityGroups.length} ${cityGroups.length === 1 ? "city" : "cities"}`}
               </CardTitle>
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by hotel name or city…"
-                  className="bg-glass border-line pl-9 text-fg"
-                />
-              </div>
+
             </CardHeader>
             <CardContent className="space-y-8">
               {isLoading ? (

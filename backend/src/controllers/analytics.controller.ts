@@ -1,6 +1,12 @@
 import { Request, Response } from "express";
 import { CustomError } from "../libs/utils/CustomError";
-import { bidsCsv, getPlaceSummary } from "../services/analytics.service";
+import {
+  biddingMembers,
+  bidsCsv,
+  bidsOverview,
+  getPlaceSummary,
+  recentlyBidPlaces,
+} from "../services/analytics.service";
 
 function daysParam(req: Request, fallback: number): number {
   const n = Number(req.query.days);
@@ -26,4 +32,26 @@ export async function exportBidsCsv(req: Request, res: Response) {
   res.set("Content-Type", "text/csv; charset=utf-8");
   res.set("Content-Disposition", `attachment; filename="deadline-bids-${name}.csv"`);
   res.status(200).send(csv);
+}
+
+/** Places page: hotels most recently bid on. */
+export async function recentPlaces(req: Request, res: Response) {
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 25));
+  res.set("Cache-Control", "private, no-store");
+  res.status(200).json({ data: { places: await recentlyBidPlaces(limit) } });
+}
+
+/** Bids page "By member": one row per member, latest activity first. */
+export async function members(req: Request, res: Response) {
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+  const search = typeof req.query.search === "string" ? req.query.search : undefined;
+  res.set("Cache-Control", "private, no-store");
+  res.status(200).json({ data: await biddingMembers({ search, page, limit }) });
+}
+
+/** Bids page headline numbers. */
+export async function overview(_req: Request, res: Response) {
+  res.set("Cache-Control", "private, no-store");
+  res.status(200).json({ data: await bidsOverview() });
 }
