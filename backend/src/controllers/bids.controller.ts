@@ -217,6 +217,11 @@ export async function createBid(req: Request, res: Response) {
           totalAmount,
           status: bid_status.REJECTED,
           rejectionReason: "Bid below member price",
+          // Snapshot for the hotel data sheet: what the room cost at the
+          // moment of this bid (member price = cost + margin).
+          supplierOfferId: wholesale.offer.offerId,
+          supplierCost: wholesale.offer.cost,
+          payAtHotelAmount: wholesale.payAtHotel,
         },
       });
       const losing = await countLosingBids(

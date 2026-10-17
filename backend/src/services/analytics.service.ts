@@ -1,4 +1,5 @@
 import { bid_status, payment_status, Prisma } from "@prisma/client";
+import { WHOLESALE_CONFIG } from "./wholesale.service";
 import { addDays, differenceInCalendarDays } from "date-fns";
 import { prisma } from "../libs/config/prisma";
 import { toCalendarDateKey } from "../libs/utils/hotelDates";
@@ -286,6 +287,18 @@ function csvCell(v: unknown): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+/** Wholesale only: the secret member price per night when this bid was
+ * placed (Nuitee cost + our margin). Internal — Nuitee's rates aren't to be
+ * shared with hotels. */
+function memberPriceAtBid(b: {
+  supplierCost: unknown;
+  totalNights: number;
+}): number | null {
+  const cost = Number(b.supplierCost);
+  if (!Number.isFinite(cost) || cost <= 0 || !b.totalNights) return null;
+  return Math.ceil((cost * (1 + WHOLESALE_CONFIG.MARGIN)) / b.totalNights);
+}
+
 /** One row per bid, with its session's best-and-final and outcome. */
 export async function bidsCsv(scope: {
   placeId?: string;
@@ -306,6 +319,8 @@ export async function bidsCsv(scope: {
     "nights",
     "bid_per_night",
     "retail_per_night",
+    "member_price_per_night_at_bid",
+    "gap_to_member_price",
     "bid_status",
     "session_id",
     "bid_number_in_session",
@@ -333,6 +348,10 @@ export async function bidsCsv(scope: {
           b.totalNights,
           Number(b.bidPerNight),
           b.place.retailPrice,
+          memberPriceAtBid(b) ?? "",
+          memberPriceAtBid(b) != null
+            ? Math.max(0, memberPriceAtBid(b)! - Number(b.bidPerNight))
+            : "",
           isPaidBooking(b) ? "BOOKED" : b.status,
           s.sessionId,
           i + 1,
