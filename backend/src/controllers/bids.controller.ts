@@ -680,8 +680,25 @@ export async function listBids(req: Request, res: Response) {
     prisma.bid.count({ where }),
   ]);
 
+  // Deal desk outcomes ("Hotel said yes at $350") on the bids they were about.
+  const dealCalls = await prisma.dealCall.findMany({
+    where: { bidId: { in: bids.map((b: any) => b.id) } },
+    orderBy: { createdAt: "desc" },
+    select: { bidId: true, outcome: true, amountPerNight: true },
+  });
+  const dealByBid = new Map<string, { outcome: string; amountPerNight: number | null }>();
+  for (const c of dealCalls) {
+    if (c.bidId && !dealByBid.has(c.bidId)) {
+      dealByBid.set(c.bidId, {
+        outcome: c.outcome,
+        amountPerNight: c.amountPerNight != null ? Number(c.amountPerNight) : null,
+      });
+    }
+  }
+
   const data = bids.map((bid: any) => ({
     ...formatBid(bid),
+    dealCall: dealByBid.get(bid.id) ?? null,
     student: bid.users
       ? {
           id: bid.users.id,

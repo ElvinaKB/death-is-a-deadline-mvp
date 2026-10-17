@@ -37,6 +37,7 @@ import { ResubmitPage } from "./pages/ResubmitPage";
 import { PlaceFormPage } from "./pages/admin/PlaceFormPage";
 import { PlacesListPage } from "./pages/admin/PlacesListPage";
 import { BidsListPage } from "./pages/admin/BidsListPage";
+import { DealDeskPage } from "./pages/admin/DealDeskPage";
 import { NewsletterSubscribersPage } from "./pages/admin/NewsletterSubscribersPage";
 import { HotelApplicationsPage } from "./pages/admin/HotelApplicationsPage";
 import { ReferralsPage } from "./pages/admin/ReferralsPage";
@@ -205,6 +206,7 @@ const protectedRoutes = [
       },
       { path: ROUTES.ADMIN_PLACES_DATA, element: <PlaceDataPage /> },
       { path: ROUTES.ADMIN_BIDS, element: <BidsListPage /> },
+      { path: ROUTES.ADMIN_DEAL_DESK, element: <DealDeskPage /> },
       { path: ROUTES.ADMIN_NEWSLETTER, element: <NewsletterSubscribersPage /> },
       {
         path: ROUTES.ADMIN_HOTEL_APPLICATIONS,

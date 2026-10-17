@@ -105,6 +105,12 @@ export const ENDPOINTS = {
   ANALYTICS_RECENT_PLACES: "/api/analytics/places/recent",
   ANALYTICS_MEMBERS: "/api/analytics/members",
   ANALYTICS_BIDS_OVERVIEW: "/api/analytics/bids/overview",
+  DEAL_DESK_QUEUE: "/api/deal-desk/queue",
+  DEAL_DESK_STATS: "/api/deal-desk/stats",
+  DEAL_DESK_HOTEL: "/api/deal-desk/hotels/:placeId",
+  DEAL_DESK_CONTACT: "/api/deal-desk/hotels/:placeId/contact",
+  DEAL_DESK_ALTERNATIVES: "/api/deal-desk/hotels/:placeId/alternatives",
+  DEAL_DESK_CALLS: "/api/deal-desk/calls",
 
   // Geo (silent, coarse IP hint for proximity ordering)
   GEO_HINT: "/api/geo/hint",
