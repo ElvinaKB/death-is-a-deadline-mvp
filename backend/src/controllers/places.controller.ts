@@ -93,6 +93,8 @@ const formatPlace = (
   starRating: place.starRating ?? null,
   guestRating: place.guestRating ?? null,
   guestReviewCount: place.guestReviewCount ?? null,
+  chainName: place.chainName ?? null,
+  isChain: place.isChain ?? null,
   autoAcceptAboveMinimum: place.autoAcceptAboveMinimum,
   blackoutDates: place.blackoutDates || [],
   allowedDaysOfWeek: place.allowedDaysOfWeek || [0, 1, 2, 3, 4, 5, 6],
