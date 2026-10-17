@@ -116,9 +116,9 @@ export function PlacesListPage() {
       highestBidPerNight: number;
     }[];
   }>({
-    queryKey: ["recently-bid-places"],
+    queryKey: ["recently-bid-places", view],
     endpoint: ENDPOINTS.ANALYTICS_RECENT_PLACES,
-    params: { limit: 15 },
+    params: { limit: 15, tab: view },
     staleTime: 60_000,
   });
 

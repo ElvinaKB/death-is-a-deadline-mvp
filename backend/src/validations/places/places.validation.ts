@@ -188,6 +188,8 @@ export const listPlacesQuerySchema = z.object({
   prospect: z.enum(["true", "false"]).optional(),
   // Supply tab: direct partners (default) vs wholesale (Nuitee) listings.
   source: z.enum(["direct", "wholesale"]).optional(),
+  // Hotel name or city (searched server-side across every hotel).
+  search: z.string().trim().max(100).optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   // The admin Places page deliberately requests limit=1000 to fetch every
   // hotel unpaginated (so client-side grouping/search work across all of

@@ -371,9 +371,21 @@ export async function bidsCsv(scope: {
 // ---------- Admin lists (Bids by member, Places by latest bid) ----------
 
 /** Hotels that have bids, most recently bid on first. */
-export async function recentlyBidPlaces(limit: number) {
+export async function recentlyBidPlaces(
+  limit: number,
+  tab?: "listings" | "prospects" | "wholesale",
+) {
+  const placeWhere: Prisma.PlaceWhereInput | undefined =
+    tab === "wholesale"
+      ? { supplySource: "wholesale" }
+      : tab === "prospects"
+        ? { supplySource: "direct", prospect: true }
+        : tab === "listings"
+          ? { supplySource: "direct", prospect: false }
+          : undefined;
   const groups = await prisma.bid.groupBy({
     by: ["placeId"],
+    ...(placeWhere && { where: { place: placeWhere } }),
     _count: { _all: true },
     _max: { createdAt: true, bidPerNight: true },
     orderBy: { _max: { createdAt: "desc" } },
