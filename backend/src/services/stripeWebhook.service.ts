@@ -63,7 +63,20 @@ async function applyBidCommission(
   totalAmount: number,
   mandatoryFeeAmount: number,
   tx: Prisma.TransactionClient,
+  commissionOnly?: { chargedAmount: number },
 ): Promise<void> {
+  // Model B (pay at property): we only charged our commission; the hotel
+  // collects the rest at check-in, so we owe the hotel nothing.
+  if (commissionOnly) {
+    await tx.bid.update({
+      where: { id: bidId },
+      data: {
+        platformCommission: Math.round(commissionOnly.chargedAmount * 100) / 100,
+        payableToHotel: 0,
+      },
+    });
+    return;
+  }
   // Commission is a percentage of the room rate only — the mandatory fee
   // (resort/parking, if any) is a pass-through the hotel keeps in full.
   const platformCommission =
@@ -124,16 +137,29 @@ async function handlePaymentIntentSucceeded(
           : paymentIntent.customer?.toString() ?? payment.stripeCustomerId,
     },
     include: {
-      bid: { include: { place: { select: { slug: true, supplySource: true } } } },
+      bid: {
+        include: {
+          place: { select: { slug: true, supplySource: true, commissionOnly: true } },
+        },
+      },
     },
   });
 
   if (succeededPayment.bid) {
+    const charged = Number(succeededPayment.amount);
+    const total = Number(succeededPayment.bid.totalAmount);
+    // Commission-only charge: the listing is Model B and we charged less than
+    // the room total (just our cut).
+    const commissionOnly =
+      succeededPayment.bid.place?.commissionOnly && charged > 0 && charged < total
+        ? { chargedAmount: charged }
+        : undefined;
     await applyBidCommission(
       succeededPayment.bidId,
-      Number(succeededPayment.bid.totalAmount),
+      total,
       Number(succeededPayment.bid.mandatoryFeeAmount || 0),
       tx,
+      commissionOnly,
     );
   }
 

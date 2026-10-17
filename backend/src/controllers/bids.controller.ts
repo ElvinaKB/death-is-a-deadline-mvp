@@ -738,6 +738,18 @@ const PAYOUT_OWED_WHERE: Prisma.BidWhereInput = {
   OR: [{ payoutMethod: null }, { payoutMethod: { not: "nuitee-commission" } }],
 };
 
+// We only owe the hotel when we charged the full room price. A Model B
+// (pay-at-property) booking where we charged just our commission owes nothing
+// — the hotel collected the rest at check-in. (Older Model B rows still carry
+// a full payableToHotel from before that was fixed.)
+function isFullChargeBooking(b: {
+  totalAmount: unknown;
+  payment?: { amount: unknown } | null;
+}): boolean {
+  const charged = Number(b.payment?.amount ?? 0);
+  return charged >= Number(b.totalAmount) * 0.5;
+}
+
 // Partner payouts still owed, oldest checkout first (admin Bids page).
 export async function listPayoutsOwed(_req: Request, res: Response) {
   const holdMs = PAYOUT_HOLD_HOURS * 60 * 60 * 1000;
@@ -747,12 +759,13 @@ export async function listPayoutsOwed(_req: Request, res: Response) {
     include: {
       place: { select: { id: true, name: true, city: true } },
       users: { select: { email: true, raw_user_meta_data: true } },
+      payment: { select: { amount: true } },
     },
   });
   res.set("Cache-Control", "private, no-store");
   res.status(200).json({
     data: {
-      payouts: bids.map((b) => ({
+      payouts: bids.filter(isFullChargeBooking).map((b) => ({
         id: b.id,
         placeId: b.place.id,
         hotel: b.place.name,
@@ -762,6 +775,7 @@ export async function listPayoutsOwed(_req: Request, res: Response) {
         checkInDate: b.checkInDate,
         checkOutDate: b.checkOutDate,
         totalAmount: Number(b.totalAmount),
+        chargedAmount: Number(b.payment?.amount ?? 0),
         payableToHotel: Number(b.payableToHotel ?? 0),
         due: Date.now() >= new Date(b.checkOutDate).getTime() + holdMs,
       })),
@@ -774,10 +788,17 @@ export async function getPayoutSummary(_req: Request, res: Response) {
   const holdMs = PAYOUT_HOLD_HOURS * 60 * 60 * 1000;
   const now = Date.now();
 
-  const openBids = await prisma.bid.findMany({
-    where: PAYOUT_OWED_WHERE,
-    select: { checkOutDate: true, payableToHotel: true },
-  });
+  const openBids = (
+    await prisma.bid.findMany({
+      where: PAYOUT_OWED_WHERE,
+      select: {
+        checkOutDate: true,
+        payableToHotel: true,
+        totalAmount: true,
+        payment: { select: { amount: true } },
+      },
+    })
+  ).filter(isFullChargeBooking);
 
   let dueCount = 0;
   let heldCount = 0;
