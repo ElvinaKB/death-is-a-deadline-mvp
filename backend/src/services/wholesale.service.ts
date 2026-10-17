@@ -478,7 +478,11 @@ export async function importWholesaleCity(market: string): Promise<ImportSummary
     },
     orderBy: { guestReviewCount: { sort: "desc", nulls: "last" } },
   });
-  const kept: { name: string; latitude: unknown; longitude: unknown; id: string | null }[] = [];
+  // Our own partner listings come first: a wholesale copy of a partner
+  // hotel (e.g. "Short Stories Hotel Near The Grove") is paused so only the
+  // partner listing shows.
+  const kept: { name: string; latitude: unknown; longitude: unknown; id: string | null }[] =
+    directPlaces.map((d) => ({ ...d, id: null }));
   const pauseIds: string[] = [];
   for (const p of liveHere) {
     if (kept.some((k) => isDuplicateListing(k, p))) pauseIds.push(p.id);
