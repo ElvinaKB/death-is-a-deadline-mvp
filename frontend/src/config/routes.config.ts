@@ -56,6 +56,7 @@ export const ROUTES = {
   ADMIN_PLACES_TESTIMONIALS: "/admin/places/:id/testimonials",
   ADMIN_PLACES_DATA: "/admin/places/:id/data",
   ADMIN_BIDS: "/admin/bids",
+  ADMIN_DEAL_DESK: "/admin/deal-desk",
   ADMIN_NEWSLETTER: "/admin/newsletter",
   ADMIN_HOTEL_APPLICATIONS: "/admin/hotel-applications",
   ADMIN_REFERRALS: "/admin/referrals",

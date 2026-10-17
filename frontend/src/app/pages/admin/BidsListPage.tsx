@@ -478,6 +478,22 @@ const STATUS_TEXT: Record<string, string> = {
   PENDING: "text-muted",
 };
 
+function dealCallLabel(c: { outcome: string; amountPerNight: number | null }) {
+  const amt = c.amountPerNight != null ? ` $${Math.round(c.amountPerNight)}` : "";
+  switch (c.outcome) {
+    case "YES":
+      return `Hotel said yes at${amt}`;
+    case "COUNTER":
+      return `Hotel countered${amt}`;
+    case "NO":
+      return "Hotel said no";
+    case "NO_ANSWER":
+      return "Called, no answer";
+    default:
+      return "Hotel contacted";
+  }
+}
+
 function statusLabel(status: string, paid?: boolean) {
   if (status === "BOOKED" || (status === "ACCEPTED" && paid)) return "Booked";
   if (status === "ACCEPTED") return "Won, not paid";
@@ -636,6 +652,15 @@ function MemberBids({
               </td>
               <td className={`py-1.5 whitespace-nowrap ${STATUS_TEXT[b.payment?.status === "CAPTURED" ? "BOOKED" : b.status] ?? "text-muted"}`}>
                 {statusLabel(b.status, b.payment?.status === "CAPTURED")}
+                {(b as Bid & { dealCall?: { outcome: string; amountPerNight: number | null } | null })
+                  .dealCall && (
+                  <span className="ml-2 rounded-full bg-gold/15 px-2 py-0.5 text-xs font-semibold text-gold">
+                    {dealCallLabel(
+                      (b as Bid & { dealCall: { outcome: string; amountPerNight: number | null } })
+                        .dealCall,
+                    )}
+                  </span>
+                )}
               </td>
             </tr>
           ))}

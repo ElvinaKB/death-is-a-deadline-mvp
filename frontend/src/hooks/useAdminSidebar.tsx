@@ -8,6 +8,7 @@ import {
   Compass,
   Building2,
   Handshake,
+  PhoneCall,
 } from "lucide-react";
 import { ROUTES } from "../config/routes.config";
 import { useLocation } from "react-router-dom";
@@ -43,6 +44,11 @@ export function useAdminSidebar(): SidebarItem[] {
       title: "Bids",
       path: ROUTES.ADMIN_BIDS,
       icon: Gavel,
+    },
+    {
+      title: "Deal desk",
+      path: ROUTES.ADMIN_DEAL_DESK,
+      icon: PhoneCall,
     },
     {
       title: "Newsletter",
