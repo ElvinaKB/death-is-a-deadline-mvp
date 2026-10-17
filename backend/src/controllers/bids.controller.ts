@@ -733,7 +733,9 @@ const PAYOUT_OWED_WHERE: Prisma.BidWhereInput = {
   payment: { status: payment_status.CAPTURED },
   place: { supplySource: "direct" },
   payableToHotel: { gt: 0 },
-  NOT: { payoutMethod: "nuitee-commission" },
+  // payoutMethod is usually NULL on partner bookings; a plain NOT would drop
+  // those too (NULL never compares), so allow NULL explicitly.
+  OR: [{ payoutMethod: null }, { payoutMethod: { not: "nuitee-commission" } }],
 };
 
 // Partner payouts still owed, oldest checkout first (admin Bids page).
