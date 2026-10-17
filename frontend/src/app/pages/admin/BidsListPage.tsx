@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useBids, useUpdatePayout } from "../../../hooks/useBids";
+import { useBids } from "../../../hooks/useBids";
 import { Bid, BidStatus } from "../../../types/bid.types";
 import { DataTable } from "../../components/common/DataTable";
 import { TableColumn } from "../../../types/api.types";
@@ -8,7 +8,6 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Switch } from "../../components/ui/switch";
 import {
   Card,
   CardContent,
@@ -23,35 +22,44 @@ import {
 } from "../../components/ui/tabs";
 import { format } from "date-fns";
 import { formatBookingDate } from "../../../utils/dateHelpers";
-import { DollarSign, EyeIcon, XCircle, RefreshCw } from "lucide-react";
+import { XCircle, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ROUTES } from "../../../config/routes.config";
 import { toast } from "sonner";
-import { PayoutModal } from "../../components/bids/PayoutModal";
 import { CancelBidModal } from "../../components/bids/CancelBidModal";
-import { MercuryPayoutModal } from "../../components/bids/MercuryPayoutModal";
 import { useDebounce } from "../../../hooks/useDebounce";
 import { useApiQuery, useApiMutation } from "../../../hooks/useApi";
 import { ENDPOINTS, getEndpoint } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
-import { getPayoutState, payoutEligibleAt } from "../../../utils/payout";
 
-interface PayoutSummary {
-  dueCount: number;
-  dueAmount: number;
-  heldCount: number;
-  paidCount: number;
-  holdHours: number;
+interface BidsOverview {
+  totalBids: number;
+  bidsLast7Days: number;
+  membersLast7Days: number;
+  wins: number;
+  booked: number;
+  unpaidWins: number;
+  commissionEarned: number;
 }
 
-interface MercuryHealth {
-  connected: boolean;
-  reason?: string;
-  recipientCount?: number;
-  accounts?: {
-    id: string;
-    name: string | null;
-    last4: string | null;
-    availableBalance: number | null;
-  }[];
+interface MemberRow {
+  studentId: string;
+  name: string | null;
+  email: string | null;
+  bids: number;
+  hotels: number;
+  booked: number;
+  lastBidAt: string;
+  lastBid: {
+    placeId: string;
+    hotel: string;
+    city: string;
+    supplySource: string;
+    bidPerNight: number;
+    checkInDate: string;
+    checkOutDate: string;
+    status: string;
+  } | null;
 }
 
 const BID_STATUS_COLORS: Record<BidStatus, string> = {
@@ -64,9 +72,9 @@ const BID_STATUS_COLORS: Record<BidStatus, string> = {
 export function BidsListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [filter, setFilter] = useState<BidStatus | "ALL">("ALL");
-  const [selectedBid, setSelectedBid] = useState<Bid | null>(null);
+  const [view, setView] = useState<"members" | "all">("members");
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [bidToCancel, setBidToCancel] = useState<Bid | null>(null);
-  const [bidToPayout, setBidToPayout] = useState<Bid | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [checkInFrom, setCheckInFrom] = useState("");
   const [checkInTo, setCheckInTo] = useState("");
@@ -81,7 +89,6 @@ export function BidsListPage() {
     ...(checkInTo ? { checkInTo } : {}),
   });
 
-  const updatePayout = useUpdatePayout();
   const queryClient = useQueryClient();
 
   const repushMutation = useApiMutation<
@@ -104,17 +111,20 @@ export function BidsListPage() {
     onError: (err) => toast.error(err.message || "Re-push failed"),
   });
 
-  const { data: payoutSummary } = useApiQuery<PayoutSummary>({
-    queryKey: [QUERY_KEYS.PAYOUT_SUMMARY],
-    endpoint: ENDPOINTS.BID_PAYOUT_SUMMARY,
+  const { data: overview } = useApiQuery<BidsOverview>({
+    queryKey: ["bids-overview"],
+    endpoint: ENDPOINTS.ANALYTICS_BIDS_OVERVIEW,
     staleTime: 60_000,
   });
 
-  const { data: mercuryHealth } = useApiQuery<MercuryHealth>({
-    queryKey: ["mercury-health"],
-    endpoint: ENDPOINTS.MERCURY_HEALTH,
-    staleTime: 60_000,
-    retry: false,
+  const { data: memberData, isLoading: membersLoading } = useApiQuery<{
+    total: number;
+    members: MemberRow[];
+  }>({
+    queryKey: ["bid-members", currentPage, search],
+    endpoint: ENDPOINTS.ANALYTICS_MEMBERS,
+    params: { page: currentPage, limit: 20, ...(search ? { search } : {}) },
+    enabled: view === "members",
   });
 
   const getBidStatusBadge = (status: BidStatus) => {
@@ -140,20 +150,6 @@ export function BidsListPage() {
     );
   };
 
-  const getHotelPaidBadge = (isPaidToHotel: boolean) => {
-    return (
-      <Badge
-        className={
-          isPaidToHotel
-            ? "bg-success/20 text-success"
-            : "bg-warning/20 text-warning"
-        }
-      >
-        {isPaidToHotel ? "Paid" : "Unpaid"}
-      </Badge>
-    );
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -163,7 +159,7 @@ export function BidsListPage() {
 
   const columns: TableColumn<Bid>[] = [
     {
-      header: "Student",
+      header: "Member",
       field: "studentId",
       render: (row) => (
         <div>
@@ -217,95 +213,21 @@ export function BidsListPage() {
       render: (row) => getBidStatusBadge(row.status),
     },
     {
-      header: "Student Paid",
+      header: "Member paid",
       field: "payment",
       render: (row) => getStudentPaidBadge(row.payment),
-    },
-    {
-      header: "Hotel Paid",
-      field: "isPaidToHotel",
-      render: (row) => {
-        const canToggle =
-          row.status === BidStatus.ACCEPTED &&
-          row.payment &&
-          row.payment.status === "CAPTURED";
-
-        return (
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={row.isPaidToHotel}
-              disabled={!canToggle || updatePayout.isPending}
-              onCheckedChange={(checked) => {
-                updatePayout.mutate({
-                  id: row.id,
-                  isPaidToHotel: checked,
-                });
-              }}
-            />
-            {getHotelPaidBadge(row.isPaidToHotel)}
-          </div>
-        );
-      },
-    },
-    {
-      header: "Pay-safe",
-      field: "checkOutDate",
-      render: (row) => {
-        const state = getPayoutState(row);
-        if (state === "paid") {
-          return (
-            <span className="text-xs text-muted">
-              Paid
-              {row.paidToHotelAt
-                ? ` ${format(new Date(row.paidToHotelAt), "MMM d")}`
-                : ""}
-            </span>
-          );
-        }
-        if (state === "na") return <span className="text-xs text-muted">—</span>;
-        if (state === "due") {
-          return (
-            <Badge className="bg-success/20 text-success">Due now</Badge>
-          );
-        }
-        // held
-        return (
-          <span className="text-xs text-warning">
-            Hold until {format(payoutEligibleAt(row.checkOutDate), "MMM d")}
-          </span>
-        );
-      },
     },
     {
       header: "Actions",
       field: "id",
       render: (row) => {
-        const canViewPayout = row.status === BidStatus.ACCEPTED;
         const canCancel =
           row.status === BidStatus.ACCEPTED &&
           row.payment?.status === "CAPTURED";
-
-        if (!canViewPayout) return null;
+        if (!canCancel) return null;
 
         return (
           <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setSelectedBid(row)}
-            >
-              <EyeIcon className="h-4 w-4 mr-1" />
-              View
-            </Button>
-            {!row.isPaidToHotel && (row.payableToHotel ?? 0) > 0 && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setBidToPayout(row)}
-              >
-                Pay via Mercury
-              </Button>
-            )}
             {canCancel && (
               <Button
                 variant="secondary"
@@ -350,97 +272,68 @@ export function BidsListPage() {
       <div>
         <h1 className="text-3xl font-bold text-fg">Bids</h1>
         <p className="text-muted mt-1">
-          View all bids and their payment status
+          Every bid, won or lost. By member groups each traveler&apos;s
+          history; open one to see all their bids.
         </p>
       </div>
 
-      {payoutSummary && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Card
-            className={
-              payoutSummary.dueCount > 0
-                ? "bg-success/10 border-success/40"
-                : "bg-glass border-line"
-            }
-          >
-            <CardContent className="py-4">
-              <p className="text-xs uppercase tracking-wider text-muted">
-                Due to pay now
-              </p>
-              <p className="text-2xl font-bold text-fg mt-1">
-                {payoutSummary.dueCount}
-                <span className="text-base font-medium text-muted ml-2">
-                  {formatCurrency(payoutSummary.dueAmount)}
-                </span>
-              </p>
-              <p className="text-xs text-muted mt-1">
-                Past checkout + {payoutSummary.holdHours}h, still unpaid
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-glass border-line">
-            <CardContent className="py-4">
-              <p className="text-xs uppercase tracking-wider text-muted">
-                Held (too early)
-              </p>
-              <p className="text-2xl font-bold text-fg mt-1">
-                {payoutSummary.heldCount}
-              </p>
-              <p className="text-xs text-muted mt-1">
-                Within {payoutSummary.holdHours}h of checkout
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-glass border-line">
-            <CardContent className="py-4">
-              <p className="text-xs uppercase tracking-wider text-muted">
-                Paid
-              </p>
-              <p className="text-2xl font-bold text-fg mt-1">
-                {payoutSummary.paidCount}
-              </p>
-              <p className="text-xs text-muted mt-1">Hotels settled</p>
-            </CardContent>
-          </Card>
+      {overview && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            {
+              label: "Bids (7 days)",
+              value: overview.bidsLast7Days,
+              sub: `${overview.membersLast7Days} members · ${overview.totalBids} all-time`,
+            },
+            {
+              label: "Booked",
+              value: overview.booked,
+              sub: "Paid bookings",
+            },
+            {
+              label: "Won, not paid",
+              value: overview.unpaidWins,
+              sub: "Won or Book now, left at payment",
+            },
+            {
+              label: "Commission earned",
+              value: formatCurrency(overview.commissionEarned),
+              sub: "Our cut on paid bookings",
+            },
+          ].map((c) => (
+            <Card key={c.label} className="bg-glass border-line">
+              <CardContent className="py-4">
+                <p className="text-xs uppercase tracking-wider text-muted">{c.label}</p>
+                <p className="text-2xl font-bold text-fg mt-1">{c.value}</p>
+                <p className="text-xs text-muted mt-1">{c.sub}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
-      {mercuryHealth && (
-        <div
-          className={`rounded-lg border px-4 py-3 text-sm ${
-            mercuryHealth.connected
-              ? "border-success/40 bg-success/10"
-              : "border-warning/40 bg-warning/10"
-          }`}
-        >
-          {mercuryHealth.connected ? (
-            <span className="text-fg">
-              <span className="font-semibold text-success">
-                ● Mercury connected
-              </span>
-              {mercuryHealth.accounts && mercuryHealth.accounts.length > 0 && (
-                <>
-                  {" "}
-                  · account{" "}
-                  {mercuryHealth.accounts[0].name ||
-                    (mercuryHealth.accounts[0].last4
-                      ? `••${mercuryHealth.accounts[0].last4}`
-                      : "")}
-                </>
-              )}{" "}
-              · {mercuryHealth.recipientCount ?? 0} recipient
-              {(mercuryHealth.recipientCount ?? 0) === 1 ? "" : "s"} on file
-            </span>
-          ) : (
-            <span className="text-fg">
-              <span className="font-semibold text-warning">
-                ● Mercury not connected
-              </span>{" "}
-              — {mercuryHealth.reason || "check MERCURY_API_TOKEN"}
-            </span>
-          )}
-        </div>
-      )}
+      <div className="inline-flex rounded-lg border border-line bg-glass p-1">
+        {(
+          [
+            ["members", "By member"],
+            ["all", "All bids"],
+          ] as const
+        ).map(([v, label]) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => {
+              setView(v);
+              setCurrentPage(1);
+            }}
+            className={`rounded-md px-4 py-1.5 text-sm font-semibold ${
+              view === v ? "bg-gold text-black" : "text-fg"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex-1 min-w-[220px] space-y-1.5">
@@ -451,10 +344,11 @@ export function BidsListPage() {
               setSearchInput(e.target.value);
               setCurrentPage(1);
             }}
-            placeholder="Guest email or hotel name"
+            placeholder="Member email or hotel name"
             className="bg-glass border-line text-fg placeholder:text-muted"
           />
         </div>
+        {view === "all" && (<>
         <div className="space-y-1.5">
           <Label className="text-fg">Check-in from</Label>
           <Input
@@ -479,8 +373,21 @@ export function BidsListPage() {
             className="bg-glass border-line text-fg"
           />
         </div>
+        </>)}
       </div>
 
+      {view === "members" ? (
+        <MembersTable
+          rows={memberData?.members ?? []}
+          total={memberData?.total ?? 0}
+          loading={membersLoading}
+          page={currentPage}
+          onPage={setCurrentPage}
+          expanded={expanded}
+          onToggle={(id) => setExpanded((cur) => (cur === id ? null : id))}
+          formatCurrency={formatCurrency}
+        />
+      ) : (
       <Tabs
         defaultValue="ALL"
         value={filter}
@@ -548,15 +455,7 @@ export function BidsListPage() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Payout Modal */}
-      <PayoutModal
-        bid={selectedBid}
-        open={!!selectedBid}
-        onOpenChange={(open) => {
-          if (!open) setSelectedBid(null);
-        }}
-      />
+      )}
 
       {/* Cancel Bid Modal */}
       <CancelBidModal
@@ -567,16 +466,181 @@ export function BidsListPage() {
         }}
       />
 
-      {/* Mercury Payout Modal */}
-      {bidToPayout && (
-        <MercuryPayoutModal
-          bid={bidToPayout}
-          onClose={() => setBidToPayout(null)}
-          onPaid={() => {
-            queryClient.invalidateQueries();
-          }}
-        />
-      )}
+    </div>
+  );
+}
+
+const STATUS_TEXT: Record<string, string> = {
+  BOOKED: "text-success",
+  ACCEPTED: "text-warning",
+  REJECTED: "text-muted",
+  CANCELLED: "text-muted",
+  PENDING: "text-muted",
+};
+
+function statusLabel(status: string, paid?: boolean) {
+  if (status === "BOOKED" || (status === "ACCEPTED" && paid)) return "Booked";
+  if (status === "ACCEPTED") return "Won, not paid";
+  if (status === "REJECTED") return "Lost";
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}
+
+function MembersTable({
+  rows,
+  total,
+  loading,
+  page,
+  onPage,
+  expanded,
+  onToggle,
+  formatCurrency,
+}: {
+  rows: MemberRow[];
+  total: number;
+  loading: boolean;
+  page: number;
+  onPage: (p: number) => void;
+  expanded: string | null;
+  onToggle: (id: string) => void;
+  formatCurrency: (n: number) => string;
+}) {
+  const pages = Math.max(1, Math.ceil(total / 20));
+  return (
+    <Card className="glass-2 border-line">
+      <CardHeader>
+        <CardTitle className="text-fg">
+          Members who bid <span className="text-muted font-normal">({total})</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {loading && <p className="text-sm text-muted">Loading…</p>}
+        {!loading && rows.length === 0 && (
+          <p className="text-sm text-muted">No bids found.</p>
+        )}
+        {rows.map((m) => {
+          const open = expanded === m.studentId;
+          return (
+            <div key={m.studentId} className="rounded-lg border border-line">
+              <button
+                type="button"
+                onClick={() => onToggle(m.studentId)}
+                className="grid w-full grid-cols-12 items-center gap-3 px-4 py-3 text-left hover:bg-glass"
+              >
+                <span className="col-span-12 sm:col-span-3 flex items-center gap-2 min-w-0">
+                  {open ? (
+                    <ChevronDown className="h-4 w-4 shrink-0 text-gold" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
+                  )}
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-fg">
+                      {m.name || "—"}
+                    </span>
+                    <span className="block truncate text-sm text-muted">{m.email}</span>
+                  </span>
+                </span>
+                <span className="col-span-6 sm:col-span-4 min-w-0 text-sm">
+                  {m.lastBid ? (
+                    <>
+                      <span className="block truncate text-fg">{m.lastBid.hotel}</span>
+                      <span className="block text-muted">
+                        {formatCurrency(m.lastBid.bidPerNight)}/night ·{" "}
+                        {formatBookingDate(m.lastBid.checkInDate, "MMM d")} ·{" "}
+                        <span className={STATUS_TEXT[m.lastBid.status] ?? "text-muted"}>
+                          {statusLabel(m.lastBid.status)}
+                        </span>
+                      </span>
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </span>
+                <span className="col-span-2 sm:col-span-2 text-sm text-fg">
+                  {m.bids} bid{m.bids === 1 ? "" : "s"}
+                  <span className="block text-muted">
+                    {m.hotels} hotel{m.hotels === 1 ? "" : "s"}
+                  </span>
+                </span>
+                <span className="col-span-2 sm:col-span-1 text-sm text-fg">
+                  {m.booked}
+                  <span className="block text-muted">booked</span>
+                </span>
+                <span className="col-span-2 sm:col-span-2 text-sm text-muted text-right">
+                  {format(new Date(m.lastBidAt), "MMM d, h:mm a")}
+                </span>
+              </button>
+              {open && <MemberBids studentId={m.studentId} formatCurrency={formatCurrency} />}
+            </div>
+          );
+        })}
+        {pages > 1 && (
+          <div className="flex items-center justify-end gap-2 pt-2 text-sm text-muted">
+            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+              Previous
+            </Button>
+            Page {page} of {pages}
+            <Button variant="secondary" size="sm" disabled={page >= pages} onClick={() => onPage(page + 1)}>
+              Next
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** A member's full bid history (newest first), with links to the hotel's
+ * data page and the member's profile / CSV. */
+function MemberBids({
+  studentId,
+  formatCurrency,
+}: {
+  studentId: string;
+  formatCurrency: (n: number) => string;
+}) {
+  const { data, isLoading } = useBids({ studentId, limit: 100 });
+  const bids = data?.bids ?? [];
+  return (
+    <div className="border-t border-line bg-bg/40 px-4 py-3">
+      <div className="mb-2 flex justify-end">
+        <Link
+          to={ROUTES.ADMIN_STUDENT_DETAIL.replace(":id", studentId)}
+          className="text-sm font-semibold text-gold underline"
+        >
+          Full profile &amp; CSV →
+        </Link>
+      </div>
+      {isLoading && <p className="text-sm text-muted">Loading…</p>}
+      <table className="w-full text-sm">
+        <tbody>
+          {bids.map((b) => (
+            <tr key={b.id} className="border-t border-line/50">
+              <td className="py-1.5 pr-3 text-muted whitespace-nowrap">
+                {format(new Date(b.createdAt), "MMM d, h:mm a")}
+              </td>
+              <td className="py-1.5 pr-3">
+                <Link
+                  to={ROUTES.ADMIN_PLACES_DATA.replace(":id", b.placeId)}
+                  className="text-fg hover:text-gold"
+                >
+                  {b.place?.name ?? "—"}
+                </Link>
+                <span className="text-muted"> · {b.place?.city}</span>
+              </td>
+              <td className="py-1.5 pr-3 text-muted whitespace-nowrap">
+                {formatBookingDate(b.checkInDate, "MMM d")} →{" "}
+                {formatBookingDate(b.checkOutDate, "MMM d")}
+              </td>
+              <td className="py-1.5 pr-3 font-medium text-fg whitespace-nowrap">
+                {formatCurrency(b.bidPerNight)}/night
+              </td>
+              <td className={`py-1.5 whitespace-nowrap ${STATUS_TEXT[b.payment?.status === "CAPTURED" ? "BOOKED" : b.status] ?? "text-muted"}`}>
+                {statusLabel(b.status, b.payment?.status === "CAPTURED")}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

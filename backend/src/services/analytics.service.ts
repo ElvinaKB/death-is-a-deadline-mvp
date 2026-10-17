@@ -367,3 +367,148 @@ export async function bidsCsv(scope: {
   }
   return rows.join("\n");
 }
+
+// ---------- Admin lists (Bids by member, Places by latest bid) ----------
+
+/** Hotels that have bids, most recently bid on first. */
+export async function recentlyBidPlaces(limit: number) {
+  const groups = await prisma.bid.groupBy({
+    by: ["placeId"],
+    _count: { _all: true },
+    _max: { createdAt: true, bidPerNight: true },
+    orderBy: { _max: { createdAt: "desc" } },
+    take: limit,
+  });
+  const ids = groups.map((g) => g.placeId);
+  const [places, booked, bidders] = await Promise.all([
+    prisma.place.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true, city: true, supplySource: true, status: true },
+    }),
+    prisma.bid.groupBy({
+      by: ["placeId"],
+      where: {
+        placeId: { in: ids },
+        status: bid_status.ACCEPTED,
+        payment: { status: payment_status.CAPTURED },
+      },
+      _count: { _all: true },
+    }),
+    prisma.bid.groupBy({ by: ["placeId", "studentId"], where: { placeId: { in: ids } } }),
+  ]);
+  const placeById = new Map(places.map((p) => [p.id, p]));
+  const bookedById = new Map(booked.map((b) => [b.placeId, b._count._all]));
+  const biddersById = new Map<string, number>();
+  for (const b of bidders) biddersById.set(b.placeId, (biddersById.get(b.placeId) ?? 0) + 1);
+  return groups
+    .filter((g) => placeById.has(g.placeId))
+    .map((g) => ({
+      ...placeById.get(g.placeId)!,
+      bids: g._count._all,
+      bidders: biddersById.get(g.placeId) ?? 0,
+      booked: bookedById.get(g.placeId) ?? 0,
+      lastBidAt: g._max.createdAt,
+      highestBidPerNight: Number(g._max.bidPerNight ?? 0),
+    }));
+}
+
+/** One row per member: how much they bid, where they bid last, bookings. */
+export async function biddingMembers(opts: { search?: string; page: number; limit: number }) {
+  const q = opts.search?.trim();
+  const where: Prisma.BidWhereInput = q
+    ? {
+        OR: [
+          { users: { email: { contains: q, mode: "insensitive" } } },
+          { place: { name: { contains: q, mode: "insensitive" } } },
+        ],
+      }
+    : {};
+  const all = await prisma.bid.groupBy({
+    by: ["studentId"],
+    where,
+    _count: { _all: true },
+    _max: { createdAt: true },
+    orderBy: { _max: { createdAt: "desc" } },
+  });
+  const pageRows = all.slice((opts.page - 1) * opts.limit, opts.page * opts.limit);
+  const ids = pageRows.map((r) => r.studentId);
+  const [lastBids, booked, hotels] = await Promise.all([
+    prisma.bid.findMany({
+      where: { studentId: { in: ids } },
+      orderBy: { createdAt: "desc" },
+      distinct: ["studentId"],
+      include: {
+        users: { select: { email: true, raw_user_meta_data: true } },
+        place: { select: { id: true, name: true, city: true, supplySource: true, retailPrice: true } },
+        payment: { select: { status: true } },
+      },
+    }),
+    prisma.bid.groupBy({
+      by: ["studentId"],
+      where: {
+        studentId: { in: ids },
+        status: bid_status.ACCEPTED,
+        payment: { status: payment_status.CAPTURED },
+      },
+      _count: { _all: true },
+    }),
+    prisma.bid.groupBy({ by: ["studentId", "placeId"], where: { studentId: { in: ids } } }),
+  ]);
+  const lastById = new Map(lastBids.map((b) => [b.studentId, b]));
+  const bookedById = new Map(booked.map((b) => [b.studentId, b._count._all]));
+  const hotelsById = new Map<string, number>();
+  for (const h of hotels) hotelsById.set(h.studentId, (hotelsById.get(h.studentId) ?? 0) + 1);
+  return {
+    total: all.length,
+    members: pageRows.map((r) => {
+      const last = lastById.get(r.studentId);
+      const meta = (last?.users?.raw_user_meta_data ?? {}) as Record<string, any>;
+      return {
+        studentId: r.studentId,
+        name: meta.name ?? null,
+        email: last?.users?.email ?? null,
+        bids: r._count._all,
+        hotels: hotelsById.get(r.studentId) ?? 0,
+        booked: bookedById.get(r.studentId) ?? 0,
+        lastBidAt: r._max.createdAt,
+        lastBid: last && {
+          placeId: last.place.id,
+          hotel: last.place.name,
+          city: last.place.city,
+          supplySource: last.place.supplySource,
+          bidPerNight: Number(last.bidPerNight),
+          checkInDate: last.checkInDate,
+          checkOutDate: last.checkOutDate,
+          status: isPaidBooking(last) ? "BOOKED" : last.status,
+        },
+      };
+    }),
+  };
+}
+
+/** Headline numbers for the Bids page. */
+export async function bidsOverview() {
+  const since = addDays(new Date(), -7);
+  const [total, last7, members7, wins, booked, bookedRevenue] = await Promise.all([
+    prisma.bid.count(),
+    prisma.bid.count({ where: { createdAt: { gte: since } } }),
+    prisma.bid.groupBy({ by: ["studentId"], where: { createdAt: { gte: since } } }),
+    prisma.bid.count({ where: { status: bid_status.ACCEPTED } }),
+    prisma.bid.count({
+      where: { status: bid_status.ACCEPTED, payment: { status: payment_status.CAPTURED } },
+    }),
+    prisma.bid.aggregate({
+      where: { status: bid_status.ACCEPTED, payment: { status: payment_status.CAPTURED } },
+      _sum: { platformCommission: true },
+    }),
+  ]);
+  return {
+    totalBids: total,
+    bidsLast7Days: last7,
+    membersLast7Days: members7.length,
+    wins,
+    booked,
+    unpaidWins: Math.max(0, wins - booked),
+    commissionEarned: Number(bookedRevenue._sum?.platformCommission ?? 0),
+  };
+}

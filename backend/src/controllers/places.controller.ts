@@ -287,9 +287,18 @@ export async function listPlaces(req: Request, res: Response) {
   // Wholesale imports can number in the thousands — the admin page fetches
   // everything at once, so they live behind their own ?source=wholesale tab.
   const sourceParam = req.query.source === "wholesale" ? "wholesale" : "direct";
+  const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
   const where: Prisma.PlaceWhereInput = {
     supplySource: sourceParam,
     ...(status ? { status } : {}),
+    ...(search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" } },
+            { city: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : {}),
     ...(prospectParam === "true"
       ? { prospect: true }
       : prospectParam === "false"

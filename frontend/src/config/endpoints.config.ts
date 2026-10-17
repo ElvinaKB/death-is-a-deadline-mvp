@@ -102,6 +102,9 @@ export const ENDPOINTS = {
   // Admin analytics
   ANALYTICS_PLACE_SUMMARY: "/api/analytics/places/:id/summary",
   ANALYTICS_BIDS_CSV: "/api/analytics/bids.csv",
+  ANALYTICS_RECENT_PLACES: "/api/analytics/places/recent",
+  ANALYTICS_MEMBERS: "/api/analytics/members",
+  ANALYTICS_BIDS_OVERVIEW: "/api/analytics/bids/overview",
 
   // Geo (silent, coarse IP hint for proximity ordering)
   GEO_HINT: "/api/geo/hint",

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../libs/middlewares/authenticate";
 import { UserRole } from "../types/auth.types";
-import { exportBidsCsv, placeSummary } from "../controllers/analytics.controller";
+import { exportBidsCsv, recentPlaces, members, overview, placeSummary } from "../controllers/analytics.controller";
 
 const router = Router();
 
@@ -9,5 +9,8 @@ const router = Router();
 router.use(authenticate(UserRole.ADMIN));
 router.get("/places/:id/summary", placeSummary);
 router.get("/bids.csv", exportBidsCsv);
+router.get("/places/recent", recentPlaces);
+router.get("/members", members);
+router.get("/bids/overview", overview);
 
 export { router };
