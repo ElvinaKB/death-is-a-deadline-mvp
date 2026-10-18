@@ -523,6 +523,8 @@ function BidFormInner({
   const uiSavedMethods = isProcessing ? frozenSavedMethods : loadedSavedMethods;
   const uiPayWithSaved = isProcessing ? frozenPayWithSaved : payWithSavedCard;
   const showPaymentMethodLoading =
+    // Wholesale needs no card on our side (Nuitée takes payment after a win).
+    !isWholesalePlace &&
     isAuthenticated &&
     isLoadingSavedMethods &&
     !isProcessing &&
@@ -760,6 +762,9 @@ function BidFormInner({
 
   const canLockInBid = useMemo(() => {
     if (isBlockingPaymentError(paymentError)) return false;
+    // Wholesale: no card is collected before the bid, so never wait on one —
+    // otherwise members without a saved card can't press Place bid at all.
+    if (isWholesalePlace) return true;
     if (
       stripeModesMismatch(
         getPublishableStripeMode(),
@@ -772,6 +777,7 @@ function BidFormInner({
     return isCardComplete && !!paymentMethodId;
   }, [
     paymentError,
+    isWholesalePlace,
     stripePaymentConfig?.mode,
     payWithSavedCard,
     selectedPaymentMethodId,
