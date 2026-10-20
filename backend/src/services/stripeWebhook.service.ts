@@ -6,6 +6,7 @@ import { STRIPE_CONFIG } from "../libs/config/stripe";
 import { sendBookingConfirmationEmails } from "./bookingConfirmationEmail.service";
 import { notifyBookingConfirmed } from "./myallocatorNotify.service";
 import { fulfilWholesaleBid } from "./wholesale.service";
+import { handleNoShowIntentEvent } from "./noShow.service";
 
 const HANDLED_EVENT_TYPES = new Set([
   "payment_intent.succeeded",
@@ -62,15 +63,19 @@ async function applyBidCommission(
   bidId: string,
   totalAmount: number,
   mandatoryFeeAmount: number,
+  commissionOnly: boolean,
   tx: Prisma.TransactionClient,
 ): Promise<void> {
   // Commission is a percentage of the room rate only — the mandatory fee
   // (resort/parking, if any) is a pass-through the hotel keeps in full.
   const platformCommission =
     Math.round(totalAmount * STRIPE_CONFIG.PLATFORM_COMMISSION_RATE * 100) / 100;
-  const payableToHotel =
-    Math.round((totalAmount - platformCommission + mandatoryFeeAmount) * 100) /
-    100;
+  // Model B: we only collected the commission and the hotel collects the rest
+  // at the desk, so we owe the hotel nothing.
+  const payableToHotel = commissionOnly
+    ? 0
+    : Math.round((totalAmount - platformCommission + mandatoryFeeAmount) * 100) /
+      100;
 
   await tx.bid.update({
     where: { id: bidId },
@@ -124,7 +129,13 @@ async function handlePaymentIntentSucceeded(
           : paymentIntent.customer?.toString() ?? payment.stripeCustomerId,
     },
     include: {
-      bid: { include: { place: { select: { slug: true, supplySource: true } } } },
+      bid: {
+        include: {
+          place: {
+            select: { slug: true, supplySource: true, commissionOnly: true },
+          },
+        },
+      },
     },
   });
 
@@ -133,6 +144,8 @@ async function handlePaymentIntentSucceeded(
       succeededPayment.bidId,
       Number(succeededPayment.bid.totalAmount),
       Number(succeededPayment.bid.mandatoryFeeAmount || 0),
+      succeededPayment.bid.place?.commissionOnly ??
+        STRIPE_CONFIG.COMMISSION_ONLY_MODE,
       tx,
     );
   }
@@ -260,6 +273,9 @@ export async function processStripeWebhookEvent(event: Stripe.Event): Promise<vo
 
   const intent =
     paymentIntent ?? ({ id: paymentIntentId } as Stripe.PaymentIntent);
+
+  // No-show charges have their own table and must never touch booking rows.
+  if (await handleNoShowIntentEvent(event.type, intent)) return;
 
   const succeededResult = await prisma.$transaction(
     async (tx): Promise<PaymentSucceededResult | null> => {

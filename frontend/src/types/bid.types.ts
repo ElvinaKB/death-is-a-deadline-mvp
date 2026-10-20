@@ -28,6 +28,8 @@ export interface BidPlace {
   email?: string;
   /** Payment model. true = commission-only (7% now); false = full amount now. */
   commissionOnly?: boolean;
+  /** "direct" partner hotel or "wholesale" (Nuitee). */
+  supplySource?: string;
   images: { id: string; url: string }[];
 }
 
@@ -74,6 +76,15 @@ export interface Bid {
   place?: BidPlace;
   payment?: BidPayment;
   student?: BidStudent;
+  /** Admin list only: the no-show charge on this booking, if any. */
+  noShowCharge?: BidNoShowCharge | null;
+}
+
+export interface BidNoShowCharge {
+  id: string;
+  status: "PENDING" | "REQUIRES_ACTION" | "SUCCEEDED" | "FAILED";
+  amount: number;
+  failureReason: string | null;
 }
 
 export interface CreateBidRequest {

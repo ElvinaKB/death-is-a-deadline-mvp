@@ -7,6 +7,7 @@ import { CustomError } from "../libs/utils/CustomError";
 import {
   CancelPaymentInput,
   CapturePaymentInput,
+  ChargeNoShowInput,
   CreatePaymentIntentInput,
   ListPaymentsQuery,
   ValidatePaymentMethodInput,
@@ -28,6 +29,12 @@ import {
 } from "../services/stripeCustomer.service";
 import { getEffectiveCapByDate } from "../services/inventory.service";
 import { isWholesale } from "../services/wholesale.service";
+import {
+  chargeNoShow,
+  getNoShowForGuest,
+  NO_SHOW_STATUS,
+  syncNoShowForGuest,
+} from "../services/noShow.service";
 
 /**
  * Check inventory availability for all dates in a bid's date range
@@ -824,4 +831,58 @@ export async function cancelPayment(req: Request, res: Response) {
       payment: formatPayment(updatedPayment),
     },
   });
+}
+
+// ============ NO-SHOW CHARGES ============
+
+/**
+ * Charge a Model B no-show to the guest's saved card (admin only).
+ * 200 with the charge's status either way — a decline or a 3DS hold is an
+ * outcome to show, not an error.
+ */
+export async function chargeNoShowForBid(req: Request, res: Response) {
+  const { bidId } = req.params;
+  const { hotelReportedAt, amount, notes } = req.body as ChargeNoShowInput;
+
+  const charge = await chargeNoShow({
+    bidId,
+    amount,
+    hotelReportedAt,
+    notes,
+    adminId: req.user!.id,
+  });
+
+  const message =
+    charge.status === NO_SHOW_STATUS.SUCCEEDED
+      ? "No-show charged. Receipts sent to the guest and the hotel."
+      : charge.status === NO_SHOW_STATUS.REQUIRES_ACTION
+        ? "The guest's bank wants them to approve it. We emailed them a link."
+        : charge.status === NO_SHOW_STATUS.FAILED
+          ? `Card declined: ${charge.failureReason ?? "no reason given"}`
+          : "Charge sent — waiting for Stripe to confirm.";
+
+  res.status(200).json({
+    message,
+    data: {
+      message,
+      noShowCharge: {
+        id: charge.id,
+        status: charge.status,
+        amount: Number(charge.amount),
+        failureReason: charge.failureReason,
+      },
+    },
+  });
+}
+
+/** Guest view of a no-show charge waiting on their bank (3DS). */
+export async function getNoShowCharge(req: Request, res: Response) {
+  const data = await getNoShowForGuest(req.params.id, req.user!.id);
+  res.status(200).json({ data });
+}
+
+/** Guest finished 3DS — re-check Stripe so the page can show the result. */
+export async function syncNoShowCharge(req: Request, res: Response) {
+  const data = await syncNoShowForGuest(req.params.id, req.user!.id);
+  res.status(200).json({ data });
 }

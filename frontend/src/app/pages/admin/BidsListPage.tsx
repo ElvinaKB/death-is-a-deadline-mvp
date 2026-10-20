@@ -22,11 +22,18 @@ import {
 } from "../../components/ui/tabs";
 import { format } from "date-fns";
 import { formatBookingDate } from "../../../utils/dateHelpers";
-import { XCircle, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  XCircle,
+  RefreshCw,
+  ChevronDown,
+  ChevronRight,
+  CreditCard,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { toast } from "sonner";
 import { CancelBidModal } from "../../components/bids/CancelBidModal";
+import { ChargeNoShowModal } from "../../components/bids/ChargeNoShowModal";
 import { useDebounce } from "../../../hooks/useDebounce";
 import { useApiQuery, useApiMutation } from "../../../hooks/useApi";
 import { apiClient } from "../../../lib/apiClient";
@@ -70,12 +77,26 @@ const BID_STATUS_COLORS: Record<BidStatus, string> = {
   [BidStatus.CANCELLED]: "bg-muted/20 text-muted hover:bg-muted/30",
 };
 
+const NO_SHOW_BADGE: Record<
+  NonNullable<Bid["noShowCharge"]>["status"],
+  { label: string; className: string }
+> = {
+  PENDING: { label: "No-show pending", className: "bg-warning/20 text-warning" },
+  REQUIRES_ACTION: {
+    label: "No-show: guest approving",
+    className: "bg-warning/20 text-warning",
+  },
+  SUCCEEDED: { label: "No-show charged", className: "bg-success/20 text-success" },
+  FAILED: { label: "No-show declined", className: "bg-danger/20 text-danger" },
+};
+
 export function BidsListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [filter, setFilter] = useState<BidStatus | "ALL">("ALL");
   const [view, setView] = useState<"members" | "all">("members");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [bidToCancel, setBidToCancel] = useState<Bid | null>(null);
+  const [noShowBid, setNoShowBid] = useState<Bid | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [checkInFrom, setCheckInFrom] = useState("");
   const [checkInTo, setCheckInTo] = useState("");
@@ -227,8 +248,36 @@ export function BidsListPage() {
           row.payment?.status === "CAPTURED";
         if (!canCancel) return null;
 
+        // Model B only: the guest paid just the 7% and their card is on file.
+        // The backend re-checks all of this (and the 72h report window).
+        const noShow = row.noShowCharge;
+        const canChargeNoShow =
+          row.place?.commissionOnly !== false &&
+          row.place?.supplySource !== "wholesale" &&
+          format(new Date(), "yyyy-MM-dd") >= row.checkInDate.slice(0, 10) &&
+          (!noShow || noShow.status === "FAILED");
+
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {noShow && (
+              <Badge
+                className={NO_SHOW_BADGE[noShow.status].className}
+                title={noShow.failureReason ?? undefined}
+              >
+                {NO_SHOW_BADGE[noShow.status].label} {formatCurrency(noShow.amount)}
+              </Badge>
+            )}
+            {canChargeNoShow && (
+              <Button
+                variant="secondary"
+                size="sm"
+                title="Hotel reported the guest never arrived — charge the first night to their saved card"
+                onClick={() => setNoShowBid(row)}
+              >
+                <CreditCard className="h-4 w-4 mr-1" />
+                {noShow ? "Retry no-show" : "No-show"}
+              </Button>
+            )}
             {canCancel && (
               <Button
                 variant="secondary"
@@ -466,6 +515,13 @@ export function BidsListPage() {
         open={!!bidToCancel}
         onOpenChange={(open) => {
           if (!open) setBidToCancel(null);
+        }}
+      />
+      <ChargeNoShowModal
+        bid={noShowBid}
+        open={!!noShowBid}
+        onOpenChange={(open) => {
+          if (!open) setNoShowBid(null);
         }}
       />
 
