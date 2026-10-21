@@ -238,7 +238,7 @@ export function PrivacyPolicyContent() {
 
       <LegalH3 key="b-36">3.4 Personal Information We Collect from Third Parties</LegalH3>
       <LegalP key="b-37">
-        We may use third-party identity or student verification providers to confirm eligibility.
+        We may use third-party identity verification providers to confirm eligibility.
       </LegalP>
 
       <LegalH3 key="b-38">3.4.1 Authentication Providers.</LegalH3>
@@ -286,7 +286,7 @@ export function PrivacyPolicyContent() {
         key="b-50"
         items={[
           "Create, secure, and maintain your account, including authenticating logins;",
-          "Verify that you are an eligible member of the academic community via the methods described in Section 3.1.2;",
+          "Verify that you are an eligible verified member via the methods described in Section 3.1.2;",
           "Display Hotel options based on your search criteria and (with permission) your approximate location;",
           "Receive, evaluate, and process your Bids against each Hotel's confidential Floor Base, charge accepted Bids through Stripe, and transmit confirmed Reservations to the Hotel;",
           "Provide receipts, reservation confirmations, modifications, and check-in details;",

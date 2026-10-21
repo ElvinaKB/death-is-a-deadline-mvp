@@ -154,7 +154,7 @@ export function TermsOfServiceContent() {
       <LegalP key="b-12c">
         You acknowledge that the academic-credential verification described in this Section 2 is a fraud-deterrence
         measure, not a guarantee. We expressly do not represent that any other user, Hotel, or third party is, in
-        fact, a member of the academic community, is who they claim to be, or is suitable for your purposes. You
+        fact, a verified member, is who they claim to be, or is suitable for your purposes. You
         agree to take ordinary precautions consistent with any travel involving strangers.
       </LegalP>
 
@@ -632,7 +632,7 @@ export function TermsOfServiceContent() {
         WITHOUT LIMITING THE FOREGOING, WE MAKE NO WARRANTY THAT (A) ANY HOTEL WILL HAVE AVAILABILITY ON ANY
         PARTICULAR DATE; (B) ANY SPECIFIC PRICE, DISCOUNT, OR PERCENTAGE OFF WILL BE ACHIEVED; (C) RETAIL PRICES
         DISPLAYED ARE ACCURATE OR CURRENT; (D) PRICING WILL BE THE SAME ACROSS USERS; OR (E) ALL USERS ON THE
-        PLATFORM ARE VERIFIED MEMBERS OF THE ACADEMIC COMMUNITY.
+        PLATFORM ARE VERIFIED MEMBERS.
       </LegalNotice>
       <LegalH3 key="b-71">No Insurance Coverage</LegalH3>
       <LegalP key="b-72">
