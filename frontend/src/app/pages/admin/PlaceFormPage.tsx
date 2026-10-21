@@ -186,6 +186,7 @@ export function PlaceFormPage() {
       goodToKnowText: existingPlace?.goodToKnowText || "",
       autoAcceptAboveMinimum: true,
       dynamicPricingEnabled: existingPlace?.dynamicPricingEnabled ?? true,
+      commissionOnly: existingPlace?.commissionOnly ?? true,
       status: existingPlace?.status || PlaceStatus.DRAFT,
     },
     enableReinitialize: true,
@@ -860,6 +861,27 @@ export function PlaceFormPage() {
                 checked={formik.values.dynamicPricingEnabled}
                 onCheckedChange={(checked) =>
                   formik.setFieldValue("dynamicPricingEnabled", checked)
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 border border-white/10 rounded-lg">
+              <div className="space-y-0.5 pr-4">
+                <Label className="text-fg">
+                  Commission-only (Model B — pay at property)
+                </Label>
+                <p className="text-sm text-muted">
+                  On: we charge the guest only our 7% booking fee; the hotel
+                  collects the room balance + taxes at check-in (Cloudbeds
+                  PaymentCollect &ldquo;Hotel&rdquo;). Use this for third-party
+                  hotels. Off: Deadline is merchant of record and charges the
+                  full stay up front (our own properties).
+                </p>
+              </div>
+              <Switch
+                checked={formik.values.commissionOnly}
+                onCheckedChange={(checked) =>
+                  formik.setFieldValue("commissionOnly", checked)
                 }
               />
             </div>

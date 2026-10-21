@@ -29,7 +29,11 @@
   <tr><td style="padding:26px 28px 16px;">
     <div style="font-size:17px;margin-bottom:10px;">Hi <%= studentName %>,</div>
     <div style="font-size:16px;line-height:1.6;">
-      Great news &mdash; your stay at <strong><%= placeName %></strong> is officially booked. Your bid was accepted and your card has been charged.
+      <% if (typeof commissionOnly !== 'undefined' && commissionOnly) { %>
+      Great news &mdash; your stay at <strong><%= placeName %></strong> is officially booked. Your bid was accepted and your booking fee has been charged. You&rsquo;ll pay the room balance and taxes directly at the property at check-in.
+      <% } else { %>
+      Great news &mdash; your stay at <strong><%= placeName %></strong> is officially booked. Your bid was accepted and your card has been charged in full.
+      <% } %>
     </div>
   </td></tr>
 

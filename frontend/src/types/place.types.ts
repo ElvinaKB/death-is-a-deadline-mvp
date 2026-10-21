@@ -117,6 +117,7 @@ export interface CreatePlaceRequest {
   minimumBidByDayOfWeek?: number[];
   autoAcceptAboveMinimum: boolean;
   dynamicPricingEnabled?: boolean;
+  commissionOnly?: boolean;
   prospect?: boolean;
   blackoutDates: string[];
   allowedDaysOfWeek: number[];
@@ -180,6 +181,7 @@ export interface CreatePlacePayload {
   minimumBidByDayOfWeek?: number[];
   autoAcceptAboveMinimum: boolean;
   dynamicPricingEnabled?: boolean;
+  commissionOnly?: boolean;
   prospect?: boolean;
   blackoutDates: string[];
   allowedDaysOfWeek: number[];
