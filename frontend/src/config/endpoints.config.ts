@@ -82,6 +82,10 @@ export const ENDPOINTS = {
   PAYMENT_DETAIL: "/api/payments/:id",
   PAYMENT_CAPTURE: "/api/payments/:id/capture",
   PAYMENT_CANCEL: "/api/payments/:id/cancel",
+  PAYMENT_NO_SHOW_CHARGE: "/api/payments/no-show/bid/:bidId",
+  PAYMENT_NO_SHOW: "/api/payments/no-show/:id",
+  PAYMENT_NO_SHOW_SYNC: "/api/payments/no-show/:id/sync",
+  PAYMENT_NO_SHOW_CANCEL: "/api/payments/no-show/:id/cancel",
 
   // Profile
   PROFILE: "/api/profile",

@@ -19,6 +19,8 @@ import {
   paymentIdParamSchema,
   bidIdParamSchema,
   listPaymentsQuerySchema,
+  chargeNoShowSchema,
+  noShowIdParamSchema,
 } from "../validations/payments/payments.validation";
 import {
   createPaymentIntent,
@@ -32,7 +34,13 @@ import {
   getPayment,
   capturePayment,
   cancelPayment,
+  chargeNoShowForBid,
+  getNoShowCharge,
+  syncNoShowCharge,
+  cancelNoShow,
+  runNoShowSweep,
 } from "../controllers/payments.controller";
+import { requireCronSecret } from "../controllers/wholesale.controller";
 
 const router = Router();
 
@@ -83,7 +91,43 @@ router.post(
   confirmPaymentStatus
 );
 
+// Scheduler (GitHub Actions, shares WHOLESALE_CRON_SECRET): 3DS reminders/expiry
+router.post("/no-show/sweep", requireCronSecret, runNoShowSweep);
+
+// No-show charge waiting on the guest's bank (3DS link from the email)
+router.get(
+  "/no-show/:id",
+  authenticate(UserRole.STUDENT),
+  validate(noShowIdParamSchema, "params"),
+  getNoShowCharge,
+);
+
+router.post(
+  "/no-show/:id/sync",
+  authenticate(UserRole.STUDENT),
+  validate(noShowIdParamSchema, "params"),
+  syncNoShowCharge,
+);
+
 // ============ ADMIN ROUTES ============
+
+// Charge a Model B no-show to the guest's saved card (admin only)
+router.post(
+  "/no-show/bid/:bidId",
+  authenticate(UserRole.ADMIN),
+  paymentRateLimit,
+  validate(bidIdParamSchema, "params"),
+  validate(chargeNoShowSchema, "body"),
+  chargeNoShowForBid,
+);
+
+// Stop waiting on the guest's bank (admin only)
+router.post(
+  "/no-show/:id/cancel",
+  authenticate(UserRole.ADMIN),
+  validate(noShowIdParamSchema, "params"),
+  cancelNoShow,
+);
 
 // List all payments (admin only)
 router.get(

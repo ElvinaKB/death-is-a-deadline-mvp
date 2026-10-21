@@ -46,6 +46,17 @@ export const bidIdParamSchema = z.object({
   bidId: z.string().uuid({ message: "Invalid bid ID" }),
 });
 
+// No-show charge (admin). Amount defaults to the first night's rate.
+export const chargeNoShowSchema = z.object({
+  hotelReportedAt: z.coerce.date({ message: "When did the hotel report it?" }),
+  amount: z.coerce.number().positive().optional(),
+  notes: z.string().max(1000).optional(),
+});
+
+export const noShowIdParamSchema = z.object({
+  id: z.string().uuid({ message: "Invalid charge ID" }),
+});
+
 // Query schema for listing payments
 export const listPaymentsQuerySchema = z.object({
   status: paymentStatusSchema.optional(),
@@ -63,4 +74,5 @@ export type ValidatePaymentMethodInput = z.infer<
 export type ConfirmPaymentInput = z.infer<typeof confirmPaymentSchema>;
 export type CapturePaymentInput = z.infer<typeof capturePaymentSchema>;
 export type CancelPaymentInput = z.infer<typeof cancelPaymentSchema>;
+export type ChargeNoShowInput = z.infer<typeof chargeNoShowSchema>;
 export type ListPaymentsQuery = z.infer<typeof listPaymentsQuerySchema>;
