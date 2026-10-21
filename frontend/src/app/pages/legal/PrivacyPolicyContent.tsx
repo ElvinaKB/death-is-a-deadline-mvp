@@ -15,21 +15,19 @@ export function PrivacyPolicyContent() {
   return (
     <>
       <LegalMeta
-        operator="Operated by Student Deadline Inc"
+        operator="Operated by Deadline Holdings, Inc."
         effectiveDate="June 6, 2026"
-        lastUpdated="May 18, 2026"
+        lastUpdated="October 20, 2026"
       />
       <LegalP key="intro-0">
-        This Privacy Policy (the &ldquo;Policy&rdquo;) describes how Student Deadline Inc., a Delaware
-        corporation doing business as Death Is A Deadline (&ldquo;Death Is A Deadline,&rdquo;
+        This Privacy Policy (the &ldquo;Policy&rdquo;) describes how Deadline Holdings, Inc., a Delaware corporation doing business as Deadline (&ldquo;Deadline,&rdquo;
         &ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;), processes personal information in
         relation to your use of the Service. The &ldquo;Service&rdquo; means our website at
-        deadlinetravel.com and deathisadeadline.com, any successor domain, any mobile applications we
+        deadlinetravel.com, any successor domain, any mobile applications we
         publish, and the related application programming interfaces, features, tools, and services we
-        own, operate, or provide. Death Is A Deadline operates a verified-identity, blind-bidding
-        marketplace for members of the academic community (current college and university students,
-        faculty, and staff). Because we verify eligibility through .edu email confirmation and/or
-        review of identification documents, this Policy explains how we handle that additional category
+        own, operate, or provide. Deadline operates a verified-traveler, blind-bidding
+        marketplace. Because we verify eligibility through academic or work email confirmation,
+        LinkedIn sign-in, and/or review of identification documents, this Policy explains how we handle that additional category
         of personal information in addition to the data we collect to operate a hotel-booking
         marketplace. This Policy applies to users of the Service. If you are an employee, contractor,
         applicant, or hotel partner, separate notices may apply to your relationship with us. If you
@@ -69,12 +67,10 @@ export function PrivacyPolicyContent() {
 
       <LegalH2 key="b-2">2. Who Is Responsible for My Personal Information</LegalH2>
       <LegalP key="b-3">
-        Where this Policy mentions &ldquo;Death Is A Deadline,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo;
-        or &ldquo;our,&rdquo; it refers to Student Deadline Inc., a Delaware corporation doing business
-        as Death Is A Deadline, which is the entity responsible for your personal information under this
+        Where this Policy mentions &ldquo;Deadline,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo;
+        or &ldquo;our,&rdquo; it refers to Deadline Holdings, Inc., a Delaware corporation doing business as Deadline, which is the entity responsible for your personal information under this
         Policy and is the &ldquo;business&rdquo; for purposes of the California Consumer Privacy Act
-        and analogous U.S. state privacy laws. Our contact details are in Section 12. Death Is A
-        Deadline acts solely as a technology marketplace connecting users with independent Hotels and
+        and analogous U.S. state privacy laws. Our contact details are in Section 12. Deadline acts solely as a technology marketplace connecting users with independent Hotels and
         does not itself provide accommodations or travel services. Hotels you transact with through the
         Service are independent businesses and are separately responsible for any personal information
         you provide directly to them or that we share with them once your Bid is accepted. Their handling
@@ -100,17 +96,18 @@ export function PrivacyPolicyContent() {
         authentication provider).
       </LegalP>
 
-      <LegalH3 key="b-10">3.1.2 Academic Verification Information (Eligibility Data).</LegalH3>
+      <LegalH3 key="b-10">3.1.2 Verification Information (Eligibility Data).</LegalH3>
       <LegalP key="b-11">
-        Because the Service is restricted to current students, faculty, and staff, we collect
-        information necessary to verify your eligibility, including:
+        Because the Service is restricted to verified travelers, we collect information necessary to
+        verify your eligibility, including:
       </LegalP>
       <LegalUl
         key="b-12"
         items={[
-          "Your .edu (or equivalent recognized academic) email address and the result of the one-time verification email we send to it;",
-          "If you choose manual review or your domain is not eligible for automatic verification: an image of a current student, faculty, or staff identification document (front and, where applicable, back), which may include your name, photograph, institution name, and an institution-issued ID number; and",
-          "The institution name, role (student, faculty, or staff), and verification status we record on your account, along with the date and method of verification.",
+          "Your .edu (or equivalent recognized academic) email address or work email address, and the result of the one-time verification email we send to it;",
+          "If you verify with LinkedIn: the profile information LinkedIn shares with us with your permission, such as your name, email address, profile photo, headline, and current employer;",
+          "If you choose manual review or your domain is not eligible for automatic verification: an image of an identification document (front and, where applicable, back), which may include your name, photograph, issuing institution or authority, and an ID number; and",
+          "The school or employer name, and the verification status we record on your account, along with the date and method of verification.",
         ]}
       />
       <LegalP key="b-12b">
@@ -139,8 +136,7 @@ export function PrivacyPolicyContent() {
       <LegalH3 key="b-15">3.1.4 Payment Transaction Information.</LegalH3>
       <LegalP key="b-16">
         Payment-related information necessary to process accepted Bids. All card data is collected and
-        processed by Stripe, Inc. (&ldquo;Stripe&rdquo;), our PCI-compliant payment processor. Death Is A
-        Deadline does not store your full card number or CVV. We receive from Stripe a payment-method
+        processed by Stripe, Inc. (&ldquo;Stripe&rdquo;), our PCI-compliant payment processor. Deadline does not store your full card number or CVV. We receive from Stripe a payment-method
         token, the brand and last four digits of your card, the billing zip code, the charge amount and
         currency, and authorization, capture, refund, and dispute outcomes. Your use of Stripe is also
         subject to Stripe&apos;s own privacy notice. Because we collect the full Reservation amount from
@@ -150,7 +146,7 @@ export function PrivacyPolicyContent() {
         remitted to the Hotel, the date of remittance, and the Stripe transaction identifiers — for as
         long as required by tax, payment-card-network, and consumer-protection rules. See Section 9 for
         retention periods. Payment processing services are provided by Stripe and are subject to
-        Stripe&apos;s terms and privacy practices. Death Is A Deadline is not responsible for the
+        Stripe&apos;s terms and privacy practices. Deadline is not responsible for the
         security or processing of payment information handled by Stripe.
       </LegalP>
 
@@ -242,7 +238,7 @@ export function PrivacyPolicyContent() {
 
       <LegalH3 key="b-36">3.4 Personal Information We Collect from Third Parties</LegalH3>
       <LegalP key="b-37">
-        We may use third-party identity or student verification providers to confirm eligibility.
+        We may use third-party identity verification providers to confirm eligibility.
       </LegalP>
 
       <LegalH3 key="b-38">3.4.1 Authentication Providers.</LegalH3>
@@ -290,7 +286,7 @@ export function PrivacyPolicyContent() {
         key="b-50"
         items={[
           "Create, secure, and maintain your account, including authenticating logins;",
-          "Verify that you are an eligible member of the academic community via the methods described in Section 3.1.2;",
+          "Verify that you are an eligible verified member via the methods described in Section 3.1.2;",
           "Display Hotel options based on your search criteria and (with permission) your approximate location;",
           "Receive, evaluate, and process your Bids against each Hotel's confidential Floor Base, charge accepted Bids through Stripe, and transmit confirmed Reservations to the Hotel;",
           "Provide receipts, reservation confirmations, modifications, and check-in details;",
@@ -377,23 +373,31 @@ export function PrivacyPolicyContent() {
       <LegalP key="b-61">
         Where you provide consent or direct us to share your personal information, we share it as
         described at the time of consent or choice — for example, when you authorize a third-party service
-        to access your Death Is A Deadline account, publish a Review, or participate in a partner
+        to access your Deadline account, publish a Review, or participate in a partner
         promotion.
       </LegalP>
 
       <LegalH3 key="b-62">5.2 Who We Share With.</LegalH3>
 
-      <LegalH3 key="b-63">5.2.1 Hotels for Accepted Reservations.</LegalH3>
+      <LegalH3 key="b-63">5.2.1 Hotels for Reservations and Offers You Ask Us to Make.</LegalH3>
       <LegalP key="b-64">
         When your Bid is accepted, we share with the Hotel the personal information needed to honor the
         Reservation — typically your first and last name, email address, phone number, dates of stay,
         number of guests, any co-traveler names you provided, the confirmation number, and any special
-        requests you submitted. We do not share your Bid amount, the contents of your ID-verification
-        documents, or your payment-card details with the Hotel. The Hotel receives, separately, the net
-        amount we remit to it under our commercial arrangement with the Hotel, which reflects Death Is A
-        Deadline&apos;s compensation for our services. We do not verify the accuracy of information
+        requests you submitted. Except as described in the next paragraph, we do not share your Bid amount
+        with the Hotel, and we never share the contents of your ID-verification documents or your
+        payment-card details with the Hotel. The Hotel receives, separately, the net
+        amount we remit to it under our commercial arrangement with the Hotel, which reflects Deadline&apos;s compensation for our services. We do not verify the accuracy of information
         provided by Hotels and are not responsible for errors, omissions, or inaccuracies in information
         supplied by Hotels.
+      </LegalP>
+
+      <LegalP key="b-64b">
+        If a Bid is not accepted and you ask us to take it to the Hotel (for example, by accepting an
+        in-app invitation to have us pitch your Bid), we share with that Hotel your Bid amount, dates of
+        stay, and limited verified profile information (such as your first name, verification method,
+        and employer or institution) so the Hotel can accept, counter, or decline. These messages may be
+        sent by our automated assistant, which identifies itself as automated.
       </LegalP>
 
       <LegalH3 key="b-65">5.2.2 Co-Travelers.</LegalH3>
@@ -417,7 +421,9 @@ export function PrivacyPolicyContent() {
           "Authentication and account security for sign-in, multi-factor authentication, session management, and abuse detection;",
           "Email and SMS delivery for transactional communications and, subject to your choices, marketing;",
           "Analytics and product telemetry to measure performance and improve the Service;",
-          "Identity verification and manual ID review to confirm academic eligibility and detect fraud;",
+          "Identity verification and manual ID review to confirm eligibility and detect fraud;",
+          "Text-message delivery (e.g., Twilio) for the SMS program described in Section 8.1;",
+          "AI service providers (e.g., Anthropic) that power our automated assistant, which reads and drafts messages with Hotels and with you, under terms that do not permit them to use your information to train their models;",
           "Customer support tools for responding to your inquiries; and",
           "Professional advisors (lawyers, accountants, auditors, and insurers) where reasonably necessary.",
         ]}
@@ -441,18 +447,17 @@ export function PrivacyPolicyContent() {
         enforcement, governmental or public authorities, tax authorities, and authorized third parties, if
         and to the extent we are required or permitted to do so by law and where disclosure is
         reasonably necessary to: (i) comply with our legal obligations; (ii) comply with a valid legal
-        request such as a subpoena or court order; (iii) respond to claims asserted against Death Is A
-        Deadline; (iv) address alleged or suspected illegal activity, including fraud, identity
+        request such as a subpoena or court order; (iii) respond to claims asserted against Deadline; (iv) address alleged or suspected illegal activity, including fraud, identity
         misrepresentation, or abuse; (v) enforce our agreements; (vi) respond to emergencies that may
         involve the risk of death or serious physical harm; or (vii) protect the rights, property, or
-        personal safety of Death Is A Deadline, our users, our Hotels, our vendors, our affiliates, or
+        personal safety of Deadline, our users, our Hotels, our vendors, our affiliates, or
         members of the public. Where appropriate and not legally prohibited, we may notify you about
         legal requests.
       </LegalP>
 
       <LegalH3 key="b-73">5.3.2 Effectuate Business Transfers.</LegalH3>
       <LegalP key="b-74">
-        If Death Is A Deadline undertakes or is involved in any merger, acquisition, reorganization,
+        If Deadline undertakes or is involved in any merger, acquisition, reorganization,
         financing, sale of assets, bankruptcy, or insolvency event, we may share, transfer, or sell some
         or all of our assets, including personal information, in connection with such transaction or its
         negotiation. We will provide notice of any such transfer where required by law and before your
@@ -462,8 +467,7 @@ export function PrivacyPolicyContent() {
       <LegalH3 key="b-75">5.3.3 Enable and Contextualize Reviews.</LegalH3>
       <LegalP key="b-76">
         If you choose to publish a Review, the Review content (including any photos) and limited
-        associated information — such as your first name, last initial, the date you joined Death Is A
-        Deadline, and the city or institution you are associated with — may be made publicly visible
+        associated information — such as your first name, last initial, the date you joined Deadline, and the city or institution you are associated with — may be made publicly visible
         alongside your Review.
       </LegalP>
 
@@ -531,6 +535,17 @@ export function PrivacyPolicyContent() {
         any marketing text from us. We may continue to send you transactional and account-related
         communications (for example, Bid acceptance notices, receipts, security alerts, and required legal
         notices) regardless of your marketing choices.
+      </LegalP>
+      <LegalP key="b-86b">
+        <strong>Text messages (SMS).</strong> If you opt in to text messages from us, we use your mobile
+        number to send messages about your Bids, offers and counteroffers you asked us to pursue,
+        Reservations, and your account, and marketing texts only if you separately agree to them. Message
+        frequency varies, and message and data rates may apply. Reply STOP to opt out or HELP for help at
+        any time. Hotel contacts who agree to receive deal messages from us are covered by the same terms.
+        No mobile information will be shared with third parties or affiliates for marketing or promotional
+        purposes. Text-messaging originator opt-in data and consent will not be shared with any third
+        parties. We share mobile numbers only with the service providers that deliver our messages
+        (Section 5.2.3), solely to deliver them.
       </LegalP>
 
       <LegalH3 key="b-87">8.2 California Residents (CCPA/CPRA).</LegalH3>
@@ -649,39 +664,39 @@ export function PrivacyPolicyContent() {
 
       <LegalH2 key="b-106">12. Contact Information</LegalH2>
       <LegalP key="b-107">
-        For questions or complaints about this Policy or about how Death Is A Deadline handles personal
+        For questions or complaints about this Policy or about how Deadline handles personal
         information, including to exercise any privacy rights, please contact us at:
       </LegalP>
       <LegalP key="b-107b">
-        Student Deadline Inc.
+        Deadline Holdings, Inc.
         <br />
-        d/b/a Death Is A Deadline
+        d/b/a Deadline
         <br />
         Attn: Privacy
         <br />
         Email: hotels@deadlinetravel.com
         <br />
-        Site: DeadlineTravel.com and deathisadeadline.com
+        Site: DeadlineTravel.com
       </LegalP>
 
       <LegalH2 key="b-108">13. Definitions</LegalH2>
       <LegalP key="b-109">
-        Capitalized terms not defined in this Policy have the meanings given in the Death Is A Deadline
+        Capitalized terms not defined in this Policy have the meanings given in the Deadline
         Terms of Service (the &ldquo;Terms&rdquo;). For convenience:
       </LegalP>
       <LegalUl
         key="b-110"
         items={[
           "“Bid” — a binding offer you submit through the Service to pay a specified price for a reservation at a specified Hotel and date(s).",
-          "“Floor Base” — the confidential minimum acceptable rate set by a Hotel for a specific room and date.",
+          "“Floor Base” — the confidential acceptance threshold a Hotel sets for a listing, which may include a dynamic component at or above the Hotel’s minimum.",
           "“Hotel” — a hotel, resort, hostel, bed & breakfast, or similar accommodation provider listed on the Service.",
           "“Reservation” — a confirmed booking created when a Hotel accepts your Bid.",
-          "“Service” — the Death Is A Deadline website, any related mobile application, and the related features and tools we provide.",
+          "“Service” — the Deadline website, any related mobile application, and the related features and tools we provide.",
           "“Stripe” — Stripe, Inc., our payment processor.",
         ]}
       />
 
-      <LegalCopyright text='© 2026 Student Deadline Inc. All rights reserved. Death Is A Deadline, the Death Is A Deadline logo, and "Life is short. Travel now." are trademarks of Student Deadline Inc.' />
+      <LegalCopyright text='© 2026 Deadline Holdings, Inc. All rights reserved. Deadline, the Deadline logo, and "Life is short. Travel now." are trademarks of Deadline Holdings, Inc.' />
     </>
   );
 }
