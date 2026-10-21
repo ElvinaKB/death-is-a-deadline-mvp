@@ -31,6 +31,9 @@ interface ChargeNoShowResponse {
   noShowCharge: BidNoShowCharge;
 }
 
+// Mirrors the backend cap (noShow.service): first night less the 7% fee.
+const noShowMaxFee = (perNight: number) => Math.round(perNight * 0.93 * 100) / 100;
+
 // Model B no-show: charge up to the first night to the guest's saved card,
 // once the hotel reports it within 72h of arrival.
 export function ChargeNoShowModal({ bid, open, onOpenChange }: ChargeNoShowModalProps) {
@@ -41,7 +44,7 @@ export function ChargeNoShowModal({ bid, open, onOpenChange }: ChargeNoShowModal
 
   useEffect(() => {
     if (open && bid) {
-      setAmount(bid.bidPerNight.toFixed(2));
+      setAmount(noShowMaxFee(bid.bidPerNight).toFixed(2));
       setReportedAt(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
       setNotes("");
     }
@@ -66,8 +69,9 @@ export function ChargeNoShowModal({ bid, open, onOpenChange }: ChargeNoShowModal
   if (!bid) return null;
 
   const firstNight = bid.bidPerNight;
+  const maxFee = noShowMaxFee(firstNight);
   const value = Number(amount);
-  const validAmount = value >= 0.5 && value <= firstNight;
+  const validAmount = value >= 0.5 && value <= maxFee;
 
   const formatCurrency = (n: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
@@ -89,7 +93,8 @@ export function ChargeNoShowModal({ bid, open, onOpenChange }: ChargeNoShowModal
             Charge no-show
           </DialogTitle>
           <DialogDescription className="text-muted">
-            Charges the guest&apos;s saved card for the first night. Only do this
+            Charges the guest&apos;s saved card for the first night, less the 7%
+            booking fee they already paid. Only do this
             when the hotel has confirmed the guest never arrived. The guest and
             the hotel both get a receipt.
           </DialogDescription>
@@ -129,12 +134,12 @@ export function ChargeNoShowModal({ bid, open, onOpenChange }: ChargeNoShowModal
           </div>
 
           <div className="space-y-2">
-            <Label className="text-fg">Amount (max first night)</Label>
+            <Label className="text-fg">Amount (max first night less 7%)</Label>
             <Input
               type="number"
               step="0.01"
               min="0.5"
-              max={firstNight}
+              max={maxFee}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="bg-glass border-line text-fg"

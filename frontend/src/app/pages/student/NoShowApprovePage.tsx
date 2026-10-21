@@ -88,7 +88,7 @@ export function NoShowApprovePage() {
           <p className="mt-2 text-base text-muted">
             {charge.hotel} reported that you didn&apos;t arrive for your stay on{" "}
             {formatBookingDate(charge.checkInDate, "MMM d, yyyy")}. Under the
-            no-show policy you agreed to at booking, the first night ({amount}) is
+            no-show policy you agreed to at booking, the first night, less the booking fee you already paid ({amount}), is
             charged to your saved card. Your bank needs you to approve it.
           </p>
           {error && <p className="mt-4 text-sm text-danger">{error}</p>}

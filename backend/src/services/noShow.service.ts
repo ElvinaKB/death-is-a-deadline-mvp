@@ -25,6 +25,11 @@ export const NO_SHOW_STATUS = {
 const REPORT_WINDOW_HOURS = 72;
 const STRIPE_MIN_CHARGE = 0.5;
 
+/** First night's rate less the booking fee already paid for that night. */
+export function noShowMaxFee(bidPerNight: number) {
+  return Math.round(bidPerNight * (1 - STRIPE_CONFIG.PLATFORM_COMMISSION_RATE) * 100) / 100;
+}
+
 function money(n: number) {
   return `$${n.toFixed(2)}`;
 }
@@ -108,12 +113,14 @@ export async function chargeNoShow(input: ChargeNoShowInput) {
     );
   }
 
-  // Policy: up to the first night's room rate — never taxes, never more.
-  const firstNight = Number(bid.bidPerNight);
-  const amount = Math.round((input.amount ?? firstNight) * 100) / 100;
-  if (!(amount >= STRIPE_MIN_CHARGE) || amount > firstNight) {
+  // Policy (Terms 6.6 / hotel agreement 9.2): the first night less the 7%
+  // booking fee already paid for it, so the guest never pays more than one
+  // night in total. Never taxes, never more.
+  const maxFee = noShowMaxFee(Number(bid.bidPerNight));
+  const amount = Math.round((input.amount ?? maxFee) * 100) / 100;
+  if (!(amount >= STRIPE_MIN_CHARGE) || amount > maxFee) {
     throw new CustomError(
-      `Amount must be between ${money(STRIPE_MIN_CHARGE)} and the first night's rate (${money(firstNight)}).`,
+      `Amount must be between ${money(STRIPE_MIN_CHARGE)} and the first night less our booking fee (${money(maxFee)}).`,
       400,
     );
   }
@@ -385,7 +392,7 @@ async function emailGuestToAuthenticate(chargeId: string, reminder = false) {
   const stay = stayLabel(c.bid.checkInDate, c.bid.checkOutDate);
   const lines = [
     `Hi ${guestName(c.bid.users?.raw_user_meta_data)},`,
-    `${c.bid.place.name} let us know you didn't arrive for your booking (${stay}). Under the no-show policy you agreed to at booking, the first night (${money(Number(c.amount))}) is charged to the card you saved.`,
+    `${c.bid.place.name} let us know you didn't arrive for your booking (${stay}). Under the no-show policy you agreed to at booking, the first night, less the booking fee you already paid (${money(Number(c.amount))}), is charged to the card you saved.`,
     `Your bank needs you to approve this charge. You can do that here: ${link}`,
     `If you think this is a mistake, just reply to this email and we'll sort it out with the hotel.`,
     `— Deadline`,
@@ -508,7 +515,7 @@ async function sendNoShowReceipts(chargeId: string) {
   if (guestEmail) {
     const lines = [
       `Hi ${guestName(c.bid.users?.raw_user_meta_data)},`,
-      `${c.bid.place.name} reported that you didn't arrive for your booking (${stay}). Under the no-show policy you agreed to at booking, we've charged the first night, ${amount}, to your saved card. It will show on your statement from Deadline.`,
+      `${c.bid.place.name} reported that you didn't arrive for your booking (${stay}). Under the no-show policy you agreed to at booking, we've charged the first night, less the booking fee you already paid (${amount}), to your saved card. It will show on your statement from Deadline.`,
       `If you think this is a mistake, reply to this email and we'll look into it with the hotel right away.`,
       `— Deadline`,
     ];

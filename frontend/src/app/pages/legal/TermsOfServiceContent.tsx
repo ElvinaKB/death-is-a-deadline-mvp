@@ -519,7 +519,8 @@ export function TermsOfServiceContent() {
       <LegalP key="b-52b">
         <strong>No-show fee.</strong> If you do not check in on your arrival date and have not cancelled your
         Reservation in accordance with Section 6.1, you owe Deadline a no-show fee of up to the first
-        night&apos;s room rate for that Reservation, excluding taxes. We charge the no-show fee only if the Hotel
+        night&apos;s room rate for that Reservation, less the portion of the booking fee you already paid for
+        that night (so that you never pay more than one night in total), excluding taxes. We charge the no-show fee only if the Hotel
         reports your no-show to us within seventy-two (72) hours after your scheduled arrival date. The no-show fee
         is owed to and collected by Deadline for its own account; it is not collected on behalf of the
         Hotel. Any payment we make to the Hotel in connection with your no-show is our own separate obligation under
