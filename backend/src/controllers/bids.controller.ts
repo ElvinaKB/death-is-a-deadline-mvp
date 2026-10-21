@@ -665,6 +665,9 @@ export async function listBids(req: Request, res: Response) {
           include: { images: { orderBy: { order: "asc" }, take: 1 } },
         },
         payment: true,
+        noShowCharge: {
+          select: { id: true, status: true, amount: true, failureReason: true },
+        },
         users: {
           select: {
             id: true,
@@ -699,6 +702,14 @@ export async function listBids(req: Request, res: Response) {
   const data = bids.map((bid: any) => ({
     ...formatBid(bid),
     dealCall: dealByBid.get(bid.id) ?? null,
+    noShowCharge: bid.noShowCharge
+      ? {
+          id: bid.noShowCharge.id,
+          status: bid.noShowCharge.status,
+          amount: Number(bid.noShowCharge.amount),
+          failureReason: bid.noShowCharge.failureReason,
+        }
+      : null,
     student: bid.users
       ? {
           id: bid.users.id,

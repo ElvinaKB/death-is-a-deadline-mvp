@@ -25,6 +25,7 @@ export const ROUTES = {
   STUDENT_REFERRALS: "/member/referrals",
   STUDENT_CHECKOUT: "/member/checkout/:bidId",
   STUDENT_WHOLESALE_COMPLETE: "/member/booking-complete/:bidId",
+  STUDENT_NO_SHOW: "/member/no-show/:id",
   STUDENT_PROFILE: "/member/profile",
   STUDENT_SAVED_HOTELS: "/member/saved-hotels",
   STUDENT_WISHLIST: "/member/wishlist",

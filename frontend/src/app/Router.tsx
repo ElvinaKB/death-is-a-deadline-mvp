@@ -1,4 +1,5 @@
 import { WholesaleBookingCompletePage } from "./pages/student/WholesaleBookingCompletePage";
+import { NoShowApprovePage } from "./pages/student/NoShowApprovePage";
 import { Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { ROUTES, getRoute } from "../config/routes.config";
 import { UserRole } from "../types/auth.types";
@@ -126,6 +127,7 @@ const protectedRoutes = [
       { path: ROUTES.STUDENT_REFERRALS, element: <AffiliatePortalPage /> },
       { path: ROUTES.STUDENT_CHECKOUT, element: <CheckoutPage /> },
       { path: ROUTES.STUDENT_WHOLESALE_COMPLETE, element: <WholesaleBookingCompletePage /> },
+      { path: ROUTES.STUDENT_NO_SHOW, element: <NoShowApprovePage /> },
       { path: ROUTES.STUDENT_PROFILE, element: <ProfilePage /> },
       {
         path: ROUTES.STUDENT_SAVED_HOTELS,
