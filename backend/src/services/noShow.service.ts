@@ -210,6 +210,8 @@ export async function chargeNoShow(input: ChargeNoShowInput) {
             stripePaymentIntentId: failedIntent.id,
             stripeClientSecret: failedIntent.client_secret,
             failureReason: "Bank requires the guest to approve (3D Secure)",
+            actionRequestedAt: new Date(),
+            reminderSentAt: null,
           },
         });
         await emailGuestToAuthenticate(updated.id).catch((e) =>
@@ -373,7 +375,7 @@ async function loadForEmail(chargeId: string) {
   });
 }
 
-async function emailGuestToAuthenticate(chargeId: string) {
+async function emailGuestToAuthenticate(chargeId: string, reminder = false) {
   const c = await loadForEmail(chargeId);
   const to = c.bid.users?.email;
   if (!to) return;
@@ -388,8 +390,107 @@ async function emailGuestToAuthenticate(chargeId: string) {
   ];
   await sendPlainEmail({
     to,
-    subject: `Action needed: no-show charge for ${c.bid.place.name}`,
+    subject: `${reminder ? "Reminder" : "Action needed"}: no-show charge for ${c.bid.place.name}`,
     html: lines.map((l) => `<p>${l.replace(link, `<a href="${link}">approve the charge</a>`)}</p>`).join(""),
+    text: lines.join("\n\n"),
+  });
+}
+
+// A guest who never approves the 3DS charge: remind once at 48h, then give up
+// at 7 days so nothing waits forever. Nobody can collect without their bank's
+// approval, so we close it out and tell the hotel honestly.
+const REMINDER_AFTER_MS = 48 * 60 * 60 * 1000;
+const EXPIRE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Cancel the Stripe intent so a late approval can't charge after we gave up. */
+async function cancelIntentQuietly(intentId: string | null) {
+  if (!intentId) return;
+  try {
+    await stripe.paymentIntents.cancel(intentId);
+  } catch (err) {
+    // Already canceled/succeeded — the webhook keeps our row honest.
+    console.warn(`[no-show] could not cancel ${intentId}:`, (err as Error).message);
+  }
+}
+
+async function closeNoShow(chargeId: string, reason: string, notifyHotel: boolean) {
+  const charge = await prisma.noShowCharge.findUnique({ where: { id: chargeId } });
+  if (!charge || charge.status !== NO_SHOW_STATUS.REQUIRES_ACTION) return false;
+  await cancelIntentQuietly(charge.stripePaymentIntentId);
+  // The cancel may have raced a last-second approval: only close if still waiting.
+  const { count } = await prisma.noShowCharge.updateMany({
+    where: { id: chargeId, status: NO_SHOW_STATUS.REQUIRES_ACTION },
+    data: {
+      status: NO_SHOW_STATUS.FAILED,
+      failureReason: reason,
+      stripeClientSecret: null,
+    },
+  });
+  if (count === 1 && notifyHotel) {
+    await emailHotelNotCollected(chargeId).catch((e) =>
+      console.error("[no-show] hotel not-collected email failed:", e),
+    );
+  }
+  return count === 1;
+}
+
+/** Scheduled (GitHub Actions): reminders at 48h, expiry at 7 days. */
+export async function sweepNoShowCharges() {
+  const now = Date.now();
+  const waiting = await prisma.noShowCharge.findMany({
+    where: { status: NO_SHOW_STATUS.REQUIRES_ACTION },
+  });
+  let reminded = 0;
+  let expired = 0;
+  for (const c of waiting) {
+    const since = (c.actionRequestedAt ?? c.updatedAt).getTime();
+    if (now - since >= EXPIRE_AFTER_MS) {
+      if (
+        await closeNoShow(
+          c.id,
+          "Guest didn't approve with their bank within 7 days",
+          true,
+        )
+      ) {
+        expired++;
+      }
+    } else if (now - since >= REMINDER_AFTER_MS && !c.reminderSentAt) {
+      await emailGuestToAuthenticate(c.id, true).catch((e) =>
+        console.error("[no-show] reminder failed:", e),
+      );
+      await prisma.noShowCharge.update({
+        where: { id: c.id },
+        data: { reminderSentAt: new Date() },
+      });
+      reminded++;
+    }
+  }
+  return { waiting: waiting.length, reminded, expired };
+}
+
+/** Admin gives up on a charge waiting for the guest (e.g. settled another way). */
+export async function cancelNoShowCharge(chargeId: string) {
+  const closed = await closeNoShow(chargeId, "Cancelled by admin", false);
+  if (!closed) {
+    throw new CustomError("Only a charge waiting on the guest's bank can be cancelled.", 400);
+  }
+  return prisma.noShowCharge.findUniqueOrThrow({ where: { id: chargeId } });
+}
+
+async function emailHotelNotCollected(chargeId: string) {
+  const c = await loadForEmail(chargeId);
+  if (!c.bid.place.email) return;
+  const stay = stayLabel(c.bid.checkInDate, c.bid.checkOutDate);
+  const lines = [
+    `Hi ${c.bid.place.name},`,
+    `An update on the no-show you reported for ${stay}: the guest's bank required them to approve the ${money(Number(c.amount))} charge, and they didn't within 7 days, so we weren't able to collect it.`,
+    `Reply to this email if you'd like us to follow up with the guest.`,
+    `— Deadline`,
+  ];
+  await sendPlainEmail({
+    to: c.bid.place.email,
+    subject: `No-show charge not collected — ${stay}`,
+    html: lines.map((l) => `<p>${l}</p>`).join(""),
     text: lines.join("\n\n"),
   });
 }

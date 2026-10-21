@@ -37,7 +37,10 @@ import {
   chargeNoShowForBid,
   getNoShowCharge,
   syncNoShowCharge,
+  cancelNoShow,
+  runNoShowSweep,
 } from "../controllers/payments.controller";
+import { requireCronSecret } from "../controllers/wholesale.controller";
 
 const router = Router();
 
@@ -88,6 +91,9 @@ router.post(
   confirmPaymentStatus
 );
 
+// Scheduler (GitHub Actions, shares WHOLESALE_CRON_SECRET): 3DS reminders/expiry
+router.post("/no-show/sweep", requireCronSecret, runNoShowSweep);
+
 // No-show charge waiting on the guest's bank (3DS link from the email)
 router.get(
   "/no-show/:id",
@@ -113,6 +119,14 @@ router.post(
   validate(bidIdParamSchema, "params"),
   validate(chargeNoShowSchema, "body"),
   chargeNoShowForBid,
+);
+
+// Stop waiting on the guest's bank (admin only)
+router.post(
+  "/no-show/:id/cancel",
+  authenticate(UserRole.ADMIN),
+  validate(noShowIdParamSchema, "params"),
+  cancelNoShow,
 );
 
 // List all payments (admin only)

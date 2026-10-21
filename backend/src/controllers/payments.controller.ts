@@ -30,9 +30,11 @@ import {
 import { getEffectiveCapByDate } from "../services/inventory.service";
 import { isWholesale } from "../services/wholesale.service";
 import {
+  cancelNoShowCharge,
   chargeNoShow,
   getNoShowForGuest,
   NO_SHOW_STATUS,
+  sweepNoShowCharges,
   syncNoShowForGuest,
 } from "../services/noShow.service";
 
@@ -885,4 +887,20 @@ export async function getNoShowCharge(req: Request, res: Response) {
 export async function syncNoShowCharge(req: Request, res: Response) {
   const data = await syncNoShowForGuest(req.params.id, req.user!.id);
   res.status(200).json({ data });
+}
+
+/** Admin: stop waiting on the guest's bank for this charge. */
+export async function cancelNoShow(req: Request, res: Response) {
+  const charge = await cancelNoShowCharge(req.params.id);
+  res.status(200).json({
+    data: {
+      message: "No-show charge cancelled.",
+      noShowCharge: { id: charge.id, status: charge.status },
+    },
+  });
+}
+
+/** Scheduler: 48h reminders and 7-day expiry for charges awaiting 3DS. */
+export async function runNoShowSweep(_req: Request, res: Response) {
+  res.status(200).json({ data: await sweepNoShowCharges() });
 }

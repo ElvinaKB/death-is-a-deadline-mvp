@@ -133,6 +133,15 @@ export function BidsListPage() {
     onError: (err) => toast.error(err.message || "Re-push failed"),
   });
 
+  const cancelNoShowMutation = useApiMutation<{ message: string }, { id: string }>({
+    endpoint: (vars) => getEndpoint(ENDPOINTS.PAYMENT_NO_SHOW_CANCEL, { id: vars.id }),
+    transformVariables: () => ({}),
+    onSuccess: (res) => {
+      toast.success(res.message);
+      queryClient.invalidateQueries({ queryKey: ["bids", "admin"] });
+    },
+  });
+
   const { data: overview } = useApiQuery<BidsOverview>({
     queryKey: ["bids-overview"],
     endpoint: ENDPOINTS.ANALYTICS_BIDS_OVERVIEW,
@@ -266,6 +275,21 @@ export function BidsListPage() {
               >
                 {NO_SHOW_BADGE[noShow.status].label} {formatCurrency(noShow.amount)}
               </Badge>
+            )}
+            {noShow?.status === "REQUIRES_ACTION" && (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={cancelNoShowMutation.isPending}
+                title="Stop waiting on the guest's bank. Closes automatically after 7 days."
+                onClick={() => {
+                  if (window.confirm("Stop waiting for the guest to approve this charge?")) {
+                    cancelNoShowMutation.mutate({ id: noShow.id });
+                  }
+                }}
+              >
+                Stop waiting
+              </Button>
             )}
             {canChargeNoShow && (
               <Button
