@@ -20,14 +20,12 @@ export function PrivacyPolicyContent() {
         lastUpdated="October 20, 2026"
       />
       <LegalP key="intro-0">
-        This Privacy Policy (the &ldquo;Policy&rdquo;) describes how Deadline Holdings, Inc. (formerly
-        Student Deadline Inc.), a Delaware corporation doing business as Deadline, Deadline Travel, and
-        Death Is A Deadline (&ldquo;Death Is A Deadline,&rdquo; &ldquo;Deadline,&rdquo;
+        This Privacy Policy (the &ldquo;Policy&rdquo;) describes how Deadline Holdings, Inc., a Delaware corporation doing business as Deadline (&ldquo;Deadline,&rdquo;
         &ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;), processes personal information in
         relation to your use of the Service. The &ldquo;Service&rdquo; means our website at
-        deadlinetravel.com and deathisadeadline.com, any successor domain, any mobile applications we
+        deadlinetravel.com, any successor domain, any mobile applications we
         publish, and the related application programming interfaces, features, tools, and services we
-        own, operate, or provide. Death Is A Deadline operates a verified-traveler, blind-bidding
+        own, operate, or provide. Deadline operates a verified-traveler, blind-bidding
         marketplace. Because we verify eligibility through academic or work email confirmation,
         LinkedIn sign-in, and/or review of identification documents, this Policy explains how we handle that additional category
         of personal information in addition to the data we collect to operate a hotel-booking
@@ -69,12 +67,10 @@ export function PrivacyPolicyContent() {
 
       <LegalH2 key="b-2">2. Who Is Responsible for My Personal Information</LegalH2>
       <LegalP key="b-3">
-        Where this Policy mentions &ldquo;Death Is A Deadline,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo;
-        or &ldquo;our,&rdquo; it refers to Deadline Holdings, Inc., a Delaware corporation doing business
-        as Deadline, Deadline Travel, and Death Is A Deadline, which is the entity responsible for your personal information under this
+        Where this Policy mentions &ldquo;Deadline,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo;
+        or &ldquo;our,&rdquo; it refers to Deadline Holdings, Inc., a Delaware corporation doing business as Deadline, which is the entity responsible for your personal information under this
         Policy and is the &ldquo;business&rdquo; for purposes of the California Consumer Privacy Act
-        and analogous U.S. state privacy laws. Our contact details are in Section 12. Death Is A
-        Deadline acts solely as a technology marketplace connecting users with independent Hotels and
+        and analogous U.S. state privacy laws. Our contact details are in Section 12. Deadline acts solely as a technology marketplace connecting users with independent Hotels and
         does not itself provide accommodations or travel services. Hotels you transact with through the
         Service are independent businesses and are separately responsible for any personal information
         you provide directly to them or that we share with them once your Bid is accepted. Their handling
@@ -110,8 +106,8 @@ export function PrivacyPolicyContent() {
         items={[
           "Your .edu (or equivalent recognized academic) email address or work email address, and the result of the one-time verification email we send to it;",
           "If you verify with LinkedIn: the profile information LinkedIn shares with us with your permission, such as your name, email address, profile photo, headline, and current employer;",
-          "If you choose manual review or your domain is not eligible for automatic verification: an image of a current student, faculty, or staff identification document (front and, where applicable, back), which may include your name, photograph, institution name, and an institution-issued ID number; and",
-          "The institution name, role (student, faculty, or staff), and verification status we record on your account, along with the date and method of verification.",
+          "If you choose manual review or your domain is not eligible for automatic verification: an image of an identification document (front and, where applicable, back), which may include your name, photograph, issuing institution or authority, and an ID number; and",
+          "The school or employer name, and the verification status we record on your account, along with the date and method of verification.",
         ]}
       />
       <LegalP key="b-12b">
@@ -140,8 +136,7 @@ export function PrivacyPolicyContent() {
       <LegalH3 key="b-15">3.1.4 Payment Transaction Information.</LegalH3>
       <LegalP key="b-16">
         Payment-related information necessary to process accepted Bids. All card data is collected and
-        processed by Stripe, Inc. (&ldquo;Stripe&rdquo;), our PCI-compliant payment processor. Death Is A
-        Deadline does not store your full card number or CVV. We receive from Stripe a payment-method
+        processed by Stripe, Inc. (&ldquo;Stripe&rdquo;), our PCI-compliant payment processor. Deadline does not store your full card number or CVV. We receive from Stripe a payment-method
         token, the brand and last four digits of your card, the billing zip code, the charge amount and
         currency, and authorization, capture, refund, and dispute outcomes. Your use of Stripe is also
         subject to Stripe&apos;s own privacy notice. Because we collect the full Reservation amount from
@@ -151,7 +146,7 @@ export function PrivacyPolicyContent() {
         remitted to the Hotel, the date of remittance, and the Stripe transaction identifiers — for as
         long as required by tax, payment-card-network, and consumer-protection rules. See Section 9 for
         retention periods. Payment processing services are provided by Stripe and are subject to
-        Stripe&apos;s terms and privacy practices. Death Is A Deadline is not responsible for the
+        Stripe&apos;s terms and privacy practices. Deadline is not responsible for the
         security or processing of payment information handled by Stripe.
       </LegalP>
 
@@ -378,7 +373,7 @@ export function PrivacyPolicyContent() {
       <LegalP key="b-61">
         Where you provide consent or direct us to share your personal information, we share it as
         described at the time of consent or choice — for example, when you authorize a third-party service
-        to access your Death Is A Deadline account, publish a Review, or participate in a partner
+        to access your Deadline account, publish a Review, or participate in a partner
         promotion.
       </LegalP>
 
@@ -392,8 +387,7 @@ export function PrivacyPolicyContent() {
         requests you submitted. Except as described in the next paragraph, we do not share your Bid amount
         with the Hotel, and we never share the contents of your ID-verification documents or your
         payment-card details with the Hotel. The Hotel receives, separately, the net
-        amount we remit to it under our commercial arrangement with the Hotel, which reflects Death Is A
-        Deadline&apos;s compensation for our services. We do not verify the accuracy of information
+        amount we remit to it under our commercial arrangement with the Hotel, which reflects Deadline&apos;s compensation for our services. We do not verify the accuracy of information
         provided by Hotels and are not responsible for errors, omissions, or inaccuracies in information
         supplied by Hotels.
       </LegalP>
@@ -453,18 +447,17 @@ export function PrivacyPolicyContent() {
         enforcement, governmental or public authorities, tax authorities, and authorized third parties, if
         and to the extent we are required or permitted to do so by law and where disclosure is
         reasonably necessary to: (i) comply with our legal obligations; (ii) comply with a valid legal
-        request such as a subpoena or court order; (iii) respond to claims asserted against Death Is A
-        Deadline; (iv) address alleged or suspected illegal activity, including fraud, identity
+        request such as a subpoena or court order; (iii) respond to claims asserted against Deadline; (iv) address alleged or suspected illegal activity, including fraud, identity
         misrepresentation, or abuse; (v) enforce our agreements; (vi) respond to emergencies that may
         involve the risk of death or serious physical harm; or (vii) protect the rights, property, or
-        personal safety of Death Is A Deadline, our users, our Hotels, our vendors, our affiliates, or
+        personal safety of Deadline, our users, our Hotels, our vendors, our affiliates, or
         members of the public. Where appropriate and not legally prohibited, we may notify you about
         legal requests.
       </LegalP>
 
       <LegalH3 key="b-73">5.3.2 Effectuate Business Transfers.</LegalH3>
       <LegalP key="b-74">
-        If Death Is A Deadline undertakes or is involved in any merger, acquisition, reorganization,
+        If Deadline undertakes or is involved in any merger, acquisition, reorganization,
         financing, sale of assets, bankruptcy, or insolvency event, we may share, transfer, or sell some
         or all of our assets, including personal information, in connection with such transaction or its
         negotiation. We will provide notice of any such transfer where required by law and before your
@@ -474,8 +467,7 @@ export function PrivacyPolicyContent() {
       <LegalH3 key="b-75">5.3.3 Enable and Contextualize Reviews.</LegalH3>
       <LegalP key="b-76">
         If you choose to publish a Review, the Review content (including any photos) and limited
-        associated information — such as your first name, last initial, the date you joined Death Is A
-        Deadline, and the city or institution you are associated with — may be made publicly visible
+        associated information — such as your first name, last initial, the date you joined Deadline, and the city or institution you are associated with — may be made publicly visible
         alongside your Review.
       </LegalP>
 
@@ -672,24 +664,24 @@ export function PrivacyPolicyContent() {
 
       <LegalH2 key="b-106">12. Contact Information</LegalH2>
       <LegalP key="b-107">
-        For questions or complaints about this Policy or about how Death Is A Deadline handles personal
+        For questions or complaints about this Policy or about how Deadline handles personal
         information, including to exercise any privacy rights, please contact us at:
       </LegalP>
       <LegalP key="b-107b">
         Deadline Holdings, Inc.
         <br />
-        d/b/a Deadline, Deadline Travel, and Death Is A Deadline
+        d/b/a Deadline
         <br />
         Attn: Privacy
         <br />
         Email: hotels@deadlinetravel.com
         <br />
-        Site: DeadlineTravel.com and deathisadeadline.com
+        Site: DeadlineTravel.com
       </LegalP>
 
       <LegalH2 key="b-108">13. Definitions</LegalH2>
       <LegalP key="b-109">
-        Capitalized terms not defined in this Policy have the meanings given in the Death Is A Deadline
+        Capitalized terms not defined in this Policy have the meanings given in the Deadline
         Terms of Service (the &ldquo;Terms&rdquo;). For convenience:
       </LegalP>
       <LegalUl
@@ -699,12 +691,12 @@ export function PrivacyPolicyContent() {
           "“Floor Base” — the confidential acceptance threshold a Hotel sets for a listing, which may include a dynamic component at or above the Hotel’s minimum.",
           "“Hotel” — a hotel, resort, hostel, bed & breakfast, or similar accommodation provider listed on the Service.",
           "“Reservation” — a confirmed booking created when a Hotel accepts your Bid.",
-          "“Service” — the Death Is A Deadline website, any related mobile application, and the related features and tools we provide.",
+          "“Service” — the Deadline website, any related mobile application, and the related features and tools we provide.",
           "“Stripe” — Stripe, Inc., our payment processor.",
         ]}
       />
 
-      <LegalCopyright text='© 2026 Deadline Holdings, Inc. All rights reserved. Deadline, Death Is A Deadline, the Deadline logo, and "Life is short. Travel now." are trademarks of Deadline Holdings, Inc.' />
+      <LegalCopyright text='© 2026 Deadline Holdings, Inc. All rights reserved. Deadline, the Deadline logo, and "Life is short. Travel now." are trademarks of Deadline Holdings, Inc.' />
     </>
   );
 }
