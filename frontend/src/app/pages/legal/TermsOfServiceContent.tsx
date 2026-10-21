@@ -15,14 +15,15 @@ export function TermsOfServiceContent() {
   return (
     <>
       <LegalMeta
-        operator="Operated by Student Deadline Inc"
+        operator="Operated by Deadline Holdings, Inc."
         effectiveDate="June 6, 2026"
-        lastUpdated="May 18, 2026"
+        lastUpdated="October 20, 2026"
       />
       <LegalP key="intro-0">
         These Terms of Service (the &ldquo;Terms&rdquo;) are a binding legal agreement between you and
-        Student Deadline Inc., a Delaware corporation doing business as Death Is A Deadline (&ldquo;Death Is A
-        Deadline,&rdquo; &ldquo;we,&rdquo; &ldquo;our,&rdquo; or &ldquo;us&rdquo;), that govern your access to
+        Deadline Holdings, Inc. (formerly Deadline Holdings, Inc.), a Delaware corporation doing business as
+        Deadline, Deadline Travel, and Death Is A Deadline (&ldquo;Death Is A Deadline,&rdquo;
+        &ldquo;Deadline,&rdquo; &ldquo;we,&rdquo; &ldquo;our,&rdquo; or &ldquo;us&rdquo;), that govern your access to
         and use of our website at deadlinetravel.com and deathisadeadline.com, any successor domain, any mobile
         applications we publish, and the related application programming interfaces, features, tools, and services
         we own, operate, or provide (collectively, the &ldquo;Application&rdquo;). The Application and these
@@ -34,14 +35,14 @@ export function TermsOfServiceContent() {
       </LegalP>
       <LegalNotice key="intro-n-1">
         SECTION 12 OF THESE TERMS INCLUDES A BINDING INDIVIDUAL ARBITRATION AGREEMENT, A JURY TRIAL WAIVER, AND A
-        CLASS ACTION WAIVER THAT APPLY TO ALL CLAIMS BROUGHT AGAINST STUDENT DEADLINE INC. IN THE UNITED STATES.
+        CLASS ACTION WAIVER THAT APPLY TO ALL CLAIMS BROUGHT AGAINST DEADLINE HOLDINGS, INC. IN THE UNITED STATES.
         PLEASE READ IT CAREFULLY; IT AFFECTS YOUR LEGAL RIGHTS.
       </LegalNotice>
 
       <LegalToc
         items={[
           "Scope of Services",
-          "Account Registration; Eligibility; .edu Verification",
+          "Account Registration; Eligibility; Verification",
           "Prohibited Activities; Termination",
           "Search Ranking and the Blind Bidding Process",
           "Content and Reviews",
@@ -95,7 +96,7 @@ export function TermsOfServiceContent() {
         you must book directly with the Hotel and outside the Service.
       </LegalP>
 
-      <LegalH2 key="b-3">2. Account Registration; Eligibility; .edu Verification</LegalH2>
+      <LegalH2 key="b-3">2. Account Registration; Eligibility; Verification</LegalH2>
       <LegalP key="b-4">
         You must register an account with Death Is A Deadline in order to access and use the Service. You must
         provide accurate, current, and complete information during registration and keep your account information
@@ -107,17 +108,18 @@ export function TermsOfServiceContent() {
         credentials have been lost or stolen or your account is otherwise compromised. Death Is A Deadline is not
         responsible or liable for any loss or damage arising from your failure to safeguard your account.
       </LegalP>
-      <LegalH3 key="b-5">2.1 Eligibility — Verified Members of the Academic Community</LegalH3>
+      <LegalH3 key="b-5">2.1 Eligibility — Verified Travelers</LegalH3>
       <LegalP key="b-6">
-        Death Is A Deadline is a verified-identity marketplace for the academic community, open to current college
-        and university students, faculty, and staff. To register or to submit a bid, you must complete identity
-        verification through one of the following methods at our discretion:
+        Death Is A Deadline is a verified-traveler marketplace. To register or to submit a bid, you must complete
+        verification through one of the following methods, which we may offer or require at our discretion:
       </LegalP>
       <LegalUl
         key="b-7"
         items={[
-          "(a) Email verification. Confirm a valid, currently active .edu (or equivalent recognized academic) email address through a one-time verification email we send you; or",
-          "(b) Manual ID review. Upload a current student, faculty, or staff identification document (front and, where applicable, back), which our team will review and accept or reject in our sole discretion.",
+          "(a) Academic email. Confirm a valid, currently active .edu (or equivalent recognized academic) email address through a one-time verification email we send you;",
+          "(b) Work email. Confirm a valid, currently active email address at an employer domain we recognize;",
+          "(c) LinkedIn. Sign in with LinkedIn so we can confirm your name and professional profile; or",
+          "(d) Manual review. Upload an identification document (front and, where applicable, back), which our team will review and accept or reject in our sole discretion.",
         ]}
       />
       <LegalP key="b-7b">
@@ -127,11 +129,11 @@ export function TermsOfServiceContent() {
       </LegalP>
       <LegalH3 key="b-8">2.2 Limits of Verification</LegalH3>
       <LegalP key="b-9">
-        WE DO NOT AND CANNOT GUARANTEE THAT EVERY USER ON THE PLATFORM IS A CURRENT, ELIGIBLE MEMBER OF THE ACADEMIC
-        COMMUNITY. Verification is performed using the information you provide, automated email-domain checks, manual
+        WE DO NOT AND CANNOT GUARANTEE THAT EVERY USER ON THE PLATFORM IS WHO THEY CLAIM TO BE OR IS A VERIFIED
+        TRAVELER. Verification is performed using the information you provide, automated email-domain checks, manual
         review of identification documents, and other reasonable commercial anti-fraud measures. Credentials can be
         lost, shared, expired, or fraudulently obtained. We make no representation or warranty that the user base
-        consists exclusively of eligible academic users, and Hotels and Users acknowledge and accept this limitation
+        consists exclusively of verified users, and Hotels and Users acknowledge and accept this limitation
         as a condition of participating in the Service.
       </LegalP>
       <LegalH3 key="b-10">2.3 Representations and Warranties</LegalH3>
@@ -265,22 +267,20 @@ export function TermsOfServiceContent() {
       <LegalH3 key="b-24">4.2 Submitting a Bid</LegalH3>
       <LegalP key="b-25">
         When you submit a Bid, you specify (a) a Hotel, (b) a date or date range, and (c) the price you are willing
-        to pay. A Bid is a binding offer. By submitting a Bid, you authorize Death Is A Deadline and its payment
-        processor, Stripe, to place a temporary authorization hold on your payment method for the amount of your
-        Bid. An authorization hold is not a completed charge and does not transfer funds to Death Is A Deadline or
-        the Hotel. The authorization hold remains in place while your Bid is evaluated against the Hotel&apos;s
-        confidential Floor Base.
+        to pay per night. A Bid is a binding offer. Each Hotel sets a confidential acceptance threshold for its
+        listing (the &ldquo;Floor Base&rdquo;). The Floor Base may include an optional dynamic component that sits
+        at or above the Hotel&apos;s minimum and can change with demand. We keep the Floor Base confidential and do
+        not disclose it to you or to other Users. Hotels do not review individual Bids; your Bid is evaluated
+        automatically against the Floor Base in effect when you submit it.
       </LegalP>
       <LegalH3 key="b-26">4.3 Floor Base; Acceptance and Charging; Rejection</LegalH3>
       <LegalP key="b-27">
-        If your Bid meets or exceeds the applicable Floor Base, your Bid is accepted and the authorization hold will
-        be converted into a completed charge (also known as a &ldquo;capture&rdquo;) for the authorized amount. At
-        that time, a Reservation is created; see Section 6.1 for the circumstances under which a Reservation may be
-        cancelled and refunded. If your Bid does not meet the applicable Floor Base, your Bid is rejected and the
-        authorization hold will be
-        released. The timing of the release is determined by your card issuer and financial institution and may take
-        several business days to appear on your account. Death Is A Deadline does not control the speed at which
-        banks remove released authorization holds.
+        If your Bid is at or above the applicable Floor Base, your Bid is accepted automatically and becomes a
+        binding Reservation when the amount due at booking (see Section 6.0) is charged to your payment method. If
+        your Bid is below the Floor Base, it is rejected and nothing is charged. An accepted Bid is locked: a later
+        change by the Hotel to its Floor Base applies only to future Bids and never changes the price of a Bid
+        already accepted. See Section 6.1 for the circumstances under which a Reservation may be cancelled and
+        refunded.
       </LegalP>
       <LegalH3 key="b-28">4.4 Pricing Variability and No Promised Discount</LegalH3>
       <LegalP key="b-29">
@@ -320,6 +320,16 @@ export function TermsOfServiceContent() {
         time, presenting an offer to a hotel on your behalf and inviting you to bid again. Deadline sets no
         price for you and never obligates you to bid; every bid you submit is voluntary, and you control the
         amount.
+      </LegalP>
+      <LegalP key="bid-data-match-3">
+        <strong>Offers we make on your behalf.</strong> If a Bid is not accepted and you ask us to take it to the
+        Hotel (for example, by accepting an in-app invitation to have us pitch your Bid), you authorize us to share
+        your Bid amount, dates of stay, and limited verified profile information (such as your first name,
+        verification method, and employer or institution) with that Hotel so it can accept, counter, or decline. We
+        will relay the Hotel&apos;s response to you, including any counteroffer. Nothing is charged unless you
+        expressly accept the resulting offer and complete payment. Some of these communications may be handled by an
+        automated assistant acting for Deadline; it identifies itself as automated, follows instructions we set,
+        and cannot commit you to a charge without your express confirmation.
       </LegalP>
 
       <LegalH2 key="b-32">5. Content and Reviews</LegalH2>
@@ -394,10 +404,11 @@ export function TermsOfServiceContent() {
         bid to ensure you (and any additional guests you are bidding for) meet any minimum age, identification,
         occupancy, or other requirements of the Hotel. By submitting a Bid through the Service, you authorize Death
         Is A Deadline to (i) evaluate your Bid against the applicable Floor Base, (ii) facilitate the resulting
-        reservation on your behalf, including making payment arrangements with the Hotel, and (iii) charge your
-        payment method, through Stripe, for the total reservation price upon acceptance. You agree to pay all charges
-        for any accepted Bid, including the nightly room price, any mandatory fee the Hotel has designated as
-        required (see Section 6.3), and government-imposed taxes identified during checkout in the Application. You
+        reservation on your behalf, and (iii) charge your payment method, through Stripe, the amount due at booking
+        shown at checkout upon acceptance. You agree to pay all charges for any accepted Bid as shown at checkout,
+        including the amount due at booking (charged by us) and the balance due at the property (collected by the
+        Hotel), which together cover the nightly room price, any mandatory fee the Hotel has designated as required
+        (see Section 6.4), and government-imposed taxes. You
         are responsible for paying the Hotel directly for any incidentals, room upgrades, optional parking, deposits,
         or other charges that are conditional on your conduct or choices on-site at the Hotel.
       </LegalP>
@@ -405,19 +416,22 @@ export function TermsOfServiceContent() {
       <LegalP key="b-42c">
         Before you confirm a Bid, the Service will display, on a single confirmation screen: (a) the name of the
         Hotel (once your Bid has been matched), the dates of stay, and the number of guests; (b) the per-night room
-        rate; (c) the total room rate for the stay; (d) any non-refundable service or facilitation fee we retain as
-        compensation for our services, and any mandatory fee the Hotel has designated as required (for example, a
-        resort fee or a mandatory parking fee), which is included in the total price and charged at the same time as
-        your Bid, not collected separately by the Hotel; (e) a disclosure that government-imposed taxes and any
-        genuinely optional charges you may choose on-site (such as optional parking or incidentals) are not included
-        and may be collected directly by the Hotel at check-in, check-out, or during the stay; (f) the maximum amount
-        that may be charged to your payment method if your Bid is accepted; (g) the
-        identity of Death Is A Deadline (through Stripe) as the merchant of record on your card statement and the
-        descriptor that will appear on your statement; and (h) the date and time at which the charge will be processed
-        (typically within minutes of Bid acceptance). By clicking &ldquo;Confirm Bid&rdquo; (or any equivalent button
-        we may use), you expressly authorize this charge, acknowledge the cancellation and refund terms of Section
-        6.1, and confirm that the Hotel may apply additional charges directly to you at check-in or during your stay
-        in accordance with Section 8.
+        rate; (c) the total room rate for the stay, including any mandatory fee the Hotel has designated as required
+        (for example, a resort fee or a mandatory parking fee); (d) the amount due at booking, which is the only
+        amount we charge your card at booking; (e) the balance due at the property, which the Hotel collects from
+        you directly at check-in; (f) a disclosure that government-imposed taxes and any genuinely optional charges
+        you may choose on-site (such as optional parking or incidentals) are not included in those amounts and are
+        collected by the Hotel; (g) our no-show policy (Section 6.6); and (h) that the charge will be processed
+        within minutes of Bid acceptance. For most listings, the amount due at booking is our booking fee (a
+        portion of your Bid, currently seven percent of the room rate), Death Is A Deadline (through Stripe) is the
+        merchant for that fee only, and the Hotel is the merchant for the balance. Where a listing states at
+        checkout that the full stay is prepaid, the amount due at booking is the full total and Death Is A Deadline
+        is the merchant for that amount. Where a listing is booked through a third-party travel provider&apos;s
+        checkout, that provider is identified at checkout as the merchant of record and its payment terms apply. By
+        clicking &ldquo;Confirm Bid&rdquo; (or any equivalent button we may use), you expressly authorize the charge
+        due at booking and the stored-payment-method authorization in Section 6.6, acknowledge the cancellation and
+        refund terms of Section 6.1, and confirm that the Hotel may apply additional charges directly to you at
+        check-in or during your stay in accordance with Section 8.
       </LegalP>
       <LegalH3 key="b-43">6.1 Cancellations and Refunds</LegalH3>
       <LegalP key="b-44">
@@ -425,7 +439,9 @@ export function TermsOfServiceContent() {
         discounted, non-public price, Reservations are not self-service cancellable, changeable, or transferable
         through the Service, and we do not guarantee refunds for change of plans, weather, illness, missed travel,
         denied boarding, school schedule changes, exam conflicts, or dissatisfaction with the Hotel. You should not
-        submit a Bid unless you are prepared to be charged and to honor the Reservation.
+        submit a Bid unless you are prepared to be charged and to honor the Reservation. This Section 6.1 is the
+        default cancellation policy for every Reservation unless the listing displayed a different Hotel
+        cancellation policy at the time you bid, in which case that policy applies to your Reservation.
       </LegalP>
       <LegalP key="b-44b">
         For a Hotel located in California, California Civil Code &sect; 1748.81 requires that any Reservation may be
@@ -448,8 +464,8 @@ export function TermsOfServiceContent() {
       <LegalP key="b-46">
         All payments are processed through Stripe. By providing a payment method, you represent that you are
         authorized to use it, that the information you provide is accurate, and that you authorize Death Is A
-        Deadline and Stripe to charge your payment method for accepted Bids and any associated taxes, fees,
-        surcharges, or currency conversion costs disclosed at checkout. Your use of Stripe is subject to
+        Deadline and Stripe to charge your payment method for the amount due at booking on accepted Bids, any
+        associated fees or currency conversion costs disclosed at checkout, and any no-show fee under Section 6.6. Your use of Stripe is subject to
         Stripe&apos;s own terms and privacy policy. Some banks and credit card companies may impose currency
         conversion fees or foreign transaction fees. Death Is A Deadline is not responsible for any such fees. Please
         contact your credit card provider or bank if you have any questions about fees imposed by these third
@@ -457,14 +473,17 @@ export function TermsOfServiceContent() {
       </LegalP>
       <LegalH3 key="b-47">6.3 Service Fees; Compensation</LegalH3>
       <LegalP key="b-48">
-        The total amount displayed in the Application during checkout, before you confirm your Bid, includes the room
-        rate matched against the Hotel&apos;s Floor Base, any non-refundable service or facilitation fee we retain as
-        compensation for our services, and any mandatory fee the Hotel has designated as required &mdash; for
-        example, a resort fee, or a parking fee where parking is not optional (see Section 6.4). Consistent with the
+        The total price displayed in the Application during checkout, before you confirm your Bid, includes the room
+        rate matched against the Hotel&apos;s Floor Base and any mandatory fee the Hotel has designated as required
+        &mdash; for example, a resort fee, or a parking fee where parking is not optional (see Section 6.4). Our
+        compensation is a booking fee that is part of that total, not added on top of it: we charge the booking fee
+        at booking and keep it for our own account, and the Hotel collects the balance at the property. The
+        booking fee is non-refundable except as stated in Section 6.1. Consistent with the
         FTC&apos;s Trade Regulation Rule on Unfair or Deceptive Fees for Live-Event Tickets and Short-Term Lodging
         (effective May 12, 2025) and, for Hotels located in California, California Civil Code &sect; 1770(a)(29) and
-        California Business and Professions Code &sect; 17568 (SB 478 / AB 537), a mandatory fee is never added after
-        you confirm or collected separately by the Hotel. Government-imposed taxes, and any charge that is genuinely
+        California Business and Professions Code &sect; 17568 (SB 478 / AB 537), a mandatory fee is always included
+        in the total price you see before you confirm and is never added afterward, even where the Hotel collects it
+        at the property as part of the balance due. Government-imposed taxes, and any charge that is genuinely
         optional &mdash; meaning you may decline it and still complete the stay, such as self-park parking or on-site
         incidentals &mdash; are not included in the Bid Amount and may be collected separately by the Hotel at
         check-in, check-out, or during the stay, as required by applicable law. Death Is A Deadline makes no
@@ -477,12 +496,13 @@ export function TermsOfServiceContent() {
       <LegalP key="b-50">
         Each Hotel designates to us, in advance, whether it charges a mandatory resort fee and whether parking at the
         property is mandatory rather than optional. Where a Hotel has made either designation, that fee is included
-        in the Bid Amount and total price displayed in the Application and is charged to you at the same time as
-        your Bid &mdash; the Hotel does not collect it separately at check-in, check-out, or during the stay.
+        in the total price displayed in the Application before you confirm your Bid. It is collected by the Hotel at
+        check-in as part of the balance due at the property, or charged by us at booking where the listing states
+        that the full stay is prepaid.
         Government-imposed taxes, and any charge that is genuinely optional (for example, parking a guest may decline
         in favor of another arrangement, or on-site incidentals), are not included in the Bid Amount and may be
         collected separately by the Hotel at check-in, check-out, or during the stay. Users are solely responsible
-        for paying any applicable taxes and any optional charges they elect on-site. Student Deadline Inc. does not
+        for paying any applicable taxes and any optional charges they elect on-site. Deadline Holdings, Inc. does not
         calculate, collect, report, or remit occupancy, lodging, tourism, sales, use, or similar taxes on behalf of
         Hotels unless expressly stated during checkout. Hotels remain solely responsible for calculating, collecting,
         reporting, and remitting all applicable taxes and governmental charges associated with the reservation, and
@@ -499,6 +519,27 @@ export function TermsOfServiceContent() {
         provide evidence of the transaction to your card issuer; (ii) suspend or terminate your account; and (iii)
         recover from you any chargeback fees and reasonable collection costs we incur as a result of the disputed
         transaction. We will not retaliate against you for asserting a good-faith dispute.
+      </LegalP>
+      <LegalH3 key="b-52a">6.6 No-Show Fee; Stored Payment Method</LegalH3>
+      <LegalP key="b-52b">
+        <strong>No-show fee.</strong> If you do not check in on your arrival date and have not cancelled your
+        Reservation in accordance with Section 6.1, you owe Death Is A Deadline a no-show fee of up to the first
+        night&apos;s room rate for that Reservation, excluding taxes. We charge the no-show fee only if the Hotel
+        reports your no-show to us within seventy-two (72) hours after your scheduled arrival date. The no-show fee
+        is owed to and collected by Death Is A Deadline for its own account; it is not collected on behalf of the
+        Hotel. Any payment we make to the Hotel in connection with your no-show is our own separate obligation under
+        our agreement with the Hotel. We will email you a receipt when a no-show fee is charged; if you believe it
+        was charged in error, reply to that email or contact us under Section 15(n) and we will review it with the
+        Hotel.
+      </LegalP>
+      <LegalP key="b-52c">
+        <strong>Stored payment method authorization.</strong> When you confirm a Bid, you authorize Death Is A
+        Deadline, through Stripe, to securely store the payment method you use (we never store your full card
+        number or security code) and to charge it later, without further action by you, for any no-show fee owed
+        under this Section 6.6 for that Reservation. This authorization matches the authorization you give in the
+        checkout checkbox. Your card issuer may ask you to approve such a charge; if so, we will email you a link
+        to do so. This authorization applies to each Reservation until the no-show period for it has ended, and you
+        may withdraw it for future Reservations by removing your saved payment method or contacting us.
       </LegalP>
 
       <LegalH2 key="b-53">7. Hotel Overbooking, Availability, and Cancellations</LegalH2>
@@ -544,8 +585,8 @@ export function TermsOfServiceContent() {
         a credit card or cash deposit) to cover incidental expenses you may incur during your stay (for example, room
         service, parking, in-room purchases, damage, or smoking violations). The Hotel — not Death Is A Deadline —
         will determine the amount and method of any such hold, deposit, or charge. Any amount the Hotel
-        pre-authorizes, deposits, or charges at the Hotel is separate from, and in addition to, the prepaid
-        Reservation amount we have already charged on your card. We do not control the timing or release of any hold
+        pre-authorizes, deposits, or charges at the Hotel is separate from, and in addition to, any amount we charged
+        at booking and the balance due at the property for your Reservation. We do not control the timing or release of any hold
         the Hotel places on your payment method. Please confirm these details with the Hotel prior to your travel.
         You may also be required to present a passport or other valid government-issued photo ID, depending on the
         jurisdiction.
@@ -688,8 +729,7 @@ export function TermsOfServiceContent() {
       <LegalP key="b-119">
         Death Is A Deadline each agree to send the other party an individualized notice of the dispute in writing
         (&ldquo;Pre-Dispute Notice&rdquo;) and attempt in good faith to negotiate an informal resolution of the
-        individual claim. If you are bringing the dispute, you must send your Pre-Dispute Notice to Student Deadline
-        Inc. at the address in Section 15(n). If we are bringing the dispute, we will send our Pre-Dispute Notice to
+        individual claim. If you are bringing the dispute, you must send your Pre-Dispute Notice to Deadline Holdings, Inc. at the address in Section 15(n). If we are bringing the dispute, we will send our Pre-Dispute Notice to
         the email address associated with your account. A Pre-Dispute Notice must include: the date, your name,
         mailing address, the email address you used to set up your account, your signature, a brief description of
         the dispute, and the relief sought. If the parties are unable to resolve the dispute within the 30-day period,
@@ -845,6 +885,17 @@ export function TermsOfServiceContent() {
         standard message and data rates may apply according to your wireless rate plan. Contact your carrier for
         pricing plans and details.
       </LegalP>
+      <LegalP key="b-155b">
+        <strong>Deadline text messages.</strong> If you opt in to text messages (for example, by giving us your
+        mobile number and checking the text-message box, or by asking us to pitch a Bid to a Hotel), we will send
+        you text messages about your Bids, offers and counteroffers you asked us to pursue, Reservations, and your
+        account. We send marketing texts only if you separately agree to receive them. Consent to receive text
+        messages is not a condition of any purchase. Message frequency varies. Message and data rates may apply.
+        Reply STOP to any message to opt out, or HELP for help, or email hotels@deadlinetravel.com. Carriers are not
+        liable for delayed or undelivered messages. No mobile information will be shared with third parties or
+        affiliates for marketing or promotional purposes, and text-messaging opt-in data and consent will not be
+        shared with any third parties. See our Privacy Policy for more information.
+      </LegalP>
       <LegalH3 key="b-156">D. Entire Agreement; Severability; Survival</LegalH3>
       <LegalP key="b-157">
         Except as they may be supplemented by additional terms, conditions, policies, guidelines, standards, and
@@ -895,7 +946,7 @@ export function TermsOfServiceContent() {
         The Service and content made available through the Service may be protected by copyright, trademark, patent,
         and/or other laws of the United States and other countries. Death Is A Deadline, the Death Is A Deadline word
         mark, the grim reaper / hourglass logo, the &ldquo;Life is short. Travel now.&rdquo; tagline, and related
-        branding are trademarks of Student Deadline Inc. You acknowledge that all such intellectual property rights
+        branding are trademarks of Deadline Holdings, Inc. You acknowledge that all such intellectual property rights
         are the exclusive property of Death Is A Deadline and/or its licensors and agree that you will not remove,
         alter, or obscure any copyright, trademark, service mark, or other proprietary rights notices. You may not
         use, copy, adapt, modify, prepare derivative works of, distribute, license, sell, transfer, publicly display,
@@ -960,9 +1011,9 @@ export function TermsOfServiceContent() {
         us at:
       </LegalP>
       <LegalP key="b-174">
-        Student Deadline Inc.
+        Deadline Holdings, Inc.
         <br />
-        d/b/a Death Is A Deadline
+        d/b/a Deadline, Deadline Travel, and Death Is A Deadline
         <br />
         Attn: Legal
         <br />
@@ -970,7 +1021,7 @@ export function TermsOfServiceContent() {
         <br />
         Site: DeadlineTravel.com and deathisadeadline.com
       </LegalP>
-      <LegalCopyright text='© 2026 Student Deadline Inc. All rights reserved. Death Is A Deadline, the Death Is A Deadline logo, and "Life is short. Travel now." are trademarks of Student Deadline Inc.' />
+      <LegalCopyright text='© 2026 Deadline Holdings, Inc. All rights reserved. Deadline, Death Is A Deadline, the Deadline logo, and "Life is short. Travel now." are trademarks of Deadline Holdings, Inc.' />
     </>
   );
 }
