@@ -109,6 +109,7 @@ export const useCreatePlace = () => {
         // create (only on edit) — the backend create already reads them.
         reservationPhone: data.reservationPhone,
         dynamicPricingEnabled: data.dynamicPricingEnabled,
+        commissionOnly: data.commissionOnly,
         verticalVideoUrl: data.verticalVideoUrl,
         neighborhoodGuideText: data.neighborhoodGuideText,
         neighborhoodGuideImageUrl: data.neighborhoodGuideImageUrl,

@@ -814,6 +814,7 @@ export async function createPlace(req: Request, res: Response) {
       thresholdPricingMode: threshold.thresholdPricingMode,
       minimumBidByDayOfWeek: threshold.minimumBidByDayOfWeek,
       dynamicPricingEnabled: data.dynamicPricingEnabled ?? true,
+      commissionOnly: data.commissionOnly ?? true,
       prospect: data.prospect ?? false,
       autoAcceptAboveMinimum: true,
       blackoutDates: data.blackoutDates ?? [],
@@ -992,6 +993,9 @@ export async function updatePlace(req: Request, res: Response) {
       autoAcceptAboveMinimum: true,
       ...(data.dynamicPricingEnabled !== undefined && {
         dynamicPricingEnabled: data.dynamicPricingEnabled,
+      }),
+      ...(data.commissionOnly !== undefined && {
+        commissionOnly: data.commissionOnly,
       }),
       ...(data.blackoutDates && { blackoutDates: data.blackoutDates }),
       ...(data.allowedDaysOfWeek && {
