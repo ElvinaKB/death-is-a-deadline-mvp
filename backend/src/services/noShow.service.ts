@@ -118,10 +118,12 @@ export async function chargeNoShow(input: ChargeNoShowInput) {
     );
   }
 
+  // The fee is ours (Terms 6.6); we separately owe the hotel a matching
+  // "no-show payment" under the hotel agreement — same amount, our obligation.
+  const payableToHotel = amount;
+
   // Claim the booking so two clicks can't both charge. A new row is unique on
   // bid_id; a retry only proceeds if it flips FAILED -> PENDING itself.
-  const payableToHotel =
-    Math.round(amount * (1 - STRIPE_CONFIG.PLATFORM_COMMISSION_RATE) * 100) / 100;
   const fields = {
     amount,
     hotelReportedAt: reported,
@@ -521,7 +523,7 @@ async function sendNoShowReceipts(chargeId: string) {
   if (c.bid.place.email) {
     const lines = [
       `Hi ${c.bid.place.name},`,
-      `We've charged the no-show you reported for ${stay}: ${amount}. Your share, ${money(Number(c.payableToHotel ?? 0))}, will be included in your next Deadline payout.`,
+      `We've charged the no-show you reported for ${stay}: ${amount}. Your matching no-show payment of ${money(Number(c.payableToHotel ?? 0))} will be included in your next Deadline payout.`,
       `— Deadline`,
     ];
     await sendPlainEmail({

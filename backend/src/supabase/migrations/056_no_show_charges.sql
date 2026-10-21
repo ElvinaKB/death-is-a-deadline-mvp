@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS public.no_show_charges (
   hotel_reported_at timestamptz NOT NULL,
   notes text,
   failure_reason text,
-  -- What we owe the hotel out of the charge (amount less our 7%).
+  -- The matching no-show payment we owe the hotel (our own obligation).
   payable_to_hotel numeric(10,2),
   is_paid_to_hotel boolean NOT NULL DEFAULT false,
   charged_by uuid,
