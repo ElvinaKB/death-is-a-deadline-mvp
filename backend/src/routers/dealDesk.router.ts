@@ -6,6 +6,9 @@ import {
   alternatives,
   nearMissCron,
   hotel,
+  hotelInsights,
+  insights,
+  saveRule,
   logCall,
   queue,
   saveContact,
@@ -25,5 +28,8 @@ router.get("/hotels/:placeId", hotel);
 router.put("/hotels/:placeId/contact", saveContact);
 router.get("/hotels/:placeId/alternatives", alternatives);
 router.post("/calls", logCall);
+router.get("/insights", insights);
+router.get("/hotels/:placeId/insights", hotelInsights);
+router.put("/hotels/:placeId/rule", saveRule);
 
 export { router };

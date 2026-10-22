@@ -24,7 +24,7 @@ export type DealOutcome = (typeof DEAL_OUTCOMES)[number];
 // Never shown as a call or counted in the scoreboard.
 export const ALERT_MARKER = "EMAIL_ALERT";
 
-function memberPricePerNight(
+export function memberPricePerNight(
   bid: { supplierCost: unknown; totalNights: number },
   place: { supplySource: string; minimumBid: number },
 ): number | null {
@@ -163,6 +163,37 @@ export async function saveHotelContact(
     where: { placeId },
     create: { ...clean, placeId },
     update: clean,
+  });
+}
+
+/** Record (or withdraw) the decision-maker's consent to deal texts. */
+export async function setHotelSmsConsent(placeId: string, consent: boolean, source: string) {
+  return prisma.hotelContact.upsert({
+    where: { placeId },
+    create: consent
+      ? { placeId, smsConsentAt: new Date(), smsOptedOutAt: null, consentSource: source }
+      : { placeId, smsOptedOutAt: new Date(), consentSource: source },
+    update: consent
+      ? { smsConsentAt: new Date(), smsOptedOutAt: null, consentSource: source }
+      : { smsOptedOutAt: new Date(), consentSource: source },
+  });
+}
+
+/** Standing instruction: accept bids at or above this per-night price. */
+export async function saveNegotiationRule(
+  placeId: string,
+  data: { autoAcceptFloorPerNight: number | null; approvedVia: string; notes?: string | null },
+) {
+  const fields = {
+    autoAcceptFloorPerNight: data.autoAcceptFloorPerNight,
+    approvedVia: data.approvedVia,
+    approvedAt: data.autoAcceptFloorPerNight != null ? new Date() : null,
+    notes: data.notes?.trim() || null,
+  };
+  return prisma.hotelNegotiationRule.upsert({
+    where: { placeId },
+    create: { placeId, ...fields },
+    update: fields,
   });
 }
 
