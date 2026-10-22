@@ -15,7 +15,6 @@ export function MarketplaceHero() {
       <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs md:text-sm text-muted">
         {[
           "7,000+ hotels in 200+ US cities",
-          "No card needed to bid",
           "Verified members only",
           "Secure checkout via Stripe",
         ].map((t) => (
