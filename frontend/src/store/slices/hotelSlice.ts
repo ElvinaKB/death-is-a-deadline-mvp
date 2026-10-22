@@ -3,6 +3,8 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 export interface Hotel {
   id: string;
   name: string;
+  slug?: string;
+  status?: string;
   [key: string]: unknown; // extensible for future fields
 }
 

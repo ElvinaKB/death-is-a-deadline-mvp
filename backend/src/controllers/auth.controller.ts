@@ -349,7 +349,7 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
 export async function login(req: Request, res: Response, next: NextFunction) {
   const { email, password } = req.body as LoginRequest;
 
-  let places: { id: string }[] = [];
+  let places: { id: string; name: string; slug: string; status: string }[] = [];
 
   const data = await supabasePasswordLogin({
     email,
@@ -382,7 +382,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     // from the (Supabase-lowercased) account email.
     places = await prisma.place.findMany({
       where: { email: { equals: email, mode: "insensitive" } },
-      select: { id: true, name: true },
+      select: { id: true, name: true, slug: true, status: true },
     });
   }
   // Return user info and session (token)
@@ -747,11 +747,11 @@ export async function resetPassword(
     return res.status(200).json(genericSuccessResponse);
   }
 
-  let places: { id: string }[] = [];
+  let places: { id: string; name: string; slug: string; status: string }[] = [];
   if (data.user?.role === UserRole.HOTEL_OWNER) {
     places = await prisma.place.findMany({
       where: { email: { equals: email, mode: "insensitive" } },
-      select: { id: true, name: true },
+      select: { id: true, name: true, slug: true, status: true },
     });
   }
 

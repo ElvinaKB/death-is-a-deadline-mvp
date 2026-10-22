@@ -1310,11 +1310,39 @@ export async function getHotelDashboardStats(req: Request, res: Response) {
   if (propertyBreakdown.error)
     throw new CustomError(propertyBreakdown.error.message, 400);
 
+  // Room revenue the hotel collects at the desk (Model B = 93% of the room
+  // rate; we keep the 7% booking fee), this calendar month and year to date.
+  // Based on when the booking was confirmed (payment captured).
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const yearStart = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+  const HOTEL_SHARE = 0.93;
+  const [mtd, ytd] = await Promise.all([
+    prisma.bid.aggregate({
+      where: {
+        placeId,
+        status: bid_status.ACCEPTED,
+        payment: { status: payment_status.CAPTURED, capturedAt: { gte: monthStart } },
+      },
+      _sum: { totalAmount: true },
+    }),
+    prisma.bid.aggregate({
+      where: {
+        placeId,
+        status: bid_status.ACCEPTED,
+        payment: { status: payment_status.CAPTURED, capturedAt: { gte: yearStart } },
+      },
+      _sum: { totalAmount: true },
+    }),
+  ]);
+
   const data = {
     ...earningsStats.data,
     ...bookingStats.data,
     ...propertyStats.data,
     propertyStats: propertyBreakdown.data,
+    payableThisMonth: Math.round(Number(mtd._sum.totalAmount ?? 0) * HOTEL_SHARE),
+    payableYearToDate: Math.round(Number(ytd._sum.totalAmount ?? 0) * HOTEL_SHARE),
   };
 
   res.status(200).json({ data });

@@ -1,4 +1,4 @@
-import { Building2, LogOut, Menu } from "lucide-react";
+import { Building2, ExternalLink, LogOut, Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ROUTES } from "../../config/routes.config";
@@ -183,6 +183,24 @@ export function AdminLayout() {
                       {hotel.name}
                     </DropdownMenuItem>
                   ))}
+                  {selectedHotel?.slug && (
+                    <>
+                      <DropdownMenuSeparator className="bg-line" />
+                      <DropdownMenuItem
+                        className="gap-2 cursor-pointer text-fg"
+                        onClick={() =>
+                          window.open(
+                            `/${selectedHotel.slug}`,
+                            "_blank",
+                            "noopener,noreferrer",
+                          )
+                        }
+                      >
+                        <ExternalLink className="h-4 w-4 shrink-0" />
+                        View my listing
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
