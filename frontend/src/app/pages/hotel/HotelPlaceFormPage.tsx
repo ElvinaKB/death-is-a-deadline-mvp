@@ -42,7 +42,10 @@ import {
   DollarSign,
   Tag,
   Info,
+  Plug,
+  PlugZap,
 } from "lucide-react";
+import { Switch } from "../../components/ui/switch";
 import { format } from "date-fns";
 import { ROUTES } from "../../../config/routes.config";
 import { SkeletonLoader } from "../../components/common/SkeletonLoader";
@@ -132,6 +135,7 @@ export function HotelPlaceFormPage() {
       shortDescription: existingPlace?.shortDescription || "",
       fullDescription: existingPlace?.fullDescription || "",
       maxInventory: existingPlace?.maxInventory || 1,
+      dynamicPricingEnabled: existingPlace?.dynamicPricingEnabled ?? true,
       minimumBid: existingPlace?.minimumBid || 0,
       mandatoryResortFeeAmount: existingPlace?.mandatoryResortFeeAmount || 0,
       mandatoryParkingFeeAmount: existingPlace?.mandatoryParkingFeeAmount || 0,
@@ -198,6 +202,7 @@ export function HotelPlaceFormPage() {
           shortDescription: values.shortDescription,
           fullDescription: values.fullDescription,
           maxInventory: values.maxInventory,
+          dynamicPricingEnabled: values.dynamicPricingEnabled,
           ...thresholdPayload,
           mandatoryResortFeeAmount: hasResortFee
             ? values.mandatoryResortFeeAmount
@@ -417,9 +422,75 @@ export function HotelPlaceFormPage() {
         </Card>
       )}
 
-      <form onSubmit={formik.handleSubmit} className="space-y-5 sm:space-y-6">
+      {/* Channel (Cloudbeds) connection status */}
+      {existingPlace && (
+        <Card className="glass-2 border-line bg-glass">
+          <CardContent className="px-4 sm:px-6 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                {existingPlace.channelConnected ? (
+                  <PlugZap className="h-5 w-5 text-success shrink-0" />
+                ) : (
+                  <Plug className="h-5 w-5 text-muted shrink-0" />
+                )}
+                <div>
+                  <p className="text-sm font-medium text-fg">
+                    Cloudbeds channel
+                  </p>
+                  <p className="text-xs text-muted">
+                    {existingPlace.channelConnected
+                      ? `Connected — we're managing your availability via Cloudbeds.${
+                          existingPlace.lastChannelSyncAt
+                            ? ` Last sync ${format(
+                                new Date(existingPlace.lastChannelSyncAt),
+                                "MMM d, h:mm a",
+                              )}.`
+                            : ""
+                        }`
+                      : "Not connected yet — add the Deadline channel in Cloudbeds with your Property ID + password to sync."}
+                  </p>
+                </div>
+              </div>
+              <Badge
+                className={cn(
+                  "text-xs shrink-0",
+                  existingPlace.channelConnected
+                    ? "bg-success/20 text-success"
+                    : "bg-warning/20 text-warning",
+                )}
+              >
+                {existingPlace.channelConnected ? "Connected" : "Not connected"}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Payment model — commission-only (fixed for every Deadline listing) */}
+      <Card className="border-gold/30 bg-gold/5">
+        <CardContent className="px-4 sm:px-6 py-4">
+          <p className="text-sm font-medium text-fg mb-1">
+            How you get paid — Commission-only
+          </p>
+          <p className="text-sm text-muted">
+            We charge the guest only our 7% booking fee at booking. You collect
+            the remaining <strong className="text-fg">93% of the room rate</strong>{" "}
+            at check-in — and{" "}
+            <strong className="text-fg">
+              you add applicable taxes on top of that 93%
+            </strong>
+            . Taxes are never included in the Cloudbeds &ldquo;Balance Due&rdquo;
+            figure; you collect them separately at the front desk.
+          </p>
+        </CardContent>
+      </Card>
+
+      <form
+        onSubmit={formik.handleSubmit}
+        className="flex flex-col gap-5 sm:gap-6"
+      >
         {/* Property Listing */}
-        <Card className="glass-2 border-line">
+        <Card className="glass-2 border-line order-4">
           <CardHeader className="px-4 sm:px-6">
             <CardTitle className="text-fg text-base sm:text-lg">
               Listing Details
@@ -536,7 +607,7 @@ export function HotelPlaceFormPage() {
         </Card>
 
         {/* Inventory */}
-        <Card className="glass-2 border-line">
+        <Card className="glass-2 border-line order-3">
           <CardHeader className="px-4 sm:px-6">
             <CardTitle className="text-fg text-base sm:text-lg">
               Inventory
@@ -572,7 +643,7 @@ export function HotelPlaceFormPage() {
         </Card>
 
         {/* Pricing threshold */}
-        <Card className="glass-2 border-line">
+        <Card className="glass-2 border-line order-1">
           <CardHeader className="px-4 sm:px-6">
             <CardTitle className="text-fg text-base sm:text-lg">
               Pricing Threshold
@@ -632,11 +703,31 @@ export function HotelPlaceFormPage() {
                 formik.setFieldValue("mandatoryParkingFeeAmount", value)
               }
             />
+
+            <div className="flex items-center justify-between gap-4 mt-5 p-4 border border-white/10 rounded-lg">
+              <div className="space-y-0.5 pr-2">
+                <Label className="text-fg text-sm">
+                  Dynamic (real-time) pricing
+                </Label>
+                <p className="text-xs text-muted">
+                  On: a hidden premium floats above your minimum, so the exact
+                  winning bid shifts and can&apos;t be shared. Off: a bid only
+                  needs to meet your minimum to win — use this for exact
+                  &ldquo;bid $X&rdquo; promotions.
+                </p>
+              </div>
+              <Switch
+                checked={formik.values.dynamicPricingEnabled}
+                onCheckedChange={(checked) =>
+                  formik.setFieldValue("dynamicPricingEnabled", checked)
+                }
+              />
+            </div>
           </CardContent>
         </Card>
 
         {/* Availability */}
-        <Card className="glass-2 border-line">
+        <Card className="glass-2 border-line order-2">
           <CardHeader className="px-4 sm:px-6">
             <CardTitle className="text-fg text-base sm:text-lg">
               Availability
@@ -739,7 +830,7 @@ export function HotelPlaceFormPage() {
         </Card>
 
         {/* Sticky footer */}
-        <div className="sticky bottom-0 bg-bg border-t border-white/10 px-4 py-3 flex items-center justify-end gap-3">
+        <div className="order-last sticky bottom-0 bg-bg border-t border-white/10 px-4 py-3 flex items-center justify-end gap-3">
           <Button type="submit" disabled={updatePlace.isPending || isUploading}>
             <Save className="mr-2 h-4 w-4" />
             {isUploading
