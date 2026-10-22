@@ -40,7 +40,7 @@ export function SiteFooter() {
         </nav>
 
         <p className="text-xs text-muted">
-          © {year} Death is a Deadline. All rights reserved to <span className="font-bold text-white">DEADLINE</span>.
+          © {year} Deadline Holdings, Inc. All rights reserved. <span className="font-bold text-white">DEADLINE</span>
         </p>
       </div>
     </footer>

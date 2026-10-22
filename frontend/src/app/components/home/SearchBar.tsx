@@ -174,6 +174,38 @@ export function SearchBar({ onSearch }: SearchBarProps) {
     setOpen(false);
     onSearch?.();
   };
+  // Enter / the search button with typed text and nothing picked: treat it
+  // as a city if it is one ("Miami", "new york"), otherwise a hotel-name
+  // search. Don't depend on the suggestion list having loaded yet.
+  const submitTyped = async () => {
+    const q = text.trim();
+    if (!q) {
+      onSearch?.();
+      return;
+    }
+    if (q === location?.label) {
+      setOpen(false);
+      onSearch?.();
+      return;
+    }
+    let cities = suggestions;
+    if (cities.length === 0) {
+      try {
+        const ctrl = new AbortController();
+        cities = await fetchCitySuggestions(q, geoHint, ctrl.signal);
+      } catch {
+        cities = [];
+      }
+    }
+    const qn = q.toLowerCase().replace(/[^a-z ]/g, "").trim();
+    const match = cities.find((c) => {
+      const city = c.label.split(",")[0]!.toLowerCase();
+      return city === qn || city.startsWith(qn) || qn.startsWith(city);
+    });
+    if (match) pickCity(match);
+    else searchNames();
+  };
+
   const searchNames = () => {
     dispatch(setLocation(null));
     dispatch(setSearchQuery(text.trim()));
@@ -207,10 +239,15 @@ export function SearchBar({ onSearch }: SearchBarProps) {
       setOpen(false);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (active < suggestions.length) pickCity(suggestions[active]!);
-      else if (active < namesIndex) openHotel(hotels[active - hotelStart]!);
-      else if (text.trim()) searchNames();
-      else onSearch?.();
+      if (open && suggestions.length > 0 && active < suggestions.length) {
+        pickCity(suggestions[active]!);
+      } else if (open && active >= hotelStart && active < namesIndex) {
+        openHotel(hotels[active - hotelStart]!);
+      } else if (open && active === namesIndex && suggestions.length + hotels.length > 0) {
+        searchNames();
+      } else {
+        void submitTyped();
+      }
     }
   };
 
@@ -253,7 +290,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
       aria-label="Search hotel listings"
       onSubmit={(e) => {
         e.preventDefault();
-        onSearch?.();
+        void submitTyped();
       }}
     >
       <div

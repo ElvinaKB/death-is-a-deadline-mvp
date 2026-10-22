@@ -144,92 +144,46 @@ export function ReferralsLandingPage() {
               </p>
             </div>
 
-            {/* Dashboard mockup — transparent reporting, paid to bank */}
+            {/* How the payout math works — real terms, no made-up totals */}
             <div>
               <div
                 className="rounded-2xl p-6 shadow-2xl border"
                 style={{ backgroundColor: NAVY, borderColor: "#1e2a44" }}
               >
-                <div className="flex items-center justify-between mb-5">
-                  <p className="text-white font-bold">Your Referral Dashboard</p>
-                  <span
-                    className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full"
-                    style={{ backgroundColor: "rgba(197,160,89,0.15)", color: GOLD }}
-                  >
-                    Live
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  {[
-                    { label: "Earned", value: "$2,140" },
-                    { label: "Bookings", value: "17" },
-                    { label: "Hotels", value: "3" },
-                  ].map((t) => (
-                    <div
-                      key={t.label}
-                      className="rounded-lg px-2 py-3 text-center"
-                      style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
-                    >
-                      <p className="text-[10px] uppercase tracking-wider text-gray-400">
-                        {t.label}
-                      </p>
-                      <p className="text-lg font-black text-white mt-1">
-                        {t.value}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <div
-                  className="rounded-lg px-3 py-2.5 mb-3 flex items-center gap-2"
-                  style={{ backgroundColor: "rgba(197,160,89,0.1)" }}
-                >
-                  <svg
-                    className="w-5 h-5 shrink-0"
-                    style={{ color: GOLD }}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                    />
-                  </svg>
-                  <p className="text-xs text-white">
-                    Paid via ACH to your bank —{" "}
-                    <span className="font-bold" style={{ color: GOLD }}>
-                      no manual entry
-                    </span>
-                  </p>
-                </div>
-
+                <p className="text-white font-bold mb-1">How your payout is calculated</p>
+                <p className="text-xs text-gray-400 mb-5">
+                  Worked example — plug in your hotel&apos;s own numbers.
+                </p>
                 {[
-                  { name: "The Ivy Boutique", city: "Charleston", amt: "$980" },
-                  { name: "Cliffside Inn", city: "Big Sur", amt: "$760" },
-                  { name: "Marlow House", city: "Savannah", amt: "$400" },
-                ].map((h) => (
+                  ["Hotel books through Deadline", "100 nights × $200"],
+                  ["Room revenue", "$20,000"],
+                  ["Deadline's 7% commission", "$1,400"],
+                ].map(([k, v]) => (
                   <div
-                    key={h.name}
-                    className="flex items-center justify-between py-2 border-t"
+                    key={k}
+                    className="flex items-center justify-between py-2.5 border-t"
                     style={{ borderColor: "rgba(255,255,255,0.06)" }}
                   >
-                    <span className="text-sm text-white">
-                      {h.name}{" "}
-                      <span className="text-gray-400">· {h.city}</span>
-                    </span>
-                    <span className="text-sm font-bold" style={{ color: GOLD }}>
-                      {h.amt}
-                    </span>
+                    <span className="text-sm text-gray-300">{k}</span>
+                    <span className="text-sm font-semibold text-white">{v}</span>
                   </div>
                 ))}
+                <div
+                  className="mt-3 rounded-lg px-3 py-3 flex items-center justify-between"
+                  style={{ backgroundColor: "rgba(197,160,89,0.12)" }}
+                >
+                  <span className="text-sm font-bold text-white">
+                    You earn 50% of that
+                  </span>
+                  <span className="text-xl font-black" style={{ color: GOLD }}>
+                    $700
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mt-4">
+                  Paid by ACH to your bank, for the hotel&apos;s first 12 months on
+                  Deadline.
+                </p>
               </div>
-              <p className="text-center text-xs text-gray-400 mt-2">
-                Transparent, real-time reporting. Illustrative figures.
-              </p>
             </div>
           </div>
 

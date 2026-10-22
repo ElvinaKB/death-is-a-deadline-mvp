@@ -29,7 +29,7 @@ export function HowItWorksModal({ triggerClassName }: HowItWorksModalProps) {
         >
           <DialogTitle className="sr-only">How It Works</DialogTitle>
           <DialogDescription className="sr-only">
-            Visual guide explaining the student hotel bidding process.
+            Visual guide to how bidding on a hotel's secret price works.
           </DialogDescription>
           <img
             src={howItWorksImg}

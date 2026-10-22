@@ -555,10 +555,13 @@ export async function listPublicPlaces(req: Request, res: Response) {
     // results in that metro (~100km) — otherwise a name like "Public" matches
     // "Hotel Republic San Diego" and surfaces a hotel across the country.
     const NAME_SEARCH_KM = 100;
-    const scoped =
+    const inMetro =
       searchQuery && searchQuery.trim()
         ? ranked.filter((r) => r.d <= NAME_SEARCH_KM)
         : ranked;
+    // Nothing nearby (e.g. "Miami" typed from LA): it's a place elsewhere,
+    // not a local hotel name — show the matches wherever they are.
+    const scoped = inMetro.length > 0 ? inMetro : ranked;
     total = scoped.length;
     const pageIds = scoped.slice(skip, skip + limit).map((r) => r.id);
     const rows = await findPublicPage({ id: { in: pageIds } });

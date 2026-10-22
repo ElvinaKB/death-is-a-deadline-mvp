@@ -225,7 +225,7 @@ export function ResetPasswordPage() {
             {/* Logo/Brand */}
             <div className="flex items-center gap-2 mb-8">
               <span className="text-xl font-bold text-fg">
-                Death is a Deadline
+                DEADLINE
               </span>
             </div>
 
