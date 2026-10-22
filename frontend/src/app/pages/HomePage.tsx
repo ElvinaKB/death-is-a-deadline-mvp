@@ -96,14 +96,26 @@ export function HomePage() {
   //    page at a time ("Show more hotels"). Waits for the location hint so
   //    the first page is already the closest hotels.
   const [wholesaleLimit, setWholesaleLimit] = useState(WHOLESALE_PAGE);
+  // "Search this area": the map viewport the user panned to (pending) and the
+  // one they applied (active). A new text/city search clears both.
+  const [pendingBbox, setPendingBbox] = useState<string | null>(null);
+  const [activeBbox, setActiveBbox] = useState<string | null>(null);
   useEffect(() => {
     setWholesaleLimit(WHOLESALE_PAGE);
+    setPendingBbox(null);
+    setActiveBbox(null);
   }, [searchDebounced, listDate, maxBidDebounced, location]);
+  // When an area is applied, filter to that box; otherwise order nearest-first.
+  const geoScope = activeBbox
+    ? { bbox: activeBbox }
+    : near
+      ? { near }
+      : {};
   const wholesaleParams = {
     ...baseParams,
     source: "wholesale",
     limit: wholesaleLimit,
-    ...(near && { near }),
+    ...geoScope,
   };
   const {
     data: wholesaleData,
@@ -125,14 +137,14 @@ export function HomePage() {
       QUERY_KEYS.PLACES,
       "public",
       "wholesale-map",
-      { ...baseParams, near, limit: MAP_PIN_LIMIT },
+      { ...baseParams, ...geoScope, limit: MAP_PIN_LIMIT },
     ],
     endpoint: ENDPOINTS.PLACES_PUBLIC,
     params: {
       ...baseParams,
       source: "wholesale",
       limit: MAP_PIN_LIMIT,
-      ...(near && { near }),
+      ...geoScope,
     },
     enabled: WHOLESALE_UI_ENABLED && (geoFetched || geoError),
   });
@@ -244,12 +256,28 @@ export function HomePage() {
           <HowItWorksModal
             triggerClassName="absolute top-4 right-4 z-10 text-sm font-medium text-fg hover:text-fg/80 transition-colors"
           />
+          {/* Search-this-area: appears after the user pans/zooms to a new box */}
+          {WHOLESALE_UI_ENABLED &&
+            pendingBbox &&
+            pendingBbox !== activeBbox && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveBbox(pendingBbox);
+                  setPendingBbox(null);
+                }}
+                className="absolute top-4 left-1/2 -translate-x-1/2 z-10 h-10 px-5 rounded-full bg-bg/90 border border-gold/60 text-sm font-semibold text-gold shadow-lg backdrop-blur hover:bg-gold/10"
+              >
+                Search this area
+              </button>
+            )}
           <Suspense fallback={<div className="flex-1 bg-bg" />}>
             <PlacesMap
               places={mapPlaces}
               focusPlaces={mapFocus}
               selectedPlaceId={hoveredPlaceId || selectedPlaceId}
               onPlaceSelect={setSelectedPlaceId}
+              onUserMove={(b) => setPendingBbox(b.join(","))}
             />
           </Suspense>
         </div>

@@ -233,6 +233,12 @@ export const publicPlacesQuerySchema = z.object({
     .string()
     .regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/)
     .optional(),
+  // Map viewport "minLng,minLat,maxLng,maxLat" — when set, only hotels inside
+  // the visible map area are returned ("search this area").
+  bbox: z
+    .string()
+    .regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$/)
+    .optional(),
 });
 
 export const resendHotelInviteSchema = z.object({

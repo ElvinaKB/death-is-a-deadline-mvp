@@ -458,6 +458,7 @@ export async function listPublicPlaces(req: Request, res: Response) {
     date,
     source = "direct",
     near,
+    bbox,
   } = req.query as unknown as PublicPlacesQuery;
 
   const skip = (page - 1) * limit;
@@ -477,6 +478,16 @@ export async function listPublicPlaces(req: Request, res: Response) {
   // City filter (exact match, case-insensitive)
   if (city && city.trim()) {
     where.city = { equals: city, mode: "insensitive" };
+  }
+
+  // Map-viewport filter ("search this area"): only hotels inside the visible
+  // box. Lets a member pan to Brooklyn/Queens and see those hotels.
+  if (bbox && bbox.trim()) {
+    const [minLng, minLat, maxLng, maxLat] = bbox.split(",").map(Number);
+    if ([minLng, minLat, maxLng, maxLat].every((n) => Number.isFinite(n))) {
+      where.latitude = { gte: minLat, lte: maxLat };
+      where.longitude = { gte: minLng, lte: maxLng };
+    }
   }
 
   // Search filter (name or city)
