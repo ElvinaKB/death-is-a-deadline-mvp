@@ -116,12 +116,34 @@ export function HomePage() {
     enabled: WHOLESALE_UI_ENABLED && (geoFetched || geoError),
   });
 
+  // Map pins: a denser, nearest-first set just for the map — so the whole
+  // metro shows (e.g. all five boroughs + Jersey when you search New York),
+  // decoupled from the paginated list below. Clustering keeps it light.
+  const MAP_PIN_LIMIT = 250;
+  const { data: mapData } = useApiQuery<PlacesResponse>({
+    queryKey: [
+      QUERY_KEYS.PLACES,
+      "public",
+      "wholesale-map",
+      { ...baseParams, near, limit: MAP_PIN_LIMIT },
+    ],
+    endpoint: ENDPOINTS.PLACES_PUBLIC,
+    params: {
+      ...baseParams,
+      source: "wholesale",
+      limit: MAP_PIN_LIMIT,
+      ...(near && { near }),
+    },
+    enabled: WHOLESALE_UI_ENABLED && (geoFetched || geoError),
+  });
+
   const directPlaces = useMemo(
     () => sortPlacesByProximity(data?.places ?? [], geoHint),
     [data?.places, geoHint],
   );
   const wholesalePlaces = wholesaleData?.places ?? [];
   const wholesaleTotal = wholesaleData?.total ?? 0;
+  const mapPins = mapData?.places ?? [];
 
   // Partner hotels near the viewer (or matching their search) are pinned on
   // top; partners in other cities slot into the wholesale list at their real
@@ -154,10 +176,17 @@ export function HomePage() {
     ].sort((a, b) => dist(a) - dist(b));
     return { featuredPlaces: nearby, places: merged };
   }, [directPlaces, wholesalePlaces, wholesaleTotal, geoHint, searchDebounced]);
-  // Frame the map on what the viewer sees first, not every pin statewide.
+  // The map plots a denser, nearest-first set (so the whole metro shows when
+  // you zoom out); fall back to the list while that loads.
+  const mapPlaces = useMemo(
+    () => [...featuredPlaces, ...(mapPins.length ? mapPins : places)],
+    [featuredPlaces, mapPins, places],
+  );
+  // Frame on the nearest ~24 so the opening view spans the local area (not one
+  // tight cluster), while the rest of the metro is a zoom-out away.
   const mapFocus = useMemo(
-    () => [...featuredPlaces, ...places.slice(0, 8)],
-    [featuredPlaces, places],
+    () => [...featuredPlaces, ...(mapPins.length ? mapPins : places).slice(0, 24)],
+    [featuredPlaces, mapPins, places],
   );
 
   const handleSearch = useCallback(() => {
@@ -217,7 +246,7 @@ export function HomePage() {
           />
           <Suspense fallback={<div className="flex-1 bg-bg" />}>
             <PlacesMap
-              places={[...featuredPlaces, ...places]}
+              places={mapPlaces}
               focusPlaces={mapFocus}
               selectedPlaceId={hoveredPlaceId || selectedPlaceId}
               onPlaceSelect={setSelectedPlaceId}
