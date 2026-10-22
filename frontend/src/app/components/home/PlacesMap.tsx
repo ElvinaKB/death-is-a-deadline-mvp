@@ -377,7 +377,7 @@ export function PlacesMap({
                 <h4 className="map-popup-name">{popupInfo.name}</h4>
                 <div className="map-popup-price-row">
                   <span className="map-popup-retail">
-                    {popupInfo.supplySource === "wholesale" ? "Public price" : "Retail"}{" "}
+                    Public price{" "}
                     <b>{formatCurrency(popupInfo.retailPrice)}</b>
                   </span>
                   <span className="map-popup-secret">

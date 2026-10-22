@@ -1,0 +1,26 @@
+name: Near-miss alerts
+
+# Every ~10 minutes: email hotels@ about members who stopped bidding 30+ min
+# ago without booking and were close to the secret price (each once). Uses the
+# same repo secrets as the wholesale import. Skips quietly if they aren't set.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger near-miss alerts
+        env:
+          API: ${{ secrets.BACKEND_API_URL }}
+          SECRET: ${{ secrets.WHOLESALE_CRON_SECRET }}
+        run: |
+          if [ -z "$API" ] || [ -z "$SECRET" ]; then
+            echo "BACKEND_API_URL / WHOLESALE_CRON_SECRET not set — skipping."
+            exit 0
+          fi
+          curl -fsS -X POST "$API/api/deal-desk/near-miss/cron" \
+            -H "x-cron-secret: $SECRET" --max-time 120

@@ -98,7 +98,7 @@ export function PlaceListItem({
         <div className="sm:hidden mt-3 flex items-center gap-3">
           <div className="flex flex-col shrink-0">
             <span className="text-[10px] font-semibold tracking-[0.14em] text-[hsl(0_0%_50%)] uppercase">
-              {place.supplySource === "wholesale" ? "Public price" : "Retail"}
+              Public price
             </span>
             <span className="text-lg font-bold text-fg whitespace-nowrap">
               {formatCurrency(place.retailPrice)}
@@ -120,7 +120,7 @@ export function PlaceListItem({
       <div className="hidden sm:flex text-right shrink-0 py-1 flex-col justify-end gap-2 min-w-[84px]">
         <div className="flex flex-col items-end gap-0.5">
           <span className="text-[10px] font-semibold tracking-[0.14em] text-[hsl(0_0%_50%)] uppercase shrink-0">
-            {place.supplySource === "wholesale" ? "Public price" : "Retail"}
+            Public price
           </span>
           <span className="text-lg font-bold text-fg whitespace-nowrap">
             {formatCurrency(place.retailPrice)}

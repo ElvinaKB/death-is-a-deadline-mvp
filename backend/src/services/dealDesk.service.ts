@@ -4,6 +4,7 @@ import { prisma } from "../libs/config/prisma";
 import { toCalendarDateKey } from "../libs/utils/hotelDates";
 import { buildSessions, loadBidsAndExits } from "./analytics.service";
 import { WHOLESALE_CONFIG } from "./wholesale.service";
+import { sendPlainEmail } from "../email/sendEmail";
 
 // Deal desk (Stage 1, human calls): members whose best-and-final bid fell a
 // little short of a hotel's secret price, so Elvina can call the hotel and ask
@@ -18,6 +19,10 @@ export const DEAL_OUTCOMES = [
   "CONTACT_CAPTURED",
 ] as const;
 export type DealOutcome = (typeof DEAL_OUTCOMES)[number];
+
+// Internal row marking "the near-miss email already went out for this bid".
+// Never shown as a call or counted in the scoreboard.
+export const ALERT_MARKER = "EMAIL_ALERT";
 
 function memberPricePerNight(
   bid: { supplierCost: unknown; totalNights: number },
@@ -65,7 +70,7 @@ export async function dealQueue(opts: {
     }),
     prisma.hotelContact.findMany({ where: { placeId: { in: placeIds } } }),
     prisma.dealCall.findMany({
-      where: { placeId: { in: placeIds } },
+      where: { placeId: { in: placeIds }, outcome: { not: ALERT_MARKER } },
       orderBy: { createdAt: "desc" },
     }),
   ]);
@@ -139,7 +144,7 @@ export async function hotelDealHistory(placeId: string) {
   const [contact, calls] = await Promise.all([
     prisma.hotelContact.findUnique({ where: { placeId } }),
     prisma.dealCall.findMany({
-      where: { placeId },
+      where: { placeId, outcome: { not: ALERT_MARKER } },
       orderBy: { createdAt: "desc" },
       take: 50,
     }),
@@ -196,7 +201,9 @@ export async function logDealCall(data: {
 
 export async function dealStats(days: number) {
   const since = addDays(new Date(), -days);
-  const calls = await prisma.dealCall.findMany({ where: { createdAt: { gte: since } } });
+  const calls = await prisma.dealCall.findMany({
+    where: { createdAt: { gte: since }, outcome: { not: ALERT_MARKER } },
+  });
   const reached = calls.filter((c) => c.outcome !== "NO_ANSWER");
   const yes = calls.filter((c) => c.outcome === "YES");
   const counters = calls.filter(
@@ -265,4 +272,78 @@ export async function dealAlternatives(placeId: string, maxPerNight: number) {
     .map((p) => ({ ...p, km: Math.round(km(p.latitude!, p.longitude!) * 10) / 10 }))
     .sort((a, b) => Number(b.supplySource === "direct") - Number(a.supplySource === "direct") || a.km - b.km)
     .slice(0, 6);
+}
+
+// ---------- Near-miss email (runs every ~10 min from GitHub Actions) ----------
+
+const NEAR_MISS_MAX_GAP_PCT = Number(process.env.NEAR_MISS_MAX_GAP_PCT ?? 10);
+const NEAR_MISS_QUIET_MIN = 30; // wait this long after the member's last bid
+const NEAR_MISS_MAX_AGE_H = 12; // don't alert on stale sessions
+
+const esc = (v: unknown) =>
+  String(v ?? "").replace(/[&<>"]/g, (c) =>
+    c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" : "&quot;",
+  );
+
+/**
+ * Email hotels@ about members who stopped bidding 30+ minutes ago without
+ * booking and were close to the secret price. Server-side bids only, so it
+ * works whether or not the member accepted cookies. Each session once.
+ */
+export async function sendNearMissAlerts(): Promise<{ sent: number }> {
+  const now = Date.now();
+  const rows = (
+    await dealQueue({ days: 2, maxGapPct: NEAR_MISS_MAX_GAP_PCT, includeCalled: false })
+  ).filter((r) => {
+    const age = now - r.lastBidAt.getTime();
+    return (
+      r.gapPct != null &&
+      age >= NEAR_MISS_QUIET_MIN * 60_000 &&
+      age <= NEAR_MISS_MAX_AGE_H * 3_600_000
+    );
+  });
+  if (rows.length === 0) return { sent: 0 };
+
+  const already = await prisma.dealCall.findMany({
+    where: { outcome: ALERT_MARKER, bidId: { in: rows.map((r) => r.bestBidId) } },
+    select: { bidId: true },
+  });
+  const done = new Set(already.map((a) => a.bidId));
+  const fresh = rows.filter((r) => !done.has(r.bestBidId));
+  if (fresh.length === 0) return { sent: 0 };
+
+  const money = (n: number | null) => (n == null ? "—" : `$${Math.round(n)}`);
+  const lines = fresh
+    .map(
+      (r) => `<tr>
+  <td style="padding:6px 8px;border-top:1px solid #ddd"><strong>${esc(r.hotel)}</strong><br/><span style="color:#666">${esc(r.city)} · ${r.supplySource === "wholesale" ? "Wholesale" : "Partner"}${r.contact?.phone ? ` · ${esc(r.contact.phone)}` : ""}</span></td>
+  <td style="padding:6px 8px;border-top:1px solid #ddd">${esc(r.memberName ?? r.memberFirstName)}<br/><span style="color:#666">${esc(r.memberEmail)}</span></td>
+  <td style="padding:6px 8px;border-top:1px solid #ddd">${esc(r.checkInDate)} → ${esc(r.checkOutDate)} (${r.nights}n)</td>
+  <td style="padding:6px 8px;border-top:1px solid #ddd">${money(r.bestBidPerNight)}/night<br/><span style="color:#666">${r.bidsInSession} bid${r.bidsInSession === 1 ? "" : "s"}${r.walkedAway ? " · left the page" : ""}</span></td>
+  <td style="padding:6px 8px;border-top:1px solid #ddd">${money(r.memberPricePerNight)} · <strong>${r.gapPct}% short</strong></td>
+</tr>`,
+    )
+    .join("");
+
+  await sendPlainEmail({
+    to: WHOLESALE_CONFIG.NOTIFY_EMAIL,
+    subject: `Near miss: ${fresh.length === 1 ? `${fresh[0]!.hotel} — ${fresh[0]!.gapPct}% short` : `${fresh.length} members just missed`}`,
+    html: `<p style="font-size:15px"><strong>Go time.</strong> ${fresh.length === 1 ? "A member" : `${fresh.length} members`} stopped bidding 30+ minutes ago without booking, close to the secret price.</p>
+<table style="border-collapse:collapse;font-size:13px">
+<tr style="text-align:left;color:#666"><th style="padding:6px 8px">Hotel</th><th style="padding:6px 8px">Member</th><th style="padding:6px 8px">Stay</th><th style="padding:6px 8px">Best bid</th><th style="padding:6px 8px">Secret price</th></tr>
+${lines}
+</table>
+<p><a href="https://www.deadlinetravel.com/admin/deal-desk">Open the Deal desk →</a></p>
+<p style="color:#888;font-size:12px">Internal only. On a call, quote the member's bid — never the secret price or the % gap (for wholesale those come from Nuitée's rates).</p>`,
+  });
+
+  await prisma.dealCall.createMany({
+    data: fresh.map((r) => ({
+      placeId: r.placeId,
+      bidId: r.bestBidId,
+      memberId: r.memberId,
+      outcome: ALERT_MARKER,
+    })),
+  });
+  return { sent: fresh.length };
 }

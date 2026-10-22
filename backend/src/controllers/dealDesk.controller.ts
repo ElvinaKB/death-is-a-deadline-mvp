@@ -9,6 +9,7 @@ import {
   hotelDealHistory,
   logDealCall,
   saveHotelContact,
+  sendNearMissAlerts,
 } from "../services/dealDesk.service";
 
 const num = (v: unknown, fallback: number, min: number, max: number) => {
@@ -71,4 +72,10 @@ export async function alternatives(req: Request, res: Response) {
   res.status(200).json({
     data: { hotels: await dealAlternatives(req.params.placeId!, max) },
   });
+}
+
+/** Cron (GitHub Actions, every ~10 min): near-miss email to the team. */
+export async function nearMissCron(_req: Request, res: Response) {
+  const result = await sendNearMissAlerts();
+  res.status(200).json({ data: result });
 }
