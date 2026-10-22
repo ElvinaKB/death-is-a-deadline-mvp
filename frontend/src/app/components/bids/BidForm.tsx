@@ -43,6 +43,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useBidForPlace, useCreateBid } from "../../../hooks/useBids";
+import { useWholesaleQuote } from "../../../hooks/useWholesale";
 import { WholesalePricePanel } from "./WholesalePricePanel";
 import { NuiteeCheckout, NuiteeCheckoutSession } from "./NuiteeCheckout";
 import { apiClient } from "../../../lib/apiClient";
@@ -467,6 +468,7 @@ function BidFormInner({
   const [revealTriesLeft, setRevealTriesLeft] = useState<number | null>(null);
   // What the hotel collects at check-in on top of the revealed price (stay total).
   const [revealAtHotel, setRevealAtHotel] = useState<number | null>(null);
+  const [revealFeePerNight, setRevealFeePerNight] = useState<number | null>(null);
   // Wholesale: Nuitee payment session for a winning bid (Nuitee charges).
   const [nuiteeCheckout, setNuiteeCheckout] = useState<NuiteeCheckoutSession | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
@@ -1286,6 +1288,8 @@ function BidFormInner({
                 losingBids?: number;
                 revealAfter?: number;
                 payAtHotel?: number;
+                payAtHotelNonTax?: number;
+                nights?: number;
               }
             | undefined;
           const revealed = lowBid?.revealedPricePerNight;
@@ -1296,6 +1300,11 @@ function BidFormInner({
           );
           if (revealed) {
             setRevealAtHotel(Number(lowBid?.payAtHotel ?? 0));
+            setRevealFeePerNight(
+              Math.ceil(
+                Number(lowBid?.payAtHotelNonTax ?? 0) / Math.max(1, Number(lowBid?.nights ?? 1)),
+              ),
+            );
             setRevealedPricePerNight(revealed);
             void formik.setFieldValue("bidPerNight", String(revealed));
           }
@@ -1486,6 +1495,19 @@ function BidFormInner({
       stayDateOptions,
     ],
   );
+
+  // Wholesale: the hotel's mandatory non-tax fee for these dates — shown inside
+  // every bid total (CA SB 478 / FTC: totals must include mandatory fees).
+  const { data: feeQuote } = useWholesaleQuote(
+    placeId,
+    toApiDateOnly(formik.values.checkInDate),
+    toApiDateOnly(formik.values.checkOutDate),
+    isWholesalePlace && isAuthenticated,
+  );
+  const wholesaleFeeTotal =
+    isWholesalePlace && feeQuote?.available
+      ? Math.round(Number(feeQuote.payAtHotelNonTax ?? 0) * 100) / 100
+      : 0;
 
   const datesProceedError = useMemo(
     () =>
@@ -1894,6 +1916,8 @@ function BidFormInner({
         paymentError={paymentError}
         revealedPricePerNight={revealedPricePerNight}
         revealAtHotel={revealAtHotel}
+        revealFeePerNight={revealFeePerNight}
+        mandatoryFeeTotal={wholesaleFeeTotal}
         revealTriesLeft={revealTriesLeft}
         scrollToHeaderTrigger={
           shouldShowRejectedOutcome(bidResult!.bidStatus)
@@ -2135,6 +2159,7 @@ function BidFormInner({
                     bidPerNight={Number(formik.values.bidPerNight)}
                     nights={nights}
                     totalAmount={totalAmount}
+                    mandatoryFeeTotal={wholesaleFeeTotal}
                   />
                 )}
               {!isAuthenticated && (
@@ -2437,7 +2462,7 @@ function BidFormInner({
 
       <div className="rounded-lg border border-gold/25 bg-gold/5 px-3 py-2 text-center">
         <p className="text-xs text-muted uppercase tracking-wider mb-0.5">
-          Retail rate
+          {isWholesalePlace ? "Public price" : "Retail rate"}
         </p>
         <p className="retail-anchor-value">{formatCurrency(place.retailPrice)}</p>
         <p className="text-xs text-muted">/ night · anchor price</p>
@@ -2595,7 +2620,7 @@ function BidFormInner({
                 {formik.errors.bidPerNight}
               </p>
             )}
-            {savingsPercent > 0 && (
+            {savingsPercent > 0 && !isWholesalePlace && (
               <p className="text-sm text-success">
                 {savingsPercent}% below retail · binding if accepted
               </p>
@@ -2626,7 +2651,7 @@ function BidFormInner({
               </span>
             </div>
             <div className="flex justify-between text-muted">
-              <span>Retail rate</span>
+              <span>{isWholesalePlace ? "Public price" : "Retail rate"}</span>
               <span className="retail-anchor">
                 {formatCurrency(place.retailPrice)}/night
               </span>

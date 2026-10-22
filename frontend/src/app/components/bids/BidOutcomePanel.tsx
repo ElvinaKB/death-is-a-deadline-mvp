@@ -45,6 +45,10 @@ interface BidOutcomePanelProps {
   revealedPricePerNight?: number | null;
   /** Wholesale: paid at the hotel at check-in on top of the revealed price (stay total). */
   revealAtHotel?: number | null;
+  /** Wholesale: mandatory non-tax hotel fee per night (inside the shown price). */
+  revealFeePerNight?: number | null;
+  /** Wholesale: mandatory non-tax hotel fee for the stay, added to totals. */
+  mandatoryFeeTotal?: number;
   /** Wholesale: misses left before the member price is revealed. */
   revealTriesLeft?: number | null;
 }
@@ -66,6 +70,8 @@ export function BidOutcomePanel({
   revealedPricePerNight,
   revealTriesLeft,
   revealAtHotel,
+  revealFeePerNight,
+  mandatoryFeeTotal = 0,
 }: BidOutcomePanelProps) {
   const isBusy = isRebidding || isProcessingBid;
   // Per-listing payment model (defaults to commission-only / Model B).
@@ -264,14 +270,20 @@ export function BidOutcomePanel({
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold">
             Your member price
           </p>
+          {/* All-in headline: mandatory hotel fees must be inside the price
+              shown (CA SB 478 / FTC fee rule); only taxes may sit outside. */}
           <p className="text-4xl font-bold text-fg tabular-nums">
-            {formatCurrency(revealedPricePerNight)}
+            {formatCurrency(revealedPricePerNight + (revealFeePerNight ?? 0))}
             <span className="text-base font-normal text-muted"> / night</span>
           </p>
           <p className="text-sm text-fg">
-            {revealAtHotel && revealAtHotel > 0
-              ? `Room taxes included. + ${formatCurrency(revealAtHotel)} hotel fee & local taxes paid at check-in (whole stay).`
-              : "Taxes and fees included — nothing extra at check-in."}
+            {(revealFeePerNight ?? 0) > 0
+              ? `Includes the hotel's mandatory ${formatCurrency(revealFeePerNight!)}/night fee, paid at check-in.`
+              : "Includes all mandatory fees."}{" "}
+            {revealAtHotel != null &&
+            revealAtHotel - (revealFeePerNight ?? 0) * Math.max(1, nights) > 0.5
+              ? "Local taxes are added at check-in."
+              : "Room taxes included."}
           </p>
           <p className="text-sm text-muted">
             You earned the answer. Book it at this price, or keep bidding.
@@ -283,7 +295,8 @@ export function BidOutcomePanel({
               onClick={() => onRebid(revealedPricePerNight)}
               className="listing-card-bid-btn h-11 w-full rounded-lg text-sm uppercase"
             >
-              Book it at {formatCurrency(revealedPricePerNight)}/night
+              Book it — {formatCurrency(revealedPricePerNight + (revealFeePerNight ?? 0))}/night
+              {(revealFeePerNight ?? 0) > 0 ? " incl. fees" : ""}
             </button>
           )}
         </div>
@@ -331,6 +344,7 @@ export function BidOutcomePanel({
           bidPerNight={newBidPerNight}
           nights={nights}
           totalAmount={newTotal}
+          mandatoryFeeTotal={mandatoryFeeTotal}
         />
       )}
 

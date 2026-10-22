@@ -18,6 +18,9 @@ export interface BidPriceBreakdownProps {
   className?: string;
   surface?: BidPriceBreakdownSurface;
   showTotalLabel?: boolean;
+  /** Mandatory non-tax hotel fee for the whole stay (paid at check-in). By
+   * law (CA SB 478 / FTC fee rule) it has to be inside the total shown. */
+  mandatoryFeeTotal?: number;
 }
 
 function SummaryRow({
@@ -46,6 +49,7 @@ export function BidPriceBreakdown({
   className,
   surface = "listing",
   showTotalLabel = true,
+  mandatoryFeeTotal = 0,
 }: BidPriceBreakdownProps) {
   if (nights <= 0 || bidPerNight <= 0) {
     return null;
@@ -69,13 +73,22 @@ export function BidPriceBreakdown({
         label="Nights"
         value={`${nights} night${nights !== 1 ? "s" : ""}`}
       />
+      {mandatoryFeeTotal > 0 && (
+        <SummaryRow
+          label="Mandatory hotel fee (paid at check-in)"
+          value={`+ ${formatCurrency(mandatoryFeeTotal)}`}
+        />
+      )}
       <div className="bid-summary-total">
         <SummaryRow
-          label={totalLabel}
-          value={formatCurrency(totalAmount)}
+          label={mandatoryFeeTotal > 0 ? `${totalLabel} (incl. fees)` : totalLabel}
+          value={formatCurrency(totalAmount + mandatoryFeeTotal)}
           valueClassName="bid-summary-total__amount"
         />
       </div>
+      {mandatoryFeeTotal > 0 && (
+        <p className="text-xs text-muted">Local taxes may be added at check-in.</p>
+      )}
     </>
   );
 

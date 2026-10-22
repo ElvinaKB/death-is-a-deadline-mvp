@@ -253,7 +253,7 @@ export function BidLockInModal({
               </span>
             </div>
             <div className="flex justify-between text-fg">
-              <span>Retail reference</span>
+              <span>{place.supplySource === "wholesale" ? "Public price" : "Retail reference"}</span>
               <span>{formatCurrency(retailTotal)}</span>
             </div>
             <div className="flex justify-between text-fg">
