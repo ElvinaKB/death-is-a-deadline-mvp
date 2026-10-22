@@ -182,6 +182,16 @@ model PlaceView {
 // First-party "left the listing" events (consent-gated like PlaceView). With
 // the bids table they give each bidding session's best-and-final offer and
 // whether the member walked away without booking. See analytics.service.
+/// Company email domains auto-approved at sign-up (admin-managed).
+model ApprovedEmailDomain {
+  domain    String   @id
+  label     String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("approved_email_domains")
+  @@schema("public")
+}
+
 /// Deal desk: the decision-maker we reach at a hotel (one per hotel).
 model HotelContact {
   placeId   String   @id @map("place_id")

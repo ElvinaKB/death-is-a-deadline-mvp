@@ -113,6 +113,8 @@ export const ENDPOINTS = {
   ANALYTICS_MEMBERS: "/api/analytics/members",
   ANALYTICS_BIDS_OVERVIEW: "/api/analytics/bids/overview",
   DEAL_DESK_QUEUE: "/api/deal-desk/queue",
+  AUTH_EMAIL_AUTO_VERIFIED: "/api/auth/email-auto-verified",
+  APPROVED_DOMAINS: "/api/approved-domains",
   DEAL_DESK_STATS: "/api/deal-desk/stats",
   DEAL_DESK_HOTEL: "/api/deal-desk/hotels/:placeId",
   DEAL_DESK_CONTACT: "/api/deal-desk/hotels/:placeId/contact",

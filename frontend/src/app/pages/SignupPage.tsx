@@ -5,6 +5,7 @@ import { useNavigate, Link, useLocation, useSearchParams } from "react-router-do
 import { signupSchema } from "../../utils/validationSchemas";
 import { getFieldError, getFieldDescribedBy, getFieldErrorId } from "../../utils/formikHelpers";
 import { isAutoVerifiedEmail } from "../../utils/emailValidator";
+import { apiClient } from "../../lib/apiClient";
 import { ANALYTICS_EVENTS, trackEvent } from "../../utils/analytics";
 import { useApiMutation } from "../../hooks/useApi";
 import { ENDPOINTS } from "../../config/endpoints.config";
@@ -144,20 +145,41 @@ export function SignupPage() {
   const isImageUploaded = !!needsIdUpload ? !!selectedFile : true;
   const emailDebounced = useDebounce(formik.values.email, 300);
 
+  // Auto-verified = .edu/.gov/partner (checked here) or a company domain
+  // added in the admin (checked on the server). Decides ID upload vs not.
+  const [serverVerified, setServerVerified] = useState<{ email: string; ok: boolean } | null>(null);
+  const emailAutoVerified =
+    isAutoVerifiedEmail(formik.values.email) ||
+    (serverVerified?.email === formik.values.email.trim().toLowerCase() && serverVerified.ok);
+
+  useEffect(() => {
+    const email = emailDebounced?.trim().toLowerCase();
+    if (!email || !email.includes("@") || isAutoVerifiedEmail(email)) return;
+    let cancelled = false;
+    apiClient
+      .get<{ autoVerified: boolean }>(
+        `${ENDPOINTS.AUTH_EMAIL_AUTO_VERIFIED}?email=${encodeURIComponent(email)}`,
+      )
+      .then((r) => {
+        if (!cancelled) setServerVerified({ email, ok: !!r.autoVerified });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [emailDebounced]);
+
   // Check if email needs ID upload
   useEffect(() => {
-    const handleEmailBlur = () => {
-      if (emailDebounced && !isAutoVerifiedEmail(emailDebounced)) {
-        setNeedsIdUpload(true);
-      } else {
-        setNeedsIdUpload(false);
-        setSelectedFile(null);
-        formik.setFieldValue("studentIdCard", undefined);
-      }
-    };
-
-    handleEmailBlur();
-  }, [emailDebounced]);
+    if (emailDebounced && !emailAutoVerified) {
+      setNeedsIdUpload(true);
+    } else {
+      setNeedsIdUpload(false);
+      setSelectedFile(null);
+      formik.setFieldValue("studentIdCard", undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emailDebounced, emailAutoVerified]);
 
   return (
     <div className="min-h-screen bg-bg diad-vignette">
@@ -307,7 +329,7 @@ export function SignupPage() {
                   )}
                   {formik.values.email && !getFieldError("email", formik) && (
                     <>
-                      {isAutoVerifiedEmail(formik.values.email) ? (
+                      {emailAutoVerified ? (
                         <Alert className="border-success/30 bg-success/10">
                           <AlertDescription className="text-success text-sm">
                             Verified email domain detected. Your account will
@@ -318,10 +340,9 @@ export function SignupPage() {
                         <Alert className="border-brand/30 bg-brand/10">
                           <AlertCircle className="h-4 w-4 text-brand" />
                           <AlertDescription className="text-brand-2 text-sm">
-                            Instantly verify with .edu, .gov, and approved
-                            partner organizations. Others need manual
-                            verification — upload supporting documentation
-                            or verify with LinkedIn below.
+                            Instantly verified with .edu, .gov, approved
+                            company emails, or LinkedIn below. Otherwise upload
+                            supporting documentation for a quick manual review.
                           </AlertDescription>
                         </Alert>
                       )}
