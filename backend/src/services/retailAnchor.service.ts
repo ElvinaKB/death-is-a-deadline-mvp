@@ -27,6 +27,7 @@ interface Coords {
  */
 export async function matchRetailAnchorHotelId(
   place: Coords,
+  opts: { liveSearch?: boolean } = {},
 ): Promise<string | null> {
   const { city, latitude, longitude } = place;
   if (latitude == null || longitude == null) return null;
@@ -55,8 +56,10 @@ export async function matchRetailAnchorHotelId(
     if (best) return best.id;
   }
 
-  // 2) Fall back to a live LiteAPI search (for hotels not yet imported).
-  if (!city) return null;
+  // 2) Fall back to a live LiteAPI search (for hotels not yet imported). This
+  //    is slow (two API calls), so it's skipped on the save path and only run
+  //    by the nightly sweep.
+  if (!opts.liveSearch || !city) return null;
   // Enumerate the city's bookable hotels via a near-term availability search.
   const checkin = format(addDays(new Date(), 3), "yyyy-MM-dd");
   const checkout = format(addDays(new Date(), 4), "yyyy-MM-dd");
@@ -99,6 +102,44 @@ export async function matchRetailAnchorHotelId(
  * Live per-night public price (Nuitee's suggested selling price) for the given
  * LiteAPI hotel and date. Null when the hotel has no availability that night.
  */
+/**
+ * Nightly sweep: link any direct listing that still has no retail anchor,
+ * using the full matcher (DB copy first, then a live LiteAPI search). Lets
+ * existing listings — and hotels Nuitee adds later — link themselves without
+ * a manual re-save.
+ */
+export async function syncRetailAnchors(): Promise<{
+  checked: number;
+  linked: number;
+}> {
+  const places = await prisma.place.findMany({
+    where: {
+      supplySource: "direct",
+      dynamicRetailEnabled: true,
+      retailAnchorHotelId: null,
+      latitude: { not: null },
+      longitude: { not: null },
+    },
+    select: { id: true, city: true, latitude: true, longitude: true },
+  });
+  let linked = 0;
+  for (const p of places) {
+    try {
+      const hotelId = await matchRetailAnchorHotelId(p, { liveSearch: true });
+      if (hotelId) {
+        await prisma.place.update({
+          where: { id: p.id },
+          data: { retailAnchorHotelId: hotelId },
+        });
+        linked++;
+      }
+    } catch (err) {
+      console.warn(`[retail-anchor] sweep ${p.id} failed:`, (err as Error).message);
+    }
+  }
+  return { checked: places.length, linked };
+}
+
 export async function getRetailAnchorForDate(
   hotelId: string,
   date: string,

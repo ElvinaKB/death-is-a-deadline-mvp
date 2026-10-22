@@ -1,0 +1,27 @@
+name: Nightly retail-anchor sync
+
+# Links direct listings to their LiteAPI (Nuitee) hotel by address so the
+# "retail" price is a live, per-date public number. Runs after the wholesale
+# import so newly imported copies exist to match against. Uses the same two
+# repo secrets as the wholesale import; skips quietly if they aren't set.
+
+on:
+  schedule:
+    - cron: "30 11 * * *" # ~3:30am Pacific, after the wholesale import
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger retail-anchor sync
+        env:
+          API: ${{ secrets.BACKEND_API_URL }}
+          SECRET: ${{ secrets.WHOLESALE_CRON_SECRET }}
+        run: |
+          if [ -z "$API" ] || [ -z "$SECRET" ]; then
+            echo "BACKEND_API_URL / WHOLESALE_CRON_SECRET not set — skipping."
+            exit 0
+          fi
+          curl -fsS -X POST "$API/api/places/retail-anchors/sync" \
+            -H "x-cron-secret: $SECRET" --max-time 280

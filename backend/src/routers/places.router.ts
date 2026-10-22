@@ -15,8 +15,17 @@ import {
   hotelInquirySchema,
 } from "../validations/places/places.validation";
 import { UserRole } from "../types/auth.types";
+import { requireCronSecret } from "../controllers/wholesale.controller";
 
 const router = Router();
+
+// Nightly cron: link direct listings to their LiteAPI hotel for a live retail
+// anchor. Cron-secret protected (before the public/:id routes).
+router.post(
+  "/retail-anchors/sync",
+  requireCronSecret,
+  placesController.runRetailAnchorSync,
+);
 
 // GET /api/places - List all places (hotel)
 router.get(

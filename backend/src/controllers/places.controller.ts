@@ -21,6 +21,7 @@ import { getPlaceSummary } from "../services/analytics.service";
 import {
   matchRetailAnchorHotelId,
   getRetailAnchorForDate,
+  syncRetailAnchors,
 } from "../services/retailAnchor.service";
 import { randomBytes, createHmac, createHash } from "crypto";
 
@@ -748,7 +749,10 @@ export async function getPlaceSummaryForOwner(req: Request, res: Response) {
 // Best-effort: link a DIRECT listing to its LiteAPI hotel by address so its
 // retail anchor can go live. Runs after create/update, never blocks the
 // response, and only when auto-matching is on and it isn't linked yet.
-export async function autoLinkRetailAnchor(placeId: string): Promise<void> {
+export async function autoLinkRetailAnchor(
+  placeId: string,
+  opts: { liveSearch?: boolean } = {},
+): Promise<void> {
   try {
     const place = await prisma.place.findUnique({
       where: { id: placeId },
@@ -770,7 +774,7 @@ export async function autoLinkRetailAnchor(placeId: string): Promise<void> {
     ) {
       return;
     }
-    const hotelId = await matchRetailAnchorHotelId(place);
+    const hotelId = await matchRetailAnchorHotelId(place, opts);
     if (hotelId) {
       await prisma.place.update({
         where: { id: placeId },
@@ -816,6 +820,14 @@ export async function getRetailQuote(req: Request, res: Response) {
       staticRetailPrice: Number(place.retailPrice),
     },
   });
+}
+
+// POST /api/places/retail-anchors/sync — nightly cron: link direct listings
+// that still have no retail anchor (DB copy, then live LiteAPI). Cron-secret.
+export async function runRetailAnchorSync(_req: Request, res: Response) {
+  const summary = await syncRetailAnchors();
+  console.log("[retail-anchor] sweep:", JSON.stringify(summary));
+  res.status(200).json({ data: summary });
 }
 
 // Get public place by ID (for students - includes inventory status)
@@ -1052,7 +1064,7 @@ export async function createPlace(req: Request, res: Response) {
 
   // Fire-and-forget: link to a LiteAPI hotel by address for a live retail
   // anchor. Doesn't block the create response.
-  void autoLinkRetailAnchor(place.id);
+  await autoLinkRetailAnchor(place.id, { liveSearch: false });
 
   res.status(201).json({
     message: "Place created successfully",
@@ -1270,7 +1282,7 @@ export async function updatePlace(req: Request, res: Response) {
   }
 
   // Try to (re)link the retail anchor by address if it isn't linked yet.
-  void autoLinkRetailAnchor(place.id);
+  await autoLinkRetailAnchor(place.id, { liveSearch: false });
 
   res.status(200).json({
     message: "Place updated successfully",
