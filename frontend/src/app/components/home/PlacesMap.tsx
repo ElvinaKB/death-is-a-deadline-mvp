@@ -38,6 +38,9 @@ interface PlacesMapProps {
   focusPlaces?: Place[];
   selectedPlaceId?: string;
   onPlaceSelect?: (placeId: string) => void;
+  /** Fired when the user pans/zooms (not programmatic moves): the visible
+   * map box as [west, south, east, north]. Drives "search this area". */
+  onUserMove?: (bbox: [number, number, number, number]) => void;
 }
 
 export function PlacesMap({
@@ -45,6 +48,7 @@ export function PlacesMap({
   focusPlaces,
   selectedPlaceId,
   onPlaceSelect,
+  onUserMove,
 }: PlacesMapProps) {
   const navigate = useNavigate();
   const mapRef = useRef<MapRef>(null);
@@ -294,6 +298,14 @@ export function PlacesMap({
         mapStyle="mapbox://styles/mapbox/dark-v11"
         reuseMaps
         onLoad={() => fitToHotels(0)}
+        onMoveEnd={(e) => {
+          // Only user gestures (originalEvent set) — not our own fitBounds/
+          // flyTo — trigger a "search this area".
+          if (!e.originalEvent || !onUserMove) return;
+          const b = e.target.getBounds();
+          if (!b) return;
+          onUserMove([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
+        }}
       >
         <NavigationControl position="top-left" />
 
