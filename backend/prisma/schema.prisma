@@ -112,6 +112,8 @@ model Place {
   exits                  PlaceExit[]
   hotelContact           HotelContact?
   dealCalls              DealCall[]
+  dealOffers             DealOffer[]
+  negotiationRule        HotelNegotiationRule?
   thresholdState         PlaceThresholdState[]
   channelSecret          PlaceChannelSecret?
 
@@ -200,6 +202,10 @@ model HotelContact {
   phone     String?
   email     String?
   notes     String?
+  // Texting consent for the decision-maker (migration 060).
+  smsConsentAt   DateTime? @map("sms_consent_at") @db.Timestamptz(6)
+  smsOptedOutAt  DateTime? @map("sms_opted_out_at") @db.Timestamptz(6)
+  consentSource  String?   @map("consent_source")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -229,6 +235,85 @@ model DealCall {
   @@index([placeId, createdAt(sort: Desc)])
   @@index([bidId])
   @@map("deal_calls")
+  @@schema("public")
+}
+
+// Mini Elvina (migration 060): a member's unaccepted bid taken to the hotel.
+model DealOffer {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  placeId           String    @map("place_id")
+  memberId          String    @map("member_id") @db.Uuid
+  bidId             String?   @map("bid_id") @db.Uuid
+  checkInDate       DateTime  @map("check_in_date") @db.Date
+  checkOutDate      DateTime  @map("check_out_date") @db.Date
+  nights            Int
+  bidPerNight       Decimal   @map("bid_per_night") @db.Decimal(10, 2)
+  floorPerNight     Decimal?  @map("floor_per_night") @db.Decimal(10, 2)
+  gapPct            Decimal?  @map("gap_pct") @db.Decimal(6, 2)
+  leadTimeDays      Int?      @map("lead_time_days")
+  status            String    @default("PENDING_MEMBER")
+  counterPerNight   Decimal?  @map("counter_per_night") @db.Decimal(10, 2)
+  finalPerNight     Decimal?  @map("final_per_night") @db.Decimal(10, 2)
+  bookedBidId       String?   @map("booked_bid_id") @db.Uuid
+  hotelTokenHash    String?   @unique @map("hotel_token_hash")
+  channel           String?
+  memberConsentedAt DateTime? @map("member_consented_at") @db.Timestamptz(6)
+  sentToHotelAt     DateTime? @map("sent_to_hotel_at") @db.Timestamptz(6)
+  hotelRespondedAt  DateTime? @map("hotel_responded_at") @db.Timestamptz(6)
+  expiresAt         DateTime? @map("expires_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  place             Place     @relation(fields: [placeId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  events            DealOfferEvent[]
+
+  @@index([placeId, createdAt(sort: Desc)], map: "idx_deal_offers_place")
+  @@index([memberId, createdAt(sort: Desc)], map: "idx_deal_offers_member")
+  @@index([status], map: "idx_deal_offers_status")
+  @@index([bidId], map: "idx_deal_offers_bid")
+  @@map("deal_offers")
+  @@schema("public")
+}
+
+model DealOfferEvent {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  offerId   String    @map("offer_id") @db.Uuid
+  actor     String
+  type      String
+  channel   String?
+  body      String?
+  data      Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  offer     DealOffer @relation(fields: [offerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([offerId, createdAt], map: "idx_deal_offer_events_offer")
+  @@map("deal_offer_events")
+  @@schema("public")
+}
+
+// Standing instruction a hotel approved in a negotiation (hotel agreement 4.6).
+model HotelNegotiationRule {
+  placeId                 String    @id @map("place_id")
+  autoAcceptFloorPerNight Decimal?  @map("auto_accept_floor_per_night") @db.Decimal(10, 2)
+  approvedAt              DateTime? @map("approved_at") @db.Timestamptz(6)
+  approvedVia             String?   @map("approved_via")
+  approvedOfferId         String?   @map("approved_offer_id") @db.Uuid
+  notes                   String?
+  updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  place                   Place     @relation(fields: [placeId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("hotel_negotiation_rules")
+  @@schema("public")
+}
+
+model MemberContactPrefs {
+  userId        String    @id @map("user_id") @db.Uuid
+  phone         String?
+  smsConsentAt  DateTime? @map("sms_consent_at") @db.Timestamptz(6)
+  smsOptedOutAt DateTime? @map("sms_opted_out_at") @db.Timestamptz(6)
+  consentText   String?   @map("consent_text")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("member_contact_prefs")
   @@schema("public")
 }
 

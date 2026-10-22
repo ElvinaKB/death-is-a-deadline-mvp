@@ -9,8 +9,14 @@ import {
   hotelDealHistory,
   logDealCall,
   saveHotelContact,
+  saveNegotiationRule,
   sendNearMissAlerts,
+  setHotelSmsConsent,
 } from "../services/dealDesk.service";
+import {
+  hotelNegotiationInsight,
+  negotiationInsights,
+} from "../services/negotiationInsights.service";
 
 const num = (v: unknown, fallback: number, min: number, max: number) => {
   const n = Number(v);
@@ -39,7 +45,11 @@ export async function hotel(req: Request, res: Response) {
 
 export async function saveContact(req: Request, res: Response) {
   const { name, role, phone, email, notes } = req.body ?? {};
-  const contact = await saveHotelContact(req.params.placeId!, { name, role, phone, email, notes });
+  let contact = await saveHotelContact(req.params.placeId!, { name, role, phone, email, notes });
+  // Deal-text consent is recorded with a timestamp, never just a flag.
+  if (typeof req.body?.smsConsent === "boolean") {
+    contact = await setHotelSmsConsent(req.params.placeId!, req.body.smsConsent, "admin");
+  }
   res.status(200).json({ data: contact });
 }
 
@@ -78,4 +88,39 @@ export async function alternatives(req: Request, res: Response) {
 export async function nearMissCron(_req: Request, res: Response) {
   const result = await sendNearMissAlerts();
   res.status(200).json({ data: result });
+}
+
+/** Learning loop: how hotels have answered bids below their secret price. */
+export async function insights(_req: Request, res: Response) {
+  res.set("Cache-Control", "private, no-store");
+  res.status(200).json({ data: await negotiationInsights() });
+}
+
+/** One hotel's record, plus the odds for a bid when ?gap= (and ?bid=) given. */
+export async function hotelInsights(req: Request, res: Response) {
+  const gap = req.query.gap != null ? num(req.query.gap, 0, 0, 100) : undefined;
+  const bid = req.query.bid != null ? Number(req.query.bid) : undefined;
+  res.set("Cache-Control", "private, no-store");
+  res.status(200).json({
+    data: await hotelNegotiationInsight(
+      req.params.placeId!,
+      gap,
+      bid != null && Number.isFinite(bid) ? bid : undefined,
+    ),
+  });
+}
+
+/** Set or clear a hotel's standing auto-accept price (admin-entered). */
+export async function saveRule(req: Request, res: Response) {
+  const raw = req.body?.autoAcceptFloorPerNight;
+  const floor = raw === null || raw === "" || raw === undefined ? null : Number(raw);
+  if (floor != null && (!Number.isFinite(floor) || floor <= 0)) {
+    throw new CustomError("autoAcceptFloorPerNight must be a positive number or empty", 400);
+  }
+  const rule = await saveNegotiationRule(req.params.placeId!, {
+    autoAcceptFloorPerNight: floor,
+    approvedVia: "admin",
+    notes: req.body?.notes ?? null,
+  });
+  res.status(200).json({ data: rule });
 }
