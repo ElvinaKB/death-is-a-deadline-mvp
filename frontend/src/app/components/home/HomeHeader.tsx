@@ -153,12 +153,14 @@ export function HomeHeader({
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <Link
             to={ROUTES.LOGIN}
+            state={{ returnUrl: location.pathname + location.search }}
             className="text-xs sm:text-sm font-medium text-muted hover:text-fg transition-colors whitespace-nowrap"
           >
             Sign In
           </Link>
           <Link
             to={ROUTES.SIGNUP}
+            state={{ returnUrl: location.pathname + location.search }}
             className="text-xs sm:text-sm font-medium px-2.5 sm:px-4 py-1.5 rounded-lg border border-gold/60 text-gold hover:bg-gold/10 transition-colors whitespace-nowrap"
           >
             Sign Up

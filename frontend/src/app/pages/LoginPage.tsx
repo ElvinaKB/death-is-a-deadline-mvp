@@ -76,8 +76,13 @@ export function LoginPage() {
       setAuthToken(data.token.access_token);
       toast.success("Login successful!");
 
-      // Redirect to return URL if coming from a place, otherwise role-based redirect
-      if (returnUrl) {
+      // A return URL (e.g. the hotel page they came from) wins for travelers;
+      // staff still land on their own dashboard.
+      if (
+        returnUrl &&
+        data.user.role !== UserRole.ADMIN &&
+        data.user.role !== UserRole.HOTEL_OWNER
+      ) {
         navigate(returnUrl);
         return;
       }
