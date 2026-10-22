@@ -535,8 +535,16 @@ export async function listPublicPlaces(req: Request, res: Response) {
         };
       })
       .sort((a, b) => a.tier - b.tier || a.d - b.d || a.price - b.price);
-    total = ranked.length;
-    const pageIds = ranked.slice(skip, skip + limit).map((r) => r.id);
+    // When the viewer is both searching a name AND anchored to a place, keep
+    // results in that metro (~100km) — otherwise a name like "Public" matches
+    // "Hotel Republic San Diego" and surfaces a hotel across the country.
+    const NAME_SEARCH_KM = 100;
+    const scoped =
+      searchQuery && searchQuery.trim()
+        ? ranked.filter((r) => r.d <= NAME_SEARCH_KM)
+        : ranked;
+    total = scoped.length;
+    const pageIds = scoped.slice(skip, skip + limit).map((r) => r.id);
     const rows = await findPublicPage({ id: { in: pageIds } });
     const byId = new Map(rows.map((r) => [r.id, r]));
     places = pageIds.map((id) => byId.get(id)!).filter(Boolean);

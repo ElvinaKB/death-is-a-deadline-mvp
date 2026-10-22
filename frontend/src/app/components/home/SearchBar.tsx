@@ -42,7 +42,7 @@ async function fetchCitySuggestions(
   const params = new URLSearchParams({
     q: query,
     country: "us",
-    types: "place,locality",
+    types: "place,locality,neighborhood,district",
     autocomplete: "true",
     limit: "6",
     access_token: MAPBOX_TOKEN,
