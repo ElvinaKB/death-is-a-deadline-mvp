@@ -41,6 +41,9 @@ interface PlacesMapProps {
   /** Fired when the user pans/zooms (not programmatic moves): the visible
    * map box as [west, south, east, north]. Drives "search this area". */
   onUserMove?: (bbox: [number, number, number, number]) => void;
+  /** Changes only on a brand-new search (city/keyword). The map re-frames
+   * when it changes; between changes, the user's manual pans are preserved. */
+  fitKey?: string;
 }
 
 export function PlacesMap({
@@ -49,9 +52,13 @@ export function PlacesMap({
   selectedPlaceId,
   onPlaceSelect,
   onUserMove,
+  fitKey,
 }: PlacesMapProps) {
   const navigate = useNavigate();
   const mapRef = useRef<MapRef>(null);
+  // Once the viewer drags/zooms, stop auto-framing so the map stays where they
+  // put it — re-enabled only when a new search changes `fitKey`.
+  const userMovedRef = useRef(false);
   const [popupInfo, setPopupInfo] = useState<Place | null>(null);
 
   const handleMarkerClick = useCallback(
@@ -225,6 +232,8 @@ export function PlacesMap({
   // list can arrive first; without this the map stayed at its start point).
   const fitToHotels = useCallback(
     (duration = 1000) => {
+      // Never yank the camera back after the viewer has moved it themselves.
+      if (userMovedRef.current) return;
       if (!mapRef.current || !bounds) return;
       if (framed.length === 1) {
         mapRef.current.flyTo({
@@ -244,6 +253,11 @@ export function PlacesMap({
     },
     [bounds, framed],
   );
+  // A brand-new search re-enables auto-framing (the data-driven effect below
+  // then fits to the new results); the viewer's manual pans survive until then.
+  useEffect(() => {
+    userMovedRef.current = false;
+  }, [fitKey]);
   // The map can be created lazily or reused from a previous page (reuseMaps),
   // in which case onLoad never fires again — so wait until it's ready, then fit.
   useEffect(() => {
@@ -300,11 +314,14 @@ export function PlacesMap({
         onLoad={() => fitToHotels(0)}
         onMoveEnd={(e) => {
           // Only user gestures (originalEvent set) — not our own fitBounds/
-          // flyTo — trigger a "search this area".
-          if (!e.originalEvent || !onUserMove) return;
+          // flyTo. Mark that the viewer took control (so we stop auto-framing)
+          // and search the area they moved to.
+          if (!e.originalEvent) return;
+          userMovedRef.current = true;
           const b = e.target.getBounds();
-          if (!b) return;
-          onUserMove([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
+          if (b && onUserMove) {
+            onUserMove([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
+          }
         }}
       >
         <NavigationControl position="top-left" />
