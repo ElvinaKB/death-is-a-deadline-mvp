@@ -156,10 +156,10 @@ export function HotelSignupPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-fg mb-1">
-                    Verified Student Guests
+                    Verified Members
                   </h3>
                   <p className="text-sm text-muted">
-                    Every booking comes from a verified student. No fraud, no
+                    Every booking comes from a verified member. No fraud, no
                     surprises.
                   </p>
                 </div>
@@ -179,13 +179,6 @@ export function HotelSignupPage() {
                   </p>
                 </div>
               </div>
-            </div>
-
-            <div className="border-l-2 border-brand pl-4">
-              <p className="text-muted italic">
-                "Checkout is never guaranteed."
-              </p>
-              <p className="text-sm text-muted mt-1">— The Grim Keeper</p>
             </div>
           </div>
         </div>
