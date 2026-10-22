@@ -10,7 +10,7 @@ const API =
 const DEFAULT = {
   title: "DEADLINE — secret hotel prices",
   description: "Private pricing. Verified travelers. Guess the price, win the room.",
-  image: `${SITE}/Favicon.png`,
+  image: `${SITE}/og-image.jpg`,
 };
 
 const esc = (s) =>

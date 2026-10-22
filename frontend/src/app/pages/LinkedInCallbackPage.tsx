@@ -153,18 +153,42 @@ export function LinkedInCallbackPage() {
           </div>
         )}
 
-        {phase === "error" && (
-          <div className="text-center space-y-4">
-            <h1 className="text-2xl font-bold text-fg">Couldn&apos;t sign in</h1>
-            <p className="text-muted">{errorMessage}</p>
-            <Link
-              to={isReferrerFlow.current ? ROUTES.REFERRAL_SIGNUP : ROUTES.SIGNUP}
-              className="inline-block text-brand hover:underline font-medium"
-            >
-              {isReferrerFlow.current ? "Back to referral signup" : "Back to sign up"}
-            </Link>
-          </div>
-        )}
+        {phase === "error" &&
+          (/already exists/i.test(errorMessage ?? "") ? (
+            // Not a failure: LinkedIn verified them, they just already have
+            // a Deadline account — point them to log in.
+            <div className="text-center space-y-4">
+              <CheckCircle2 className="w-12 h-12 mx-auto text-success" />
+              <h1 className="text-2xl font-bold text-fg">You already have an account</h1>
+              <p className="text-muted">
+                LinkedIn confirmed your email, and there&apos;s already a Deadline
+                account with it. Log in with your email and password — or reset
+                your password if you don&apos;t remember it.
+              </p>
+              <div className="flex flex-col items-center gap-2">
+                <Link to={ROUTES.LOGIN} className="btn-bid inline-block rounded-lg px-6 py-2.5 font-semibold">
+                  Log in
+                </Link>
+                <Link
+                  to={ROUTES.FORGOT_PASSWORD}
+                  className="text-sm text-brand hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center space-y-4">
+              <h1 className="text-2xl font-bold text-fg">LinkedIn verification didn&apos;t finish</h1>
+              <p className="text-muted">{errorMessage}</p>
+              <Link
+                to={isReferrerFlow.current ? ROUTES.REFERRAL_SIGNUP : ROUTES.SIGNUP}
+                className="inline-block text-brand hover:underline font-medium"
+              >
+                {isReferrerFlow.current ? "Back to referral signup" : "Back to sign up"}
+              </Link>
+            </div>
+          ))}
 
         {phase === "form" && verified && (
           <Card className="bg-glass-2 border-line shadow-glass">
