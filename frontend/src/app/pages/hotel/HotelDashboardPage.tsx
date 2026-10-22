@@ -6,7 +6,6 @@ import {
   CalendarX,
   Clock,
   DollarSign,
-  Landmark,
   TrendingUp,
   Building2,
   CheckCircle,
@@ -103,10 +102,6 @@ export function HotelDashboardPage() {
         )
       : 0;
 
-  const paidOutPct = stats?.totalPayable
-    ? Math.round(((stats.totalPaidOut ?? 0) / stats.totalPayable) * 100)
-    : 0;
-
   const maxRevenue = stats?.propertyStats?.length
     ? Math.max(...stats.propertyStats.map((p) => p.revenue))
     : 1;
@@ -123,58 +118,40 @@ export function HotelDashboardPage() {
         </p>
       </div>
 
-      {/* ── EARNINGS: Hero strip ── */}
+      {/* ── ROOM REVENUE: Hero strip (Model B — hotel collects at the desk) ── */}
       <section>
         <p className="text-xs font-semibold text-muted uppercase tracking-widest mb-4">
-          Earnings
+          Room revenue
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-line rounded-xl overflow-hidden border border-line">
-          <div className="bg-bg p-5 sm:p-6 flex flex-col gap-1">
-            <div className="flex items-center gap-2 text-muted text-xs mb-3">
-              <DollarSign className="h-3.5 w-3.5" />
-              Total Earned (Gross)
-            </div>
-            <span className="text-3xl sm:text-4xl font-bold text-fg tracking-tight">
-              {formatCurrency(stats?.totalRevenue ?? 0)}
-            </span>
-            <span className="text-xs text-muted mt-1">
-              From all confirmed bookings
-            </span>
-          </div>
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-line rounded-xl overflow-hidden border border-line">
           <div className="bg-bg p-5 sm:p-6 flex flex-col gap-1">
             <div className="flex items-center gap-2 text-muted text-xs mb-3">
               <CheckCircle className="h-3.5 w-3.5" />
-              Your Net Payout
+              You collect at check-in
             </div>
             <span className="text-3xl sm:text-4xl font-bold text-success tracking-tight">
               {formatCurrency(stats?.totalPayable ?? 0)}
             </span>
             <span className="text-xs text-muted mt-1">
-              After platform commission
+              Room balance across confirmed bookings — plus taxes, collected at
+              the front desk
             </span>
           </div>
 
           <div className="bg-bg p-5 sm:p-6 flex flex-col gap-1">
             <div className="flex items-center gap-2 text-muted text-xs mb-3">
-              <Landmark className="h-3.5 w-3.5" />
-              Awaiting Payout
+              <DollarSign className="h-3.5 w-3.5" />
+              Deadline booking fee
             </div>
-            <span className="text-3xl sm:text-4xl font-bold text-warning tracking-tight">
-              {formatCurrency(stats?.totalPending ?? 0)}
+            <span className="text-3xl sm:text-4xl font-bold text-fg tracking-tight">
+              {formatCurrency(
+                (stats?.totalRevenue ?? 0) - (stats?.totalPayable ?? 0),
+              )}
             </span>
-            <div className="mt-2 flex items-center gap-2">
-              {/* Paid out progress bar */}
-              <div className="flex-1 h-1.5 bg-line rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-success rounded-full transition-all duration-700"
-                  style={{ width: `${paidOutPct}%` }}
-                />
-              </div>
-              <span className="text-xs text-muted shrink-0">
-                {paidOutPct}% paid out
-              </span>
-            </div>
+            <span className="text-xs text-muted mt-1">
+              Our 7% commission, charged to the guest at booking — nothing is
+              owed to or paid out by Deadline
+            </span>
           </div>
         </div>
       </section>
@@ -327,15 +304,6 @@ export function HotelDashboardPage() {
                 </div>
                 <span className="text-sm font-semibold text-success">
                   {stats?.liveProperties ?? 0}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-muted" />
-                  <span className="text-sm text-muted">Draft / Paused</span>
-                </div>
-                <span className="text-sm font-semibold text-muted">
-                  {(stats?.totalProperties ?? 0) - (stats?.liveProperties ?? 0)}
                 </span>
               </div>
 
