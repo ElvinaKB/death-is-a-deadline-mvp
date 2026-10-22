@@ -48,6 +48,13 @@ export interface Place {
    * property. false = Model A / full-collection: the full amount is charged now.
    */
   commissionOnly?: boolean;
+  /**
+   * Channel (Cloudbeds) sync health, returned by the authenticated place-detail
+   * endpoint. `channelConnected` is true once Cloudbeds has pushed availability
+   * (ARIUpdate) for this listing; `lastChannelSyncAt` is the most recent push.
+   */
+  channelConnected?: boolean;
+  lastChannelSyncAt?: string | null;
   /** Cold-outreach prospect (shown in the Prospects tab, not main Listings). */
   prospect?: boolean;
   /**
