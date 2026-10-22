@@ -266,6 +266,22 @@ export function PlaceDetailPage() {
     .filter((p) => p.id !== placeId)
     .slice(0, 6);
 
+  // Direct listings: a live, per-date public price from the hotel's matched
+  // LiteAPI (Nuitee) record — falls back to the static retail anchor. Declared
+  // here (above the early returns) so the hook order never changes.
+  const directRetailDate =
+    toApiDateOnly(bookingCheckIn) ?? searchParams.get("date") ?? undefined;
+  const { data: directRetail } = useApiQuery<{
+    retailPrice: number;
+    isDynamic: boolean;
+  }>({
+    queryKey: [...QUERY_KEYS.PLACE(placeId), "retail-quote", directRetailDate],
+    endpoint: `${ENDPOINTS.PLACE_RETAIL_QUOTE.replace(":id", placeId ?? "")}${
+      directRetailDate ? `?date=${directRetailDate}` : ""
+    }`,
+    enabled: !isWholesalePlace && !!placeId,
+  });
+
   const openGallery = (index: number) => {
     setGalleryInitialIndex(index);
     setGalleryOpen(true);
@@ -315,20 +331,6 @@ export function PlaceDetailPage() {
       ? liveQuote.bookNowPricePerNight +
         Math.ceil((liveQuote.payAtHotelNonTax ?? 0) / (liveQuote.nights ?? 1))
       : null;
-  // Direct listings: a live, per-date public price from the hotel's matched
-  // LiteAPI (Nuitee) record — falls back to the static retail anchor.
-  const directRetailDate =
-    toApiDateOnly(bookingCheckIn) ?? searchParams.get("date") ?? undefined;
-  const { data: directRetail } = useApiQuery<{
-    retailPrice: number;
-    isDynamic: boolean;
-  }>({
-    queryKey: [...QUERY_KEYS.PLACE(placeId), "retail-quote", directRetailDate],
-    endpoint: `${ENDPOINTS.PLACE_RETAIL_QUOTE.replace(":id", placeId)}${
-      directRetailDate ? `?date=${directRetailDate}` : ""
-    }`,
-    enabled: !isWholesalePlace && !!placeId,
-  });
   const directRetailPerNight =
     !isWholesalePlace && directRetail?.isDynamic ? directRetail.retailPrice : null;
   const heroRetailPrice =
