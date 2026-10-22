@@ -35,6 +35,7 @@ export const ENDPOINTS = {
   PLACES_PUBLIC: "/api/places/public",
   PLACES_PRICE_RANGE: "/api/places/public/price-range",
   PLACE_DETAIL: "/api/places/:id",
+  PLACE_SUMMARY: "/api/places/:id/summary",
   PLACE_PUBLIC_DETAIL: "/api/places/public/:id",
   PLACE_UNAVAILABLE_NIGHTS: "/api/places/public/:id/unavailable-nights",
   PLACE_INQUIRY: "/api/places/public/:id/inquiry",

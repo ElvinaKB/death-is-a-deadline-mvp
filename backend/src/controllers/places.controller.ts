@@ -17,6 +17,7 @@ import {
 } from "../libs/utils/inviteToken";
 import { supabase } from "../libs/config/supabase";
 import { UserRole } from "../types/auth.types";
+import { getPlaceSummary } from "../services/analytics.service";
 import { randomBytes, createHmac } from "crypto";
 
 // Secret a hotel enters (with its listing slug as the "Property ID") to connect
@@ -634,6 +635,38 @@ export async function getPlace(req: Request, res: Response) {
       },
     },
   });
+}
+
+// Demand analytics for a place — the same "willingness to pay" data the admin
+// sees, scoped to a single listing. Accessible to an admin, or to the hotel
+// owner for THEIR OWN listing (matched by email, same rule as getPlace). This
+// is how a GM sees who's bidding real numbers on their hotel.
+export async function getPlaceSummaryForOwner(req: Request, res: Response) {
+  const { id } = req.params;
+  const days = (() => {
+    const n = Number(req.query.days);
+    return Number.isFinite(n) && n >= 1 && n <= 730 ? Math.floor(n) : 30;
+  })();
+
+  const place = await prisma.place.findUnique({
+    where: { id },
+    select: { id: true, email: true },
+  });
+  if (!place) throw new CustomError("Place not found", 404);
+
+  const user = req.user;
+  const role = user?.role || user?.user_metadata?.role;
+  if (role === UserRole.HOTEL_OWNER) {
+    const email = user?.email?.toLowerCase();
+    if (!email || !place.email || place.email.toLowerCase() !== email) {
+      throw new CustomError("Place not found", 404);
+    }
+  }
+
+  const summary = await getPlaceSummary(id, days);
+  if (!summary) throw new CustomError("Place not found", 404);
+  res.set("Cache-Control", "private, no-store");
+  res.status(200).json({ data: summary });
 }
 
 // Get public place by ID (for students - includes inventory status)
