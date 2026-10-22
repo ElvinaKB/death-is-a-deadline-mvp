@@ -304,7 +304,7 @@ export function HotelPlaceFormPage() {
   }
 
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="flex flex-col gap-5 sm:gap-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button
@@ -325,9 +325,11 @@ export function HotelPlaceFormPage() {
         </div>
       </div>
 
-      {/* Read-only property details card */}
+      {/* Read-only property details card — demoted to the bottom; a busy GM
+          already knows their address/price/type, so it sits under the
+          editable controls. */}
       {existingPlace && (
-        <Card className="glass-2 border-line bg-glass">
+        <Card className="order-5 glass-2 border-line bg-glass">
           <CardHeader className="pb-3 px-4 sm:px-6">
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-muted" />
@@ -422,72 +424,66 @@ export function HotelPlaceFormPage() {
         </Card>
       )}
 
-      {/* Channel (Cloudbeds) connection status */}
+      {/* Channel (Cloudbeds) connection status — slim strip, not a big card */}
       {existingPlace && (
-        <Card className="glass-2 border-line bg-glass">
-          <CardContent className="px-4 sm:px-6 py-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                {existingPlace.channelConnected ? (
-                  <PlugZap className="h-5 w-5 text-success shrink-0" />
-                ) : (
-                  <Plug className="h-5 w-5 text-muted shrink-0" />
-                )}
-                <div>
-                  <p className="text-sm font-medium text-fg">
-                    Cloudbeds channel
-                  </p>
-                  <p className="text-xs text-muted">
-                    {existingPlace.channelConnected
-                      ? `Connected — we're managing your availability via Cloudbeds.${
-                          existingPlace.lastChannelSyncAt
-                            ? ` Last sync ${format(
-                                new Date(existingPlace.lastChannelSyncAt),
-                                "MMM d, h:mm a",
-                              )}.`
-                            : ""
-                        }`
-                      : "Not connected yet — add the Deadline channel in Cloudbeds with your Property ID + password to sync."}
-                  </p>
-                </div>
-              </div>
-              <Badge
-                className={cn(
-                  "text-xs shrink-0",
-                  existingPlace.channelConnected
-                    ? "bg-success/20 text-success"
-                    : "bg-warning/20 text-warning",
-                )}
-              >
-                {existingPlace.channelConnected ? "Connected" : "Not connected"}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
+        <div
+          className={cn(
+            "order-1 flex items-center justify-between gap-3 rounded-lg border px-4 py-2.5",
+            existingPlace.channelConnected
+              ? "border-success/30 bg-success/5"
+              : "border-warning/30 bg-warning/5",
+          )}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            {existingPlace.channelConnected ? (
+              <PlugZap className="h-4 w-4 text-success shrink-0" />
+            ) : (
+              <Plug className="h-4 w-4 text-warning shrink-0" />
+            )}
+            <p className="text-xs sm:text-sm text-muted truncate">
+              <span className="text-fg font-medium">Cloudbeds channel</span>
+              {existingPlace.channelConnected
+                ? ` — synced${
+                    existingPlace.lastChannelSyncAt
+                      ? ` · last ${format(
+                          new Date(existingPlace.lastChannelSyncAt),
+                          "MMM d, h:mm a",
+                        )}`
+                      : ""
+                  }`
+                : " — add the Deadline channel in Cloudbeds to sync"}
+            </p>
+          </div>
+          <Badge
+            className={cn(
+              "text-xs shrink-0",
+              existingPlace.channelConnected
+                ? "bg-success/20 text-success"
+                : "bg-warning/20 text-warning",
+            )}
+          >
+            {existingPlace.channelConnected ? "Connected" : "Not connected"}
+          </Badge>
+        </div>
       )}
 
-      {/* Payment model — commission-only (fixed for every Deadline listing) */}
-      <Card className="border-gold/30 bg-gold/5">
-        <CardContent className="px-4 sm:px-6 py-4">
-          <p className="text-sm font-medium text-fg mb-1">
-            How you get paid — Commission-only
-          </p>
+      {/* Payment model — commission-only. Below the editable controls (order-4):
+          a reminder, not a thing they act on. */}
+      <Card className="order-4 border-gold/30 bg-gold/5">
+        <CardContent className="px-4 sm:px-6 py-3">
           <p className="text-sm text-muted">
-            We charge the guest only our 7% booking fee at booking. You collect
-            the remaining <strong className="text-fg">93% of the room rate</strong>{" "}
-            at check-in — and{" "}
-            <strong className="text-fg">
-              you add applicable taxes on top of that 93%
-            </strong>
-            . Taxes are never included in the Cloudbeds &ldquo;Balance Due&rdquo;
-            figure; you collect them separately at the front desk.
+            <strong className="text-fg">Commission-only:</strong> we charge the
+            guest our 7% fee at booking. You collect the remaining{" "}
+            <strong className="text-fg">93% of the room rate plus taxes</strong>{" "}
+            at check-in. Taxes are never in the Cloudbeds &ldquo;Balance
+            Due&rdquo; figure — add them at the desk.
           </p>
         </CardContent>
       </Card>
 
       <form
         onSubmit={formik.handleSubmit}
-        className="flex flex-col gap-5 sm:gap-6"
+        className="order-2 flex flex-col gap-5 sm:gap-6"
       >
         {/* Property Listing */}
         <Card className="glass-2 border-line order-4">
