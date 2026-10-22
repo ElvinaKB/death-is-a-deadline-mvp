@@ -38,6 +38,7 @@ export const ENDPOINTS = {
   PLACE_SUMMARY: "/api/places/:id/summary",
   PLACE_PUBLIC_DETAIL: "/api/places/public/:id",
   PLACE_UNAVAILABLE_NIGHTS: "/api/places/public/:id/unavailable-nights",
+  PLACE_RETAIL_QUOTE: "/api/places/public/:id/retail-quote",
   PLACE_INQUIRY: "/api/places/public/:id/inquiry",
   PLACE_NEARBY: "/api/places/public/:id/nearby",
   PLACE_CREATE: "/api/places",

@@ -73,6 +73,13 @@ router.get(
   placesController.getPublicPlaceNearby,
 );
 
+// Public route - live per-date retail anchor (must be before "/public/:id")
+router.get(
+  "/public/:id/retail-quote",
+  validate(placeIdParamSchema, "params"),
+  placesController.getRetailQuote,
+);
+
 // Public route - get single place by ID (for students - includes inventory status)
 router.get(
   "/public/:id",

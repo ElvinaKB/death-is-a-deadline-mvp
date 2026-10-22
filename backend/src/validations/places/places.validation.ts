@@ -53,6 +53,8 @@ export const createPlaceSchema = z.object({
   // Model B (commission-only) vs Model A (merchant-of-record, full charge).
   // New listings default to Model B — the model for third-party hotels.
   commissionOnly: z.boolean().optional().default(true),
+  // Auto-link to a LiteAPI hotel by address for a live retail anchor.
+  dynamicRetailEnabled: z.boolean().optional().default(true),
   prospect: z.boolean().optional().default(false),
   blackoutDates: z.array(z.string()).optional().default([]),
   allowedDaysOfWeek: z
@@ -129,6 +131,7 @@ export const updatePlaceSchema = z.object({
   autoAcceptAboveMinimum: z.boolean().optional(),
   dynamicPricingEnabled: z.boolean().optional(),
   commissionOnly: z.boolean().optional(),
+  dynamicRetailEnabled: z.boolean().optional(),
   blackoutDates: z.array(z.string()).optional(),
   allowedDaysOfWeek: z.array(z.number().int().min(0).max(6)).optional(),
   maxInventory: z.number().int().min(1).optional(),
