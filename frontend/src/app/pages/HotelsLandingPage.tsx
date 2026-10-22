@@ -34,6 +34,11 @@ export function HotelsLandingPage() {
               <br />
               on nearing off-nights
             </p>
+            <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#c5a059]/60 px-4 py-1.5 text-sm font-semibold text-white">
+              <span className="h-2 w-2 rounded-full bg-[#c5a059]" aria-hidden />
+              Works with Cloudbeds — Deadline bookings land in your Cloudbeds
+              calendar automatically
+            </p>
           </div>
         </div>
       </header>

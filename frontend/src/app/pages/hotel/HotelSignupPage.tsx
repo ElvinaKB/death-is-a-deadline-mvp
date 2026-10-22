@@ -122,7 +122,7 @@ export function HotelSignupPage() {
           <div className="max-w-lg mx-auto lg:mx-0">
             <div className="flex items-center gap-2 mb-8">
               <Link to={ROUTES.HOME} className="text-xl font-bold text-fg">
-                Death is a Deadline
+                DEADLINE
               </Link>
             </div>
 
