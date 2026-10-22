@@ -37,6 +37,8 @@ interface HotelDashboardStats {
   totalPayable: number; // sum of payableToHotel
   totalPaidOut: number; // sum of payableToHotel where isPaidToHotel = true
   totalPending: number; // totalPayable - totalPaidOut
+  payableThisMonth: number; // room revenue collected at desk, this calendar month
+  payableYearToDate: number; // room revenue collected at desk, year to date
 
   // Bookings
   totalConfirmed: number; // ACCEPTED + payment CAPTURED
@@ -71,7 +73,7 @@ export function HotelDashboardPage() {
       params: { placeId: selectedHotelId },
     });
 
-  const { data: demand } = usePlaceSummary(selectedHotelId, 30);
+  const { data: demand } = usePlaceSummary(selectedHotelId, 90);
 
   if (isLoading) {
     return (
@@ -134,30 +136,27 @@ export function HotelDashboardPage() {
           <div className="bg-bg p-5 sm:p-6 flex flex-col gap-1">
             <div className="flex items-center gap-2 text-muted text-xs mb-3">
               <CheckCircle className="h-3.5 w-3.5" />
-              You collect at check-in
+              You collect this month
             </div>
             <span className="text-3xl sm:text-4xl font-bold text-success tracking-tight">
-              {formatCurrency(stats?.totalPayable ?? 0)}
+              {formatCurrency(stats?.payableThisMonth ?? 0)}
             </span>
             <span className="text-xs text-muted mt-1">
-              Room balance across confirmed bookings — plus taxes, collected at
-              the front desk
+              Room balance booked this month — plus taxes, collected at the
+              front desk
             </span>
           </div>
 
           <div className="bg-bg p-5 sm:p-6 flex flex-col gap-1">
             <div className="flex items-center gap-2 text-muted text-xs mb-3">
               <DollarSign className="h-3.5 w-3.5" />
-              Deadline booking fee
+              You collect year to date
             </div>
             <span className="text-3xl sm:text-4xl font-bold text-fg tracking-tight">
-              {formatCurrency(
-                (stats?.totalRevenue ?? 0) - (stats?.totalPayable ?? 0),
-              )}
+              {formatCurrency(stats?.payableYearToDate ?? 0)}
             </span>
             <span className="text-xs text-muted mt-1">
-              Our 7% commission, charged to the guest at booking — nothing is
-              owed to or paid out by Deadline
+              Room balance booked so far this year, collected at the desk
             </span>
           </div>
         </div>
