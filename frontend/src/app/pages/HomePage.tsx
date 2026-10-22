@@ -167,7 +167,7 @@ export function HomePage() {
     const lat = geoHint?.latitude;
     const lng = geoHint?.longitude;
     const searching = !!searchDebounced?.trim();
-    if (searching || typeof lat !== "number" || typeof lng !== "number") {
+    if (typeof lat !== "number" || typeof lng !== "number") {
       return { featuredPlaces: directPlaces, places: wholesalePlaces };
     }
     const dist = (p: Place) =>
@@ -175,6 +175,12 @@ export function HomePage() {
         ? haversineKm(lat, lng, p.latitude, p.longitude)
         : Number.POSITIVE_INFINITY;
     const nearby = directPlaces.filter((p) => dist(p) <= NEARBY_KM);
+    // A location search shows only partners IN that area — never a partner
+    // from another state (searching Arkansas must not surface San Diego). The
+    // far-partner merge below is only for the default homepage browse.
+    if (searching) {
+      return { featuredPlaces: nearby, places: wholesalePlaces };
+    }
     const far = directPlaces.filter((p) => dist(p) > NEARBY_KM);
     // Only merge far partners up to the farthest wholesale hotel loaded so
     // far; the rest appear as "Show more hotels" reaches their distance.
