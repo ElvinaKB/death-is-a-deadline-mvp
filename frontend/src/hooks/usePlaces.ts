@@ -15,6 +15,7 @@ import {
 } from "../types/place.types";
 import { apiClient } from "../lib/apiClient";
 import { toApiDateOnly } from "../utils/dateHelpers";
+import { PlaceSummary } from "../types/placeSummary.types";
 
 // Transform frontend request to backend format (File[] -> {url, order}[])
 type CreatePlaceInput = CreatePlaceRequest & { imageUrls?: string[] };
@@ -26,6 +27,16 @@ export const usePlace = (id: string) => {
   return useApiQuery<PlaceResponse>({
     queryKey: QUERY_KEYS.PLACE(id),
     endpoint: ENDPOINTS.PLACE_DETAIL.replace(":id", id),
+    enabled: !!id,
+  });
+};
+
+// Demand analytics for a listing (the hotel RMS co-pilot). Admin, or the
+// owning hotel for their own listing. `days` is the lookback window.
+export const usePlaceSummary = (id: string, days = 30) => {
+  return useApiQuery<PlaceSummary>({
+    queryKey: [...QUERY_KEYS.PLACE(id), "summary", days],
+    endpoint: `${ENDPOINTS.PLACE_SUMMARY.replace(":id", id)}?days=${days}`,
     enabled: !!id,
   });
 };

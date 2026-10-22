@@ -18,6 +18,8 @@ import { Link } from "react-router-dom";
 import { ROUTES } from "../../../config/routes.config";
 import { useAppSelector } from "../../../store/hooks";
 import { useHotel } from "../../../hooks/useHotel";
+import { usePlaceSummary } from "../../../hooks/usePlaces";
+import { HotelDemandOverview } from "../../components/hotel/HotelDemandOverview";
 
 interface PropertyStat {
   propertyName: string;
@@ -69,6 +71,8 @@ export function HotelDashboardPage() {
       params: { placeId: selectedHotelId },
     });
 
+  const { data: demand } = usePlaceSummary(selectedHotelId, 30);
+
   if (isLoading) {
     return (
       <div>
@@ -117,6 +121,9 @@ export function HotelDashboardPage() {
           Here's how your properties are performing
         </p>
       </div>
+
+      {/* ── DEMAND / RMS co-pilot: what members will pay for this listing ── */}
+      {demand && <HotelDemandOverview summary={demand} />}
 
       {/* ── ROOM REVENUE: Hero strip (Model B — hotel collects at the desk) ── */}
       <section>

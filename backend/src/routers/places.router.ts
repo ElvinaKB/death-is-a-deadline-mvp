@@ -90,6 +90,15 @@ router.get(
   placesController.getPlace,
 );
 
+// GET /api/places/:id/summary - Demand analytics for this listing (admin, or
+// the owning hotel for their own listing — scoped in the controller).
+router.get(
+  "/:id/summary",
+  validate(placeIdParamSchema, "params"),
+  authenticate(UserRole.ADMIN, UserRole.HOTEL_OWNER),
+  placesController.getPlaceSummaryForOwner,
+);
+
 // PUT /api/places/:id - Update place
 router.put(
   "/:id",
