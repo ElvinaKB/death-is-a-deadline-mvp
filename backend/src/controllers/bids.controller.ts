@@ -242,6 +242,8 @@ export async function createBid(req: Request, res: Response) {
           ...(reveal && {
             revealedPricePerNight: wholesale.memberPricePerNight,
             payAtHotel: wholesale.payAtHotel,
+            payAtHotelNonTax: wholesale.payAtHotelNonTax,
+            nights: totalNights,
           }),
         },
         ErrorCode.BID_TOO_LOW,

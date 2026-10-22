@@ -43,6 +43,8 @@ interface BidOutcomePanelProps {
   scrollToHeaderTrigger?: number;
   /** Wholesale: the member price revealed after a few misses (shown as a card). */
   revealedPricePerNight?: number | null;
+  /** Wholesale: paid at the hotel at check-in on top of the revealed price (stay total). */
+  revealAtHotel?: number | null;
   /** Wholesale: misses left before the member price is revealed. */
   revealTriesLeft?: number | null;
 }
@@ -63,6 +65,7 @@ export function BidOutcomePanel({
   scrollToHeaderTrigger,
   revealedPricePerNight,
   revealTriesLeft,
+  revealAtHotel,
 }: BidOutcomePanelProps) {
   const isBusy = isRebidding || isProcessingBid;
   // Per-listing payment model (defaults to commission-only / Model B).
@@ -264,6 +267,11 @@ export function BidOutcomePanel({
           <p className="text-4xl font-bold text-fg tabular-nums">
             {formatCurrency(revealedPricePerNight)}
             <span className="text-base font-normal text-muted"> / night</span>
+          </p>
+          <p className="text-sm text-fg">
+            {revealAtHotel && revealAtHotel > 0
+              ? `Room taxes included. + ${formatCurrency(revealAtHotel)} hotel fee & local taxes paid at check-in (whole stay).`
+              : "Taxes and fees included — nothing extra at check-in."}
           </p>
           <p className="text-sm text-muted">
             Three tries earns you the answer. Book it at this price, or keep bidding.
