@@ -94,10 +94,19 @@ export function PlaceListItem({
           )}
         </div>
 
-        <div className="sm:hidden mt-3">
+        {/* Phones: the price column is hidden, so show the price beside BID. */}
+        <div className="sm:hidden mt-3 flex items-center gap-3">
+          <div className="flex flex-col shrink-0">
+            <span className="text-[10px] font-semibold tracking-[0.14em] text-[hsl(0_0%_50%)] uppercase">
+              Retail
+            </span>
+            <span className="text-lg font-bold text-fg whitespace-nowrap">
+              {formatCurrency(place.retailPrice)}
+            </span>
+          </div>
           <button
             type="button"
-            className="listing-card-bid-btn h-11 w-full rounded-lg text-sm uppercase"
+            className="listing-card-bid-btn h-11 flex-1 rounded-lg text-sm uppercase"
             onClick={(e) => {
               e.stopPropagation();
               handleClick();
