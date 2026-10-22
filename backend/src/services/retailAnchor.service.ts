@@ -1,4 +1,5 @@
 import { addDays, format } from "date-fns";
+import { prisma } from "../libs/config/prisma";
 import {
   getCheapestOffers,
   getHotelsByIds,
@@ -28,8 +29,34 @@ export async function matchRetailAnchorHotelId(
   place: Coords,
 ): Promise<string | null> {
   const { city, latitude, longitude } = place;
-  if (!city || latitude == null || longitude == null) return null;
+  if (latitude == null || longitude == null) return null;
 
+  // 1) Reuse a match we already have: a wholesale copy of this same hotel
+  //    (even paused) within ~150m that carries a liteapiHotelId. This is the
+  //    common case — a hotel Nuitee carries was imported as a wholesale copy
+  //    and already address-matched — and it works regardless of availability.
+  const nearbyCopies = await prisma.place.findMany({
+    where: {
+      supplySource: "wholesale",
+      liteapiHotelId: { not: null },
+      latitude: { gte: latitude - LAT_150M, lte: latitude + LAT_150M },
+      longitude: { gte: longitude - LNG_150M, lte: longitude + LNG_150M },
+    },
+    select: { liteapiHotelId: true, latitude: true, longitude: true },
+  });
+  if (nearbyCopies.length > 0) {
+    let best: { id: string; score: number } | null = null;
+    for (const c of nearbyCopies) {
+      if (!c.liteapiHotelId || c.latitude == null || c.longitude == null) continue;
+      const score =
+        Math.abs(latitude - c.latitude) + Math.abs(longitude - c.longitude);
+      if (!best || score < best.score) best = { id: c.liteapiHotelId, score };
+    }
+    if (best) return best.id;
+  }
+
+  // 2) Fall back to a live LiteAPI search (for hotels not yet imported).
+  if (!city) return null;
   // Enumerate the city's bookable hotels via a near-term availability search.
   const checkin = format(addDays(new Date(), 3), "yyyy-MM-dd");
   const checkout = format(addDays(new Date(), 4), "yyyy-MM-dd");
