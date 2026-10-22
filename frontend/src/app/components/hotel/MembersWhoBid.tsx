@@ -30,7 +30,7 @@ const OUTCOME: Record<SessionOutcome, { label: string; className: string }> = {
 interface MemberGroup {
   key: string;
   name: string;
-  email: string | null;
+  verifiedVia: string;
   sessions: PlaceSummarySession[];
   totalBids: number;
   booked: number;
@@ -41,13 +41,13 @@ interface MemberGroup {
 function groupByMember(sessions: PlaceSummarySession[]): MemberGroup[] {
   const map = new Map<string, MemberGroup>();
   for (const s of sessions) {
-    const key = (s.memberEmail || s.memberName || s.sessionId).toLowerCase();
+    const key = s.memberKey || s.sessionId;
     const g =
       map.get(key) ??
       ({
         key,
-        name: s.memberName || s.memberEmail || "Member",
-        email: s.memberEmail,
+        name: s.firstName || "Member",
+        verifiedVia: s.verifiedVia,
         sessions: [],
         totalBids: 0,
         booked: 0,
@@ -99,8 +99,8 @@ export function MembersWhoBid({
           Members who bid ({groups.length})
         </p>
         <p className="text-xs text-muted mt-0.5">
-          Every bidder is a verified Deadline member — their email shows why.
-          Tap a member to see each bidding session.
+          Every bidder is an ID- or affiliation-verified Deadline member. Tap a
+          member to see each bidding session.
         </p>
       </div>
 
@@ -124,9 +124,7 @@ export function MembersWhoBid({
                   <p className="text-sm font-medium text-fg truncate">
                     {g.name}
                   </p>
-                  {g.email && (
-                    <p className="text-xs text-gold truncate">{g.email}</p>
-                  )}
+                  <p className="text-xs text-gold truncate">{g.verifiedVia}</p>
                 </div>
                 <div className="hidden sm:block text-right shrink-0">
                   <p className="text-sm text-fg">{money(g.bestPerNight)}/night</p>

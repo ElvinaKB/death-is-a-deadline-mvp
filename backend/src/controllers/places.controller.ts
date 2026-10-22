@@ -18,7 +18,7 @@ import {
 import { supabase } from "../libs/config/supabase";
 import { UserRole } from "../types/auth.types";
 import { getPlaceSummary } from "../services/analytics.service";
-import { randomBytes, createHmac } from "crypto";
+import { randomBytes, createHmac, createHash } from "crypto";
 
 // Secret a hotel enters (with its listing slug as the "Property ID") to connect
 // the Deadline channel in Cloudbeds. 24 hex chars — unguessable but easy to
@@ -637,6 +637,38 @@ export async function getPlace(req: Request, res: Response) {
   });
 }
 
+// Personal email providers — a bidder on one of these verified another way
+// (ID upload / LinkedIn), so we don't surface a domain as their "affiliation".
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "yahoo.com",
+  "outlook.com",
+  "hotmail.com",
+  "icloud.com",
+  "me.com",
+  "aol.com",
+  "live.com",
+  "proton.me",
+  "protonmail.com",
+  "gmx.com",
+]);
+
+/** A privacy-preserving verification label from a member's email domain —
+ * the school/company, never the raw address. */
+function verificationLabel(email: string | null): string {
+  const domain = email?.split("@")[1]?.toLowerCase();
+  if (!domain) return "Verified member";
+  const org = domain
+    .replace(/\.(edu|gov|com|org|net|io|co|ac)(\.[a-z]{2})?$/, "")
+    .split(".")
+    .pop();
+  const pretty = org ? org.charAt(0).toUpperCase() + org.slice(1) : null;
+  if (domain.endsWith(".edu") || domain.includes(".edu."))
+    return pretty ? `Verified student · ${pretty}` : "Verified student";
+  if (PERSONAL_EMAIL_DOMAINS.has(domain)) return "ID-verified member";
+  return pretty ? `Verified · ${pretty}` : "Verified member";
+}
+
 // Demand analytics for a place — the same "willingness to pay" data the admin
 // sees, scoped to a single listing. Accessible to an admin, or to the hotel
 // owner for THEIR OWN listing (matched by email, same rule as getPlace). This
@@ -665,8 +697,29 @@ export async function getPlaceSummaryForOwner(req: Request, res: Response) {
 
   const summary = await getPlaceSummary(id, days);
   if (!summary) throw new CustomError("Place not found", 404);
+
+  // Privacy: the hotel sees enough to trust the demand is real, but never a
+  // bidder's full name or email. We expose first name + a verification label
+  // (their school/company), plus an opaque stable key so sessions still group
+  // per member. The admin analytics endpoint keeps the full detail.
+  const redacted = {
+    ...summary,
+    sessions: summary.sessions.map((s) => {
+      const { memberName, memberEmail, ...rest } = s;
+      return {
+        ...rest,
+        memberKey: createHash("sha256")
+          .update(String(memberEmail || memberName || s.sessionId))
+          .digest("hex")
+          .slice(0, 12),
+        firstName: (memberName || "").trim().split(/\s+/)[0] || "Member",
+        verifiedVia: verificationLabel(memberEmail),
+      };
+    }),
+  };
+
   res.set("Cache-Control", "private, no-store");
-  res.status(200).json({ data: summary });
+  res.status(200).json({ data: redacted });
 }
 
 // Get public place by ID (for students - includes inventory status)

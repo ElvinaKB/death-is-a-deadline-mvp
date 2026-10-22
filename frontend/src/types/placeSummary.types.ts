@@ -18,8 +18,12 @@ export type SessionOutcome = "BOOKED" | "WALKED_AWAY" | "NO_EXIT_RECORDED";
 
 export interface PlaceSummarySession {
   sessionId: string;
-  memberName: string | null;
-  memberEmail: string | null;
+  // Privacy-preserving: the hotel sees a first name + a verification label
+  // (school/company), never the full name or email. `memberKey` is an opaque
+  // stable id so sessions still group per member.
+  memberKey: string;
+  firstName: string;
+  verifiedVia: string;
   checkInDate: string;
   checkOutDate: string;
   startedAt: string;
