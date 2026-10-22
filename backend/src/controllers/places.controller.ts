@@ -18,6 +18,10 @@ import {
 import { supabase } from "../libs/config/supabase";
 import { UserRole } from "../types/auth.types";
 import { getPlaceSummary } from "../services/analytics.service";
+import {
+  matchRetailAnchorHotelId,
+  getRetailAnchorForDate,
+} from "../services/retailAnchor.service";
 import { randomBytes, createHmac, createHash } from "crypto";
 
 // Secret a hotel enters (with its listing slug as the "Property ID") to connect
@@ -741,6 +745,79 @@ export async function getPlaceSummaryForOwner(req: Request, res: Response) {
   res.status(200).json({ data: redacted });
 }
 
+// Best-effort: link a DIRECT listing to its LiteAPI hotel by address so its
+// retail anchor can go live. Runs after create/update, never blocks the
+// response, and only when auto-matching is on and it isn't linked yet.
+export async function autoLinkRetailAnchor(placeId: string): Promise<void> {
+  try {
+    const place = await prisma.place.findUnique({
+      where: { id: placeId },
+      select: {
+        id: true,
+        city: true,
+        latitude: true,
+        longitude: true,
+        supplySource: true,
+        dynamicRetailEnabled: true,
+        retailAnchorHotelId: true,
+      },
+    });
+    if (
+      !place ||
+      place.supplySource !== "direct" ||
+      !place.dynamicRetailEnabled ||
+      place.retailAnchorHotelId
+    ) {
+      return;
+    }
+    const hotelId = await matchRetailAnchorHotelId(place);
+    if (hotelId) {
+      await prisma.place.update({
+        where: { id: placeId },
+        data: { retailAnchorHotelId: hotelId },
+      });
+      console.log(`[retail-anchor] linked ${placeId} -> ${hotelId}`);
+    }
+  } catch (err) {
+    console.warn("[retail-anchor] auto-link failed:", (err as Error).message);
+  }
+}
+
+// GET /api/places/:id/retail-quote?date=YYYY-MM-DD — a live per-date public
+// price for a direct listing (from its matched LiteAPI hotel), falling back to
+// the static retail price when there's no match/availability. Public.
+export async function getRetailQuote(req: Request, res: Response) {
+  const { id } = req.params;
+  const date = typeof req.query.date === "string" ? req.query.date : "";
+  const place = await prisma.place.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      retailPrice: true,
+      retailAnchorHotelId: true,
+      dynamicRetailEnabled: true,
+    },
+  });
+  if (!place) throw new CustomError("Place not found", 404);
+
+  let dynamic: number | null = null;
+  if (
+    place.dynamicRetailEnabled &&
+    place.retailAnchorHotelId &&
+    /^\d{4}-\d{2}-\d{2}$/.test(date)
+  ) {
+    dynamic = await getRetailAnchorForDate(place.retailAnchorHotelId, date);
+  }
+  res.set("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
+  res.status(200).json({
+    data: {
+      retailPrice: dynamic ?? Number(place.retailPrice),
+      isDynamic: dynamic != null,
+      staticRetailPrice: Number(place.retailPrice),
+    },
+  });
+}
+
 // Get public place by ID (for students - includes inventory status)
 export async function getPublicPlace(req: Request, res: Response) {
   res.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
@@ -931,6 +1008,7 @@ export async function createPlace(req: Request, res: Response) {
       minimumBidByDayOfWeek: threshold.minimumBidByDayOfWeek,
       dynamicPricingEnabled: data.dynamicPricingEnabled ?? true,
       commissionOnly: data.commissionOnly ?? true,
+      dynamicRetailEnabled: data.dynamicRetailEnabled ?? true,
       prospect: data.prospect ?? false,
       autoAcceptAboveMinimum: true,
       blackoutDates: data.blackoutDates ?? [],
@@ -971,6 +1049,10 @@ export async function createPlace(req: Request, res: Response) {
       placeCountry: place.country,
     });
   }
+
+  // Fire-and-forget: link to a LiteAPI hotel by address for a live retail
+  // anchor. Doesn't block the create response.
+  void autoLinkRetailAnchor(place.id);
 
   res.status(201).json({
     message: "Place created successfully",
@@ -1113,6 +1195,9 @@ export async function updatePlace(req: Request, res: Response) {
       ...(data.commissionOnly !== undefined && {
         commissionOnly: data.commissionOnly,
       }),
+      ...(data.dynamicRetailEnabled !== undefined && {
+        dynamicRetailEnabled: data.dynamicRetailEnabled,
+      }),
       ...(data.blackoutDates && { blackoutDates: data.blackoutDates }),
       ...(data.allowedDaysOfWeek && {
         allowedDaysOfWeek: data.allowedDaysOfWeek,
@@ -1183,6 +1268,9 @@ export async function updatePlace(req: Request, res: Response) {
       placeCountry: place.country,
     });
   }
+
+  // Try to (re)link the retail anchor by address if it isn't linked yet.
+  void autoLinkRetailAnchor(place.id);
 
   res.status(200).json({
     message: "Place updated successfully",

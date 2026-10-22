@@ -315,7 +315,24 @@ export function PlaceDetailPage() {
       ? liveQuote.bookNowPricePerNight +
         Math.ceil((liveQuote.payAtHotelNonTax ?? 0) / (liveQuote.nights ?? 1))
       : null;
-  const heroRetailPrice = liveRetailPerNight ?? place.retailPrice;
+  // Direct listings: a live, per-date public price from the hotel's matched
+  // LiteAPI (Nuitee) record — falls back to the static retail anchor.
+  const directRetailDate =
+    toApiDateOnly(bookingCheckIn) ?? searchParams.get("date") ?? undefined;
+  const { data: directRetail } = useApiQuery<{
+    retailPrice: number;
+    isDynamic: boolean;
+  }>({
+    queryKey: [...QUERY_KEYS.PLACE(placeId), "retail-quote", directRetailDate],
+    endpoint: `${ENDPOINTS.PLACE_RETAIL_QUOTE.replace(":id", placeId)}${
+      directRetailDate ? `?date=${directRetailDate}` : ""
+    }`,
+    enabled: !isWholesalePlace && !!placeId,
+  });
+  const directRetailPerNight =
+    !isWholesalePlace && directRetail?.isDynamic ? directRetail.retailPrice : null;
+  const heroRetailPrice =
+    liveRetailPerNight ?? directRetailPerNight ?? place.retailPrice;
   const retailTotal =
     bookingNights > 0
       ? liveQuote?.available && liveQuote.bookNowDisplayTotal && isWholesalePlace

@@ -48,6 +48,7 @@ export interface Place {
    * property. false = Model A / full-collection: the full amount is charged now.
    */
   commissionOnly?: boolean;
+  dynamicRetailEnabled?: boolean;
   /**
    * Channel (Cloudbeds) sync health, returned by the authenticated place-detail
    * endpoint. `channelConnected` is true once Cloudbeds has pushed availability
@@ -125,6 +126,7 @@ export interface CreatePlaceRequest {
   autoAcceptAboveMinimum: boolean;
   dynamicPricingEnabled?: boolean;
   commissionOnly?: boolean;
+  dynamicRetailEnabled?: boolean;
   prospect?: boolean;
   blackoutDates: string[];
   allowedDaysOfWeek: number[];
@@ -189,6 +191,7 @@ export interface CreatePlacePayload {
   autoAcceptAboveMinimum: boolean;
   dynamicPricingEnabled?: boolean;
   commissionOnly?: boolean;
+  dynamicRetailEnabled?: boolean;
   prospect?: boolean;
   blackoutDates: string[];
   allowedDaysOfWeek: number[];

@@ -121,6 +121,7 @@ export const useCreatePlace = () => {
         reservationPhone: data.reservationPhone,
         dynamicPricingEnabled: data.dynamicPricingEnabled,
         commissionOnly: data.commissionOnly,
+        dynamicRetailEnabled: data.dynamicRetailEnabled,
         verticalVideoUrl: data.verticalVideoUrl,
         neighborhoodGuideText: data.neighborhoodGuideText,
         neighborhoodGuideImageUrl: data.neighborhoodGuideImageUrl,

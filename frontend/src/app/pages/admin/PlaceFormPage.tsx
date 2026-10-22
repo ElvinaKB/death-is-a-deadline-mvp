@@ -187,6 +187,7 @@ export function PlaceFormPage() {
       autoAcceptAboveMinimum: true,
       dynamicPricingEnabled: existingPlace?.dynamicPricingEnabled ?? true,
       commissionOnly: existingPlace?.commissionOnly ?? true,
+      dynamicRetailEnabled: existingPlace?.dynamicRetailEnabled ?? true,
       status: existingPlace?.status || PlaceStatus.DRAFT,
     },
     enableReinitialize: true,
@@ -861,6 +862,23 @@ export function PlaceFormPage() {
                 checked={formik.values.dynamicPricingEnabled}
                 onCheckedChange={(checked) =>
                   formik.setFieldValue("dynamicPricingEnabled", checked)
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-4 p-4 border border-white/10 rounded-lg">
+              <div className="space-y-0.5 pr-2">
+                <Label className="text-fg">Dynamic retail anchor</Label>
+                <p className="text-sm text-muted">
+                  On: match this hotel to its live Nuitee rate by address and
+                  show a real, per-date public price as the &ldquo;retail&rdquo;
+                  anchor. Off (or no match): uses the fixed retail price above.
+                </p>
+              </div>
+              <Switch
+                checked={formik.values.dynamicRetailEnabled}
+                onCheckedChange={(checked) =>
+                  formik.setFieldValue("dynamicRetailEnabled", checked)
                 }
               />
             </div>
