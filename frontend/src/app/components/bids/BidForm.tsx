@@ -1361,6 +1361,24 @@ function BidFormInner({
     }
   }, [isAuthenticated, contextBidId, existingBidData?.bid]);
 
+  // While logged out, persist the picked dates as they change — not only when
+  // advancing the bid flow — so signing in (via the header or the CTA) and
+  // coming back restores them into the form.
+  useEffect(() => {
+    if (
+      !isAuthenticated &&
+      (formik.values.checkInDate || formik.values.checkOutDate)
+    ) {
+      saveBidFormToStorage(placeId, formik.values);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    isAuthenticated,
+    placeId,
+    formik.values.checkInDate,
+    formik.values.checkOutDate,
+  ]);
+
   const handleCheckInSelect = useCallback(
     (date: Date | undefined) => {
       formik.setFieldValue("checkInDate", date);
