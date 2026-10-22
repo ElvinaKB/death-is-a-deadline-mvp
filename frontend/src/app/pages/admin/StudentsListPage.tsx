@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useApiQuery, useApiMutation } from "../../../hooks/useApi";
+import { apiClient } from "../../../lib/apiClient";
 import { ENDPOINTS, getEndpoint } from "../../../config/endpoints.config";
 import { QUERY_KEYS } from "../../../config/queryKeys.config";
 import { ROUTES } from "../../../config/routes.config";
@@ -332,6 +333,8 @@ export function StudentsListPage() {
         </div>
       </div>
 
+      <ApprovedDomainsCard />
+
       <Tabs
         defaultValue="ALL"
         value={filter}
@@ -537,6 +540,101 @@ export function StudentsListPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+/** Company email domains whose people are approved instantly at sign-up. */
+function ApprovedDomainsCard() {
+  const queryClient = useQueryClient();
+  const { data } = useApiQuery<{
+    domains: { domain: string; label: string | null; createdAt: string }[];
+  }>({
+    queryKey: ["approved-domains"],
+    endpoint: ENDPOINTS.APPROVED_DOMAINS,
+  });
+  const [domain, setDomain] = useState("");
+  const [label, setLabel] = useState("");
+  const [busy, setBusy] = useState(false);
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["approved-domains"] });
+
+  const add = async () => {
+    if (!domain.trim()) return;
+    setBusy(true);
+    try {
+      await apiClient.post(ENDPOINTS.APPROVED_DOMAINS, { domain, label });
+      toast.success("Domain added — new sign-ups from it are approved instantly");
+      setDomain("");
+      setLabel("");
+      await refresh();
+    } catch (e) {
+      toast.error((e as Error).message || "Couldn't add domain");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async (d: string) => {
+    if (!window.confirm(`Stop auto-approving @${d}? Existing members keep their access.`)) return;
+    try {
+      await apiClient.delete(`${ENDPOINTS.APPROVED_DOMAINS}/${encodeURIComponent(d)}`);
+      await refresh();
+    } catch (e) {
+      toast.error((e as Error).message || "Couldn't remove domain");
+    }
+  };
+
+  const domains = data?.domains ?? [];
+  return (
+    <div className="rounded-xl border border-line bg-glass p-4 space-y-3">
+      <div>
+        <p className="font-semibold text-fg">Auto-approved company domains</p>
+        <p className="text-sm text-muted">
+          Anyone signing up with an email at these domains is approved instantly
+          (like .edu, .gov and LinkedIn). Exact domain only; free email
+          providers can&apos;t be added.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Input
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          placeholder="hawkemedia.com"
+          className="max-w-xs bg-glass border-line text-fg"
+          onKeyDown={(e) => e.key === "Enter" && void add()}
+        />
+        <Input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="Company (optional)"
+          className="max-w-xs bg-glass border-line text-fg"
+          onKeyDown={(e) => e.key === "Enter" && void add()}
+        />
+        <Button className="btn-bid" disabled={busy || !domain.trim()} onClick={() => void add()}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add domain
+        </Button>
+      </div>
+      {domains.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {domains.map((d) => (
+            <span
+              key={d.domain}
+              className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-sm text-fg"
+            >
+              @{d.domain}
+              {d.label && <span className="text-muted">· {d.label}</span>}
+              <button
+                type="button"
+                aria-label={`Remove ${d.domain}`}
+                className="text-muted hover:text-danger"
+                onClick={() => void remove(d.domain)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

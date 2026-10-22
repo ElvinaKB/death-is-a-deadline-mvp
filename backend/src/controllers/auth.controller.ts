@@ -35,14 +35,28 @@ const ACADEMIC_EMAIL_SUFFIXES = [".edu"];
 const GOV_EMAIL_SUFFIXES = [".gov"];
 const PARTNER_ORG_DOMAINS = ["hofoco.org", "safeplaceforyouth.org"];
 
-function isAutoVerifiedEmail(email: string): boolean {
-  const lower = email.toLowerCase();
+export async function isAutoVerifiedEmail(email: string): Promise<boolean> {
+  const lower = email.toLowerCase().trim();
   const domain = lower.split("@")[1] ?? "";
-  return (
+  if (
     ACADEMIC_EMAIL_SUFFIXES.some((suffix) => lower.endsWith(suffix)) ||
     GOV_EMAIL_SUFFIXES.some((suffix) => lower.endsWith(suffix)) ||
     PARTNER_ORG_DOMAINS.includes(domain)
-  );
+  ) {
+    return true;
+  }
+  // Company domains added from the admin (Travelers → Auto-approved domains).
+  if (!domain) return false;
+  const row = await prisma.approvedEmailDomain.findUnique({ where: { domain } });
+  return !!row;
+}
+
+/** Public: does this email skip ID upload? (signup form decides which UI to show) */
+export async function checkEmailAutoVerified(req: Request, res: Response) {
+  const email = typeof req.query.email === "string" ? req.query.email : "";
+  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && (await isAutoVerifiedEmail(email));
+  res.set("Cache-Control", "no-store");
+  res.status(200).json({ data: { autoVerified: ok } });
 }
 
 function escapeHtml(text: string): string {
@@ -250,7 +264,7 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
   // calling this endpoint directly (skipping the frontend's own domain
   // check) could get auto-approved with any email and no verification at
   // all, which is exactly how a bot got in tonight.
-  const emailQualifiesForInstantApproval = isAutoVerifiedEmail(email);
+  const emailQualifiesForInstantApproval = await isAutoVerifiedEmail(email);
   if (!emailQualifiesForInstantApproval && !studentIdUrl) {
     throw new CustomError(
       "Please upload a form of ID to verify your account, or sign up with a .edu, .gov, or approved email.",
@@ -563,12 +577,12 @@ export async function linkedinComplete(req: Request, res: Response) {
   const { error: metaError } = await supabase.auth.admin.updateUserById(
     userId,
     {
-      // Email ownership already proven via LinkedIn OAuth — skip Supabase's
-      // own confirmation email, but admin approval is still required.
+      // Email ownership and a real profile are proven via LinkedIn OAuth —
+      // approved instantly, like .edu / company domains (no admin review).
       email_confirm: true,
       user_metadata: {
         name,
-        approvalStatus: ApprovalStatus.PENDING,
+        approvalStatus: ApprovalStatus.APPROVED,
         linkedinProfileUrl,
         verifiedVia: "linkedin",
       },
@@ -581,24 +595,28 @@ export async function linkedinComplete(req: Request, res: Response) {
   }
 
   await sendEmail({
-    type: EmailType.ACCOUNT_REVIEW,
+    type: EmailType.ACCOUNT_APPROVED,
     to: email,
-    subject: "Your account is under review",
-    variables: { name, appName: "Deadline" },
-  });
+    subject: "You're in — welcome to Deadline",
+    variables: {
+      name,
+      appName: "Deadline",
+      loginUrl: `${process.env.CLIENT_URL}/login`,
+    },
+  }).catch((err) => console.error("[linkedin] welcome email failed:", err));
 
   await notifyAdminOfNewSignup({
     userId,
     email,
     name,
-    approvalStatus: ApprovalStatus.PENDING,
+    approvalStatus: ApprovalStatus.APPROVED,
     verifiedVia: "linkedin",
     linkedinProfileUrl,
   });
 
   res.status(201).json({
-    message: "Account created. Verify your LinkedIn profile to continue.",
-    data: { user: { approvalStatus: ApprovalStatus.PENDING } },
+    message: "Account created. You can log in now.",
+    data: { user: { approvalStatus: ApprovalStatus.APPROVED } },
   });
 }
 

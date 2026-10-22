@@ -173,8 +173,8 @@ export function LinkedInCallbackPage() {
                 Almost there
               </CardTitle>
               <CardDescription className="text-center text-muted">
-                LinkedIn verified {verified.email}. Set a password and share
-                your profile link for a quick manual review.
+                LinkedIn verified {verified.email}. Set a password and add
+                your profile link to finish.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -230,7 +230,7 @@ export function LinkedInCallbackPage() {
                   className="w-full btn-bid"
                   disabled={completeMutation.isPending}
                 >
-                  {completeMutation.isPending ? "Submitting..." : "Submit for review"}
+                  {completeMutation.isPending ? "Creating your account..." : "Create account"}
                 </Button>
               </form>
             </CardContent>
@@ -246,13 +246,13 @@ export function LinkedInCallbackPage() {
             <p className="text-muted">
               {isReferrerFlow.current
                 ? "Check your email to set your password (or, if you already had a Deadline account, just log in as usual — you'll see a Referrals tab now). Refer a hotel whenever you're ready."
-                : "Your LinkedIn profile is being manually reviewed. We'll email you once you're approved."}
+                : "You're verified through LinkedIn — log in to start bidding."}
             </p>
             <Link
-              to={ROUTES.HOME}
+              to={isReferrerFlow.current ? ROUTES.HOME : ROUTES.LOGIN}
               className="inline-block text-brand hover:underline font-medium"
             >
-              Back to marketplace
+              {isReferrerFlow.current ? "Back to marketplace" : "Log in"}
             </Link>
           </div>
         )}

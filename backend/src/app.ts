@@ -14,6 +14,7 @@ import { auditLogger } from "./libs/middlewares/auditLogger";
 import { rateLimit } from "./libs/middlewares/rateLimit";
 import { router as authRouter } from "./routers/auth.router";
 import { router as studentsRouter } from "./routers/students.router";
+import { router as approvedDomainsRouter } from "./routers/approvedDomains.router";
 import { router as placesRouter } from "./routers/places.router";
 import { router as bidsRouter } from "./routers/bids.router";
 import { router as paymentsRouter } from "./routers/payments.router";
@@ -97,6 +98,7 @@ app.use("/api", (req, res, next) => {
 // Routers
 app.use("/api/auth", authRouter);
 app.use("/api/students", studentsRouter);
+app.use("/api/approved-domains", approvedDomainsRouter);
 app.use("/api/places", placesRouter);
 app.use("/api/bids", bidsRouter);
 app.use("/api/payments", paymentsRouter);

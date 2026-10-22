@@ -21,6 +21,7 @@ import {
   linkedinCallback,
   linkedinComplete,
   createIdUploadUrl,
+  checkEmailAutoVerified,
 } from "../controllers/auth.controller";
 import { validate } from "../libs/middlewares/validate";
 import { rateLimit } from "../libs/middlewares/rateLimit";
@@ -31,6 +32,7 @@ const router = Router();
 // authenticated, so they're keyed by IP.
 const authRateLimit = rateLimit({ window: "5 m", max: 5, keyPrefix: "auth" });
 
+router.get("/email-auto-verified", checkEmailAutoVerified);
 router.post("/signup", authRateLimit, validate(signupSchema), signup);
 router.post(
   "/signup/hotel",
