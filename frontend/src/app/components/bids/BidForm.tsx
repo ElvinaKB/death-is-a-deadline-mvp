@@ -465,6 +465,8 @@ function BidFormInner({
   // Wholesale: member price revealed by the API after a few losing bids.
   const [revealedPricePerNight, setRevealedPricePerNight] = useState<number | null>(null);
   const [revealTriesLeft, setRevealTriesLeft] = useState<number | null>(null);
+  // What the hotel collects at check-in on top of the revealed price (stay total).
+  const [revealAtHotel, setRevealAtHotel] = useState<number | null>(null);
   // Wholesale: Nuitee payment session for a winning bid (Nuitee charges).
   const [nuiteeCheckout, setNuiteeCheckout] = useState<NuiteeCheckoutSession | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
@@ -1279,7 +1281,12 @@ function BidFormInner({
           // Wholesale: after a few misses the API reveals the member price —
           // fill it in so one more tap books the room.
           const lowBid = error.data as
-            | { revealedPricePerNight?: number; losingBids?: number; revealAfter?: number }
+            | {
+                revealedPricePerNight?: number;
+                losingBids?: number;
+                revealAfter?: number;
+                payAtHotel?: number;
+              }
             | undefined;
           const revealed = lowBid?.revealedPricePerNight;
           setRevealTriesLeft(
@@ -1288,6 +1295,7 @@ function BidFormInner({
               : null,
           );
           if (revealed) {
+            setRevealAtHotel(Number(lowBid?.payAtHotel ?? 0));
             setRevealedPricePerNight(revealed);
             void formik.setFieldValue("bidPerNight", String(revealed));
           }
@@ -1885,6 +1893,7 @@ function BidFormInner({
         isProcessingBid={isProcessing}
         paymentError={paymentError}
         revealedPricePerNight={revealedPricePerNight}
+        revealAtHotel={revealAtHotel}
         revealTriesLeft={revealTriesLeft}
         scrollToHeaderTrigger={
           shouldShowRejectedOutcome(bidResult!.bidStatus)

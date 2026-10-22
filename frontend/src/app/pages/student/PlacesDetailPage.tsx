@@ -502,7 +502,13 @@ export function PlaceDetailPage() {
             ) : (
               <BidForm
                 variant="listing"
-                place={place}
+                // Same retail the hero shows (live per-date when available),
+                // so the bid panel and lock-in don't quote a different number.
+                place={
+                  heroRetailPrice !== place.retailPrice
+                    ? { ...place, retailPrice: heroRetailPrice }
+                    : place
+                }
                 placeId={place.id}
                 contextBidId={contextBidId}
                 onDateChange={(date) => {
