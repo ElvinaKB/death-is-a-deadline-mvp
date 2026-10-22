@@ -611,9 +611,20 @@ export async function getPlace(req: Request, res: Response) {
     }
   }
 
+  // Channel (Cloudbeds/myallocator) connection health: when a property is
+  // connected and mapped, Cloudbeds pushes availability to us via ARIUpdate,
+  // which we store as PlaceChannelAvailability. Any rows => it's synced.
+  const channelAgg = await prisma.placeChannelAvailability.aggregate({
+    where: { placeId: id },
+    _count: { _all: true },
+    _max: { updatedAt: true },
+  });
+  const channelConnected = channelAgg._count._all > 0;
+  const lastChannelSyncAt = channelAgg._max.updatedAt;
+
   res.status(200).json({
     data: {
-      place: formatPlace(place),
+      place: { ...formatPlace(place), channelConnected, lastChannelSyncAt },
       // Credentials this property enters to connect the Deadline channel in
       // Cloudbeds. Only ever returned from this authenticated endpoint (admin
       // or the owning hotel) — never from public place responses.
