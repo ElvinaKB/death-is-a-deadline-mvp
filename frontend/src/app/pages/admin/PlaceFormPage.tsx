@@ -865,25 +865,16 @@ export function PlaceFormPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 border border-white/10 rounded-lg">
-              <div className="space-y-0.5 pr-4">
-                <Label className="text-fg">
-                  Commission-only (Model B — pay at property)
-                </Label>
-                <p className="text-sm text-muted">
-                  On: we charge the guest only our 7% booking fee; the hotel
-                  collects the room balance + taxes at check-in (Cloudbeds
-                  PaymentCollect &ldquo;Hotel&rdquo;). Use this for third-party
-                  hotels. Off: Deadline is merchant of record and charges the
-                  full stay up front (our own properties).
-                </p>
-              </div>
-              <Switch
-                checked={formik.values.commissionOnly}
-                onCheckedChange={(checked) =>
-                  formik.setFieldValue("commissionOnly", checked)
-                }
-              />
+            {/* Payment model is fixed: every Deadline listing is Model B
+                (commission-only). Read-only so it's clear, never toggleable. */}
+            <div className="p-4 border border-gold/30 rounded-lg bg-gold/5">
+              <Label className="text-fg">Payment model — Commission-only</Label>
+              <p className="text-sm text-muted mt-1">
+                We charge the guest our 7% booking fee at booking. The property
+                collects the remaining 93% of the room rate + applicable taxes
+                in person at check-in (Cloudbeds PaymentCollect
+                &ldquo;Hotel&rdquo;). This applies to every listing on Deadline.
+              </p>
             </div>
 
             {/* <div className="flex items-center justify-between p-4 border border-white/10 rounded-lg">
