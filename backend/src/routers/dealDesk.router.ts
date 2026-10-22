@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { authenticate } from "../libs/middlewares/authenticate";
 import { UserRole } from "../types/auth.types";
+import { requireCronSecret } from "../controllers/wholesale.controller";
 import {
   alternatives,
+  nearMissCron,
   hotel,
   logCall,
   queue,
@@ -11,6 +13,9 @@ import {
 } from "../controllers/dealDesk.controller";
 
 const router = Router();
+
+// Cron: near-miss email (shared cron secret, before the admin gate).
+router.post("/near-miss/cron", requireCronSecret, nearMissCron);
 
 // Admin only — member names/emails and internal price gaps.
 router.use(authenticate(UserRole.ADMIN));

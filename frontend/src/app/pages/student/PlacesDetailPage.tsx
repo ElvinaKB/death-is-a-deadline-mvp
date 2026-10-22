@@ -429,7 +429,7 @@ export function PlaceDetailPage() {
                 aria-label="Open photo gallery"
               >
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-                  {isWholesalePlace ? "Public price" : "Retail price"}
+                  Public price
                 </p>
                 <p className="font-sans font-bold tracking-tight tabular-nums text-3xl leading-tight text-fg sm:text-4xl md:text-5xl">
                   {formatCurrency(heroRetailPrice)}

@@ -1828,16 +1828,6 @@ function BidFormInner({
     if (i > 0) setBidStep(STEPS[i - 1]);
   };
 
-  const savingsPercent =
-    place.retailPrice && Number(formik.values.bidPerNight) > 0
-      ? Math.max(
-          0,
-          Math.round(
-            (1 - Number(formik.values.bidPerNight) / place.retailPrice) * 100,
-          ),
-        )
-      : 0;
-
   const renderContextBidPanel = (bid: Bid) => {
     if (shouldShowConfirmedOutcome(bid.status, bid.payment?.status)) {
       return (
@@ -2462,7 +2452,7 @@ function BidFormInner({
 
       <div className="rounded-lg border border-gold/25 bg-gold/5 px-3 py-2 text-center">
         <p className="text-xs text-muted uppercase tracking-wider mb-0.5">
-          {isWholesalePlace ? "Public price" : "Retail rate"}
+          Public price
         </p>
         <p className="retail-anchor-value">{formatCurrency(place.retailPrice)}</p>
         <p className="text-xs text-muted">/ night · anchor price</p>
@@ -2620,11 +2610,6 @@ function BidFormInner({
                 {formik.errors.bidPerNight}
               </p>
             )}
-            {savingsPercent > 0 && !isWholesalePlace && (
-              <p className="text-sm text-success">
-                {savingsPercent}% below retail · binding if accepted
-              </p>
-            )}
             {calculateTotalNights() > 0 &&
               Number(formik.values.bidPerNight) > 0 && (
                 <BidPriceBreakdown
@@ -2651,7 +2636,7 @@ function BidFormInner({
               </span>
             </div>
             <div className="flex justify-between text-muted">
-              <span>{isWholesalePlace ? "Public price" : "Retail rate"}</span>
+              <span>Public price</span>
               <span className="retail-anchor">
                 {formatCurrency(place.retailPrice)}/night
               </span>

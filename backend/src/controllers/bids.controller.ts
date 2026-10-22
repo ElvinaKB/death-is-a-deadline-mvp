@@ -687,7 +687,7 @@ export async function listBids(req: Request, res: Response) {
 
   // Deal desk outcomes ("Hotel said yes at $350") on the bids they were about.
   const dealCalls = await prisma.dealCall.findMany({
-    where: { bidId: { in: bids.map((b: any) => b.id) } },
+    where: { bidId: { in: bids.map((b: any) => b.id) }, outcome: { not: "EMAIL_ALERT" } },
     orderBy: { createdAt: "desc" },
     select: { bidId: true, outcome: true, amountPerNight: true },
   });
