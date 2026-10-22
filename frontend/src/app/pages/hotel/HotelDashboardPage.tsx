@@ -190,25 +190,6 @@ export function HotelDashboardPage() {
                     style={{ width: `${confirmedPct}%` }}
                   />
                   <div
-                    className="bg-warning transition-all duration-700"
-                    style={{
-                      width: `${
-                        stats?.totalConfirmed &&
-                        stats.totalConfirmed +
-                          stats.totalPendingBids +
-                          stats.totalRejected
-                          ? Math.round(
-                              (stats.totalPendingBids /
-                                (stats.totalConfirmed +
-                                  stats.totalPendingBids +
-                                  stats.totalRejected)) *
-                                100,
-                            )
-                          : 0
-                      }%`,
-                    }}
-                  />
-                  <div
                     className="bg-danger transition-all duration-700"
                     style={{
                       width: `${
@@ -239,13 +220,9 @@ export function HotelDashboardPage() {
                   color: "bg-success",
                   textColor: "text-success",
                 },
-                {
-                  label: "Pending Review",
-                  value: stats?.totalPendingBids ?? 0,
-                  icon: Clock,
-                  color: "bg-warning",
-                  textColor: "text-warning",
-                },
+                // "Pending Review" hidden until the deal-desk counteroffer flow
+                // is live — today PENDING just means an unfinished bid, which
+                // isn't actionable for a GM.
                 {
                   label: "Rejected",
                   value: stats?.totalRejected ?? 0,
