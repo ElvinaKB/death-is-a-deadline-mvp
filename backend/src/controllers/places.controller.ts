@@ -21,6 +21,7 @@ import { getPlaceSummary } from "../services/analytics.service";
 import {
   matchRetailAnchorHotelId,
   getRetailAnchorForDate,
+  getRetailAnchorsForDate,
   syncRetailAnchors,
 } from "../services/retailAnchor.service";
 import { randomBytes, createHmac, createHash } from "crypto";
@@ -595,6 +596,26 @@ export async function listPublicPlaces(req: Request, res: Response) {
     places = places.filter(
       (place) => !inventoryByPlace.get(place.id)?.isInventoryExhausted,
     );
+  }
+
+  // Partner hotels with a live retail anchor: cards show the same per-date
+  // public price as the hotel page (one batched rate lookup for the page).
+  if (date && source === "direct") {
+    const dateOnly = normalizeQueryDate(date);
+    const anchored = places.filter(
+      (p: any) => p.dynamicRetailEnabled && p.retailAnchorHotelId,
+    ) as any[];
+    if (anchored.length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
+      const live = await getRetailAnchorsForDate(
+        anchored.map((p) => p.retailAnchorHotelId as string),
+        dateOnly,
+      );
+      places = places.map((p: any) =>
+        p.retailAnchorHotelId && live.has(p.retailAnchorHotelId)
+          ? { ...p, retailPrice: live.get(p.retailAnchorHotelId)! }
+          : p,
+      );
+    }
   }
 
   // With `near`, total is the full match count (drives "Load more");

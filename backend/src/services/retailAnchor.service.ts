@@ -158,3 +158,26 @@ export async function getRetailAnchorForDate(
     return null;
   }
 }
+
+/** Several anchors at once (one rate call) — for the marketplace cards. */
+export async function getRetailAnchorsForDate(
+  hotelIds: string[],
+  date: string,
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (hotelIds.length === 0) return out;
+  const checkout = format(addDays(new Date(`${date}T12:00:00`), 1), "yyyy-MM-dd");
+  try {
+    const offers = await getCheapestOffers({
+      hotelIds: [...new Set(hotelIds)],
+      checkin: date,
+      checkout,
+    });
+    for (const [id, offer] of offers) {
+      if (offer.suggestedSellingPrice) out.set(id, Math.round(offer.suggestedSellingPrice));
+    }
+  } catch (err) {
+    console.warn("[retail-anchor] batch lookup failed:", (err as Error).message);
+  }
+  return out;
+}

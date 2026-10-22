@@ -274,7 +274,7 @@ export function BidOutcomePanel({
               : "Taxes and fees included — nothing extra at check-in."}
           </p>
           <p className="text-sm text-muted">
-            Three tries earns you the answer. Book it at this price, or keep bidding.
+            You earned the answer. Book it at this price, or keep bidding.
           </p>
           {onRebid && (
             <button
