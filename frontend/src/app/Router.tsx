@@ -1,5 +1,10 @@
-import { WholesaleBookingCompletePage } from "./pages/student/WholesaleBookingCompletePage";
-import { NoShowApprovePage } from "./pages/student/NoShowApprovePage";
+import { lazy, Suspense } from "react";
+const WholesaleBookingCompletePage = lazy(() =>
+  import("./pages/student/WholesaleBookingCompletePage").then((m) => ({ default: m.WholesaleBookingCompletePage })),
+);
+const NoShowApprovePage = lazy(() =>
+  import("./pages/student/NoShowApprovePage").then((m) => ({ default: m.NoShowApprovePage })),
+);
 import { Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { ROUTES, getRoute } from "../config/routes.config";
 import { UserRole } from "../types/auth.types";
@@ -8,24 +13,56 @@ import { UserRole } from "../types/auth.types";
 import { AdminLayout } from "./layouts/AdminLayout";
 import { StudentLayout } from "./layouts/StudentLayout";
 // Pages
-import { LoginPage } from "./pages/LoginPage";
-import { SignupPage } from "./pages/SignupPage";
-import { SignupSuccessPage } from "./pages/SignupSuccessPage";
-import { LinkedInCallbackPage } from "./pages/LinkedInCallbackPage";
-import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
-import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+const LoginPage = lazy(() =>
+  import("./pages/LoginPage").then((m) => ({ default: m.LoginPage })),
+);
+const SignupPage = lazy(() =>
+  import("./pages/SignupPage").then((m) => ({ default: m.SignupPage })),
+);
+const SignupSuccessPage = lazy(() =>
+  import("./pages/SignupSuccessPage").then((m) => ({ default: m.SignupSuccessPage })),
+);
+const LinkedInCallbackPage = lazy(() =>
+  import("./pages/LinkedInCallbackPage").then((m) => ({ default: m.LinkedInCallbackPage })),
+);
+const ForgotPasswordPage = lazy(() =>
+  import("./pages/ForgotPasswordPage").then((m) => ({ default: m.ForgotPasswordPage })),
+);
+const ResetPasswordPage = lazy(() =>
+  import("./pages/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })),
+);
 import { HomePage } from "./pages/HomePage";
-import { PlaceDetailPage as StudentPlacesDetailPage } from "./pages/student/PlacesDetailPage";
-import { MyBidsPage } from "./pages/student/MyBidsPage";
-import { AffiliatePortalPage } from "./pages/student/AffiliatePortalPage";
-import { CheckoutPage } from "./pages/student/CheckoutPage";
-import { ProfilePage } from "./pages/student/ProfilePage";
-import { ComingSoonPage } from "./pages/student/ComingSoonPage";
+const StudentPlacesDetailPage = lazy(() =>
+  import("./pages/student/PlacesDetailPage").then((m) => ({ default: m.PlaceDetailPage })),
+);
+const MyBidsPage = lazy(() =>
+  import("./pages/student/MyBidsPage").then((m) => ({ default: m.MyBidsPage })),
+);
+const AffiliatePortalPage = lazy(() =>
+  import("./pages/student/AffiliatePortalPage").then((m) => ({ default: m.AffiliatePortalPage })),
+);
+const CheckoutPage = lazy(() =>
+  import("./pages/student/CheckoutPage").then((m) => ({ default: m.CheckoutPage })),
+);
+const ProfilePage = lazy(() =>
+  import("./pages/student/ProfilePage").then((m) => ({ default: m.ProfilePage })),
+);
+const ComingSoonPage = lazy(() =>
+  import("./pages/student/ComingSoonPage").then((m) => ({ default: m.ComingSoonPage })),
+);
 import { Heart, Bookmark, CreditCard, UserPlus, Settings as SettingsIcon } from "lucide-react";
-import { HotelDashboardPage } from "./pages/hotel/HotelDashboardPage";
-import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
-import { StudentsListPage } from "./pages/admin/StudentsListPage";
-import { StudentDetailPage } from "./pages/admin/StudentDetailPage";
+const HotelDashboardPage = lazy(() =>
+  import("./pages/hotel/HotelDashboardPage").then((m) => ({ default: m.HotelDashboardPage })),
+);
+const AdminDashboardPage = lazy(() =>
+  import("./pages/admin/AdminDashboardPage").then((m) => ({ default: m.AdminDashboardPage })),
+);
+const StudentsListPage = lazy(() =>
+  import("./pages/admin/StudentsListPage").then((m) => ({ default: m.StudentsListPage })),
+);
+const StudentDetailPage = lazy(() =>
+  import("./pages/admin/StudentDetailPage").then((m) => ({ default: m.StudentDetailPage })),
+);
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { UnauthorizedPage } from "./pages/UnauthorizedPage";
 // Components
@@ -34,33 +71,85 @@ import { RedirectPage } from "./pages/RedirectPage";
 
 // AuthWrapper: redirect to protected base if already authenticated
 import { useAppSelector } from "../store/hooks";
-import { ResubmitPage } from "./pages/ResubmitPage";
-import { PlaceFormPage } from "./pages/admin/PlaceFormPage";
-import { PlacesListPage } from "./pages/admin/PlacesListPage";
-import { BidsListPage } from "./pages/admin/BidsListPage";
-import { DealDeskPage } from "./pages/admin/DealDeskPage";
-import { NewsletterSubscribersPage } from "./pages/admin/NewsletterSubscribersPage";
-import { HotelApplicationsPage } from "./pages/admin/HotelApplicationsPage";
-import { ReferralsPage } from "./pages/admin/ReferralsPage";
-import { WishlistTallyPage } from "./pages/admin/WishlistTallyPage";
-import { PlaceTestimonialsPage } from "./pages/admin/PlaceTestimonialsPage";
-import { PlaceDataPage } from "./pages/admin/PlaceDataPage";
-import { HotelBidsPage } from "./pages/hotel/HotelBidsListPage";
-import { HotelPlaceFormPage } from "./pages/hotel/HotelPlaceFormPage";
-import { HotelSignupPage } from "./pages/hotel/HotelSignupPage";
-import { HotelPlacesListPage } from "./pages/hotel/HotelPlaceListPage";
+const ResubmitPage = lazy(() =>
+  import("./pages/ResubmitPage").then((m) => ({ default: m.ResubmitPage })),
+);
+const PlaceFormPage = lazy(() =>
+  import("./pages/admin/PlaceFormPage").then((m) => ({ default: m.PlaceFormPage })),
+);
+const PlacesListPage = lazy(() =>
+  import("./pages/admin/PlacesListPage").then((m) => ({ default: m.PlacesListPage })),
+);
+const BidsListPage = lazy(() =>
+  import("./pages/admin/BidsListPage").then((m) => ({ default: m.BidsListPage })),
+);
+const DealDeskPage = lazy(() =>
+  import("./pages/admin/DealDeskPage").then((m) => ({ default: m.DealDeskPage })),
+);
+const NewsletterSubscribersPage = lazy(() =>
+  import("./pages/admin/NewsletterSubscribersPage").then((m) => ({ default: m.NewsletterSubscribersPage })),
+);
+const HotelApplicationsPage = lazy(() =>
+  import("./pages/admin/HotelApplicationsPage").then((m) => ({ default: m.HotelApplicationsPage })),
+);
+const ReferralsPage = lazy(() =>
+  import("./pages/admin/ReferralsPage").then((m) => ({ default: m.ReferralsPage })),
+);
+const WishlistTallyPage = lazy(() =>
+  import("./pages/admin/WishlistTallyPage").then((m) => ({ default: m.WishlistTallyPage })),
+);
+const PlaceTestimonialsPage = lazy(() =>
+  import("./pages/admin/PlaceTestimonialsPage").then((m) => ({ default: m.PlaceTestimonialsPage })),
+);
+const PlaceDataPage = lazy(() =>
+  import("./pages/admin/PlaceDataPage").then((m) => ({ default: m.PlaceDataPage })),
+);
+const HotelBidsPage = lazy(() =>
+  import("./pages/hotel/HotelBidsListPage").then((m) => ({ default: m.HotelBidsPage })),
+);
+const HotelPlaceFormPage = lazy(() =>
+  import("./pages/hotel/HotelPlaceFormPage").then((m) => ({ default: m.HotelPlaceFormPage })),
+);
+const HotelSignupPage = lazy(() =>
+  import("./pages/hotel/HotelSignupPage").then((m) => ({ default: m.HotelSignupPage })),
+);
+const HotelPlacesListPage = lazy(() =>
+  import("./pages/hotel/HotelPlaceListPage").then((m) => ({ default: m.HotelPlacesListPage })),
+);
 import { PublicLayout } from "./layouts/PublicLayout";
-import { TermsPage } from "./pages/legal/TermsPage";
-import { PrivacyPage } from "./pages/legal/PrivacyPage";
-import { AccessibilityPage } from "./pages/legal/AccessibilityPage";
-import { ContactPage } from "./pages/ContactPage";
-import { WaitlistPage } from "./pages/WaitlistPage";
-import { HotelsLandingPage } from "./pages/HotelsLandingPage";
-import { ReferralsLandingPage } from "./pages/ReferralsLandingPage";
-import { ReferralSignupPage } from "./pages/ReferralSignupPage";
-import { HowDeadlineWorksPage } from "./pages/HowDeadlineWorksPage";
-import { HotelsCloudbedsPage } from "./pages/HotelsCloudbedsPage";
-import { HotelJoinPage } from "./pages/HotelJoinPage";
+const TermsPage = lazy(() =>
+  import("./pages/legal/TermsPage").then((m) => ({ default: m.TermsPage })),
+);
+const PrivacyPage = lazy(() =>
+  import("./pages/legal/PrivacyPage").then((m) => ({ default: m.PrivacyPage })),
+);
+const AccessibilityPage = lazy(() =>
+  import("./pages/legal/AccessibilityPage").then((m) => ({ default: m.AccessibilityPage })),
+);
+const ContactPage = lazy(() =>
+  import("./pages/ContactPage").then((m) => ({ default: m.ContactPage })),
+);
+const WaitlistPage = lazy(() =>
+  import("./pages/WaitlistPage").then((m) => ({ default: m.WaitlistPage })),
+);
+const HotelsLandingPage = lazy(() =>
+  import("./pages/HotelsLandingPage").then((m) => ({ default: m.HotelsLandingPage })),
+);
+const ReferralsLandingPage = lazy(() =>
+  import("./pages/ReferralsLandingPage").then((m) => ({ default: m.ReferralsLandingPage })),
+);
+const ReferralSignupPage = lazy(() =>
+  import("./pages/ReferralSignupPage").then((m) => ({ default: m.ReferralSignupPage })),
+);
+const HowDeadlineWorksPage = lazy(() =>
+  import("./pages/HowDeadlineWorksPage").then((m) => ({ default: m.HowDeadlineWorksPage })),
+);
+const HotelsCloudbedsPage = lazy(() =>
+  import("./pages/HotelsCloudbedsPage").then((m) => ({ default: m.HotelsCloudbedsPage })),
+);
+const HotelJoinPage = lazy(() =>
+  import("./pages/HotelJoinPage").then((m) => ({ default: m.HotelJoinPage })),
+);
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 // Auth routes (redirect to protected base if already authenticated)
@@ -260,6 +349,9 @@ export function AppRouter() {
   useDocumentTitle();
 
   return (
+    // Pages other than the marketplace load on demand, keeping the first
+    // download small on phones.
+    <Suspense fallback={<div className="min-h-screen bg-bg" />}>
     <Routes>
       {/* Auth routes with wrapper */}
       {authRoutes.map(({ path, element }, idx) => (
@@ -311,5 +403,6 @@ export function AppRouter() {
         <Route key={"misc-" + idx} path={path} element={element} />
       ))}
     </Routes>
+    </Suspense>
   );
 }

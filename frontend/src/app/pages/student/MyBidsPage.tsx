@@ -1,4 +1,12 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import { apiClient } from "../../../lib/apiClient";
+import { ENDPOINTS, getEndpoint } from "../../../config/endpoints.config";
+import {
+  NuiteeCheckout,
+  type NuiteeCheckoutSession,
+} from "../../components/bids/NuiteeCheckout";
 import { ROUTES } from "../../../config/routes.config";
 import { getPublicPlaceUrl } from "../../../utils/placeUrl";
 import { useMyBids } from "../../../hooks/useBids";
@@ -84,9 +92,40 @@ const formatCurrency = (amount: number) =>
     currency: "USD",
   }).format(amount);
 
+// A win that's never paid is only a hold: show it for this long (with a
+// "finish booking" nudge), then drop it from the member's list. It stays in
+// admin as "Won, not paid".
+const UNPAID_HOLD_MINUTES = 30;
+
+function unpaidMinutesLeft(bid: { status: string; createdAt: string; payment?: { status: string } | null }) {
+  const paid = bid.payment?.status === "CAPTURED" || bid.payment?.status === "AUTHORIZED";
+  if (bid.status !== "ACCEPTED" || paid) return null;
+  const ageMin = (Date.now() - new Date(bid.createdAt).getTime()) / 60_000;
+  return Math.max(0, Math.ceil(UNPAID_HOLD_MINUTES - ageMin));
+}
+
 export function MyBidsPage() {
   const { data, isLoading } = useMyBids();
-  const bids = data?.bids || [];
+  const [checkout, setCheckout] = useState<{ session: NuiteeCheckoutSession; hotel: string } | null>(null);
+  const [opening, setOpening] = useState<string | null>(null);
+  const finishWholesale = async (bidId: string, hotel: string) => {
+    setOpening(bidId);
+    try {
+      const session = await apiClient.post<NuiteeCheckoutSession>(
+        getEndpoint(ENDPOINTS.WHOLESALE_CHECKOUT, { bidId }),
+        {},
+      );
+      setCheckout({ session, hotel });
+    } catch (e) {
+      toast.error(
+        (e as Error).message ||
+          "That room isn't available at this price anymore — try bidding again.",
+      );
+    } finally {
+      setOpening(null);
+    }
+  };
+  const bids = (data?.bids || []).filter((b) => unpaidMinutesLeft(b) !== 0);
 
   if (isLoading) {
     return (
@@ -144,6 +183,8 @@ export function MyBidsPage() {
                 paymentStatus === PaymentStatus.EXPIRED);
             const isPaymentCaptured = paymentStatus === "CAPTURED";
             const isPaymentCancelled = paymentStatus === "CANCELLED";
+            const holdMinutes = unpaidMinutesLeft(bid);
+            const isWholesale = bid.place?.supplySource === "wholesale";
 
             return (
               <Card key={bid.id} className="bg-glass-2 border-line">
@@ -164,7 +205,7 @@ export function MyBidsPage() {
                       <Badge
                         className={`text-xs ${bidStatusColors[bid.status] || ""}`}
                       >
-                        {bid.status}
+                        {holdMinutes != null ? "WON — NOT PAID YET" : bid.status}
                       </Badge>
                       {paymentConfig && (
                         <Badge className={`text-xs ${paymentConfig.color}`}>
@@ -214,7 +255,20 @@ export function MyBidsPage() {
 
                   {/* Action buttons */}
                   <div className="flex items-center gap-2 mt-4 flex-wrap">
-                    {canCheckout && (
+                    {holdMinutes != null && isWholesale && (
+                      <Button
+                        size="sm"
+                        className="btn-bid h-8 text-xs sm:text-sm"
+                        disabled={opening === bid.id}
+                        onClick={() => void finishWholesale(bid.id, bid.place?.name ?? "Hotel")}
+                      >
+                        <CreditCard className="w-3.5 h-3.5 mr-1" />
+                        {opening === bid.id
+                          ? "Opening…"
+                          : `Finish booking · ${holdMinutes} min left`}
+                      </Button>
+                    )}
+                    {canCheckout && !isWholesale && (
                       <Button
                         asChild
                         size="sm"
@@ -283,6 +337,13 @@ export function MyBidsPage() {
             );
           })}
         </div>
+      {checkout && (
+        <NuiteeCheckout
+          session={checkout.session}
+          hotelName={checkout.hotel}
+          onClose={() => setCheckout(null)}
+        />
+      )}
       </main>
     </div>
   );
