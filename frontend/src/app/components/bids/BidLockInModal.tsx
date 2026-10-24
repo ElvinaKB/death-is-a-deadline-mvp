@@ -61,7 +61,8 @@ export function BidLockInModal({
 }: BidLockInModalProps) {
   const [lockInSeconds, setLockInSeconds] = useState(LOCK_IN_DURATION_SECONDS);
   // Per-listing payment model (defaults to commission-only / Model B).
-  const commissionOnly = place.commissionOnly ?? true;
+  const commissionOnly =
+    place.supplySource !== "wholesale" && (place.commissionOnly ?? true);
 
   useEffect(() => {
     if (!open) {

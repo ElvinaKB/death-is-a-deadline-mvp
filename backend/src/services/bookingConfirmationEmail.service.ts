@@ -79,8 +79,12 @@ export async function sendBookingConfirmationEmails(
   };
 
   // Variables for the redesigned hotel (place) email — its own template names.
+  // Wholesale (Nuitee) rooms are charged in full by Nuitee at checkout — never
+  // the 7% booking-fee / pay-at-desk math.
+  const isWholesale = place.supplySource === "wholesale";
   // Per-listing payment model (falls back to the global default if unset).
-  const commissionOnly = place.commissionOnly ?? COMMISSION_ONLY;
+  const commissionOnly =
+    !isWholesale && (place.commissionOnly ?? COMMISSION_ONLY);
   const roomRateNum = Number(bid.totalAmount);
   const commissionNum = Math.round(roomRateNum * COMMISSION_RATE * 100) / 100;
   const guestCount = 1; // Deadline doesn't collect occupancy count yet.
@@ -141,12 +145,18 @@ export async function sendBookingConfirmationEmails(
                 ? Number(bid.payAtHotelAmount).toFixed(2)
                 : null,
             hotelConfirmationCode: bid.supplierConfirmationCode ?? null,
+            isWholesale,
+            // What Nuitee actually charged the card (can differ by cents from
+            // the bid total after Nuitee's rounding).
+            wholesaleCharged: Number(payment.amount).toFixed(2),
           },
         }).catch((error) =>
           console.error("Failed to send student confirmation email:", error),
         )
       : Promise.resolve(),
-    place.email
+    // Wholesale hotels hear from Nuitee, not us — our hotel email's
+    // 7% / pay-at-desk math doesn't apply, and they aren't our partners yet.
+    place.email && !isWholesale
       ? sendEmail({
           type: EmailType.BOOKING_CONFIRMED_PLACE,
           to: place.email,

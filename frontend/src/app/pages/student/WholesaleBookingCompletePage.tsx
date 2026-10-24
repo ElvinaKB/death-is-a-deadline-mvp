@@ -1,16 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { CheckCircle2, Loader2, AlertTriangle } from "lucide-react";
 import { apiClient } from "../../../lib/apiClient";
 import { ENDPOINTS, getEndpoint } from "../../../config/endpoints.config";
 import { ROUTES } from "../../../config/routes.config";
+import { getPublicPlaceUrl } from "../../../utils/placeUrl";
+import type { BidDetailResponse } from "../../../types/bid.types";
+import { AcceptedOutcomeSparkles } from "../../components/bids/AcceptedOutcomeSparkles";
 
 /**
  * Nuitee's payment form redirects here after the member pays. We confirm the
- * booking with Nuitee (safe to retry) and show the result.
+ * booking with Nuitee (safe to retry), then hand off to the hotel page's
+ * "You're All Set" receipt (confetti + what was paid and what's due at check-in).
  */
 export function WholesaleBookingCompletePage() {
   const { bidId = "" } = useParams<{ bidId: string }>();
+  const navigate = useNavigate();
   const started = useRef(false);
   const [state, setState] = useState<
     | { kind: "working" }
@@ -26,11 +31,24 @@ export function WholesaleBookingCompletePage() {
         getEndpoint(ENDPOINTS.WHOLESALE_CHECKOUT_COMPLETE, { bidId }),
         {},
       )
-      .then((r) => setState({ kind: "done", code: r.confirmationCode }))
+      .then(async (r) => {
+        try {
+          const { bid } = await apiClient.get<BidDetailResponse>(
+            getEndpoint(ENDPOINTS.BID_DETAIL, { id: bidId }),
+          );
+          if (bid.place?.slug) {
+            navigate(getPublicPlaceUrl(bid.place, { bidId }), { replace: true });
+            return;
+          }
+        } catch {
+          // Fall through to the simple confirmation below.
+        }
+        setState({ kind: "done", code: r.confirmationCode });
+      })
       .catch((e: { message?: string }) =>
         setState({ kind: "failed", message: e.message || "Something went wrong" }),
       );
-  }, [bidId]);
+  }, [bidId, navigate]);
 
   return (
     <div className="mx-auto max-w-xl px-4 py-16 text-center">
@@ -46,6 +64,7 @@ export function WholesaleBookingCompletePage() {
       )}
       {state.kind === "done" && (
         <>
+          <AcceptedOutcomeSparkles />
           <CheckCircle2 className="mx-auto h-14 w-14 text-success" />
           <h1 className="mt-6 text-3xl font-bold text-fg">You&apos;re booked!</h1>
           <p className="mt-2 text-base text-muted">

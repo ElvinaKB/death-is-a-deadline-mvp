@@ -61,6 +61,10 @@ export interface Bid {
   bidPerNight: number;
   totalNights: number;
   totalAmount: number;
+  /** Wholesale: fees + local taxes the hotel collects at check-in. */
+  payAtHotelAmount?: number;
+  /** Wholesale: the hotel's confirmation number from Nuitee. */
+  supplierConfirmationCode?: string | null;
   platformCommission: number | null;
   payableToHotel: number | null;
   payoutMethod: string | null;

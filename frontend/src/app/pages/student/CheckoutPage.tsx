@@ -300,7 +300,9 @@ export function CheckoutPage() {
   const bid = bidData?.bid;
   const existingPayment = paymentData?.payment;
   // Per-listing payment model (defaults to commission-only / Model B).
-  const commissionOnly = bid?.place?.commissionOnly ?? true;
+  const commissionOnly =
+    bid?.place?.supplySource !== "wholesale" &&
+    (bid?.place?.commissionOnly ?? true);
 
   const isPaymentComplete = (status: PaymentStatus) =>
     [
