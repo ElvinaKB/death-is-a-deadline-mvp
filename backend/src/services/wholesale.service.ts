@@ -893,6 +893,7 @@ export interface WholesaleCheckoutSession {
   currency: string;
   /** Collected by the hotel at check-in (resort fee, local taxes), not by us. */
   payAtHotel: number;
+  payAtHotelNonTax: number;
 }
 
 const BOOKABLE_PAYMENT_STATES = new Set<string>([
@@ -988,6 +989,9 @@ export async function startWholesaleCheckout(
     price: pb.price,
     currency: pb.currency,
     payAtHotel: Number(bid.payAtHotelAmount ?? 0),
+    // Mandatory non-tax hotel fee inside payAtHotel — shown inside the
+    // headline total (CA SB 478 / FTC); the rest is local taxes.
+    payAtHotelNonTax: Math.round(Number(offer.payAtHotelNonTax ?? 0) * 100) / 100,
   };
 }
 

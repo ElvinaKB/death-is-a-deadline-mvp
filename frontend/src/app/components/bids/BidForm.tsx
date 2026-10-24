@@ -472,6 +472,7 @@ function BidFormInner({
   const [revealFeePerNight, setRevealFeePerNight] = useState<number | null>(null);
   // Wholesale: Nuitee payment session for a winning bid (Nuitee charges).
   const [nuiteeCheckout, setNuiteeCheckout] = useState<NuiteeCheckoutSession | null>(null);
+  const [nuiteeCheckoutWon, setNuiteeCheckoutWon] = useState(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [cardNotice, setCardNotice] = useState<string | null>(null);
@@ -1130,6 +1131,12 @@ function BidFormInner({
           const session = await apiClient.post<NuiteeCheckoutSession>(
             getEndpoint(ENDPOINTS.WHOLESALE_CHECKOUT, { bidId: result.bid.id }),
             {},
+          );
+          // Won = beat the secret price below the public price (Book now
+          // bids the public price itself).
+          setNuiteeCheckoutWon(
+            !feeQuote?.bookNowPricePerNight ||
+              bidPerNightForResult < feeQuote.bookNowPricePerNight,
           );
           setNuiteeCheckout(session);
           // Leave the Not Accepted / reveal panel so the payment pop-up
@@ -2003,6 +2010,7 @@ function BidFormInner({
           <NuiteeCheckout
             session={nuiteeCheckout}
             hotelName={place.name}
+            won={nuiteeCheckoutWon}
             onClose={() => setNuiteeCheckout(null)}
           />
         )}
