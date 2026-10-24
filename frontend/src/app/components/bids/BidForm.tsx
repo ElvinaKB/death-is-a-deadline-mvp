@@ -431,12 +431,13 @@ function BidFormInner({
   const location = useLocation();
   const stripe = useStripe();
   const elements = useElements();
-  // Per-listing payment model (defaults to commission-only / Model B).
-  const commissionOnly = place.commissionOnly ?? true;
   // Wholesale (Nuitee) hotel: show the live member price + "Book now" above
   // the bid box; low bids still count, and the API reveals the price after a
   // few misses.
   const isWholesalePlace = place.supplySource === "wholesale";
+  // Per-listing payment model (defaults to commission-only / Model B).
+  // Wholesale rooms are paid in full at checkout, never a booking fee.
+  const commissionOnly = !isWholesalePlace && (place.commissionOnly ?? true);
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   const queryClient = useQueryClient();
   const createBid = useCreateBid();
@@ -1838,6 +1839,9 @@ function BidFormInner({
           checkOut={parseApiDate(bid.checkOutDate)!}
           bidPerNight={bid.bidPerNight}
           totalAmount={bid.totalAmount}
+          paidNow={bid.payment?.amount}
+          payAtHotel={bid.payAtHotelAmount}
+          confirmationCode={bid.supplierConfirmationCode}
           onTryAgain={handleTryAgain}
           onTryNewDates={handleTryAgain}
           onRebid={isAuthenticated ? handleRebid : undefined}

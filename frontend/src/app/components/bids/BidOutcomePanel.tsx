@@ -51,6 +51,12 @@ interface BidOutcomePanelProps {
   mandatoryFeeTotal?: number;
   /** Wholesale: misses left before the member price is revealed. */
   revealTriesLeft?: number | null;
+  /** Wholesale receipt: what Nuitee actually charged the card. */
+  paidNow?: number | null;
+  /** Wholesale receipt: fees + local taxes the hotel collects at check-in. */
+  payAtHotel?: number | null;
+  /** Wholesale receipt: the hotel's confirmation number. */
+  confirmationCode?: string | null;
 }
 
 export function BidOutcomePanel({
@@ -72,10 +78,17 @@ export function BidOutcomePanel({
   revealAtHotel,
   revealFeePerNight,
   mandatoryFeeTotal = 0,
+  paidNow,
+  payAtHotel,
+  confirmationCode,
 }: BidOutcomePanelProps) {
   const isBusy = isRebidding || isProcessingBid;
+  // Wholesale (Nuitee) rooms are paid in full at checkout — no booking fee.
+  const isWholesale = place.supplySource === "wholesale";
   // Per-listing payment model (defaults to commission-only / Model B).
-  const commissionOnly = place.commissionOnly ?? true;
+  const commissionOnly = !isWholesale && (place.commissionOnly ?? true);
+  const wholesalePaid = paidNow ?? totalAmount;
+  const wholesaleAtHotel = payAtHotel ?? mandatoryFeeTotal;
   const rejectedHeaderRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const user = useAppSelector((s) => s.auth.user);
@@ -171,7 +184,35 @@ export function BidOutcomePanel({
             <span>Your Bid</span>
             <span className="text-fg">{formatCurrency(bidPerNight)}/night</span>
           </div>
-          {commissionOnly ? (
+          {isWholesale ? (
+            <>
+              <div className="flex justify-between pt-1.5 border-t border-line/60 font-semibold text-fg text-base">
+                <span>Paid today (room)</span>
+                <span>{formatCurrencyCents(wholesalePaid)}</span>
+              </div>
+              {wholesaleAtHotel > 0 && (
+                <div className="flex justify-between text-muted">
+                  <span>Due at hotel at check-in</span>
+                  <span className="text-fg">
+                    {formatCurrencyCents(wholesaleAtHotel)}
+                  </span>
+                </div>
+              )}
+              <p className="text-xs text-muted">
+                {wholesaleAtHotel > 0
+                  ? "Hotel fees and local taxes, collected by the hotel. "
+                  : ""}
+                Charged by our booking partner Nuitée — your statement shows
+                Nuitée.
+              </p>
+              {confirmationCode && (
+                <div className="flex justify-between text-muted">
+                  <span>Hotel confirmation #</span>
+                  <span className="text-fg font-mono">{confirmationCode}</span>
+                </div>
+              )}
+            </>
+          ) : commissionOnly ? (
             <>
               <div className="flex justify-between pt-1.5 border-t border-line/60 font-semibold text-fg text-base">
                 <span>Paid today (booking fee)</span>
@@ -198,7 +239,11 @@ export function BidOutcomePanel({
             <span className="text-fg">Card charged</span>
           </div>
           <span className="text-xs font-medium text-emerald-400 border border-emerald-500/50 rounded px-2 py-0.5">
-            {commissionOnly ? formatCurrencyCents(commissionOf(totalAmount)) : "Paid"}
+            {isWholesale
+              ? formatCurrencyCents(wholesalePaid)
+              : commissionOnly
+                ? formatCurrencyCents(commissionOf(totalAmount))
+                : "Paid"}
           </span>
         </div>
 
