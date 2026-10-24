@@ -1340,13 +1340,36 @@ function BidFormInner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only on mount
 
+  // Viewing a booking's receipt (?bidId=): the page's public price must be for
+  // the booked dates, not the form's default dates (or the nightly snapshot).
+  // Memoized on the date strings so the same Date objects are reported each
+  // render (the parent's callback is inline; new Dates would loop setState).
+  const receiptBid = contextBidId ? (existingBidData?.bid ?? null) : null;
+  const receiptCheckIn = receiptBid?.checkInDate;
+  const receiptCheckOut = receiptBid?.checkOutDate;
+  const receiptDates = useMemo(
+    () =>
+      receiptCheckIn && receiptCheckOut
+        ? { checkIn: parseApiDate(receiptCheckIn), checkOut: parseApiDate(receiptCheckOut) }
+        : null,
+    [receiptCheckIn, receiptCheckOut],
+  );
   useEffect(() => {
     if (!onBookingDatesChange) return;
+    if (receiptDates) {
+      onBookingDatesChange(receiptDates.checkIn, receiptDates.checkOut);
+      return;
+    }
     onBookingDatesChange(
       formik.values.checkInDate,
       formik.values.checkOutDate,
     );
-  }, [formik.values.checkInDate, formik.values.checkOutDate, onBookingDatesChange]);
+  }, [
+    formik.values.checkInDate,
+    formik.values.checkOutDate,
+    onBookingDatesChange,
+    receiptDates,
+  ]);
 
   useEffect(() => {
     if (!isListing) return;
