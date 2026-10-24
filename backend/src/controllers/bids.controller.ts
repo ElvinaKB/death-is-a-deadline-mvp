@@ -45,7 +45,11 @@ import {
   WHOLESALE_CONFIG,
   WholesaleQuote,
 } from "../services/wholesale.service";
-import { cancelBooking, isLiteapiSandbox } from "../services/liteapi.service";
+import {
+  cancelBooking,
+  isLiteapiSandbox,
+  LiteapiError,
+} from "../services/liteapi.service";
 
 // Helper to format bid response
 const formatBid = (bid: any) => {
@@ -196,7 +200,18 @@ export async function createBid(req: Request, res: Response) {
         ErrorCode.PLACE_NOT_AVAILABLE,
       );
     }
-    wholesale = await getWholesaleQuote(place, checkInDate, checkOutDate);
+    try {
+      wholesale = await getWholesaleQuote(place, checkInDate, checkOutDate);
+    } catch (err) {
+      // Nuitee slow or down: a friendly retry, not a raw 500. Nothing is
+      // recorded or charged.
+      if (!(err instanceof LiteapiError)) throw err;
+      console.error("[bids] wholesale quote failed:", err.message);
+      throw new CustomError(
+        "We couldn't reach the hotel's live rates just now. Nothing was charged — please try your bid again in a moment.",
+        503,
+      );
+    }
     if (!wholesale) {
       throw new CustomError(
         "This hotel is sold out for your dates. Please try other dates or another hotel.",
