@@ -340,8 +340,16 @@ export function BidOutcomePanel({
               onClick={() => onRebid(revealedPricePerNight)}
               className="listing-card-bid-btn h-11 w-full rounded-lg text-sm uppercase"
             >
-              Book it — {formatCurrency(revealedPricePerNight + (revealFeePerNight ?? 0))}/night
-              {(revealFeePerNight ?? 0) > 0 ? " incl. fees" : ""}
+              {isBusy ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Holding your room…
+                </span>
+              ) : (
+                <>
+                  Book it — {formatCurrency(revealedPricePerNight + (revealFeePerNight ?? 0))}/night
+                  {(revealFeePerNight ?? 0) > 0 ? " incl. fees" : ""}
+                </>
+              )}
             </button>
           )}
         </div>

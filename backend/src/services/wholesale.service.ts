@@ -893,6 +893,7 @@ export interface WholesaleCheckoutSession {
   currency: string;
   /** Collected by the hotel at check-in (resort fee, local taxes), not by us. */
   payAtHotel: number;
+  payAtHotelNonTax: number;
 }
 
 const BOOKABLE_PAYMENT_STATES = new Set<string>([
@@ -920,10 +921,21 @@ export async function startWholesaleCheckout(
 
   const total = Number(bid.totalAmount);
   // Live cost at zero markup, then the markup that lands on the bid total.
-  const base = await getWholesaleQuote(bid.place, bid.checkInDate, bid.checkOutDate);
-  if (!base) throw new LiteapiError("Room no longer available", true);
+  // A bid priced in the last few minutes already has Nuitee's cost — reuse it
+  // and skip a round-trip (the prebook below still re-checks the real price).
+  const FRESH_COST_MS = 10 * 60_000;
+  let cost =
+    bid.supplierCost != null &&
+    Date.now() - bid.createdAt.getTime() < FRESH_COST_MS
+      ? Number(bid.supplierCost)
+      : null;
+  if (cost == null) {
+    const base = await getWholesaleQuote(bid.place, bid.checkInDate, bid.checkOutDate);
+    if (!base) throw new LiteapiError("Room no longer available", true);
+    cost = base.offer.cost;
+  }
   const floorPct = WHOLESALE_CONFIG.MARGIN * 100;
-  const pct = Math.floor(((total / base.offer.cost - 1) * 100) * 100) / 100;
+  const pct = Math.floor(((total / cost - 1) * 100) * 100) / 100;
   if (pct < floorPct - 0.01) {
     throw new LiteapiError("The hotel's price went up since your bid", true);
   }
@@ -988,6 +1000,9 @@ export async function startWholesaleCheckout(
     price: pb.price,
     currency: pb.currency,
     payAtHotel: Number(bid.payAtHotelAmount ?? 0),
+    // Mandatory non-tax hotel fee inside payAtHotel — shown inside the
+    // headline total (CA SB 478 / FTC); the rest is local taxes.
+    payAtHotelNonTax: Math.round(Number(offer.payAtHotelNonTax ?? 0) * 100) / 100,
   };
 }
 
