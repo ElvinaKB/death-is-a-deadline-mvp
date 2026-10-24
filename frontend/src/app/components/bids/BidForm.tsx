@@ -472,7 +472,11 @@ function BidFormInner({
   const [revealFeePerNight, setRevealFeePerNight] = useState<number | null>(null);
   // Wholesale: Nuitee payment session for a winning bid (Nuitee charges).
   const [nuiteeCheckout, setNuiteeCheckout] = useState<NuiteeCheckoutSession | null>(null);
+  // Won = beat the secret price below the public price (Book now bids the
+  // public price itself).
   const [nuiteeCheckoutWon, setNuiteeCheckoutWon] = useState(false);
+  const [nuiteeCheckoutOpen, setNuiteeCheckoutOpen] = useState(false);
+  const rebidInFlightRef = useRef(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [cardNotice, setCardNotice] = useState<string | null>(null);
@@ -1127,17 +1131,23 @@ function BidFormInner({
           result.status === BidStatus.ACCEPTED &&
           result.bid
         ) {
-          // Nuitee is merchant of record: open Nuitee's payment form.
-          const session = await apiClient.post<NuiteeCheckoutSession>(
-            getEndpoint(ENDPOINTS.WHOLESALE_CHECKOUT, { bidId: result.bid.id }),
-            {},
-          );
-          // Won = beat the secret price below the public price (Book now
-          // bids the public price itself).
+          // Nuitee is merchant of record: open the pop-up right away ("Holding
+          // your room…") while Nuitee prebooks, then show its payment form.
           setNuiteeCheckoutWon(
             !feeQuote?.bookNowPricePerNight ||
               bidPerNightForResult < feeQuote.bookNowPricePerNight,
           );
+          setNuiteeCheckoutOpen(true);
+          let session: NuiteeCheckoutSession;
+          try {
+            session = await apiClient.post<NuiteeCheckoutSession>(
+              getEndpoint(ENDPOINTS.WHOLESALE_CHECKOUT, { bidId: result.bid.id }),
+              {},
+            );
+          } catch (checkoutError) {
+            setNuiteeCheckoutOpen(false);
+            throw checkoutError;
+          }
           setNuiteeCheckout(session);
           // Leave the Not Accepted / reveal panel so the payment pop-up
           // (rendered with the bid form) actually shows.
@@ -1700,6 +1710,17 @@ function BidFormInner({
   };
 
   const handleRebid = async (newBidPerNight: number) => {
+    // Repeat taps while the first is still working would place extra bids.
+    if (rebidInFlightRef.current) return;
+    rebidInFlightRef.current = true;
+    try {
+      await rebid(newBidPerNight);
+    } finally {
+      rebidInFlightRef.current = false;
+    }
+  };
+
+  const rebid = async (newBidPerNight: number) => {
     setPaymentError(null);
     await formik.setFieldValue("bidPerNight", String(newBidPerNight));
     await formik.setFieldTouched("bidPerNight", true, false);
@@ -2006,12 +2027,15 @@ function BidFormInner({
 
     return (
       <>
-        {nuiteeCheckout && (
+        {(nuiteeCheckout || nuiteeCheckoutOpen) && (
           <NuiteeCheckout
             session={nuiteeCheckout}
             hotelName={place.name}
             won={nuiteeCheckoutWon}
-            onClose={() => setNuiteeCheckout(null)}
+            onClose={() => {
+              setNuiteeCheckout(null);
+              setNuiteeCheckoutOpen(false);
+            }}
           />
         )}
         <BidLockInModal

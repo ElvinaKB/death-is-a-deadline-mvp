@@ -26,7 +26,8 @@ export function NuiteeCheckout({
   onClose,
   won = false,
 }: {
-  session: NuiteeCheckoutSession;
+  /** null = still holding the room with Nuitee (pop-up opens right away). */
+  session: NuiteeCheckoutSession | null;
   hotelName: string;
   onClose: () => void;
   /** The member's bid beat the secret price (vs. Book now at the public price). */
@@ -34,18 +35,20 @@ export function NuiteeCheckout({
 }) {
   // CA SB 478 / FTC: the headline is the total incl. the mandatory hotel fee;
   // only government taxes may sit outside it.
-  const atHotel = session.payAtHotel ?? 0;
-  const hotelFee = Math.min(session.payAtHotelNonTax ?? 0, atHotel);
+  const atHotel = session?.payAtHotel ?? 0;
+  const hotelFee = Math.min(session?.payAtHotelNonTax ?? 0, atHotel);
   const localTaxes = Math.max(0, Math.round((atHotel - hotelFee) * 100) / 100);
-  const total = Math.round((session.price + hotelFee) * 100) / 100;
+  const total = Math.round(((session?.price ?? 0) + hotelFee) * 100) / 100;
   const [loaded, setLoaded] = useState(false);
   // Nuitee's form runs in its own isolated page (public/nuitee-pay.html) so the
   // site's Stripe.js can't interfere; the hash never leaves the browser.
-  const src = `/nuitee-pay.html#${new URLSearchParams({
-    sk: session.secretKey,
-    env: session.environment,
-    bid: session.bidId,
-  }).toString()}`;
+  const src = session
+    ? `/nuitee-pay.html#${new URLSearchParams({
+        sk: session.secretKey,
+        env: session.environment,
+        bid: session.bidId,
+      }).toString()}`
+    : null;
 
   // Lock page scroll while the checkout is open.
   useEffect(() => {
@@ -81,6 +84,14 @@ export function NuiteeCheckout({
           {won ? "You got the secret price!" : "Complete your booking"}
         </h2>
         <p className="mt-1 text-base text-muted">{hotelName}</p>
+        {!session ? (
+          <div className="mt-6 flex flex-col items-center gap-3 py-10 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-gold" />
+            <p className="text-base text-fg">Holding your room with the hotel…</p>
+            <p className="text-sm text-muted">This takes a few seconds.</p>
+          </div>
+        ) : (
+          <>
         <p className="mt-3 text-3xl font-bold text-fg">
           {formatCurrencyCents(total)}
           <span className="ml-1 text-base font-normal text-muted">
@@ -116,12 +127,14 @@ export function NuiteeCheckout({
           )}
           <iframe
             title="Secure payment by Nuitée"
-            src={src}
+            src={src ?? undefined}
             onLoad={() => setLoaded(true)}
             className="block h-[560px] w-full border-0"
             allow="payment *"
           />
         </div>
+          </>
+        )}
       </div>
     </div>,
     document.body,
