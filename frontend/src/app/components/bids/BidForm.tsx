@@ -1281,8 +1281,9 @@ function BidFormInner({
           });
           setRejectedScrollTrigger((n) => n + 1);
           trackEvent(ANALYTICS_EVENTS.REJECTED_BID, { place_id: placeId });
-          // Wholesale: after a few misses the API reveals the member price —
-          // fill it in so one more tap books the room.
+          // Wholesale: after a few misses the API reveals the member price.
+          // The bid box keeps the member's own bid (they raise it themselves);
+          // the reveal's "Book it" button books at the member price.
           const lowBid = error.data as
             | {
                 revealedPricePerNight?: number;
@@ -1307,7 +1308,6 @@ function BidFormInner({
               ),
             );
             setRevealedPricePerNight(revealed);
-            void formik.setFieldValue("bidPerNight", String(revealed));
           }
         } else if (isBidOverlapRejection(error)) {
           setPaymentError(
